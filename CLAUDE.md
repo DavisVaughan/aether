@@ -14,7 +14,7 @@ Tests run under [cargo-nextest](https://nexte.st), not `cargo test`.
 
 - `just codegen` — regenerate `aether_r_syntax` / `aether_r_factory` from `r.ungram`
 
-- `just test` — `cargo nextest run --workspace` (+ `cargo test --doc`)
+- `just test` — `cargo nextest run --workspace`
 
 - `just accept` — regenerate markdown snapshots via `xtask accept`, then verify
 

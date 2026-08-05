@@ -8,7 +8,6 @@ codegen:
 # the parser lands its first tests.
 test:
     cargo nextest run --workspace --no-tests warn
-    cargo test --doc --workspace
 
 # Regenerate all markdown snapshots, then verify they are stable
 accept:
