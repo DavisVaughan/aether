@@ -3,11 +3,8 @@ codegen:
     cargo run -p xtask_codegen -- grammar
 
 # Run the full test suite
-#
-# `--no-tests=warn` keeps an empty workspace from exiting non-zero. Drop it once
-# the parser lands its first tests.
 test:
-    cargo nextest run --workspace --no-tests warn
+    cargo nextest run --workspace
 
 # Regenerate all markdown snapshots, then verify they are stable
 accept:

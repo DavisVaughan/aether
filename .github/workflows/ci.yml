@@ -32,6 +32,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - uses: taiki-e/install-action@nextest
+      - uses: taiki-e/install-action@just
 
       - name: Check formatting
         run: cargo fmt --all --check
@@ -39,15 +40,17 @@ jobs:
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
 
-      # TODO!: `--no-tests=warn` keeps an empty workspace from exiting
-      # non-zero. Drop it once the parser lands its first tests.
       - name: Test
-        run: cargo nextest run --workspace --profile ci --no-tests warn
+        run: cargo nextest run --workspace --profile ci
 
-      # TODO!: Two freshness gates join this workflow later, once the code they
-      # check exists. Both must leave the tree clean:
+      # A PR can never land with stale generated code, because regenerating it
+      # here must produce no diff. `xtask::reformat()` shells out to `rustfmt`
+      # from the `stable` toolchain, which the runner image ships with.
+      - name: Codegen is up to date
+        run: just codegen && git diff --exit-code
+
+      # TODO!: One freshness gate joins this workflow later, once the code it
+      # checks exists. It must leave the tree clean:
       #
-      # - codegen, from Phase 2:
-      #     just codegen && git diff --exit-code
       # - snapshots, from Phase 6:
       #     cargo run -p xtask -- accept && git diff --exit-code
