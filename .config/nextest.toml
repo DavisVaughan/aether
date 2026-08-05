@@ -6,7 +6,5 @@ status-level = "fail"
 
 [profile.ci]
 inherits = "default"
-fail-fast = false
 retries = 0
-failure-output = "immediate-final"
 final-status-level = "slow"
