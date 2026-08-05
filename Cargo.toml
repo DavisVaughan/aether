@@ -1,7 +1,4 @@
 [workspace]
-# `crates/*` and `xtask/codegen` join in Phase 2, when the syntax layer is
-# vendored. A member that does not exist on disk is a hard error, so the list
-# grows as the crates do.
 members = ["xtask"]
 resolver = "2"
 
