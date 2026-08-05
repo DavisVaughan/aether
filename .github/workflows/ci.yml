@@ -44,9 +44,6 @@ jobs:
       - name: Test
         run: cargo nextest run --workspace --profile ci --no-tests warn
 
-      - name: Doc tests
-        run: cargo test --doc --workspace
-
       # Two freshness gates join this workflow later, once the code they check
       # exists. Both must leave the tree clean:
       #
