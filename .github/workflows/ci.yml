@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install rust toolchain (rust-toolchain.toml)
+        run: |
+          rustup toolchain install
+          rustup show
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - uses: taiki-e/install-action@nextest
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      # Deliberately no `--features oracle`: the default test run builds no C
+      # dependency and stays fast. The oracle is a local development aid.
+      #
+      # `--no-tests=warn` keeps an empty workspace from exiting non-zero. Drop
+      # it once the parser lands its first tests.
+      - name: Test
+        run: cargo nextest run --workspace --profile ci --no-tests warn
+
+      - name: Doc tests
+        run: cargo test --doc --workspace
+
+      # Two freshness gates join this workflow later, once the code they check
+      # exists. Both must leave the tree clean:
+      #
+      # - codegen, from Phase 2:
+      #     just codegen && git diff --exit-code
+      # - snapshots, from Phase 6:
+      #     cargo run -p xtask -- accept && git diff --exit-code

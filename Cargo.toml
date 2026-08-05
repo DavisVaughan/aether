@@ -1,0 +1,109 @@
+[workspace]
+# `crates/*` and `xtask/codegen` join in Phase 2, when the syntax layer is
+# vendored. A member that does not exist on disk is a hard error, so the list
+# grows as the crates do.
+members = ["xtask"]
+resolver = "2"
+
+[workspace.package]
+authors = ["Posit Software, PBC"]
+categories = ["development-tools"]
+edition = "2024"
+homepage = "https://github.com/posit-dev/aether"
+keywords = ["parser"]
+license = "MIT"
+publish = false
+repository = "https://github.com/posit-dev/aether"
+rust-version = "1.94"
+
+[workspace.dependencies]
+# Pinned to the same fork and rev as posit-dev/air. If aether and air disagree
+# on the rev, `RSyntaxNode` is a nominally different type in the two workspaces
+# and the swap-in becomes an ordeal.
+biome_console = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
+biome_diagnostics = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
+biome_parser = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
+biome_rowan = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
+biome_string_case = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
+biome_text_size = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
+biome_unicode_table = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
+biome_ungrammar = { path = "./crates/biome_ungrammar" }
+
+aether_r_factory = { path = "./crates/aether_r_factory" }
+aether_r_oracle = { path = "./crates/aether_r_oracle" }
+aether_r_parser = { path = "./crates/aether_r_parser" }
+aether_r_parser_tests = { path = "./crates/aether_r_parser_tests" }
+aether_r_syntax = { path = "./crates/aether_r_syntax" }
+aether_r_test_macros = { path = "./crates/aether_r_test_macros" }
+
+anyhow = "1.0.89"
+bitflags = "2.6"
+enumflags2 = "0.7"
+proc-macro2 = "1.0.86"
+quote = "1.0.37"
+rustc-hash = "2.1.0"
+serde = { version = "1.0.215", features = ["derive"] }
+similar = "2.6"
+tracing = { version = "0.1.40", default-features = false, features = ["std"] }
+unicode-ident = "1.0"
+# Only ever built under `--features oracle`. Deleted at swap-in.
+tree-sitter = "0.24.7"
+tree-sitter-r = { git = "https://github.com/r-lib/tree-sitter-r", rev = "d459b97a9a11dd81643ab674938bede2874663b0" }
+
+[workspace.lints.clippy]
+assigning_clones = "warn"
+cfg_not_test = "warn"
+checked_conversions = "warn"
+cloned_instead_of_copied = "warn"
+copy_iterator = "warn"
+dbg_macro = "warn"
+empty_drop = "warn"
+# Air spells this `empty_enum`, which clippy has since renamed
+empty_enums = "warn"
+empty_enum_variants_with_brackets = "warn"
+expl_impl_clone_on_copy = "warn"
+explicit_into_iter_loop = "warn"
+filter_map_next = "warn"
+flat_map_option = "warn"
+float_cmp_const = "warn"
+fn_params_excessive_bools = "warn"
+from_iter_instead_of_collect = "warn"
+get_unwrap = "warn"
+implicit_clone = "warn"
+implicit_hasher = "warn"
+index_refutable_slice = "warn"
+inefficient_to_string = "warn"
+invalid_upcast_comparisons = "warn"
+iter_filter_is_ok = "warn"
+iter_not_returning_iterator = "warn"
+large_stack_arrays = "warn"
+large_types_passed_by_value = "warn"
+lossy_float_literal = "warn"
+macro_use_imports = "warn"
+manual_is_variant_and = "warn"
+manual_ok_or = "warn"
+manual_string_new = "warn"
+map_flatten = "warn"
+map_unwrap_or = "warn"
+mismatching_type_param_order = "warn"
+mut_mut = "warn"
+naive_bytecount = "warn"
+needless_bitwise_bool = "warn"
+needless_for_each = "warn"
+no_effect_underscore_binding = "warn"
+option_as_ref_cloned = "warn"
+rc_buffer = "warn"
+rc_mutex = "warn"
+ref_binding_to_reference = "warn"
+ref_option_ref = "warn"
+rest_pat_in_fully_bound_structs = "warn"
+single_char_pattern = "warn"
+stable_sort_primitive = "warn"
+str_split_at_newline = "warn"
+string_lit_chars_any = "warn"
+unnecessary_box_returns = "warn"
+unnecessary_join = "warn"
+unnested_or_patterns = "warn"
+unreadable_literal = "warn"
+verbose_bit_mask = "warn"
+verbose_file_reads = "warn"

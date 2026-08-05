@@ -1,0 +1,19 @@
+[profile.default]
+# Report every failing corpus file in one run instead of stopping at the first.
+fail-fast = false
+# A parser test that takes 10s is looping. Warn, then kill.
+slow-timeout = { period = "10s", terminate-after = 3 }
+failure-output = "immediate-final"
+status-level = "fail"
+
+[profile.ci]
+inherits = "default"
+fail-fast = false
+# Parser tests are deterministic. A retry that turns a real failure green is
+# strictly harmful here.
+retries = 0
+failure-output = "immediate-final"
+final-status-level = "slow"
+
+[profile.ci.junit]
+path = "junit.xml"
