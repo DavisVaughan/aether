@@ -39,9 +39,6 @@ jobs:
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
 
-      # Deliberately no `--features oracle`: the default test run builds no C
-      # dependency and stays fast. The oracle is a local development aid.
-      #
       # `--no-tests=warn` keeps an empty workspace from exiting non-zero. Drop
       # it once the parser lands its first tests.
       - name: Test
