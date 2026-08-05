@@ -1,7 +1,6 @@
 # Regenerate `aether_r_syntax` and `aether_r_factory` from `r.ungram`
 codegen:
     cargo run -p xtask_codegen -- grammar
-    cargo fmt
 
 # Run the full test suite
 #
