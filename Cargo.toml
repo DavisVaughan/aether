@@ -14,9 +14,6 @@ repository = "https://github.com/posit-dev/aether"
 rust-version = "1.94"
 
 [workspace.dependencies]
-# Pinned to the same fork and rev as posit-dev/air. If aether and air disagree
-# on the rev, `RSyntaxNode` is a nominally different type in the two workspaces
-# and the swap-in becomes an ordeal.
 biome_console = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
 biome_diagnostics = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
 biome_parser = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
