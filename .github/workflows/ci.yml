@@ -39,8 +39,8 @@ jobs:
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
 
-      # `--no-tests=warn` keeps an empty workspace from exiting non-zero. Drop
-      # it once the parser lands its first tests.
+      # TODO!: `--no-tests=warn` keeps an empty workspace from exiting
+      # non-zero. Drop it once the parser lands its first tests.
       - name: Test
         run: cargo nextest run --workspace --profile ci --no-tests warn
 
