@@ -52,7 +52,6 @@ cloned_instead_of_copied = "warn"
 copy_iterator = "warn"
 dbg_macro = "warn"
 empty_drop = "warn"
-# Air spells this `empty_enum`, which clippy has since renamed
 empty_enums = "warn"
 empty_enum_variants_with_brackets = "warn"
 expl_impl_clone_on_copy = "warn"
