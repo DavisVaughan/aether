@@ -1,0 +1,10 @@
+[profile.default]
+fail-fast = false
+slow-timeout = { period = "10s", terminate-after = 3 }
+failure-output = "immediate-final"
+status-level = "fail"
+
+[profile.ci]
+inherits = "default"
+retries = 0
+final-status-level = "slow"
