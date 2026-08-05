@@ -44,8 +44,8 @@ jobs:
       - name: Test
         run: cargo nextest run --workspace --profile ci --no-tests warn
 
-      # Two freshness gates join this workflow later, once the code they check
-      # exists. Both must leave the tree clean:
+      # TODO!: Two freshness gates join this workflow later, once the code they
+      # check exists. Both must leave the tree clean:
       #
       # - codegen, from Phase 2:
       #     just codegen && git diff --exit-code
