@@ -63,13 +63,13 @@ to be wrong, raise it explicitly rather than quietly deviating.
 |---|---|
 | 1 | New standalone repo, `aether`. Swapped into air at the very end. All tests live in aether. |
 | 2 | Vendor `r.ungram` + the `xtask codegen` machinery into aether. Aether owns its syntax layer. |
-| 3 | Vendor `tree-sitter-r` **and** air's tree-sitter→Rowan conversion as a **differential oracle running in CI**. |
+| 3 | Vendor `tree-sitter-r` **and** air's tree-sitter→Rowan conversion as a differential oracle. **Local development tool, behind a Cargo feature, not run in CI**, and deleted outright at swap-in. |
 | 4 | Grammar deviations land **first**, so the parser targets the final tree shape from day one. |
 | 5 | Full Biome-style error recovery from the start: bogus nodes, `ParseRecoveryTokenSet`, rich `ParseDiagnostic`s. |
 | 6 | **Markdown snapshot harness for everything.** No Biome-style `tests/specs/**` + `.rast`. |
 | 7 | Imported-but-unsupported tests stay inert via a per-test `[pending]` marker; an unexpected pass is a hard failure. |
 | 8 | Lossless round-trip (`source == tree.to_string()`) asserted on every test. No fuzzing, no CRAN corpus run for now. |
-| 9 | Feature order: lexer → literals → binary/unary ops → calls & subsetting → functions → control flow → braces/semicolons → specials/pipes/raw strings → recovery polish → integration. |
+| 9 | Feature order runs lexer-first, then one construct per phase, ending with recovery polish and integration. The phase table in §4 is authoritative; this row records only that the order is settled, not what it is. |
 | 10 | Plan (and PRs) should be dense with real code, not prose sketches. |
 
 ---
@@ -153,23 +153,26 @@ rename, on the codegen side.
 Drop `formatter_crate_name` and `xtask/codegen/src/formatter.rs` from aether's
 copy; aether has no formatter crate and air keeps its own codegen for that.
 
-**What this costs at swap-in.** Air currently has ~hundreds of
-`use air_r_syntax::…` lines across `air_r_formatter`, `workspace`, `lsp`, and
-`comments`. Two ways to handle it, decided in Phase 14:
+**What this costs at swap-in: nothing, by decision.** Air currently has
+~hundreds of `use air_r_syntax::…` lines across `air_r_formatter`, `workspace`,
+`lsp`, and `comments`. **Settled with the owner:** none of them change. Air keeps
+writing `air_r_syntax` everywhere and Cargo maps the name to aether's crate:
 
-1. **Cargo package rename (recommended, zero-diff).** Air keeps writing
-   `air_r_syntax` everywhere; Cargo maps the name:
-   ```toml
-   air_r_syntax = { package = "aether_r_syntax", git = "https://github.com/posit-dev/aether", rev = "..." }
-   air_r_factory = { package = "aether_r_factory", git = "...", rev = "..." }
-   air_r_parser = { package = "aether_r_parser", git = "...", rev = "..." }
-   ```
-   The swap becomes a handful of `Cargo.toml` lines plus the formatter changes
-   the semicolon deviation forces, and nothing else.
-2. **Mechanical find-and-replace in air.** Honest but noisy; it buries the
-   substantive formatter diff under a thousand import changes. Prefer option 1
-   for the swap PR, and do the rename as a separate follow-up in air if the owner
-   wants the names to match.
+```toml
+air_r_syntax = { package = "aether_r_syntax", git = "https://github.com/posit-dev/aether", rev = "..." }
+air_r_factory = { package = "aether_r_factory", git = "...", rev = "..." }
+air_r_parser = { package = "aether_r_parser", git = "...", rev = "..." }
+```
+
+The swap PR is then a handful of `Cargo.toml` lines plus the formatter changes
+the semicolon deviation forces, and nothing else — which is the point: the
+substantive diff stays reviewable instead of being buried under a thousand import
+changes.
+
+This also means **aether's crate names are not a decision air has to live with**.
+If the owner later wants air's imports to say `aether_r_syntax` outright, that is
+a mechanical find-and-replace across air, landed separately once the swap is in
+(§12.3). Deferred, not rejected.
 
 ---
 
@@ -198,34 +201,38 @@ aether/
 │       └── src/                   # vendored codegen, unchanged
 └── crates/
     ├── biome_ungrammar/           # vendored from air, path dep
-    ├── aether_r_corpus/           # markdown harness: Document, check (§10.2)
     ├── aether_r_syntax/           # generated + hand-written ext traits
     ├── aether_r_factory/          # generated
     ├── aether_r_parser/           # THE NEW PARSER
-    │   ├── src/
-    │   │   ├── lib.rs
-    │   │   ├── parse.rs           # public `parse()` entry point
-    │   │   ├── options.rs
-    │   │   ├── diagnostics.rs     # expected_* diagnostic constructors
-    │   │   ├── token_source.rs    # RTokenSource
-    │   │   ├── parser.rs          # RParser + context flags
-    │   │   ├── lexer/
-    │   │   │   ├── mod.rs         # RLexer
-    │   │   │   └── tests.rs
-    │   │   └── syntax/
-    │   │       ├── mod.rs
-    │   │       ├── expr.rs        # Pratt loop, primary exprs
-    │   │       ├── call.rs        # call / subset / subset2 / arg lists
-    │   │       ├── function.rs    # function defs, lambdas, parameters
-    │   │       ├── control.rs     # if/else, for, while, repeat
-    │   │       ├── block.rs       # braced exprs, statement lists, semicolons
-    │   │       └── value.rs       # literals, strings, keywords-as-values
+    │   └── src/
+    │       ├── lib.rs
+    │       ├── parse.rs           # public `parse()` entry point
+    │       ├── options.rs
+    │       ├── diagnostics.rs     # expected_* diagnostic constructors
+    │       ├── token_source.rs    # RTokenSource
+    │       ├── parser.rs          # RParser + context flags
+    │       ├── lexer/
+    │       │   ├── mod.rs         # RLexer
+    │       │   └── tests.rs       # `#[cfg(test)]` over private lexer internals;
+    │       │                      #   stays here, see §10.2
+    │       └── syntax/
+    │           ├── mod.rs
+    │           ├── expr.rs        # Pratt loop, primary exprs
+    │           ├── call.rs        # call / subset / subset2 / arg lists
+    │           ├── function.rs    # function defs, lambdas, parameters
+    │           ├── control.rs     # if/else, for, while, repeat
+    │           ├── block.rs       # braced exprs, statement lists, semicolons
+    │           └── value.rs       # literals, strings, keywords-as-values
+    ├── aether_r_test_macros/      # proc-macro: `gen_corpus_tests!` (§10.2)
+    │   └── src/lib.rs             #   modelled on air's `tests_macros`
+    ├── aether_r_parser_tests/     # every corpus test, plus the harness that
+    │   ├── src/                   #   runs them. Depends on the parser; nothing
+    │   │   ├── document.rs        #   depends on it except `xtask`.
+    │   │   ├── check.rs           # run one test, produce its cells (§10.2)
+    │   │   └── runner.rs          # `run_file`: read-only compare; panics on
+    │   │                          #   mismatch, for use from a `#[test]`
     │   └── tests/
-    │       ├── main.rs            # harness entry
-    │       ├── harness/           # markdown snapshot machinery
-    │       │   ├── mod.rs
-    │       │   ├── document.rs    # parse/render the .md format
-    │       │   └── runner.rs
+    │       ├── main.rs            # globs corpus/**/*.md → crate::run_file
     │       ├── quick_test.rs      # scratchpad, #[ignore]d
     │       └── corpus/            # THE TESTS — see §10.3 for the full mapping
     │           ├── MANIFEST.toml   # every imported test name → its home file
@@ -288,7 +295,9 @@ the scaffolding.
 **Every phase from 7 onward ends with the same three steps:**
 1. Flip the `[pending]` markers off the corpus tests the feature enables.
 2. Regenerate snapshots, eyeball every changed cell.
-3. Confirm the oracle diff is clean for all non-`[deviation]` tests.
+3. Run `just oracle` and confirm the diff is clean for all non-`[deviation]`
+   tests. This is a deliberate local step — the oracle is feature-gated and CI
+   does not run it (§10.4.1).
 
 | Phase | Title | Deliverable |
 |---|---|---|
@@ -316,7 +325,7 @@ Create the workspace. Nothing R-specific yet.
 ```toml
 # Cargo.toml
 [workspace]
-members = ["crates/*", "xtask/codegen"]
+members = ["crates/*", "xtask", "xtask/codegen"]
 resolver = "2"
 
 [workspace.package]
@@ -338,24 +347,25 @@ biome_text_size     = { git = "https://github.com/lionel-/biome", rev = "a1296ea
 biome_unicode_table = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
 biome_ungrammar     = { path = "./crates/biome_ungrammar" }
 
-aether_r_corpus  = { path = "./crates/aether_r_corpus" }
-aether_r_factory = { path = "./crates/aether_r_factory" }
-aether_r_oracle  = { path = "./crates/aether_r_oracle" }
-aether_r_parser  = { path = "./crates/aether_r_parser" }
-aether_r_syntax  = { path = "./crates/aether_r_syntax" }
+aether_r_factory      = { path = "./crates/aether_r_factory" }
+aether_r_oracle       = { path = "./crates/aether_r_oracle" }   # optional, see §10.4.1
+aether_r_parser       = { path = "./crates/aether_r_parser" }
+aether_r_parser_tests = { path = "./crates/aether_r_parser_tests" }
+aether_r_syntax       = { path = "./crates/aether_r_syntax" }
+aether_r_test_macros  = { path = "./crates/aether_r_test_macros" }
 
 bitflags      = "2.6"
 enumflags2    = "0.7"
-proc-macro2   = "1.0"
-quote         = "1.0"
+proc-macro2   = "1.0"          # aether_r_test_macros only
+quote         = "1.0"          # aether_r_test_macros only
 rustc-hash    = "2.0"
 serde         = { version = "1.0", features = ["derive"] }
 similar       = "2.6"          # unified diffs in harness failure output
 tracing       = "0.1"
+# Only ever built under `--features oracle` (§10.4.1). Deleted at swap-in.
 tree-sitter   = "0.24.7"
 tree-sitter-r = { git = "https://github.com/r-lib/tree-sitter-r", rev = "d459b97a9a11dd81643ab674938bede2874663b0" }
 unicode-ident = "1.0"
-xtask         = { path = "./xtask" }
 
 [workspace.lints.rust]
 # copy air's [lints] block verbatim
@@ -379,10 +389,19 @@ accept:
     cargo run -p xtask -- accept
     cargo nextest run --workspace
 
+# Differential check against tree-sitter-r. Local only; CI does not run this,
+# and the whole crate is deleted at swap-in.
+oracle:
+    cargo nextest run -p aether_r_parser_tests --features oracle
+
 # Run the scratchpad in tests/quick_test.rs
 quick:
-    cargo nextest run -p aether_r_parser --run-ignored all -E 'test(quick_test)' --no-capture
+    cargo nextest run -p aether_r_parser_tests --run-ignored all -E 'test(quick_test)' --no-capture
 ```
+
+Note `just test` deliberately omits `--features oracle`: the default test run
+builds no C dependency and stays fast, and the oracle is invoked on purpose at the
+end of each phase.
 
 ### 5.1 nextest
 
@@ -451,6 +470,12 @@ turns a real failure green is strictly harmful here.
 
 That last job is worth calling out: it means a PR can never land with stale
 snapshot cells, because regenerating them on CI must produce no diff.
+
+**No oracle job, deliberately** (§10.4.1). `--features oracle` appears nowhere
+above, so CI never builds tree-sitter-r or its C toolchain. The oracle is a local
+development aid with a scheduled death; paying for it on every push, and keeping
+it green as a merge gate, would be spending real budget on a crate we plan to
+delete.
 
 **Done when:** the empty workspace builds, `cargo nextest run --workspace` runs
 (zero tests, exit 0), and CI is green.
@@ -658,7 +683,7 @@ from it — the union that lists it:
 and `r_kinds_src.rs`:
 
 ```diff
--        "R_BRACED_STATEMENTS",
+-        "R_BRACED_EXPRESSIONS",
 +        "R_BRACED_STATEMENTS",
 ```
 
@@ -691,15 +716,16 @@ need updating at swap time:
 - `RStatement::semicolon_token()` is the new hook the formatter uses to drop or
   rewrite semicolons.
 - Air's formatter rules that walk expressions directly gain one `.expression()`
-  hop and a `format_removed(semicolon)` (or `format_replaced` with a hard line,
-  per the owner's preference — flag it, don't decide it unilaterally).
+  hop and a `format_removed(semicolon)`. **Settled with the owner:** the
+  semicolon is removed and replaced by a hard line break, so `1;2` formats as two
+  lines. See §12.3 step 4 for the two comment-placement rules this forces.
 
-**Alternative if the owner rejects the wrapper:** keep semicolons as trivia but
-introduce a dedicated `TriviaPieceKind` — not possible, `TriviaPieceKind` is a
-Biome enum. Or emit `;` as a real token but keep a list of bare expressions and
-attach the `;` as a slot on each expression node — requires touching every
-expression node in the grammar. The wrapper is cleaner. Present it, note the
-formatter cost, and get a thumbs-up before writing code.
+**Two alternatives were considered and rejected.** Keeping semicolons as trivia
+under a dedicated `TriviaPieceKind` is not possible at all — `TriviaPieceKind` is
+a Biome enum and aether does not fork it. Emitting `;` as a real token while
+keeping a list of bare expressions, with the `;` as a slot on each expression
+node, works but requires touching every expression node in the grammar. The
+wrapper is cleaner and is what Phase 3 lands.
 
 ### 7.2 Extract operator RHS
 
@@ -732,10 +758,65 @@ required. The deviation is purely in the parser:
       │        ╰── Expected an identifier, a string, `...` or `..i` here.
   ```
 - `a$1`, `a$NA`, `a$NULL`, `a$TRUE`, `a$(b)`, `a${b}` → the RHS is present but not
-  a valid selector: wrap it in `R_BOGUS` and emit `expected_selector` with the
-  offending range labelled.
+  a valid selector: wrap it in a bogus node and emit `expected_selector` with the
+  offending range labelled. **Settled with the owner:** the bogus node consumes
+  exactly one atom — no postfix, no infix — so `a$1 + 2` still parses the `+`
+  normally. §11.4 has the full boundary table. The bogus node's kind is
+  `R_BOGUS_VALUE`, which requires a one-line grammar change — see §7.2.1.
 
 Same treatment for `@`, `::`, `:::`.
+
+#### 7.2.1 `AnyRSelector` needs a bogus variant
+
+Checked against air's generated code, and this does **not** work out of the box.
+`AnyRSelector` has no bogus variant:
+
+```rust
+// air/crates/air_r_syntax/src/generated/nodes.rs
+pub enum AnyRSelector {
+    RDotDotI(RDotDotI),
+    RDots(RDots),
+    RIdentifier(RIdentifier),
+    RStringValue(RStringValue),
+}
+```
+
+and the generated factory does not panic when the `right` slot fails to cast — it
+does something quieter and worse:
+
+```rust
+// air/crates/air_r_factory/src/generated/syntax_factory.rs, R_EXTRACT_EXPRESSION
+if current_element.is_some() {
+    return RawSyntaxNode::new(
+        R_EXTRACT_EXPRESSION.to_bogus(),
+        children.into_iter().map(Some),
+    );
+}
+```
+
+`to_bogus()` maps `R_EXTRACT_EXPRESSION` to `R_BOGUS_EXPRESSION`, so `a$1` would
+collapse the **whole** extract expression into a single bogus node rather than
+producing an `R_EXTRACT_EXPRESSION` with a bogus RHS. Round-trip still passes, so
+nothing in the harness would catch it; it would only show up by reading the
+snapshot.
+
+The fix is one line in `r.ungram`, landed in Phase 3 with the other grammar
+deviations:
+
+```diff
+ AnyRSelector =
+ 	RIdentifier
+ 	| RStringValue
+ 	| RDots
+ 	| RDotDotI
++	| RBogusValue
+```
+
+`RBogusValue` rather than a new kind: it already exists in `r_kinds_src.rs`,
+`AnyRValue` sets the precedent of a union carrying its matching bogus variant, and
+the four selector forms are value-shaped. No `RSyntaxKind` is added — only the
+union gains a variant, and `AnyRSelector::can_cast` starts accepting
+`R_BOGUS_VALUE`.
 
 This means `tests/snapshots/undefined/extract_expression_error.R` and
 `namespace_expression_error.R` become *error* tests in aether, and their corpus
@@ -749,23 +830,49 @@ difference from tree-sitter-r goes here with an example, the tree-sitter output,
 the aether output, and the rationale. The oracle reads nothing from this file, but
 reviewers will, and so will whoever updates air's formatter.
 
-Give it **two** headings. The first is aether's own deviations. The second,
+Give it **three** headings. The first is aether's own deviations. The second,
 *"tree-sitter-r vs. R"*, records places where tree-sitter-r already differs from R
 and aether follows tree-sitter for oracle agreement — see §8.4 for two concrete
-ones (`%foo` at EOF, and backslashes inside `%…%`). Keeping the categories apart
-matters: the first list is a set of choices we made and can revisit, the second is
-inherited behaviour we are deliberately not fixing yet.
+ones (`%foo` at EOF, and backslashes inside `%…%`). The third, *"Inherited from
+air"*, records air conventions aether copies without endorsing, so they are
+findable when the swap is done and snapshots can be regenerated in one deliberate
+pass. Keeping the categories apart matters: the first is a set of choices we made
+and can revisit, the second is upstream behaviour we are deliberately not fixing,
+and the third is a to-do with a natural date.
+
+Seed the third with the one entry we know of:
+
+> **Trivia attachment polarity.** Air attaches whitespace between two same-line
+> tokens as *leading* of the following token; Biome's own parsers attach it as
+> *trailing* of the preceding one. Air also makes the same
+> whitespace-before-a-newline trailing or leading depending on whether any token
+> follows later in the file (`1 + \n1` vs `1  \n `). Aether copies both, because
+> deviating would change every snapshot and every oracle comparison for no
+> user-visible gain — the formatter regenerates whitespace regardless, and
+> round-trip holds either way (§9.1).
+>
+> The JS-shaped simplification, if this is ever revisited, is `JsTokenSource`'s
+> whole body: `let mut trailing = !first;` and, in a single streaming pass,
+> `if kind.is_newline() { trailing = false; }` before pushing each piece. No gap
+> buffer, no one-piece lookahead, no `between_two_tokens`, and the three special
+> cases collapse — whitespace and comments are trailing of the preceding token
+> until a newline is seen, then leading. That is roughly forty lines shorter than
+> §9.1's loop and states in one sentence. The cost of adopting it is a
+> whole-corpus snapshot regeneration, which is cheap *after* the swap and
+> expensive before it, since it would mask exactly the drift the oracle is
+> watching for.
 
 Seed the first with:
 
 | # | Deviation | tree-sitter-r | aether |
 |---|---|---|---|
-| 1 | Semicolons | trivia, invisible | `SEMICOLON` token in `RStatement` |
+| 1 | Semicolons | trivia, invisible | `SEMICOLON` token in `RStatement`; formatter removes it and hard-breaks the line, so `1;2` → two lines |
 | 1b | Statement list | `R_EXPRESSION_LIST` of expressions | `R_STATEMENT_LIST` of `R_STATEMENT` |
 | 1c | Braces | `R_BRACED_EXPRESSIONS` | `R_BRACED_STATEMENTS` |
 | 2 | Extract RHS | `optional()`, silent | required, diagnostic + bogus |
 | 3 | Namespace RHS | `optional()`, silent | required, diagnostic + bogus |
 | 4 | Error recovery | whole-file bogus node | localized bogus nodes, tree still walkable |
+| 5 | `AnyRSelector` | 4 variants, no bogus | `RBogusValue` added, so a malformed RHS is contained in the `right` slot instead of collapsing the whole expression (§7.2.1) |
 
 **Done when:** `.ungram` and `r_kinds_src.rs` updated, `just codegen` run, generated
 code compiles, `docs/deviations.md` seeded, and the delta vs air's generated code is
@@ -811,8 +918,10 @@ pub trait LexerWithCheckpoint<'src>: Lexer<'src> {
 ```
 
 Implement both. `LexerWithCheckpoint` is what gives us `NthToken` lookahead for
-free via `BufferedLexer`, and we need lookahead in at least three places (`[[`
-disambiguation, `else` after newlines, argument-name detection).
+free via `BufferedLexer`. Note that `nth` lexes ahead in `RLexContext::default()`,
+so it is only meaningful for tokens whose lexing is context-free — it cannot be
+used to peek past a `STRING_OPEN`. That constraint is why §11.3 parses argument
+names optimistically rather than looking ahead for the `=`.
 
 ### 8.2 Skeleton
 
@@ -861,6 +970,10 @@ pub(crate) struct RLexer<'src> {
     current_kind: RSyntaxKind,
     current_start: TextSize,
     current_flags: TokenFlags,
+    /// Sticky across `next_token` calls: set by `consume_newline`, cleared only
+    /// once a *non-trivia* token has been stamped with it. This is what lets the
+    /// lexer report a preceding line break even though `NEWLINE` is a token in
+    /// its own right (§8.5), and it is exactly `biome_js_parser`'s mechanism.
     after_newline: bool,
     diagnostics: Vec<ParseDiagnostic>,
     /// Set when we emit `STRING_OPEN`; cleared after `STRING_CLOSE`.
@@ -888,7 +1001,19 @@ impl<'src> Lexer<'src> for RLexer<'src> {
             }
         };
 
+        // Stamp the flag AFTER lexing, so `lex_token` may set other flags first,
+        // and use `set` on the single bit rather than assigning the whole set.
+        self.current_flags
+            .set(TokenFlags::PRECEDING_LINE_BREAK, self.after_newline);
         self.current_kind = kind;
+
+        // The bit survives across trivia. `consume_newline` sets it; the WHITESPACE
+        // and COMMENT tokens that may follow leave it alone; the first non-trivia
+        // token consumes it. So `1\n  # c\n  + 2` reports the line break on `+`.
+        if !kind.is_trivia() {
+            self.after_newline = false;
+        }
+
         debug_assert!(self.current_start <= TextSize::from(self.position as u32));
         kind
     }
@@ -897,10 +1022,43 @@ impl<'src> Lexer<'src> for RLexer<'src> {
         self.current_flags.contains(TokenFlags::PRECEDING_LINE_BREAK)
     }
 
+    /// Overridden solely to maintain `after_newline`; the provided body cannot,
+    /// since it has no access to this type's fields. `biome_js_parser` overrides
+    /// it for exactly the same reason and with the same body.
+    ///
+    /// Inheriting the provided `consume_newline` also gets `\r\n` treated as a
+    /// single newline for free, which is what §8.5 requires.
+    fn consume_newline_or_whitespaces(&mut self) -> RSyntaxKind {
+        if self.consume_newline() {
+            self.after_newline = true;
+            NEWLINE
+        } else {
+            self.consume_whitespaces();
+            WHITESPACE
+        }
+    }
+
     fn has_unicode_escape(&self) -> bool { false } // R has none at token level
     // ... trivial accessors
 }
 ```
+
+Two obligations follow from that field, both easy to miss:
+
+- **`after_newline` is set by overriding `consume_newline_or_whitespaces`.** The
+  trait provides that method, but the provided body cannot set a field on the
+  concrete lexer, so JS overrides it to add one line and aether does the same.
+  Dispatch newline and whitespace through this single method (§8.3) rather than
+  splitting them: `consume_newline` is trait-provided, returns `bool` rather than
+  a kind, and already handles `\r\n` as one unit. If R's whitespace set turns out
+  to differ from the provided `consume_whitespaces`, override *that* — the
+  dispatch stays one arm either way.
+- **`checkpoint()` and `rewind()` must carry it.** `LexerCheckpoint` has a
+  dedicated `after_line_break: bool` field for exactly this, alongside
+  `current_flags`. The two are not redundant: `current_flags` records what was
+  stamped on the checkpointed token, while `after_line_break` is the sticky state
+  lexing resumes from. Restore both, or a rewind across a newline silently loses
+  the break.
 
 ### 8.3 `lex_token` dispatch
 
@@ -911,8 +1069,11 @@ comments — several of them exist specifically to fix filed bugs.
 fn lex_token(&mut self) -> RSyntaxKind {
     let byte = self.current_byte();
     match byte {
-        b'\n' | b'\r'          => self.consume_newline(),
-        b if is_r_whitespace(b)=> self.consume_whitespace(),
+        // One arm for both, as in `biome_js_parser`. The trait-provided
+        // `consume_newline` inside it already treats `\r\n` as a single newline
+        // (§8.5), and the override in §8.2 is what sets `after_newline`.
+        b'\n' | b'\r' | b'\t' | b' ' | b'\x0B' | b'\x0C'
+                               => self.consume_newline_or_whitespaces(),
         b'#'                   => self.consume_comment(),
 
         b'"'  => self.consume_string_open(RStringDelimiter::Double),
@@ -956,10 +1117,15 @@ is three chars and `<<` alone is not a token); `-` → `->` → `->>`; `:` → `
 **`[` and `[[`.** tree-sitter-r resolves these in the external scanner with a scope
 stack, because `x[[1]]` vs `x[ [1] ]` vs `x[[1], 2]` are genuinely ambiguous and
 issue #177 (`Unsupported Subset2 With ]] Over Multiple Lines`) is in the errors
-corpus. **Recommendation: lex `[` and `]` as single tokens only**, and let the
-*parser* decide whether two adjacent `[` form a `[[`, using a re-lex step. See
-§10.4 — this is the single most important design call in the lexer and the one
-most likely to be got wrong.
+corpus. **Aether lexes greedily: two adjacent brackets always produce a single
+`[[` or `]]` token.** The *parser* splits them back apart where the nesting
+demands it, via `p.re_lex(RReLexContext::SplitBrackets)` — the same technique
+Biome's JS parser uses for `>>` inside nested generics. Do not carry a scope
+stack in the lexer. There is exactly **one** split site — the argument list's
+terminator check, `ArgumentListEnd::split_and_check` — and §11.3 explains why it
+has to be there and nowhere else, with the `x[a[b]]` worked example. This is the
+single most important design call in the lexer and the one most likely to be got
+wrong.
 
 **Keywords.** `function for in while repeat if else next break TRUE FALSE NULL Inf
 NaN NA NA_integer_ NA_real_ NA_complex_ NA_character_`.
@@ -1015,24 +1181,13 @@ var` <- 1     # one identifier whose name contains a newline. Legal R.
 The `quoted` regex above permits this — its `[^`\\]` class includes `\n`, and the
 escape branch `\\(.|\n)` explicitly allows an escaped newline.
 
-R agrees, and its source says so out loud. Backticks are lexed by the *same*
-function as strings — `token()` dispatches `` ` `` to `StringValue(c, forSymbol=true)`
-— and that function contains:
+R agrees, and deliberately so. `token()` dispatches `` ` `` to
+`StringValue(c, forSymbol=true)` — the *same* function that lexes strings — and
+that function turns a newline into an escaped newline rather than an error, under
+a comment crediting Mark Bravington with the fix and showing the `return ERROR` it
+replaced (`src/main/gram.y`). Multiline support here was added on purpose.
 
-```c
-while ((c = xxgetc()) != R_EOF && c != quote) {
-    CTEXT_PUSH(c);
-    if (c == '\n') {
-        xxungetc(c); CTEXT_POP();
-        /* Fix suggested by Mark Bravington to allow multiline strings
-         * by pretending we've seen a backslash. Was:
-         * return ERROR;
-         */
-        c = '\\';
-    }
-```
-
-So multiline support here is deliberate and was added on purpose. It also means
+It also means
 **escapes and multiline behaviour are identical for backticks and strings**, since
 they share one implementation — which is the cleanest justification for
 `consume_backtick_identifier` and the string-body scanner sharing their escape
@@ -1069,35 +1224,18 @@ the identifier rule, or `identifier` swallows them.
 **Special.** `/%[^%\\\n]*%/` → `SPECIAL`. Covers `%%`, `%/%`, `%in%`, `%>%`.
 
 Unlike strings and backticks, **`%…%` may not span a newline**, confirmed in R's
-own lexer (`SpecialValue` in `src/main/gram.y`):
+own lexer (`SpecialValue`, `src/main/gram.y`). Two details there are worth copying
+rather than inventing:
 
-```c
-static int SpecialValue(int c)
-{
-    YYTEXT_PUSH(c, yyp);
-    while ((c = xxgetc()) != R_EOF && c != '%') {
-        if (c == '\n') {
-            xxungetc(c);
-            return ERROR;      // newline terminates with an error
-        }
-        YYTEXT_PUSH(c, yyp);
-    }
-    if (c == '%') YYTEXT_PUSH(c, yyp);
-    ...
-    return SPECIAL;
-}
-```
-
-Two details in there are worth copying rather than inventing:
-
-- **R ungets the newline.** So the error stays local: the newline is still
-  available to terminate the statement, and the next line parses normally. Aether
-  should do the same — on hitting a newline, stop *before* consuming it, emit
-  `unterminated_special`, and emit the partial `%foo` as a bogus token. Do not
-  scan to EOF the way an unterminated string must (§8.4); here the language gives
-  us a resynchronisation point, so use it.
-- **R accepts `%foo` at EOF.** The loop exits on `R_EOF`, the closing `%` is never
-  pushed, and it still returns `SPECIAL`. tree-sitter-r's regex requires the
+- **R ungets the newline** before returning its error, so the error stays local:
+  the newline is still available to terminate the statement and the next line
+  parses normally. Aether does the same — on hitting a newline, stop *before*
+  consuming it and emit `unterminated_special`, keeping the partial `%foo` as a
+  `SPECIAL` token with the diagnostic attached (§8.6). Do not scan to EOF the way
+  an unterminated string must (§8.4); here the language gives us a
+  resynchronisation point, so use it.
+- **R accepts `%foo` at EOF.** Its loop exits on `R_EOF` without ever seeing the
+  closing `%` and still returns `SPECIAL`. tree-sitter-r's regex requires the
   closing `%`, so it errors. **Follow tree-sitter**, since it is the oracle — but
   record the divergence.
 
@@ -1133,12 +1271,23 @@ information is available structurally: the parser knows whether it is inside
 scope stack in the lexer would duplicate that knowledge and is the classic source
 of desync bugs.
 
-So:
-- `RLexer` emits `NEWLINE` as its own kind.
-- `RTokenSource` reports `NEWLINE` (and `WHITESPACE`, `COMMENT`) as trivia and
-  sets `PRECEDING_LINE_BREAK` on the next real token.
-- `RParser` consults `p.has_preceding_line_break()` at the exactly four places R
-  cares (§10.3).
+So, with ownership stated once:
+- `RLexer` emits `NEWLINE` as its own kind, **and owns the preceding-line-break
+  flag**: it carries `after_newline` across calls and stamps
+  `PRECEDING_LINE_BREAK` onto the first non-trivia token that follows (§8.2).
+  This is verbatim what `biome_js_parser`'s lexer does for ASI.
+- `RTokenSource` reports `NEWLINE` (and `WHITESPACE`, `COMMENT`) as trivia. It
+  keeps **no** line-break state of its own and delegates the question to the
+  lexer, exactly as `JsTokenSource` does (§9.1).
+- `RParser` reads the flag only through `at_statement_break()` (§9.2), which
+  gates it on `IGNORE_NEWLINES`. That predicate has three callers: the Pratt loop
+  (§11.2), `parse_postfix` (§11.3), and `parse_else_clause` (§11.6). Nothing else
+  reads the raw flag.
+
+The division of labour is the same as JS's: the *lexer* answers "was there a line
+break here", which is a lexical fact, and the *parser* decides whether that fact
+means anything, which in JS is ASI and restricted productions and in R is
+statement termination and `else` attachment.
 
 `Trivia` kinds map as follows (matching air's current `parse.rs` behavior so the
 snapshots line up):
@@ -1201,9 +1350,15 @@ macro_rules! assert_lex {
 
 #[test] fn lex_special_stops_at_newline() {
     // R's `SpecialValue` ungets the newline and errors, so the NEWLINE token
-    // survives to terminate the statement. `%foo` becomes a bogus token.
+    // survives to terminate the statement.
+    //
+    // `%foo` is still emitted as SPECIAL, with an `unterminated_special`
+    // diagnostic attached — NOT as a bogus token. `r_kinds_src.rs` has no
+    // error-token kind (`R_BOGUS` is a *node*), and adding one would be a
+    // gratuitous divergence from air's kind list. The parser wraps the token in a
+    // bogus node if it cannot use it.
     assert_lex!("%foo\n1",
-        R_BOGUS:4, NEWLINE:1, R_DOUBLE_LITERAL:1);
+        SPECIAL:4, NEWLINE:1, R_DOUBLE_LITERAL:1);
     // …and a well-formed one is a single SPECIAL.
     assert_lex!("a %in% b",
         IDENT:1, WHITESPACE:1, SPECIAL:4, WHITESPACE:1, IDENT:1);
@@ -1250,58 +1405,134 @@ use biome_rowan::{TextRange, TriviaPieceKind};
 pub(crate) struct RTokenSource<'src> {
     lexer: BufferedLexer<RSyntaxKind, RLexer<'src>>,
     trivia: Vec<Trivia>,
-    preceding_line_break: bool,
 }
 
 impl<'src> RTokenSource<'src> {
     pub fn from_str(source: &'src str) -> Self {
         let lexer = BufferedLexer::new(RLexer::from_str(source));
-        let mut source = Self { lexer, trivia: Vec::new(), preceding_line_break: false };
+        let mut source = Self { lexer, trivia: Vec::new() };
         source.next_non_trivia_token(RLexContext::default(), true);
         source
     }
 
     fn next_non_trivia_token(&mut self, context: RLexContext, first: bool) {
-        let mut trailing = !first;
-        self.preceding_line_break = false;
+        // Buffer the gap before assigning positions: whether a whitespace piece
+        // is trailing depends on what FOLLOWS it, so it cannot be decided as it
+        // is lexed. This is the one place aether cannot copy `JsTokenSource`,
+        // whose default is the opposite of air's — see the rules below.
+        let mut gap: Vec<(TriviaPieceKind, TextRange)> = Vec::new();
 
-        loop {
+        let terminator = loop {
             let kind = self.lexer.next_token(context);
             let trivia_kind = match kind {
                 WHITESPACE => TriviaPieceKind::Whitespace,
                 NEWLINE    => TriviaPieceKind::Newline,
                 COMMENT    => TriviaPieceKind::SingleLineComment,
-                _ => break,
+                _ => break kind,
+            };
+            gap.push((trivia_kind, self.lexer.current_range()));
+        };
+
+        // Air's `between_two_tokens`: a real token before AND after. Before the
+        // first token, and in the final gap to EOF, everything is leading.
+        let between_two_tokens = !first && terminator != EOF;
+        let mut seen_newline = false;
+
+        for i in 0..gap.len() {
+            let (kind, range) = gap[i];
+            let next = gap.get(i + 1).map(|(k, _)| *k);
+
+            let trailing = if seen_newline {
+                // Everything from the newline onward leads the next token.
+                false
+            } else {
+                match kind {
+                    // A comment on the same line as the preceding token is
+                    // trailing of it. Air handles this in `handle_comment_leave`,
+                    // which does not see `between_two_tokens`'s end-of-file
+                    // reset, so it applies in the final gap too: `1 #` ends with
+                    // a *trailing* comment.
+                    TriviaPieceKind::SingleLineComment => !first,
+
+                    // Whitespace is trailing only when it is the tail of the
+                    // line: immediately before a same-line comment, or before
+                    // the newline that ends the line. Whitespace with a real
+                    // token after it on the same line is LEADING of that token —
+                    // `1 + 2` attaches the spaces to `+` and `2`, not to `1`.
+                    TriviaPieceKind::Whitespace => match next {
+                        Some(TriviaPieceKind::SingleLineComment) => !first,
+                        Some(TriviaPieceKind::Newline) => between_two_tokens,
+                        _ => false,
+                    },
+
+                    TriviaPieceKind::Newline => false,
+                    _ => false,
+                }
             };
 
-            // A comment or newline ends the "trailing trivia of the previous
-            // token" run; everything after belongs to the next token as leading.
-            if trivia_kind.is_newline() {
-                trailing = false;
-                self.preceding_line_break = true;
+            if kind.is_newline() {
+                seen_newline = true;
             }
-
-            self.trivia.push(Trivia::new(trivia_kind, self.lexer.current_range(), trailing));
-
-            if trivia_kind.is_single_line_comment() {
-                trailing = false;
-            }
+            self.trivia.push(Trivia::new(kind, range, trailing));
         }
     }
+}
+
+impl<'src> TokenSource for RTokenSource<'src> {
+    /// Delegate; keep no copy. `BufferedLexer` stores a `LexerCheckpoint` per
+    /// cached lookahead token and reads the flag off *that* when lookahead is
+    /// live, so delegation stays correct under `nth()`. A field maintained here
+    /// in `next_non_trivia_token` would not — it would describe whichever token
+    /// was last pulled through this function, not the current one.
+    ///
+    /// `JsTokenSource` is one line, and so is this.
+    fn has_preceding_line_break(&self) -> bool {
+        self.lexer.has_preceding_line_break()
+    }
+
+    // ... cur, cur_range, bump, skip_as_trivia, finish
 }
 ```
 
 **Trivia attachment must match air's existing rules exactly**, because a mismatch
-shows up in every snapshot. Air's `parse.rs` (see the comment block around line
-1139) states them as:
+shows up in every snapshot. The rules, read off air's `derive_trivia` and
+`handle_comment_leave` rather than paraphrased:
 
-> Between two tokens, all trivia is leading unless we see a newline. Everything up
-> to and including the last token on the same line is trailing of that token; the
-> newline and everything after is leading of the next token.
+- Before the first token, everything is **leading**. Same in the final gap
+  between the last token and EOF — except for comments, see below.
+- Between two real tokens, whitespace is **trailing only when it is the tail of
+  the line**: immediately before a same-line comment, or before the newline that
+  ends the line. Whitespace followed by a real token on the same line is
+  **leading** of that token.
+- A comment on the same line as the preceding token is **trailing** of it, along
+  with the whitespace before it. A comment after a newline is leading.
+- The newline itself, and everything after it, is **leading**. `\r\n` is one
+  piece.
 
-Port that logic literally, then let the oracle confirm it. Expect to spend real
-time here — trivia attachment is the highest-risk area for silent snapshot churn,
-and it is exactly the kind of thing the differential oracle exists to catch.
+**Note the polarity: air's default is leading, and `JsTokenSource`'s is trailing.**
+Copying JS here would put a diff in every snapshot that contains a space between
+two tokens, which is all of them. Air's choice is arguably the odd one — see the
+"Inherited from air" section of `docs/deviations.md` (§7.3) — but aether copies it
+so the oracle stays useful, and revisits it after the swap if at all.
+
+Air ships eight `test_parse_trivia_*` unit tests covering exactly these cases;
+port them verbatim into aether. They are the cheapest possible guard against the
+highest-risk drift in the project. The four that pin the rules above:
+
+| Input | Expected |
+|---|---|
+| `1 + \n1` | `ws` leading, `ws` trailing, `nl` |
+| `1 #` | `ws` trailing, `cmt` trailing |
+| `1  \n ` | `ws` leading, `nl`, `ws` leading |
+| `1 + \r\n1` | `ws` leading, `ws` trailing, `nl` spanning both bytes |
+
+The first and third are worth staring at: the same whitespace-before-a-newline is
+trailing in one and leading in the other, purely because a token follows in the
+first. That asymmetry is `between_two_tokens` in the loop above.
+
+Expect to spend real time here — trivia attachment is the highest-risk area for
+silent snapshot churn, and it is exactly the kind of thing the differential oracle
+exists to catch.
 
 Implement `BumpWithContext` (for string lexing) and `TokenSourceWithBufferedLexer`
 (which gives `NthToken` lookahead automatically).
@@ -1315,28 +1546,49 @@ use aether_r_syntax::RSyntaxKind;
 use biome_parser::diagnostic::merge_diagnostics;
 use biome_parser::event::Event;
 use biome_parser::prelude::*;
-use biome_parser::{ParserContext, ParserContextCheckpoint};
+use biome_parser::ParserContext;
 
 pub(crate) struct RParser<'src> {
     context: ParserContext<RSyntaxKind>,
     source: RTokenSource<'src>,
     options: RParserOptions,
-    /// Stack-discipline flags. See `RContextFlag`.
-    state: RParserState,
+    /// Stack-discipline context flags, saved and restored by `with_flags`.
+    ///
+    /// A bare field rather than a `state` struct: `biome_js_parser` has a
+    /// `JsParserState` because it aggregates seven heterogeneous things (label
+    /// sets, strict mode, duplicate-binding tracking, speculative-parsing
+    /// memoization). R has exactly one, and no candidates to grow into it —
+    /// there is no strict mode, no labelled `break`, and no backtracking at all
+    /// (§12.2). Reintroduce a wrapper if a second kind of state ever appears.
+    flags: RContextFlags,
 }
 
 bitflags::bitflags! {
-    /// Context that changes how newlines and certain tokens are interpreted.
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    /// Context that changes how newlines are interpreted. Both flags answer the
+    /// same question — "what does a line break mean here?" — and nothing else
+    /// belongs in this struct.
+    ///
+    /// **Polarity is deliberate: empty means top-level behaviour.** A forgotten
+    /// flag then produces a spurious statement break, which is a loud parse
+    /// error at the first multi-line call in the corpus. The inverse spelling
+    /// (`NEWLINE_SENSITIVE`) fails silently instead — `1\n+2` would quietly
+    /// become one expression rather than two statements, a wrong tree with no
+    /// diagnostic that the round-trip assertion does not catch either.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
     pub(crate) struct RContextFlags: u8 {
-        /// Inside `(`, `[`, or `[[`. Newlines carry no meaning here — R's parser
-        /// eats them, and so does tree-sitter-r's external scanner
+        /// Set inside `(`, `[`, or `[[`, where newlines carry no meaning — R's
+        /// parser eats them, and so does tree-sitter-r's external scanner
         /// (`consume_whitespace_and_ignored_newlines`).
-        const IN_PARENS       = 1 << 0;
-        /// Inside `{` or at top level. A newline here can terminate a statement.
-        const NEWLINE_SENSITIVE= 1 << 1;
-        /// Inside `{`. `else` on a following line is legal here but not at top level.
-        const IN_BRACES       = 1 << 2;
+        const IGNORE_NEWLINES           = 1 << 0;
+        /// Set inside `{`. R permits `else` on a line after the consequence only
+        /// within braces; at top level the newline ends the `if` and the `else`
+        /// is a syntax error.
+        ///
+        /// Named for what it licenses rather than for the `{` that sets it,
+        /// because it has exactly one reader (`parse_else_clause`). If a second
+        /// brace-specific rule ever appears, rename it back — one setter and one
+        /// reader make that a two-line change.
+        const ALLOW_NEWLINE_BEFORE_ELSE = 1 << 1;
     }
 }
 
@@ -1350,21 +1602,36 @@ impl<'src> Parser for RParser<'src> {
 }
 
 impl<'src> RParser<'src> {
-    /// Run `f` with `flags` set, restoring the previous flags afterwards.
+    /// Run `f` with `set` inserted and `clear` removed, restoring the previous
+    /// flags afterwards. `clear` is `empty()` at every call site but
+    /// `parse_braced_statements`, which is the one construct that re-enters
+    /// newline-significant territory from inside a paren.
     pub(crate) fn with_flags<F, R>(&mut self, set: RContextFlags, clear: RContextFlags, f: F) -> R
     where F: FnOnce(&mut Self) -> R {
-        let saved = self.state.flags;
-        self.state.flags.insert(set);
-        self.state.flags.remove(clear);
+        let saved = self.flags;
+        self.flags.insert(set);
+        self.flags.remove(clear);
         let result = f(self);
-        self.state.flags = saved;
+        self.flags = saved;
         result
+    }
+
+    /// True when a newline before an `else` is tolerated because we are inside
+    /// braces. The only reader is `parse_else_clause` (§11.6); everything else
+    /// asks `at_statement_break()`. An accessor rather than a public field, so
+    /// that "exactly one reader" is enforced by privacy rather than by hope.
+    pub(crate) fn allows_newline_before_else(&self) -> bool {
+        self.flags.contains(RContextFlags::ALLOW_NEWLINE_BEFORE_ELSE)
     }
 
     /// True when a newline before the current token should end the current
     /// expression. False inside `(`/`[`/`[[`.
+    ///
+    /// The single predicate for newline significance. Both newline rules in the
+    /// language — statement termination and `else` attachment — funnel through
+    /// it; nothing else should read `IGNORE_NEWLINES` directly.
     pub(crate) fn at_statement_break(&self) -> bool {
-        self.state.flags.contains(RContextFlags::NEWLINE_SENSITIVE)
+        !self.flags.contains(RContextFlags::IGNORE_NEWLINES)
             && self.has_preceding_line_break()
     }
 
@@ -1383,7 +1650,10 @@ Air's `Parse` struct must keep working, since air's `workspace`, `lsp`, and
 `air_r_formatter` crates all consume it. But air's version holds
 `error: Option<ParseError>` (a single string), which is no longer enough.
 
-**Recommendation:** keep `Parse` with the same method names and add diagnostics:
+**The shape:** `Parse` keeps its existing method names, and gains diagnostics.
+Preserving the names is what makes §12.3 step 3 true — air builds after the swap
+with no `.rs` change outside the formatter — so it is a constraint, not a
+preference.
 
 ```rust
 // crates/aether_r_parser/src/parse.rs
@@ -1400,7 +1670,9 @@ impl Parse {
 
     /// Back-compat with air's current API. Collapses diagnostics to one error.
     pub fn error(&self) -> Option<ParseError> { /* first error, formatted */ }
-    pub fn into_result(self) -> Result<RSyntaxNode, ParseError> { /* unchanged */ }
+    /// Signature unchanged for air's callers; the body now formats the first
+    /// error diagnostic instead of reading a stored `ParseError`.
+    pub fn into_result(self) -> Result<RSyntaxNode, ParseError> { ... }
 }
 
 impl From<Parse> for AnyParse {
@@ -1467,8 +1739,24 @@ pub(crate) fn expected_selector(
         })
 }
 
+/// The whole `(…)` group is missing — `function 1`.
+pub(crate) fn expected_parameters(p: &RParser, range: TextRange) -> ParseDiagnostic { ... }
+/// A hole in the parameter list — `function(a,,b)`, which R rejects even though
+/// the same shape is legal in an argument list (§11.3).
 pub(crate) fn expected_parameter(p: &RParser, range: TextRange) -> ParseDiagnostic { ... }
 pub(crate) fn expected_argument(p: &RParser, range: TextRange) -> ParseDiagnostic { ... }
+/// Two expressions with nothing between them: `1 2`. R separates statements by a
+/// newline or a `;` and accepts nothing else. `previous` labels the expression
+/// that already ended, so the message can say where the separator was expected.
+///
+/// The argument-list analogue (`f(a b)`) is a DIFFERENT rule enforced elsewhere,
+/// by `expect(T![,])` in `parse_argument_list` (§11.3) — same shape of mistake,
+/// different separator, different wording.
+pub(crate) fn expected_statement_separator(
+    p: &RParser,
+    previous: TextRange,
+    range: TextRange,
+) -> ParseDiagnostic { ... }
 pub(crate) fn expected_condition(p: &RParser, range: TextRange) -> ParseDiagnostic { ... }
 // Backtick-quoted names are identifiers, not strings — separate wording.
 // Takes two ranges: the opening delimiter (primary) and EOF (detail). See §8.4.
@@ -1483,8 +1771,11 @@ Every diagnostic constructor should be a named function here, never an inline
 to review the full diagnostic surface in one file.
 
 **Done when:** `parse("")` produces `R_ROOT` containing an empty
-`R_STATEMENT_LIST` and an `EOF` token, and `parse("   \n# hi\n")` attaches the
-whitespace and comment as trivia on `EOF` with no diagnostics.
+`R_STATEMENT_LIST` and an `EOF` token, `parse("   \n# hi\n")` attaches the
+whitespace and comment as trivia on `EOF` with no diagnostics, and air's eight
+`test_parse_trivia_*` unit tests are ported and passing against `RTokenSource`
+(§9.1). Do not defer that last one to a later phase — every snapshot in the
+project is downstream of it.
 
 ---
 
@@ -1632,7 +1923,7 @@ is the only place they are edited.
 | Marker | Meaning |
 |---|---|
 | *(none)* | Must parse with **zero** diagnostics. Fails if any diagnostic is emitted. |
-| `[pending]` | Feature not implemented yet. Harness asserts it does **not** parse cleanly. **An unexpected clean parse is a hard failure.** The snapshot carries only `*Not yet supported.*` in place of the generated cells. |
+| `[pending]` | Feature not implemented yet. Harness asserts it does **not** parse cleanly. **An unexpected clean parse is a hard failure.** The snapshot carries only `*Not yet supported.*` in place of the generated cells. Round-trip still applies (§10.2) — a pending test may fail to parse, but must never lose a token. |
 | `[error]` | Must produce at least one error diagnostic. Fails if it parses cleanly. |
 | `[deviation]` | Excluded from the tree-sitter oracle comparison. Orthogonal to the others — combine as `[error, deviation]`. |
 
@@ -1654,7 +1945,7 @@ until the snapshot is regenerated, rather than being silently untested.
 ### 10.2 Harness implementation
 
 ```rust
-// crates/aether_r_corpus/src/document.rs
+// crates/aether_r_parser_tests/src/document.rs
 #[derive(Debug)]
 pub struct Document {
     pub tests: Vec<TestCase>,
@@ -1696,9 +1987,15 @@ markdown crate; you need
 byte-exact round-tripping of headings and cells, which general markdown parsers do
 not give you.
 
-`Document` and `check` live in `crates/aether_r_corpus/`, a small library that both
-the test harness and `xtask` depend on. Keeping it out of `aether_r_parser`'s
-`tests/` means `xtask` does not have to pull in that crate's dev-dependencies.
+`Document`, `check`, and `run_file` live in `crates/aether_r_parser_tests/src/`,
+together with the corpus itself in that crate's `tests/`. The crate depends on
+`aether_r_parser`; nothing depends on it except `xtask`, so the graph stays
+acyclic and `aether_r_parser` ships to air with no test-only dependencies.
+
+The harness is library code rather than living in `tests/`, because `xtask
+accept` needs `Document` and `check` too and cannot reach into another crate's
+`tests/` directory. The lexer's `#[cfg(test)]` unit tests (§8.6) stay in
+`aether_r_parser`, since they exercise private internals.
 
 **Tests never write to disk.** nextest runs each test in its own process, in
 parallel, so anything in the test path that writes files is a latent race. The
@@ -1707,9 +2004,12 @@ input/snapshot split makes this natural rather than a rule to remember: tests
 no `AETHER_UPDATE_SNAPSHOTS` env var.
 
 ```rust
-// crates/aether_r_parser/tests/harness/runner.rs
+// crates/aether_r_parser_tests/src/runner.rs
 //
 // READ-ONLY. Never writes. Regeneration lives in `xtask accept`.
+//
+// Panics on mismatch rather than returning an error: it is called from a
+// `#[test]`, and a panic is what nextest reports.
 pub fn run_file(input_path: &Path) {
     let snapshot_path = input_path.with_extension("snap.md");
 
@@ -1772,10 +2072,22 @@ pub fn accept() -> Result<()> {
 ```rust
 fn check(test: &TestCase) -> Result<Vec<Cell>, CheckError> {
     let parsed = aether_r_parser::parse(&test.source, RParserOptions::default());
-    let has_error = parsed.has_error();
-    let clean = !has_error && !has_bogus_nodes_or_empty_slots(&parsed.syntax());
 
-    // 1. Marker contract
+    // 1. Round-trip. Non-negotiable, EVERY test — including `[error]` tests and
+    //    including `[pending]` ones. Pending inputs exercise the recovery paths
+    //    hardest, so they are where dropped tokens are most likely; a parser that
+    //    cannot yet parse a construct must still reproduce it verbatim. This is
+    //    invariant 1 in `CLAUDE.md`, and "for ALL inputs" is meant literally.
+    let round_tripped = parsed.syntax().to_string();
+    if round_tripped != test.source {
+        return Err(CheckError::RoundTrip { expected: test.source.clone(), got: round_tripped });
+    }
+
+    let has_error = parsed.has_error();
+    let has_bogus = has_bogus_nodes_or_empty_slots(&parsed.syntax());
+    let clean = !has_error && !has_bogus;
+
+    // 2. Marker contract
     if test.markers.contains(Markers::PENDING) {
         if clean {
             return Err(CheckError::UnexpectedlyPasses);   // ← flip the marker off!
@@ -1789,29 +2101,58 @@ fn check(test: &TestCase) -> Result<Vec<Cell>, CheckError> {
         return Err(CheckError::UnexpectedError(render_diagnostics(&parsed, &test.source)));
     }
 
-    // 2. Round-trip. Non-negotiable, every test, including error tests.
-    let round_tripped = parsed.syntax().to_string();
-    if round_tripped != test.source {
-        return Err(CheckError::RoundTrip { expected: test.source.clone(), got: round_tripped });
-    }
-
     // 3. Structural sanity for clean tests
     if !test.markers.contains(Markers::ERROR) {
         let ast = format!("{:#?}", parsed.tree());
         if ast.contains("missing (required)") {
             return Err(CheckError::MissingRequired(ast));
         }
-        if has_bogus_nodes_or_empty_slots(&parsed.syntax()) {
+        if has_bogus {
             return Err(CheckError::BogusNodes(ast));
         }
     }
 
-    // 4. Oracle
-    if !test.markers.contains(Markers::DEVIATION) {
-        aether_r_oracle::assert_matches(&test.source, &parsed.syntax())?;
+    // 4. Every bogus node is explained by a diagnostic that POINTS AT IT.
+    //    Invariant 2 in `CLAUDE.md`. A recovery path that produces a bogus node
+    //    without calling `p.error(...)` yields a tree that round-trips and
+    //    satisfies its `[error]` marker via some *unrelated* diagnostic — which
+    //    is why the test has to be per-node overlap and not "are there any
+    //    diagnostics at all". The whole-parse form would be satisfied by the
+    //    very diagnostic that masks the problem, and is in fact unreachable:
+    //    step 3 has already rejected bogus nodes on every non-`[error]` test,
+    //    and an `[error]` test always has a non-empty diagnostic list.
+    //
+    //    So in practice this only bites on `[error]` tests, which is exactly
+    //    where it is needed. It matters most in phases 7-13 while recovery is
+    //    being written — not in phase 14, by which point the bad snapshots are
+    //    already committed.
+    //
+    //    Sits after the `[pending]` early return above: a pending test may
+    //    legitimately produce undiagnosed bogus nodes before its feature exists.
+    let unexplained = undiagnosed_bogus_nodes(&parsed.syntax(), parsed.diagnostics());
+    if !unexplained.is_empty() {
+        return Err(CheckError::UndiagnosedBogusNode {
+            ranges: unexplained.iter().map(|n| n.text_range()).collect(),
+            ast: format!("{:#?}", parsed.tree()),
+        });
     }
 
-    // 5. Generate cells
+    // 5. Oracle — compiled out unless the `oracle` feature is on, so a default
+    //    `cargo nextest run` (including CI) never builds tree-sitter-r.
+    #[cfg(feature = "oracle")]
+    if !test.markers.contains(Markers::DEVIATION) {
+        match aether_r_oracle::compare(&test.source, &parsed.syntax()) {
+            OracleResult::Match => {}
+            // tree-sitter bails on any error input, so this is a skip, not a
+            // failure — see §10.4.
+            OracleResult::OracleUnavailable(_) => {}
+            OracleResult::Mismatch { path, expected, actual } => {
+                return Err(CheckError::OracleMismatch { path, expected, actual });
+            }
+        }
+    }
+
+    // 6. Generate cells
     let mut cells = vec![Cell::new("cst", format!("{:#?}", parsed.tree()))];
     if !parsed.diagnostics().is_empty() {
         cells.push(Cell::new("diagnostics", render_diagnostics(&parsed, &test.source)));
@@ -1821,7 +2162,56 @@ fn check(test: &TestCase) -> Result<Vec<Cell>, CheckError> {
 ```
 
 `has_bogus_nodes_or_empty_slots` is copied verbatim from air's
-`crates/air_r_parser/tests/spec_test.rs`.
+`crates/air_r_parser/tests/spec_test.rs`. **Check what it actually covers before
+relying on the split above.** Step 3 greps the AST dump for `missing (required)`
+*in addition to* calling it, which suggests air's helper may not inspect empty
+slots the way its name implies. If it does, the string-grep is redundant and
+should go; if it does not, both checks stay and the name is misleading.
+
+The step 4 helper:
+
+```rust
+/// Bogus nodes that no diagnostic points at.
+///
+/// Overlap, not equality: a recovery that consumes three tokens may legitimately
+/// be explained by a diagnostic anchored on only the first of them.
+fn undiagnosed_bogus_nodes(
+    root: &RSyntaxNode,
+    diagnostics: &[ParseDiagnostic],
+) -> Vec<RSyntaxNode> {
+    let spans: Vec<TextRange> = diagnostics
+        .iter()
+        .filter_map(|d| d.location().span)
+        .collect();
+
+    root.descendants()
+        .filter(|node| node.kind().is_bogus())
+        .filter(|node| {
+            let range = node.text_range();
+            !spans.iter().any(|span| span.intersect(range).is_some())
+        })
+        .collect()
+}
+```
+
+Three things to know about it:
+
+- **Empty slots are deliberately out of scope.** A missing required slot is not a
+  node and has no range to overlap, so it cannot participate in this check. Step 3
+  rejects it on every clean test, and the designed error paths always emit a
+  diagnostic alongside it — `a$` produces a missing `right` slot *and*
+  `expected_selector` (§7.2). Nothing is being let through here that step 3 or the
+  `[error]` marker does not already cover.
+- **Only primary ranges count.** `with_detail` labels live in the diagnostic's
+  advices, not in `location()`, so `expected_selector`'s secondary label on the
+  operator does not contribute to overlap — only its primary range does. That is
+  the conservative reading and it is intentional; do not "fix" it by walking
+  advices, or a diagnostic that merely gestures at a bogus node will start counting
+  as an explanation of it.
+- **`d.location().span` is the one API call here to verify at the pinned Biome
+  rev** rather than trust. `ParseDiagnostic` implements `Diagnostic`, so
+  `location()` should yield a `Location` carrying `span: Option<TextRange>`, but
+  confirm the shape before writing the rest.
 
 Diagnostic rendering:
 
@@ -1841,19 +2231,25 @@ fn render_diagnostics(parse: &Parse, source: &str) -> String {
 ```
 
 Test registration — one `#[test]` per corpus **input** file, generated by globbing
-the tree, so adding a file needs no registration edit. Model the macro on air's
+the tree, so adding a file needs no registration edit. This needs a small
+proc-macro crate, `crates/aether_r_test_macros/` (`proc-macro = true`,
+`proc-macro2` + `quote`), built as part of Phase 6. Model it on air's
 `tests_macros::gen_tests!`, which already does this for `.R` files. Note the glob
 must exclude `*.snap.md`, or every snapshot gets its own bogus test:
 
 ```rust
-// crates/aether_r_parser/tests/main.rs
-mod harness;
-
+// crates/aether_r_parser_tests/tests/main.rs
+//
+// The whole test target: no harness module, since `run_file` is library code in
+// this same crate (§3).
 mod corpus {
     // Expands to one `#[test] fn` per matched file, with the module path
     // mirroring the directory, e.g. `corpus::expressions::extract`.
     // The macro skips any path ending in `.snap.md`.
-    aether_test_macros::gen_corpus_tests! { "tests/corpus/**/*.md", crate::harness::run_file }
+    aether_r_test_macros::gen_corpus_tests! {
+        "tests/corpus/**/*.md",
+        crate::run_file
+    }
 }
 ```
 
@@ -1862,7 +2258,7 @@ That naming makes nextest filters read naturally:
 ```bash
 cargo nextest run -E 'test(corpus::expressions::extract)'
 cargo nextest run -E 'test(/corpus::control/)'          # all control-flow files
-cargo nextest run -p aether_r_parser --status-level all # see the pending count
+cargo nextest run -p aether_r_parser_tests --status-level all # pending count
 ```
 
 Per-file is the right granularity to start. Because the tests are read-only,
@@ -1989,7 +2385,7 @@ tree-sitter-r and air's ~35 snapshots (§10.3.4) alike. `source` carries the
 provenance, so no naming convention inside the `.md` files has to.
 
 ```toml
-# crates/aether_r_parser/tests/corpus/MANIFEST.toml
+# crates/aether_r_parser_tests/tests/corpus/MANIFEST.toml
 # Generated once by `xtask import-corpus`. Every test imported from another
 # project, and where it now lives. Do not hand-edit.
 [[imported]]
@@ -2066,6 +2462,15 @@ placements:
 | `ok/comments.R`, `ok/crlf/*.R` | `literals/comments.md` |
 | `ok/value/*.R` | `literals/numbers.md`, `literals/strings.md` |
 | `ok/dots.R`, `ok/dot_dot_i.R`, `ok/keyword.R` | `literals/identifiers.md`, `literals/constants.md` |
+
+**A merged snapshot may lag its file's nominal phase.** Air's files were written
+to exercise a feature, not to stay within one, so `ok/comments.R` is
+`1 + 1 # Trailing` and `ok/dots.R` contains `{ ... }` and `...()`. Landing them in
+`literals/` is still right — a comment test belongs with the other comment tests —
+but it means the phase that owns a *directory* does not necessarily turn every
+heading in it green. Leave the stragglers `[pending]` and let the phase that
+implements what they need flip them. The per-phase counts in §11 are of imported
+tree-sitter tests for this reason.
 
 These headings get no marker of where they came from — no `air:` prefix, nothing.
 A test's name should describe the R it exercises, and a reader scanning
@@ -2148,6 +2553,51 @@ return `OracleUnavailable` when tree-sitter reports an error, and treat that as 
 skip rather than a failure. Error-recovery behavior is exactly where aether is
 *supposed* to differ.
 
+#### 10.4.1 Scope: local only, and temporary
+
+**Settled with the owner: the oracle does not run in CI, and is deleted once the
+conversion is complete.** It is a development aid for catching drift while the
+parser is being written — most valuably trivia attachment (§13) — not a permanent
+correctness gate.
+
+Two things follow.
+
+**Feature-gate it.** The oracle is invoked from `check()`, which every corpus
+test calls, so without a gate `cargo nextest run --workspace` would build
+tree-sitter-r and its C toolchain on every run including CI.
+
+One feature, on the crate whose code carries the `#[cfg]`. In
+`aether_r_parser_tests/Cargo.toml`:
+
+```toml
+[features]
+default = []
+oracle  = ["dep:aether_r_oracle"]
+
+[dependencies]
+aether_r_parser = { workspace = true }
+aether_r_oracle = { workspace = true, optional = true }
+```
+
+Note `aether_r_oracle` is a plain dependency, not a dev-dependency: `check()` is
+library code in `src/`, and dev-dependencies are not in scope for it. Nothing
+forwards this feature, and `aether_r_parser` never sees it — which is the point
+of the harness living in its own crate (§3).
+
+`just test` and CI run without it; `just oracle` runs with it, and the phase
+checklist (§4) calls for that at the end of every parser phase.
+
+**Do not defend it.** Because it is scheduled for deletion, the oracle does not
+earn much maintenance. If a Biome rev bump or a tree-sitter-r change breaks it,
+the reasonable responses are to fix it cheaply or to stop using it — not to spend
+a day restoring a tool whose remaining life is a handful of phases. What must
+survive its removal is the *reviewed snapshots*, which is why §10.1 requires
+eyeballing every changed cell rather than trusting the oracle to catch everything.
+
+The counterpart risk — that a local-only tool quietly stops being run — is real
+and is why the phase checklist names it as an explicit step rather than leaving it
+to habit.
+
 ### 10.5 `quick_test.rs`
 
 Keep air's scratchpad, since the owner uses it:
@@ -2156,7 +2606,7 @@ Run it with `just quick` (nextest needs `--run-ignored all` and `--no-capture`
 to show `println!` output):
 
 ```rust
-// crates/aether_r_parser/tests/quick_test.rs
+// crates/aether_r_parser_tests/tests/quick_test.rs
 #[ignore]
 #[test]
 fn quick_test() {
@@ -2175,8 +2625,12 @@ fn quick_test() {
 generated `.snap.md` sibling;
 `MANIFEST.toml` lists every one of them, of which exactly 89 have a
 `tree-sitter-r/` source, and `every_imported_test_still_exists` passes;
-`cargo nextest run --workspace` is green (pending tests only assert
-*failure*, and everything fails at this point); and `cargo run -p xtask -- accept`
+`cargo nextest run --workspace` is green — pending tests assert only that the
+parse is *not* clean, which everything satisfies at this point, **and** that the
+source round-trips, which requires the lexer to already tokenise every corpus
+input losslessly (§8). That second half is the real bar for closing this phase;
+if a corpus file does not round-trip, the lexer is dropping bytes and no amount
+of later parser work will fix it. Finally, `cargo run -p xtask -- accept`
 produces no diff.
 
 ---
@@ -2195,13 +2649,25 @@ off the tests the feature enables, regenerate, review the diff.
 pub(crate) fn parse_root(p: &mut RParser) {
     let m = p.start();
     p.eat(UNICODE_BOM);
-    p.with_flags(RContextFlags::NEWLINE_SENSITIVE, RContextFlags::IN_PARENS, |p| {
-        parse_statement_list(p, StatementListEnd::Eof);
-    });
+    // No `with_flags` here: empty flags *are* top-level behaviour — newlines are
+    // significant and `else` may not follow one. See §9.2 on polarity.
+    parse_statement_list(p, StatementListEnd::Eof);
     p.expect(T![EOF]);
     m.complete(p, R_ROOT);
 }
+```
 
+**Phase 7 writes the first `parse_statement_list`, not Phase 13.** §11.7 shows the
+finished version, but `parse_root` calls it from this phase onward, so a working
+version has to exist now. What Phase 13 *adds* is the `;` slot and the
+empty-statement handling; what Phase 7 must already get right is the loop, the
+recovery branch, and — importantly — the **statement separator rule**, since R
+separates statements by a newline or a `;` and by nothing else. Deferring that to
+Phase 13 would let `1 2` parse clean for six phases, including Phase 8, where
+`statements/newlines.md` is supposed to go green. Write it here against
+§11.7's body with the semicolon lines omitted.
+
+```rust
 /// Anything that can start an expression and consists of exactly one token.
 fn parse_literal_expression(p: &mut RParser) -> ParsedSyntax {
     let kind = match p.cur() {
@@ -2242,18 +2708,22 @@ fn parse_string_value(p: &mut RParser) -> ParsedSyntax {
 }
 ```
 
-**Enable: the whole of `corpus/literals/`** — all five files, all 19 tests. This is
-the cleanest phase-to-directory mapping in the project; `cargo nextest run -E
-'test(/corpus::literals/)'` should go fully green.
+**Enable: the 19 imported tree-sitter tests across all five `corpus/literals/`
+files.** That is **19 of 89 green** at the end of the very first parser phase,
+which is a good confidence signal.
+
+The *files* do not go fully green, because §10.3.4 merges air's snapshots into
+them and several reach past literals: `ok/comments.R` is `1 + 1 # Trailing`
+(needs Phase 8) and `ok/dots.R` contains `{ ... }` and `...()` (needs Phases 13
+and 9). Those stay `[pending]` until their phase. `cargo nextest run -E
+'test(/corpus::literals/)'` still passes — pending tests pass by asserting failure
+— without every heading in those files being enabled.
 
 Three of the four error tests (Unclosed Double Quote, Unclosed Single Quote,
 Unclosed Raw String) exercise the parser's `expect(STRING_CLOSE)` and its recovery.
 Unclosed Backtick takes a different path entirely and exercises the *lexer's*
 `unterminated_backtick_identifier` (§8.4), since a backtick-quoted name is an
 `IDENT`, not a string.
-
-That is **19 of 89 tests green** at the end of the very first parser phase, which
-is a good confidence signal.
 
 ### 11.2 Phase 8 — Binary and unary operators (the Pratt core)
 
@@ -2268,8 +2738,8 @@ from R's `src/main/gram.y`. Higher binds tighter.
 | Rank | Name | Operators | Assoc |
 |---|---|---|---|
 | 1 | HELP | `?` (binary) | left |
-| 2 | FUNCTION_OR_LOOP | `function`, `while`, `for`, `repeat` bodies | left |
-| 3 | IF | `if` | right |
+| 2 | FUNCTION_OR_LOOP | `function`, `while`, `for`, `repeat` bodies | (not an operator — see below) |
+| 3 | IF | `if` | (not an operator — see below) |
 | 4 | LEFT_ASSIGN | `<-` `<<-` `:=` | **right** |
 | 5 | EQUALS_ASSIGN | `=` | **right** |
 | 6 | RIGHT_ASSIGN | `->` `->>` | left |
@@ -2288,6 +2758,36 @@ from R's `src/main/gram.y`. Higher binds tighter.
 | 19 | NAMESPACE | `::` `:::` | left (see below) |
 | 20 | CALL | `f(…)` `x[…]` `x[[…]]` | — (postfix) |
 
+**Ranks 2, 3, and 20 are deliberately absent from the binding-power functions
+below.** Ranks 2 and 3 are not operator precedences: in tree-sitter-r they wrap
+entire productions —
+
+```js
+function_definition: $ => withPrec(PREC.FUNCTION_OR_LOOP, seq(
+if_statement:        $ => withPrec(PREC.IF, seq(
+```
+
+— and their only job is to make a body greedy, i.e. to say how far right
+`function(x) …` or `if (c) …` extends. A recursive-descent parser answers that by
+construction: the body is a plain `parse_expression` call that runs to its natural
+terminator (§11.5, §11.6). The two ranks are kept in the table so the numbering
+lines up with tree-sitter-r's `PREC` when comparing, and for nothing else.
+
+Rank 20 is absent for a different reason: postfix is handled structurally in the
+Pratt loop and applies unconditionally, so it is never compared against a
+`min_bp`. The number survives in code only as `POSTFIX_BINDING_POWER`, which
+exists purely to give the `debug_assert!` in `parse_expression_with_lhs` something
+to assert *against* — that 20 really is the ceiling. Adding an infix operator at
+rank 20 or above would break that and is what the assertion catches; the fix in
+that case is to renumber so postfix stays tightest, not to relax the assertion.
+
+The one case where a greedy body and a body parsed at `min_bp = 2` would differ is
+the binary `?` at rank 1 — `function() a ? b` could group either way. R's grammar
+makes a function body `expr_or_assign_or_help`, which includes help and so points
+at greedy, but do not take that on faith: let the oracle settle it the first time
+it runs against `functions/definition.md`, and record the answer here if it is
+not greedy.
+
 **Associativity of `$` `@` `::` `:::`.** tree-sitter-r forces these **right**
 associative and explains why in a long comment: it is a workaround for the
 `optional()` RHS, so that `foo::bar` prefers the longer match `[foo::bar]` over
@@ -2302,6 +2802,12 @@ pub(crate) struct BindingPower(u8);
 
 #[derive(Debug, Clone, Copy)]
 enum Assoc { Left, Right }
+
+/// Rank 20 — `f(…)`, `x[…]`, `x[[…]]`. Appears in no lookup table because
+/// postfix is handled structurally in the Pratt loop, but it is named so the
+/// `debug_assert!` guarding "postfix is the tightest-binding construct" reads as
+/// a claim about the precedence table rather than a bare `20`.
+const POSTFIX_BINDING_POWER: BindingPower = BindingPower(20);
 
 fn infix_binding_power(kind: RSyntaxKind) -> Option<(BindingPower, Assoc)> {
     use RSyntaxKind::*;
@@ -2345,10 +2851,41 @@ pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
 }
 
 fn parse_expression_with_bp(p: &mut RParser, min_bp: BindingPower) -> ParsedSyntax {
-    let mut lhs = match parse_prefix_expression(p) {
-        Present(m) => m,
-        Absent => return Absent,
-    };
+    let Present(lhs) = parse_prefix_expression(p) else { return Absent };
+    Present(parse_expression_with_lhs(p, lhs, min_bp))
+}
+
+/// The Pratt loop, entered with an already-parsed left operand.
+///
+/// Split out so a caller that has speculatively parsed an atom can hand it over
+/// instead of rewinding. `parse_argument` (§11.3) is the one such caller: it
+/// parses a potential argument *name*, and when no `=` follows, the atom is
+/// simply the start of the argument's value and continues from here.
+fn parse_expression_with_lhs(
+    p: &mut RParser,
+    mut lhs: CompletedMarker,
+    min_bp: BindingPower,
+) -> CompletedMarker {
+    // Postfix is rank 20 and applies unconditionally, so there is no `min_bp`
+    // guard around it below. That is only sound while 20 is genuinely the
+    // ceiling: `min_bp` arrives as 0 from `parse_expression` and
+    // `parse_argument`, as a prefix bp (max 16) from `parse_prefix_expression`,
+    // and otherwise as this loop's own `right_bp` — which is `bp + 1` for
+    // left-assoc, topping out at 20 because the highest infix rank is `:::` at
+    // 19.
+    //
+    // Asserted rather than branched on. A branch here would be dead code that
+    // silently starts mattering if someone adds an infix operator at rank 20 or
+    // above; the assertion instead fails loudly and points at the real problem,
+    // which is that the precedence table needs renumbering to keep postfix
+    // tightest. Placed at entry so it fires on any input, not only ones that
+    // happen to contain a call.
+    debug_assert!(
+        min_bp <= POSTFIX_BINDING_POWER,
+        "min_bp {min_bp:?} exceeds postfix rank {POSTFIX_BINDING_POWER:?}; \
+         postfix must remain the tightest-binding construct — renumber the \
+         precedence table in §11.2",
+    );
 
     loop {
         // R's statement-termination rule: at top level or inside `{`, a newline
@@ -2357,11 +2894,10 @@ fn parse_expression_with_bp(p: &mut RParser, min_bp: BindingPower) -> ParsedSynt
         // and this check is disabled.
         if p.at_statement_break() { break }
 
-        // Postfix `(`, `[`, `[[` bind tightest (rank 20) and are handled here,
-        // not via `infix_binding_power`.
-        if BindingPower(20) >= min_bp {
-            if let Some(next) = parse_postfix(p, lhs) { lhs = next; continue }
-        }
+        // Postfix `(`, `[`, `[[` bind tightest and are handled here rather than
+        // through `infix_binding_power`. Unconditional: there is no caller for
+        // which refusing a postfix would be correct — `a::b(c)` is `(a::b)(c)`.
+        if let Some(next) = parse_postfix(p, lhs) { lhs = next; continue }
 
         let Some((bp, assoc)) = infix_binding_power(p.cur()) else { break };
         if bp < min_bp { break }
@@ -2373,15 +2909,39 @@ fn parse_expression_with_bp(p: &mut RParser, min_bp: BindingPower) -> ParsedSynt
         let operator_range = p.cur_range();
         p.bump_any();
 
-        // Newlines AFTER an infix operator are always insignificant — except
-        // for `::` and `:::`, where tree-sitter-r explicitly notes
-        // "No newlines are allowed."
+        // Newlines AFTER an infix operator are insignificant for every operator
+        // in the table above except `::` and `:::`. Verified against R's own
+        // lexer rather than taken from tree-sitter-r's note: `yylex` sets
+        // `EatLines = 1` after each of `+ - * / ^ < <= >= > == != | & || &&
+        // |> => %…% ? ! = : ~ $ @ <- <<- := -> ->>` (and the loop/function
+        // keywords), and `NS_GET`/`NS_GET_INT` appear nowhere in that switch.
+        // The preceding SYMBOL/STR_CONST sets `EatLines = 0`, so the flag is
+        // still 0 when `::` is scanned and the newline survives as a token the
+        // grammar has no rule for.
+        //
+        // Note `$` and `@` ARE in R's list, so `df$\n  x` is legal R and must
+        // parse clean here. Only the namespace operators are restricted.
         let right_bp = match assoc {
             Assoc::Left  => BindingPower(bp.0 + 1),
             Assoc::Right => bp,
         };
 
         let node_kind = match operator {
+            // R suspends the restriction inside `(`, `[`, `[[` — the newline
+            // discard there fires before `EatLines` is consulted at all:
+            //
+            //     if (EatLines || *contextp == '[' || *contextp == '(')
+            //         goto again;
+            //
+            // `{` pushes LBRACE, not `(`, so braces do NOT get this.
+            // `at_statement_break()` already encodes exactly that distinction,
+            // so it is the whole of the check.
+            T![::] | T![:::] if p.at_statement_break() => {
+                p.error(diagnostics::expected_selector(
+                    p, operator, operator_range, p.cur_range(),
+                ));
+                R_NAMESPACE_EXPRESSION   // `right` slot left missing
+            }
             T![$] | T![@] | T![::] | T![:::] => {
                 parse_selector(p).or_add_diagnostic(p, |p, range| {
                     diagnostics::expected_selector(p, operator, operator_range, range)
@@ -2400,7 +2960,7 @@ fn parse_expression_with_bp(p: &mut RParser, min_bp: BindingPower) -> ParsedSynt
         lhs = m.complete(p, node_kind);
     }
 
-    Present(lhs)
+    lhs
 }
 
 fn parse_prefix_expression(p: &mut RParser) -> ParsedSyntax {
@@ -2420,12 +2980,62 @@ fn parse_prefix_expression(p: &mut RParser) -> ParsedSyntax {
 
 - `-1^2` → `-(1^2)` — unary minus (16) binds looser than `^` (17).
 - `!a & b` → `(!a) & b` — `!` (10) binds tighter than `&` (9).
-- `-2:3` → `(-2):3`? **No** — `:` is 15, unary `-` is 16, so `-2:3` is `(-2):3`.
+- `-2:3` → `-(2:3)`? **No** — unary `-` is 16 and `:` is 15, so it is `(-2):3`,
+  the sequence from -2 to 3. Contrast `-1^2` above: `^` (17) outranks unary `-`,
+  `:` does not.
 - `a <- b <- c` → `a <- (b <- c)` — right assoc.
 - `a -> b -> c` → `(a -> b) -> c` — left assoc.
 - `2^3^2` → `2^(3^2)` — right assoc.
 - `a %in% b + c` → `a %in% (b + c)`? **No** — `%in%` is 14, `+` is 12, so
   `(a %in% b) + c`. This one trips people up; test it.
+
+The newline behaviour of the operator table is a separate axis and is settled
+above: every operator here eats a following newline except `::` and `:::`, and
+that exception is itself suspended inside `(`/`[`/`[[`. The two tests pinning it
+down live in Phase 10 with the rest of the namespace work (§11.4).
+
+**Three aether-authored tests for the statement separator rule** go in
+`statements/newlines.md`, which this phase turns green. Two of them guard
+interactions rather than the rule itself:
+
+````markdown
+## Two Expressions On One Line [error]
+
+```r
+1 2
+```
+
+## Two Expressions On One Line Inside Braces [error]
+
+```r
+{ 1 2 }
+```
+
+## A Comment Does Not Hide A Line Break
+
+```r
+1 # c
+2
+```
+````
+
+The third has no marker because it is a **clean** parse, and it is the one that
+can regress silently. It only passes because §8.2's `after_newline` flag is sticky
+across trivia, so the line break still reaches `2` with a comment sitting between.
+If that stickiness breaks, this test fails and the lexer bug is caught at its
+source rather than surfacing later as a mystery `expected_statement_separator`.
+The second confirms the rule survives `parse_braced_statements` clearing
+`IGNORE_NEWLINES` (§11.7). All three are aether-authored, so they are absent from
+`MANIFEST.toml` and do not move the 89 count.
+
+**Verify when the Phase 9 tests come off `[pending]`:**
+`Not A Call, Subset, Or Subset2` and the three `Not A Parenthesized Expression`
+tests all arrive as `[error]` from `expressions-errors.txt`, and all concern a
+construct split across a newline. Under R, `f\n(x)` is two perfectly valid
+statements. This separator check is the code that decides whether aether agrees
+with tree-sitter that they are errors; if it diverges, the row belongs in
+`docs/deviations.md` under the inherited **"tree-sitter-r vs. R"** heading (§8.4),
+not aether's own list.
 
 **Enable:** `expressions/unary.md`, `expressions/binary.md`,
 `expressions/colon.md`, `expressions/specials.md`, `expressions/formula.md`,
@@ -2475,6 +3085,18 @@ errors-corpus tests about mismatched brackets.
 subset and encounters `]]`, it re-lexes to split it into two `]` tokens. This is
 exactly what Biome's JS parser does for `>>` inside nested generics.
 
+**The split must happen at the loop guard, not after the list returns.** This is
+the detail the whole approach turns on. If `parse_argument_list` runs to
+completion first and the caller splits afterwards, the list never terminates
+correctly: at `]]` its guard `p.at(end)` is false, it is not at `,` either, so
+recovery fires — and `]]` is in no recovery set, so recovery *consumes both
+brackets* and runs to EOF. The caller then finds no `]]` to split, `expect(']')`
+errors, and the enclosing subset has lost its terminator too. One valid nesting
+becomes a cascade of errors.
+
+So the list has to own its terminator, including the case where the lexer glued
+that terminator to someone else's:
+
 ```rust
 // crates/aether_r_parser/src/lexer/mod.rs
 pub(crate) enum RReLexContext {
@@ -2483,20 +3105,87 @@ pub(crate) enum RReLexContext {
 }
 
 // crates/aether_r_parser/src/syntax/call.rs
+//
+/// What closes an argument list. A type rather than a bare `RSyntaxKind`,
+/// for the same reason `StatementListEnd` (§11.7) is one: the recovery set is
+/// derived from the terminator instead of hardcoded at each call site. Here
+/// there is a second reason — `[` has a terminator the lexer may have glued to
+/// its neighbour, and only the terminator itself knows that.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum ArgumentListEnd {
+    RParen,   // `f(…)`
+    RBrack,   // `x[…]`  — a `]]` here is this list's `]` plus someone else's
+    RBrack2,  // `x[[…]]`
+}
+
+impl ArgumentListEnd {
+    /// True when the current token closes this list.
+    ///
+    /// **Side-effecting by design.** For `RBrack`, a `]]` is split into two `]`
+    /// before the answer is returned, so every caller downstream — the loop
+    /// guard, the recovery set, and the final `expect` — sees the exact closing
+    /// token and none of them has to know the split happened.
+    fn split_and_check(self, p: &mut RParser) -> bool {
+        match self {
+            Self::RParen => p.at(T![')']),
+            Self::RBrack => {
+                if p.at(T!["]]"]) {
+                    // `x[a[b]]` — this list owns only the first `]`.
+                    p.re_lex(RReLexContext::SplitBrackets);
+                }
+                p.at(T![']'])
+            }
+            Self::RBrack2 => p.at(T!["]]"]),
+        }
+    }
+
+    /// Deliberately uniform across all three variants, and deliberately wider
+    /// than this list's own terminator: recovery must never consume a closing
+    /// delimiter of ANY kind or arity. Eating one turns a single error into a
+    /// cascade by stripping an enclosing construct of its terminator — the same
+    /// rule as `a$)` in §11.4, where the `)` is left alone for exactly this
+    /// reason.
+    fn recovery_set(self) -> TokenSet<RSyntaxKind> {
+        token_set![
+            T![,],
+            T![')'], T![']'], T!["]]"], T!['}'],
+            T![EOF],
+        ]
+    }
+}
+
 fn parse_subset_arguments(p: &mut RParser) {
     let m = p.start();
     p.bump(T!['[']);
-    p.with_flags(RContextFlags::IN_PARENS, RContextFlags::NEWLINE_SENSITIVE, |p| {
-        parse_argument_list(p, T![']']);
+    // Nothing to clear: `ALLOW_NEWLINE_BEFORE_ELSE` may stay set from an
+    // enclosing `{`, and inside brackets it is harmless — see `parse_else_clause`.
+    p.with_flags(RContextFlags::IGNORE_NEWLINES, RContextFlags::empty(), |p| {
+        parse_argument_list(p, ArgumentListEnd::RBrack);
     });
-    if p.at(T!["]]"]) {
-        // `x[a[b]]` — the inner subset must consume only one `]`.
-        p.re_lex(RReLexContext::SplitBrackets);
-    }
+    // The list split any `]]` on its way out, so this is a plain expect.
     p.expect(T![']']);
     m.complete(p, R_SUBSET_ARGUMENTS);
 }
 ```
+
+**No merge-back is ever needed, and the ladder cases confirm it** — worth stating,
+because it is where a reader will stop. `x[[a[b]]]` lexes as
+`x` `[[` `a` `[` `b` `]]` `]`. The inner `[` splits the `]]` and consumes only the
+first `]`; the lexer then resumes at the next byte and lexes *fresh*, greedily
+producing `]]` for the outer subset2. Because `re_lex` re-reads only the current
+token and leaves position advancement alone, a split never has to be undone.
+
+Add the nesting ladder as aether-authored tests in `expressions/subset.md`:
+`x[a[b]]`, `x[[a[b]]]`, `x[a[[b]]]`, `x[[a[[b]]]]`. All clean parses, no markers —
+which is the point, since the failure mode here produces errors on *valid* code
+and the imported corpus only covers mismatched brackets and `#177`.
+
+**Verify `re_lex` against buffered lookahead** at the pinned rev before writing
+this. `TokenSourceWithBufferedLexer` caches lookahead tokens, and re-lexing the
+current token must invalidate that cache. Biome's JS parser relies on the same
+contract for `>>`, so it almost certainly holds — but a stale cache here yields a
+wrong tree that still round-trips, which is precisely the class of bug no
+invariant in this project catches.
 
 The mirror case (`x[[a]` — a `[[` that should have been two `[`) is a genuine
 syntax error in R; produce a diagnostic and recover rather than trying to be
@@ -2515,47 +3204,139 @@ Not allowed:  fn(a b)
 ```
 
 ```rust
-fn parse_argument_list(p: &mut RParser, end: RSyntaxKind) {
+fn parse_argument_list(p: &mut RParser, end: ArgumentListEnd) {
     let m = p.start();
+    let mut progress = ParserProgress::default();
     let mut first = true;
+
     loop {
-        if p.at(end) || p.at(T![EOF]) { break }
-        if !first { p.expect(T![,]); }
+        // Splits a `]]` as a side effect when `end` is `RBrack`, so from here
+        // down the terminator is always a single, exact token.
+        if end.split_and_check(p) || p.at(T![EOF]) { break }
+
+        // `fn(,,a,,b,,)` means an iteration may legitimately consume only a
+        // comma, so progress is asserted across the whole iteration rather than
+        // per-argument. What it catches is neither being consumed: `f(a}` leaves
+        // `expect(,)` erroring without advancing and `parse_argument` producing
+        // an empty argument, which without this guard repeats forever. Six of the
+        // ten tests in `recovery/unmatched-delimiters.md` are this shape.
+        progress.assert_progressing(p);
+
+        if !first {
+            // Not at `,` and not at the terminator: recover to one or the other
+            // rather than spinning. `enable_recovery_on_line_break()` is
+            // deliberately NOT set — we are inside `(`/`[`/`[[`, where newlines
+            // carry no meaning (§9.2).
+            //
+            // The recovery happens INSIDE an `RArgument`, filling its
+            // `value: AnyRExpression?` slot. The list is generated as
+            // `make_separated_list_syntax(kind, children, RArgument::can_cast, …)`,
+            // so only `RArgument` may be a child — a bare bogus node here would be
+            // dropped or reshape the list. Same constraint, same shape, as
+            // `parse_statement_list` (§11.7).
+            if !p.at(T![,]) {
+                let arg = p.start();
+                let recovered = ParseRecoveryTokenSet::new(
+                    R_BOGUS_EXPRESSION,
+                    end.recovery_set(),
+                )
+                .recover(p);
+                if recovered.is_err() {
+                    arg.abandon(p);
+                    break;
+                }
+                arg.complete(p, R_ARGUMENT);
+            }
+            p.expect(T![,]);
+        }
         first = false;
 
-        // An empty argument: open and immediately close, pushing no children.
-        // This is the documented technique in `r.ungram`.
-        let arg = p.start();
-        parse_argument_name_clause(p).ok();
-        parse_expression(p).ok();
-        arg.complete(p, R_ARGUMENT);
+        parse_argument(p);
     }
+
     m.complete(p, R_ARGUMENT_LIST);
 }
 
-/// `name =` where name is identifier | string | `...` | `..i` | `NULL`.
+/// One argument: `[name =] [value]`, both halves optional.
+///
+/// An empty argument opens and immediately closes the marker, pushing no
+/// children. This is the documented technique in `r.ungram`, and it is what
+/// makes `fn(,,a,,b,,)` representable.
+///
+/// **Parse optimistically, reshape with `precede`.** The name and the start of a
+/// value are the same tokens, so the decision cannot be made before parsing —
+/// but it does not need a rewind either. Parse the atom, then look at what
+/// follows: an `=` means wrap it in an `R_ARGUMENT_NAME_CLAUSE`, anything else
+/// means it was the head of the value all along and continues into the Pratt
+/// loop as its lhs. Nothing is ever unparsed.
+///
+/// This is sound because R admits only a bare symbol, string, `...`, `..i`, or
+/// `NULL` as an argument name — `f(a$b = 1)` is not legal — so
+/// `parse_argument_name` can never consume more than the value would have.
+fn parse_argument(p: &mut RParser) {
+    let m = p.start();
+
+    match parse_argument_name(p) {
+        // `name = value`.
+        Present(name) if p.at(T![=]) => {
+            let clause = name.precede(p);
+            p.bump(T![=]);
+            clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
+            parse_expression(p).ok();
+        }
+        // Not a name clause after all — resume with the atom as the lhs.
+        Present(atom) => { parse_expression_with_lhs(p, atom, BindingPower(0)); }
+        Absent => { parse_expression(p).ok(); }
+    }
+
+    m.complete(p, R_ARGUMENT);
+}
+
+/// identifier | string | `...` | `..i` | `NULL`.
 ///
 /// `NULL` is allowed here and nowhere else — tree-sitter-r's comment notes this
 /// has been true since the beginning of R (`fn(NULL = 1)` parses) and is
 /// surprising because `NA`/`Inf` are not allowed, and `NULL` is not special in
 /// `x$NULL` or `function(NULL) {}`. See their issue #164.
-fn parse_argument_name_clause(p: &mut RParser) -> ParsedSyntax {
-    let is_name = matches!(p.cur(), IDENT | STRING_OPEN | DOTS | DOTDOTI | T![null]);
-    if !is_name { return Absent }
-    // Two-token lookahead: only a name clause if followed by `=` (and not `==`).
-    if p.nth(1) != T![=] { return Absent }
-    let m = p.start();
-    parse_argument_name(p).unwrap();
-    p.bump(T![=]);
-    Present(m.complete(p, R_ARGUMENT_NAME_CLAUSE))
+fn parse_argument_name(p: &mut RParser) -> ParsedSyntax {
+    match p.cur() {
+        IDENT       => { let m = p.start(); p.bump_any(); Present(m.complete(p, R_IDENTIFIER)) }
+        DOTS        => { /* R_DOTS */ }
+        DOTDOTI     => { /* R_DOT_DOT_I */ }
+        T![null]    => { /* see the open question below */ }
+        STRING_OPEN => parse_string_value(p),
+        _ => Absent,
+    }
 }
 ```
 
-The lookahead for `=` needs care with strings, which are three tokens — `nth(1)`
-after `STRING_OPEN` is `STRING_CONTENT`, not `=`. Handle strings by parsing the
-string first and then checking for `=`, using a parser checkpoint to rewind if it
-turns out not to be a name clause. `ParserContextCheckpoint` + the token source's
-checkpoint support both exist for this.
+**No checkpoint, no `nth` offsets.** The earlier sketch of this function looked
+one token ahead for `=` and fell back to `ParserContextCheckpoint` for strings,
+because a string is three tokens — or **two** when empty, so `f("" = 1)` puts the
+`=` at `nth(2)` while `f("a" = 1)` puts it at `nth(3)`. Worse, that offset is not
+merely variable but unknowable: `BufferedLexer` lexes ahead with
+`RLexContext::default()`, so `p.nth(2)` past a `STRING_OPEN` would re-lex the
+string body in `Regular` context and return something unrelated to what the
+string-context bump will actually produce. Verify that against `BufferedLexer` at
+the pinned rev, but it is the standard Biome contract and the reason
+`BumpWithContext` is a separate trait.
+
+Parsing first sidesteps all of it. Every token is lexed exactly once, all five
+name forms take one path, and the `f("" = 1)` asymmetry stops existing rather
+than being handled.
+
+`==` never reaches the `p.at(T![=])` test as two tokens: the lexer's maximal munch
+(§8.4) returns a single `==`, so `f(a == 1)` takes the `Present(atom)` arm and the
+`==` is consumed by the Pratt loop as an ordinary infix operator.
+
+**Open question before writing this — check `r.ungram`'s `AnyRArgumentName`.** If
+it declares a distinct kind for `NULL`-as-a-name rather than reusing
+`R_NULL_EXPRESSION`, then `parse_argument_name` completes the atom as that kind,
+and the `Present(atom)` fallback hands the Pratt loop a node whose kind is only
+valid in name position. Air's ungram settles it; if a distinct kind exists, either
+delay the `complete` until the `=` is known, or special-case `T![null]` back to
+the ordinary literal path. The other four forms are unaffected — an
+`R_IDENTIFIER` or `R_STRING_VALUE` is equally valid in both positions.
 
 **Enable:** `expressions/call.md`, `expressions/subset.md`,
 `expressions/subset2.md`, `expressions/parenthesized.md`, the remaining
@@ -2591,21 +3372,99 @@ Behavior matrix — this is the deviation table for `docs/deviations.md`:
 | `a$b` | `extract_operator` | `R_EXTRACT_EXPRESSION`, clean |
 | `a$"b"` | `extract_operator` | clean |
 | `a$` | `extract_operator`, rhs absent, **no error** | node + missing slot + `expected_selector` |
-| `a$1` | rhs absent, `1` becomes a sibling statement, **no error** | `R_BOGUS` rhs + `expected_selector` |
-| `a$NULL`, `a$TRUE`, `a$(b)`, `a${b}` | same as above | `R_BOGUS` rhs + `expected_selector` |
+| `a$1` | rhs absent, `1` becomes a sibling statement, **no error** | bogus rhs (one atom) + `expected_selector` |
+| `a$NULL`, `a$TRUE`, `a$(b)`, `a${b}` | same as above | bogus rhs (one atom) + `expected_selector` |
+| `a$1 + 2` | as above, `+ 2` reattached to the sibling | `(a$«1») + 2` — infix not consumed |
 | `foo::` | `namespace_operator`, rhs absent, no error | missing slot + `expected_selector` |
 | `foo::\nbar` | error (grammar says no newlines allowed) | error, matched |
+| `f(foo::\nbar)` | *(unverified — see below)* | **clean**, matching R |
+| `a$\nb` | clean | clean, matching R |
 
-Note the `a$1` case carefully: today air produces `right: missing (required)` *and*
-a separate `RDoubleValue` sibling for the `1`, silently. Aether should consume the
-`1` into a bogus RHS so it does not leak out as a phantom statement.
+**The two newline rows are the ones to get right, and neither is covered by an
+imported test.** R's rule, read off `yylex` in `src/main/gram.y` rather than
+inferred from tree-sitter-r:
+
+- `NS_GET`/`NS_GET_INT` are the only operators in aether's precedence table
+  missing from R's `EatLines` switch, so a newline after `::` or `:::` is
+  significant where a newline after any other infix operator is not. `$` and `@`
+  *are* in that switch, so `a$\nb` is legal R and must parse clean — the two
+  operator families genuinely differ here and it would be easy to make both
+  accidentally permissive.
+- The restriction is suspended inside `(`, `[`, and `[[`, because R discards
+  newlines in those contexts before consulting `EatLines` at all. `{` pushes
+  `LBRACE` and does not get this, so `foo::\nbar` inside braces is still an error.
+
+`at_statement_break()` encodes exactly that distinction, so the check in §11.2 is
+one guard clause. Add both as aether-authored tests in `expressions/namespace.md`
+and `expressions/extract.md`:
+
+````markdown
+## Namespace Newline Is Significant Only Outside Parens
+
+```r
+f(stats::
+  median)
+```
+
+## Dollar Tolerates A Newline
+
+```r
+df$
+  x
+```
+````
+
+The first needs no marker — it is a *clean* parse, which is the surprising half.
+Whether tree-sitter-r agrees is worth checking rather than assuming when the
+oracle first runs against it; if it errors, the row above becomes a real deviation
+and moves into `docs/deviations.md` under the inherited **"tree-sitter-r vs. R"**
+heading (§8.4), not aether's own list.
+
+**The `a$1` case — settled: consume into a bogus RHS.** Today air produces
+`right: missing (required)` *and* a separate `RDoubleValue` sibling for the `1`,
+silently. Aether consumes the `1` into a bogus RHS so it does not leak out as a
+phantom statement.
+
+**How much it consumes is the part that needs deciding, and the answer is exactly
+one atom** — a prefix expression, with no postfix and no infix. Not a full
+`parse_expression`, because that would change the shape of valid code around the
+error:
+
+| Source | Tree | Why |
+|---|---|---|
+| `a$1 + 2` | `(a$«1») + 2` | `+` is left for the Pratt loop, as in valid code |
+| `a$1(x)` | `(a$«1»)(x)` | mirrors `a$f(x)`, which is `(a$f)(x)` in R — call is rank 20, `$` is 18 |
+| `a$(b)` | `a$«(b)»` | the parenthesized expression is one atom |
+| `a$-1` | `a$«-1»` | prefix operators are part of the atom |
+| `a$)` | `a$` + missing slot | `)` starts no expression; **do not consume it**, or the enclosing call loses its terminator and one error becomes a cascade |
+
+So the recovery calls `parse_prefix_expression` — the same function the Pratt loop
+uses for its lhs — and wraps whatever comes back. When it returns `Absent`, this
+degrades to the plain `a$` case: missing slot, one diagnostic, nothing consumed.
+
+Either way it is **one diagnostic**, not one per malformed token, and the
+round-trip invariant holds because the offending tokens are inside the tree rather
+than dropped.
+
+**The bogus kind is `R_BOGUS_VALUE`**, and it only fits because Phase 3 added
+`RBogusValue` to the `AnyRSelector` union (§7.2.1). Without that change the
+factory silently reshapes the whole `a$1` into one bogus node instead of an
+`R_EXTRACT_EXPRESSION` with a bogus RHS — no panic, no compile error, and
+round-trip still passes. So `«…»` in the table above reads `R_BOGUS_VALUE`
+throughout.
+
+Two aether-authored tests are worth adding for the boundary cases, since the
+imported corpus only covers bare `a$1`: `a$1 + 2` for the "infix is not consumed"
+rule, and `a$)` inside a call — `f(a$)` — for the "do not eat the terminator"
+rule. Both `[error]`.
 
 **Enable:** `expressions/extract.md` and `expressions/namespace.md` in full — 10
 tests, of which three carry `[error, deviation]` (Dollar No RHS, Slot No RHS,
 Namespace With Missing RHS) and two carry `[error]` (the `if` RHS and
 Newline Before Operator cases). Air's `undefined/extract_expression_error.R` and
 `undefined/namespace_expression_error.R` live in these two files as well and
-become `[error]` tests.
+become `[error]` tests. The two newline tests above are aether-authored, so they
+are absent from `MANIFEST.toml` and do not move the 89 count.
 
 ### 11.5 Phase 11 — Function definitions
 
@@ -2634,13 +3493,15 @@ Since `parse_function_definition` calls `parse_expression` unconditionally for t
 body, newlines are naturally skipped. Verify against the `Functions` corpus test,
 which contains all four spacing variants.
 
-Parameters use `IN_PARENS` (newlines eaten) and a comma-separated list where each
+Parameters use `IGNORE_NEWLINES` (newlines eaten) and a comma-separated list where each
 `RParameter` is `name` + optional `RParameterDefault`. Names may be `IDENT`,
 `DOTS`, or `DOTDOTI` — note `return` is a plain identifier in R and is a valid
 parameter name (`Functions With return As Parameter Name`).
 
-**Enable: the whole of `corpus/functions/`** — `definition.md`, `lambda.md`,
-`parameters.md`. 7 tests, two of them `[error]`.
+**Enable:** the 7 imported tests across `corpus/functions/` — `definition.md`,
+`lambda.md`, `parameters.md` — two of them `[error]`. Air's merged
+`ok/function_definition.R` comes with them only if it stays within function
+syntax; check it rather than assuming (§10.3.4).
 
 ### 11.6 Phase 12 — Control flow
 
@@ -2653,7 +3514,7 @@ fn parse_if_statement(p: &mut RParser) -> ParsedSyntax {
     let m = p.start();
     p.bump(T![if]);
     p.expect(T!['(']);
-    p.with_flags(RContextFlags::IN_PARENS, RContextFlags::NEWLINE_SENSITIVE, |p| {
+    p.with_flags(RContextFlags::IGNORE_NEWLINES, RContextFlags::empty(), |p| {
         parse_expression(p).or_add_diagnostic(p, diagnostics::expected_condition);
     });
     p.expect(T![')']);
@@ -2684,14 +3545,27 @@ if (cond) 1
 else 2
 ```
 
-In aether this is one line, because the parser already tracks brace context:
+There is a **third** case, and it is the one the flag collapse in §9.2 exposes:
+
+```r
+# legal — inside `(`, newlines are eaten entirely, braces or no braces
+f(if (a) 1
+  else 2)
+```
+
+So the rule is not "inside braces" but "a newline before `else` is fatal only
+where newlines are significant *and* we are not in braces". Test the first
+condition with `at_statement_break()` rather than `has_preceding_line_break()`,
+which handles the paren case for free and keeps both of the language's newline
+rules funnelling through one predicate:
 
 ```rust
 fn parse_else_clause(p: &mut RParser) -> ParsedSyntax {
     if !p.at(T![else]) { return Absent }
 
-    // A newline before `else` is only tolerated inside `{}`.
-    if p.has_preceding_line_break() && !p.state.flags.contains(RContextFlags::IN_BRACES) {
+    // A newline before `else` is only tolerated inside `{}` — or anywhere
+    // newlines are insignificant, i.e. inside `(`/`[`/`[[`.
+    if p.at_statement_break() && !p.allows_newline_before_else() {
         return Absent;   // caller finishes the `if`; `else` becomes a bogus statement
     }
 
@@ -2701,6 +3575,15 @@ fn parse_else_clause(p: &mut RParser) -> ParsedSyntax {
     Present(m.complete(p, R_ELSE_CLAUSE))
 }
 ```
+
+Note that `ALLOW_NEWLINE_BEFORE_ELSE` is therefore *not* cleared on entering
+`(`/`[`/`[[` — leaving it set is harmless because `at_statement_break()` is already
+false there, and clearing it would mean re-deriving brace context on the way back
+out. Only `parse_braced_statements` sets it, and only `parse_else_clause` reads it.
+
+Add all three cases to `control/if.md` as aether-authored tests. tree-sitter-r's
+corpus covers the braced and top-level forms; the parenthesised one is the case a
+newly-collapsed flag could plausibly regress.
 
 **The comment case.** tree-sitter's scanner has a special carve-out: a comment
 between the consequence and the `else` must not break the `else` attachment.
@@ -2725,8 +3608,9 @@ we notice if it regresses.
 identifier. Handled in the lexer by lexing the full identifier and *then* checking
 for keyword-hood, so it needs no parser support. Two corpus tests cover it.
 
-**Enable: the whole of `corpus/control/`** — `if.md`, `for.md`, `while.md`,
-`repeat.md`. 11 tests. Note the two `#200` `else`-prefix identifier tests live in
+**Enable:** the 11 imported tests across `corpus/control/` — `if.md`, `for.md`,
+`while.md`, `repeat.md`. Air's four merged `ok/*_statement.R` snapshots come with
+them where they stay within control-flow syntax (§10.3.4). Note the two `#200` `else`-prefix identifier tests live in
 `if.md` rather than `literals/identifiers.md`; see §10.3.2.
 
 ### 11.7 Phase 13 — Blocks, statement lists, semicolons
@@ -2738,39 +3622,114 @@ fn parse_braced_statements(p: &mut RParser) -> ParsedSyntax {
     if !p.at(T!['{']) { return Absent }
     let m = p.start();
     p.bump(T!['{']);
+    // The only site that still needs the `clear` argument: `f({\n  a\n  b\n})`
+    // re-enters newline-significant territory from inside a paren.
     p.with_flags(
-        RContextFlags::NEWLINE_SENSITIVE | RContextFlags::IN_BRACES,
-        RContextFlags::IN_PARENS,
+        RContextFlags::ALLOW_NEWLINE_BEFORE_ELSE,
+        RContextFlags::IGNORE_NEWLINES,
         |p| parse_statement_list(p, StatementListEnd::RCurly),
     );
     p.expect(T!['}']);
     Present(m.complete(p, R_BRACED_STATEMENTS))
 }
 
+/// Where a statement list stops: end of file, or the `}` of a braced block.
+/// Owning the terminator as a type means the recovery set is derived from it
+/// rather than hardcoded, so a future list terminator cannot forget to add
+/// itself to the set. `ArgumentListEnd` (§11.3) is the same pattern, and carries
+/// the additional job of splitting a glued `]]`.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum StatementListEnd {
+    Eof,
+    RCurly,
+}
+
+impl StatementListEnd {
+    fn matches(self, kind: RSyntaxKind) -> bool {
+        match self {
+            Self::Eof => kind == T![EOF],
+            Self::RCurly => kind == T!['}'],
+        }
+    }
+
+    /// Tokens a failed statement may resynchronise on: the statement separator,
+    /// this list's own terminator, and EOF as the universal backstop.
+    fn recovery_set(self) -> TokenSet<RSyntaxKind> {
+        let base = token_set![T![;], T![EOF]];
+        match self {
+            Self::Eof => base,
+            Self::RCurly => base.union(token_set![T!['}']]),
+        }
+    }
+}
+
 fn parse_statement_list(p: &mut RParser, end: StatementListEnd) {
     let m = p.start();
+    let mut progress = ParserProgress::default();
+
     while !p.at(T![EOF]) && !end.matches(p.cur()) {
-        let progress_before = p.source().position();
+        progress.assert_progressing(p);
 
         let stmt = p.start();
+        let previous_range = p.cur_range();
         let had_expression = parse_expression(p).is_present();
-        let had_semicolon = p.eat(T![;]);
-        stmt.complete(p, R_STATEMENT);
 
-        if !had_expression && !had_semicolon {
-            // Nothing consumed — recover so we cannot loop forever.
-            let recovered = ParseRecoveryTokenSet::new(
-                R_BOGUS_EXPRESSION,
-                token_set![T![;], T!['}'], T![EOF]],
-            )
-            .enable_recovery_on_line_break()
-            .recover(p);
-            if recovered.is_err() { break }
-            p.error(diagnostics::expected_expression(p, p.cur_range()));
+        if !had_expression && !p.at(T![;]) {
+            // Nothing here starts an expression. Recover INSIDE the statement,
+            // so the bogus node fills the `expression` slot rather than becoming
+            // a stray child of `R_STATEMENT_LIST` — that list is `RStatement*`
+            // and `slot_to_node` panics on anything else (§7.1).
+            //
+            // `R_BOGUS_EXPRESSION` is the right kind because `AnyRExpression`
+            // already carries an `RBogusExpression` variant, so it casts into the
+            // `expression` slot unchanged. Note air's `R_EXPRESSION_LIST` accepts
+            // bogus expressions as DIRECT children (its factory arm is
+            // `make_node_list_syntax(kind, children, AnyRExpression::can_cast)`);
+            // aether's `R_STATEMENT_LIST` will not, which is exactly why the
+            // marker has to wrap the recovery.
+            let range = p.cur_range();
+            let recovered = ParseRecoveryTokenSet::new(R_BOGUS_EXPRESSION, end.recovery_set())
+                .enable_recovery_on_line_break()
+                .recover(p);
+
+            if recovered.is_err() {
+                // Already at a recovery token with nothing consumed: abandon the
+                // empty statement rather than completing a childless
+                // `R_STATEMENT`, which `r.ungram` says is never produced.
+                stmt.abandon(p);
+                break;
+            }
+            p.error(diagnostics::expected_expression(p, range));
         }
 
-        debug_assert!(p.source().position() > progress_before, "parser made no progress");
+        // R separates statements by a newline or a `;` and accepts nothing else,
+        // so `1 2` is an error even though both halves parse on their own.
+        // Without this the list silently accepts it: `parse_expression` returns
+        // `1`, `eat(;)` is a no-op, the statement completes, and `2` becomes a
+        // second statement with no diagnostic.
+        //
+        // Emit and continue rather than recover: `2` becoming its own statement
+        // is the most useful reading, and progress is already guaranteed because
+        // `parse_expression` consumed.
+        //
+        // Guarded on `had_expression` so the recovery branch above — which has
+        // already emitted `expected_expression` — does not also complain about a
+        // separator it was never going to reach.
+        let ate_semicolon = p.eat(T![;]);
+        if had_expression
+            && !ate_semicolon
+            && !p.at(T![EOF])
+            && !end.matches(p.cur())
+            && !p.at_statement_break()
+        {
+            p.error(diagnostics::expected_statement_separator(
+                p, previous_range, p.cur_range(),
+            ));
+        }
+
+        stmt.complete(p, R_STATEMENT);
     }
+
     m.complete(p, R_STATEMENT_LIST);
 }
 ```
@@ -2786,9 +3745,22 @@ Cases to test explicitly (air already has snapshot files for all of these under
 | `;1` | stmt(—, `;`), stmt(`1`, —) |
 | `1;` | stmt(`1`, `;`) |
 | `1;# comment` | stmt(`1`, `;`), comment is trailing trivia of `;` |
+| `;# comment` | stmt(—, `;`) — the comment has no expression to attach to |
+| `{\n  ;# c\n}` | same, inside braces |
 
-**Enable: the whole of `corpus/statements/`** — `braces.md` and `semicolons.md`
-(`newlines.md` went green back in Phase 8). Every test in `semicolons.md` comes
+The last three matter more for the formatter than for the parser, and the last
+two are aether-authored (air has no snapshot for a comment on a bare `;`). With
+the semicolon removed and replaced by a hard line, a comment with no expression
+beside it becomes **dangling on the `RStatement`**, which is a case air's comment
+rules do not currently have — see §12.3 step 4. `1;;2` is in the table for the
+same reason: the middle statement must not print a blank line.
+
+All three are `[deviation]`, so they do not move the 89 count.
+
+**Enable:** `corpus/statements/` — `braces.md` and `semicolons.md`
+(`newlines.md` went green back in Phase 8). This is the one directory that really
+does finish here: braces and statement lists are the last constructs any merged
+air snapshot in it can depend on. Every test in `semicolons.md` comes
 from air's snapshots rather than tree-sitter and carries `[deviation]`.
 
 ---
@@ -2803,11 +3775,13 @@ dedicated pass:
 - Every `parse_*` that can fail has a recovery set that includes the enclosing
   construct's closing token, plus `T![;]`, plus `enable_recovery_on_line_break()`
   wherever a newline genuinely bounds the construct.
-- Every bogus node has at least one diagnostic. Add a debug assertion in the
-  harness: if the tree contains a bogus node and `diagnostics` is empty, fail.
-  Air's `has_bogus_nodes_or_empty_slots` exists precisely for this and its comment
-  says so: *"used in the parser test to ensure it doesn't emit bogus nodes without
-  diagnostics."*
+- Every bogus node is overlapped by a diagnostic. `check()` step 4 has enforced
+  this since Phase 6 (§10.2), so the Phase 14 job is to review the *wording* and
+  the *placement* of those diagnostics, not to add the check — a diagnostic that
+  satisfies the overlap test can still point at a range that reads badly. Air's
+  `has_bogus_nodes_or_empty_slots` exists for the weaker version of this and its
+  comment says so: *"used in the parser test to ensure it doesn't emit bogus nodes
+  without diagnostics."*
 - The parser never loops forever. Add a `ParserProgress`-style guard (Biome has
   one) to every unbounded loop, not just the statement list. nextest's
   `slow-timeout = { period = "10s", terminate-after = 3 }` (§5.1) is the backstop:
@@ -2823,9 +3797,10 @@ dedicated pass:
 Only measure once correctness is done. A hand-written parser should be
 comfortably faster than tree-sitter + tree walk + event replay, but confirm rather
 than assume. Add a Criterion benchmark over a few large real R files and record
-the number in the PR. If it is *slower*, the likely culprits are (a) `Vec<Trivia>`
-reallocation — pre-size it, and (b) excessive checkpointing in the argument-name
-lookahead.
+the number in the PR. If it is *slower*, the likeliest culprit is `Vec<Trivia>`
+reallocation — pre-size it. The parser itself is single-pass: §11.3's argument
+names are parsed optimistically and reshaped with `precede`, so no construct
+backtracks and no token is lexed twice.
 
 ### 12.3 The swap into air
 
@@ -2854,16 +3829,57 @@ becomes a consumer.
    semicolon tokens. Expect churn in `r/expressions/expression_list.rs` and
    `r/expressions/braced_expressions.rs` (renamed to `braced_statements.rs`) and
    their snapshots.
+
+   **Semantics, settled with the owner:** `format_removed(&semicolon)` plus a
+   hard line break, so `1;2` formats as two lines. Three things follow, and the
+   first two are new rules rather than mechanical edits:
+
+   - **A comment with no expression beside it becomes dangling.** For `1; # c`
+     the comment has a `preceding_node` on the same line and Biome's default
+     placement should make it trailing of the expression, where it prints
+     correctly. But for a bare `;# c` — or a leading `;`, or `{ ;# c }` — the
+     statement has no expression, so both `preceding_node` and `following_node`
+     are `None` and the comment attaches as **dangling on the `RStatement`**.
+     `FormatRStatement` must then call `format_dangling_comments(node)`
+     explicitly, or Biome's "every comment is printed exactly once" assertion
+     fires in debug and the comment is silently dropped in release.
+   - **An empty statement must not emit a line.** `1;;2` is
+     `stmt(1, ;)`, `stmt(—, ;)`, `stmt(2, —)`; joining with hard lines
+     unconditionally yields `1\n\n2`. The join must skip statements that produce
+     no content, and the predicate is "no expression **and** no dangling
+     comment", which is what ties it to the rule above. `{ ; }` and a leading
+     `;` are the same shape.
+   - **Verify first: does `format_removed` print the token's comments itself, or
+     has the `Comments` map already claimed them during attachment?** Both firing
+     double-prints the comment; neither firing drops it. Air's existing
+     `format_removed` call sites should settle which, and the answer decides
+     whether the dangling rule above is sufficient on its own.
+
+   The three corpus tests for these live in `statements/semicolons.md` (§11.7).
 5. **Update the LSP** to surface per-diagnostic ranges instead of one whole-file
    error. This is the most user-visible win of the whole project — call it out in
    the changelog.
-6. **Final acceptance gate:** air's entire formatter snapshot suite is unchanged
+6. **Delete the oracle** (§10.4.1). Once air is on aether, tree-sitter-r is not
+   the reference for anything: remove `crates/aether_r_oracle/`, the `oracle`
+   feature and its `#[cfg]` in `check()`, the `just oracle` recipe, and the
+   `tree-sitter` / `tree-sitter-r` workspace deps from **aether** as well as air.
+   The `[deviation]` marker stays — it still documents which tests intentionally
+   differ, and `docs/deviations.md` still cross-references it — but it becomes
+   inert in the harness. Say so in its row in §10.1's marker table when you do.
+7. **Final acceptance gate:** air's entire formatter snapshot suite is unchanged
    except for semicolon-related files.
 
-**Optional follow-up, separate PR.** If the owner wants air's imports to say
-`aether_r_syntax` rather than relying on the Cargo rename, do a mechanical
-find-and-replace across air *after* the swap lands. Keeping it separate means the
-swap PR's diff stays reviewable.
+**Deferred follow-up, separate PR.** The Cargo rename is settled for the swap
+itself ("fine for now"), which leaves open whether air's imports should eventually
+say `aether_r_syntax` outright. If the owner wants that, it is a mechanical
+find-and-replace across air landed *after* the swap. Nothing forces the question
+— the Cargo mapping is a supported, permanent arrangement, not a temporary shim,
+so this can stay undone indefinitely without accruing debt.
+
+One consequence to keep in mind while it stays undone: a reader of air sees
+`use air_r_syntax::…` and will not find that crate in air's tree or on crates.io.
+Worth one line in air's `CLAUDE.md` or the workspace `Cargo.toml` pointing at
+aether, so the indirection is discoverable from the place someone hits it.
 
 ---
 
@@ -2876,6 +3892,7 @@ swap PR's diff stays reviewable.
 | **The statement wrapper** | Replaces `R_EXPRESSION_LIST` with `R_STATEMENT_LIST` of `R_STATEMENT`, so air's formatter must change. | Land in Phase 3, before any parser code. Get explicit sign-off on the ungram shape. |
 | **Codegen drift** | If aether's generated code diverges from air's, the swap-in fails in confusing ways. | Phase 2 asserts byte-identity, and CI asserts `just codegen` idempotence. |
 | **Oracle unavailable on error tests** | tree-sitter bails on any error, so ~25 tests get no oracle coverage. | Accept it; those are exactly the tests where we *intend* to differ. Rely on reviewed snapshots there. |
+| **Oracle skipped or rotted** | It is local-only and feature-gated (§10.4.1), so nothing forces anyone to run it, and nothing catches it breaking. | Named as an explicit step in every phase's checklist (§4). If it does break, fix cheaply or abandon it — it is deleted at swap-in regardless. Reviewed snapshots, not the oracle, are what carry forward. |
 | **`[pending]` rot** | A large batch of inert tests invites ignoring them. | Unexpected pass is a *hard failure*, so the count only moves deliberately. Report `N/89 enabled` in CI output. |
 | **Biome fork rev skew** | Air's fork could move mid-project. | Pin, and treat a rev bump as its own PR with a full snapshot regeneration. |
 
@@ -2897,6 +3914,8 @@ Tests run under **cargo-nextest**, not `cargo test`.
 - `just test` — `cargo nextest run --workspace` (+ `cargo test --doc`)
 - `just accept` — regenerate markdown snapshots via `xtask accept`, then verify
 - `just quick` — run the `tests/quick_test.rs` scratchpad
+- `just oracle` — differential check against tree-sitter-r. Local only, never in
+  CI, and the whole crate goes away at swap-in. Run it at the end of a phase.
 - `cargo nextest run -E 'test(/Dollar/)'` — filter by name
 
 Tests are **read-only**. Only `xtask accept` writes corpus files; nextest runs
@@ -2909,7 +3928,7 @@ tests in parallel processes and they would race otherwise.
 4. Tree shape matches tree-sitter-r except where `docs/deviations.md` says so.
 
 ## Test corpus
-`crates/aether_r_parser/tests/corpus/**/*.md`, one file per concept, one test per
+`crates/aether_r_parser_tests/tests/corpus/**/*.md`, one file per concept, one test per
 `##` heading.
 
 **Two files per concept.** `X.md` is human-authored: headings, markers, and ```r
@@ -2936,26 +3955,3 @@ The 89 tree-sitter-r tests were imported wholesale in one commit.
 - Biome's JS/CSS parsers — for idiom. When in doubt, do what `biome_js_parser`
   does.
 ```
-
----
-
-## 15. Open questions for the owner
-
-The grammar shape is fully settled (§7), so nothing here blocks Phase 3. These are
-decisions to make before the phase each one names — but do not let them go
-unanswered until swap-in.
-
-1. **Formatter semantics for semicolons.** At swap time, should the formatter
-   `format_removed()` the semicolon and insert a hard line break (i.e. `1;2`
-   becomes two lines), or preserve it? This does not block the parser but shapes
-   the deviation doc.
-2. **Cargo package rename vs. find-and-replace.** At swap-in, is the
-   `air_r_syntax = { package = "aether_r_syntax", … }` rename acceptable
-   (recommended — keeps the swap PR's diff to a few `Cargo.toml` lines plus the
-   formatter changes), or do you want air's imports renamed outright in the same
-   PR?
-3. **`a$1` recovery shape.** Consume the `1` into a bogus RHS (recommended, no
-   phantom sibling statement), or leave it as a sibling the way tree-sitter does?
-4. **Repo visibility and CI budget.** The oracle requires building tree-sitter-r
-   (a C dependency) in CI. Acceptable, or should the oracle be a separate
-   scheduled job?
