@@ -1,0 +1,13 @@
+# codegen
+
+This crate contains local commands used to auto-generate source code.
+
+## `just codegen`
+
+This command transforms the `*.ungram` files into the `aether_*_syntax` and `aether_*_factory` crates.
+
+The project uses a fork of [`ungrammar`](https://github.com/rust-analyzer/ungrammar) to define the syntax of the language.
+
+`ungrammar` uses a DSL to define and parse the grammar of a language.
+
+Once the library parses the DSL files, some custom logic generates the AST APIs.
