@@ -55,7 +55,7 @@ impl RCall {
         }
 
         // Second must be braces
-        if !matches!(second, AnyRExpression::RBracedExpressions(_)) {
+        if !matches!(second, AnyRExpression::RBracedStatements(_)) {
             return false;
         }
 
