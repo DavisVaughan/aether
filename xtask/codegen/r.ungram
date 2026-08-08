@@ -35,6 +35,7 @@ SyntaxElement = SyntaxElement
 RBogus = SyntaxElement*
 RBogusValue = SyntaxElement*
 RBogusExpression = SyntaxElement*
+RBogusSelector = SyntaxElement*
 
 // ----------------------------------------------------------------
 // Root
@@ -107,7 +108,7 @@ AnyRSelector =
 	| RStringValue
 	| RDots
 	| RDotDotI
-	| RBogusValue
+	| RBogusSelector
 
 // ----------------------------------------------------------------
 // Function

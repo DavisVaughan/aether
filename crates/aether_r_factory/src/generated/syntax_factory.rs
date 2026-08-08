@@ -14,7 +14,7 @@ impl SyntaxFactory for RSyntaxFactory {
         children: ParsedChildren<Self::Kind>,
     ) -> RawSyntaxNode<Self::Kind> {
         match kind {
-            R_BOGUS | R_BOGUS_EXPRESSION | R_BOGUS_VALUE => {
+            R_BOGUS | R_BOGUS_EXPRESSION | R_BOGUS_SELECTOR | R_BOGUS_VALUE => {
                 RawSyntaxNode::new(kind, children.into_iter().map(Some))
             }
             R_ARGUMENT => {

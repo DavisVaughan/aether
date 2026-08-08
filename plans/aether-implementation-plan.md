@@ -762,7 +762,7 @@ required. The deviation is purely in the parser:
   offending range labelled. **Settled with the owner:** the bogus node consumes
   exactly one atom — no postfix, no infix — so `a$1 + 2` still parses the `+`
   normally. §11.4 has the full boundary table. The bogus node's kind is
-  `R_BOGUS_VALUE`, which requires a one-line grammar change — see §7.2.1.
+  `R_BOGUS_SELECTOR`, a new node kind — see §7.2.1.
 
 Same treatment for `@`, `::`, `:::`.
 
@@ -800,23 +800,86 @@ producing an `R_EXTRACT_EXPRESSION` with a bogus RHS. Round-trip still passes, s
 nothing in the harness would catch it; it would only show up by reading the
 snapshot.
 
-The fix is one line in `r.ungram`, landed in Phase 3 with the other grammar
-deviations:
+The fix is a **new bogus node kind, `RBogusSelector`**, landed in Phase 3 with the
+other grammar deviations. Two edits to `r.ungram`:
 
 ```diff
+ RBogus = SyntaxElement*
+ RBogusValue = SyntaxElement*
+ RBogusExpression = SyntaxElement*
++RBogusSelector = SyntaxElement*
+
  AnyRSelector =
  	RIdentifier
  	| RStringValue
  	| RDots
  	| RDotDotI
-+	| RBogusValue
++	| RBogusSelector
 ```
 
-`RBogusValue` rather than a new kind: it already exists in `r_kinds_src.rs`,
-`AnyRValue` sets the precedent of a union carrying its matching bogus variant, and
-the four selector forms are value-shaped. No `RSyntaxKind` is added — only the
-union gains a variant, and `AnyRSelector::can_cast` starts accepting
-`R_BOGUS_VALUE`.
+and one to `r_kinds_src.rs`:
+
+```diff
+         "R_BOGUS",
+         "R_BOGUS_VALUE",
+         "R_BOGUS_EXPRESSION",
++        "R_BOGUS_SELECTOR",
+```
+
+Adding a kind means the two hand-written `RSyntaxKind` matches in
+`aether_r_syntax/src/lib.rs` need arms — they are exhaustive, so the compiler
+demands it. `is_bogus()` returns `true`, and `to_bogus()` is idempotent, exactly
+as `R_BOGUS_VALUE` is:
+
+```rust
+// Bogus selector
+RSyntaxKind::R_BOGUS_SELECTOR => RSyntaxKind::R_BOGUS_SELECTOR,
+```
+
+Note what does *not* change: the four selector node kinds keep their existing
+`to_bogus()` mappings. `to_bogus()` answers "this node kind failed to build, what
+does it degrade to", which is about the node being built, not the slot it sits in
+— and `R_IDENTIFIER` or `R_STRING_VALUE` appear in plenty of non-selector
+positions. Only the parser decides to build an `R_BOGUS_SELECTOR`, and it only
+does so in a selector slot.
+
+**Why a new kind rather than reusing `RBogusValue`.** Biome's convention is one
+bogus kind per restricted position, and `js.ungram` has ten of them —
+`JsBogusBinding`, `JsBogusParameter`, `JsBogusMember`, `JsBogusAssignment`,
+`JsBogusImportAssertionEntry`, `JsBogusNamedImportSpecifier`, `TsBogusType`, and
+the rest. `AnyJsDecorator` is the one place Biome reuses a broader bogus kind
+(`JsBogusExpression`) in a restricted union, and it is the exception. Two concrete
+payoffs here:
+
+- **The name does not lie.** The bogus RHS wraps one whole prefix atom (§11.4), so
+  `a${b}` wraps `R_BRACED_STATEMENTS`, `a$(b)` wraps `R_PARENTHESIZED_EXPRESSION`,
+  and `a$-1` wraps `R_UNARY_EXPRESSION`. None of those is a value. Snapshots are
+  the artifact reviewers read most, and they should read truthfully.
+
+- **The kind alone identifies the position.** A tree walker — air's LSP, a lint
+  rule — seeing `R_BOGUS_SELECTOR` knows a selector was malformed without
+  inspecting the parent. `R_BOGUS_VALUE` would have been ambiguous with a
+  malformed literal.
+
+`R_BOGUS_SELECTOR` is also disjoint from `AnyRExpression`, where `R_BOGUS_VALUE`
+is a member via `AnyRValue`. That makes `RExtractExpression`'s `left`
+(`AnyRExpression`) and `right` (`AnyRSelector`) slots unable to accept the same
+bogus kind. Not load-bearing — the required operator token between them already
+anchors the factory's positional scan, verified by driving `RSyntaxFactory`
+directly for both orderings — but it costs nothing to keep them disjoint.
+
+**Swap-in cost**, since this is one more kind than air has: air's `RSyntaxKind`,
+`nodes.rs`, and both factories are generated, so they follow from air's own
+codegen. The hand-written touch points are air's `is_bogus()` and `to_bogus()` in
+`air_r_syntax/src/lib.rs`, and one formatter rule file. The latter is nearly free
+— air's bogus rules are empty impls that its codegen stubs out:
+
+```rust
+impl FormatBogusNodeRule<RBogusSelector> for FormatRBogusSelector {}
+```
+
+`FormatAnyRSelector` in `air_r_formatter/src/r/any/selector.rs` gains a fifth arm
+in the same generated pass.
 
 This means `tests/snapshots/undefined/extract_expression_error.R` and
 `namespace_expression_error.R` become *error* tests in aether, and their corpus
@@ -872,13 +935,19 @@ Seed the first with:
 | 2 | Extract RHS | `optional()`, silent | required, diagnostic + bogus |
 | 3 | Namespace RHS | `optional()`, silent | required, diagnostic + bogus |
 | 4 | Error recovery | whole-file bogus node | localized bogus nodes, tree still walkable |
-| 5 | `AnyRSelector` | 4 variants, no bogus | `RBogusValue` added, so a malformed RHS is contained in the `right` slot instead of collapsing the whole expression (§7.2.1) |
+| 5 | `AnyRSelector` | 4 variants, no bogus | new `RBogusSelector` kind added as a fifth variant, so a malformed RHS is contained in the `right` slot instead of collapsing the whole expression (§7.2.1) |
 
 **Done when:** `.ungram` and `r_kinds_src.rs` updated, `just codegen` run, generated
 code compiles, `docs/deviations.md` seeded, and the delta vs air's generated code is
-*only* the expected statement-list changes: `R_EXPRESSION_LIST` replaced by
-`R_STATEMENT_LIST`, `R_STATEMENT` added, and `RRoot`/`RBracedStatements` pointing
-at the new list type.
+*only* these two sets of changes:
+
+- the statement list — `R_EXPRESSION_LIST` replaced by `R_STATEMENT_LIST`,
+  `R_STATEMENT` added, and `RRoot`/`RBracedStatements` pointing at the new list
+  type
+
+- the bogus selector — `R_BOGUS_SELECTOR` added as the last kind before `__LAST`
+  so nothing renumbers, `AnyRSelector::can_cast` accepting it, and arms in
+  `is_bogus()` and `to_bogus()`
 
 ---
 
@@ -3446,12 +3515,14 @@ Either way it is **one diagnostic**, not one per malformed token, and the
 round-trip invariant holds because the offending tokens are inside the tree rather
 than dropped.
 
-**The bogus kind is `R_BOGUS_VALUE`**, and it only fits because Phase 3 added
-`RBogusValue` to the `AnyRSelector` union (§7.2.1). Without that change the
-factory silently reshapes the whole `a$1` into one bogus node instead of an
-`R_EXTRACT_EXPRESSION` with a bogus RHS — no panic, no compile error, and
-round-trip still passes. So `«…»` in the table above reads `R_BOGUS_VALUE`
-throughout.
+**The bogus kind is `R_BOGUS_SELECTOR`**, which exists only because Phase 3 added
+it and put `RBogusSelector` in the `AnyRSelector` union (§7.2.1). Without a bogus
+variant in that union the factory silently reshapes the whole `a$1` into one bogus
+node instead of an `R_EXTRACT_EXPRESSION` with a bogus RHS — no panic, no compile
+error, and round-trip still passes. So `«…»` in the table above reads
+`R_BOGUS_SELECTOR` throughout, wrapping whatever single atom
+`parse_prefix_expression` returned: an `R_DOUBLE_VALUE` for `a$1`, an
+`R_PARENTHESIZED_EXPRESSION` for `a$(b)`, an `R_UNARY_EXPRESSION` for `a$-1`.
 
 Two aether-authored tests are worth adding for the boundary cases, since the
 imported corpus only covers bare `a$1`: `a$1 + 2` for the "infix is not consumed"

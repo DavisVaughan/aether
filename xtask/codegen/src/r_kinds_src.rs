@@ -127,5 +127,6 @@ pub const R_KINDS_SRC: KindsSrc = KindsSrc {
         "R_BOGUS",
         "R_BOGUS_VALUE",
         "R_BOGUS_EXPRESSION",
+        "R_BOGUS_SELECTOR",
     ],
 };

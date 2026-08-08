@@ -29,9 +29,10 @@ impl biome_rowan::SyntaxKind for RSyntaxKind {
 
     fn is_bogus(&self) -> bool {
         match self {
-            RSyntaxKind::R_BOGUS | RSyntaxKind::R_BOGUS_VALUE | RSyntaxKind::R_BOGUS_EXPRESSION => {
-                true
-            }
+            RSyntaxKind::R_BOGUS
+            | RSyntaxKind::R_BOGUS_VALUE
+            | RSyntaxKind::R_BOGUS_EXPRESSION
+            | RSyntaxKind::R_BOGUS_SELECTOR => true,
 
             RSyntaxKind::TOMBSTONE
             | RSyntaxKind::EOF
@@ -172,6 +173,9 @@ impl biome_rowan::SyntaxKind for RSyntaxKind {
             | RSyntaxKind::R_EXTRACT_EXPRESSION
             | RSyntaxKind::R_NAMESPACE_EXPRESSION
             | RSyntaxKind::R_BOGUS_EXPRESSION => RSyntaxKind::R_BOGUS_EXPRESSION,
+
+            // Bogus selector
+            RSyntaxKind::R_BOGUS_SELECTOR => RSyntaxKind::R_BOGUS_SELECTOR,
 
             // Bogus
             RSyntaxKind::TOMBSTONE
