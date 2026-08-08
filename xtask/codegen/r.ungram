@@ -107,6 +107,7 @@ AnyRSelector =
 	| RStringValue
 	| RDots
 	| RDotDotI
+	| RBogusValue
 
 // ----------------------------------------------------------------
 // Function

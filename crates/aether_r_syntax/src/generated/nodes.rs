@@ -1934,12 +1934,19 @@ impl AnyRParameterName {
 }
 #[derive(Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum AnyRSelector {
+    RBogusValue(RBogusValue),
     RDotDotI(RDotDotI),
     RDots(RDots),
     RIdentifier(RIdentifier),
     RStringValue(RStringValue),
 }
 impl AnyRSelector {
+    pub fn as_r_bogus_value(&self) -> Option<&RBogusValue> {
+        match &self {
+            AnyRSelector::RBogusValue(item) => Some(item),
+            _ => None,
+        }
+    }
     pub fn as_r_dot_dot_i(&self) -> Option<&RDotDotI> {
         match &self {
             AnyRSelector::RDotDotI(item) => Some(item),
@@ -4218,6 +4225,11 @@ impl From<AnyRParameterName> for SyntaxElement {
         node.into()
     }
 }
+impl From<RBogusValue> for AnyRSelector {
+    fn from(node: RBogusValue) -> AnyRSelector {
+        AnyRSelector::RBogusValue(node)
+    }
+}
 impl From<RDotDotI> for AnyRSelector {
     fn from(node: RDotDotI) -> AnyRSelector {
         AnyRSelector::RDotDotI(node)
@@ -4240,15 +4252,20 @@ impl From<RStringValue> for AnyRSelector {
 }
 impl AstNode for AnyRSelector {
     type Language = Language;
-    const KIND_SET: SyntaxKindSet<Language> = RDotDotI::KIND_SET
+    const KIND_SET: SyntaxKindSet<Language> = RBogusValue::KIND_SET
+        .union(RDotDotI::KIND_SET)
         .union(RDots::KIND_SET)
         .union(RIdentifier::KIND_SET)
         .union(RStringValue::KIND_SET);
     fn can_cast(kind: SyntaxKind) -> bool {
-        matches!(kind, R_DOT_DOT_I | R_DOTS | R_IDENTIFIER | R_STRING_VALUE)
+        matches!(
+            kind,
+            R_BOGUS_VALUE | R_DOT_DOT_I | R_DOTS | R_IDENTIFIER | R_STRING_VALUE
+        )
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         let res = match syntax.kind() {
+            R_BOGUS_VALUE => AnyRSelector::RBogusValue(RBogusValue { syntax }),
             R_DOT_DOT_I => AnyRSelector::RDotDotI(RDotDotI { syntax }),
             R_DOTS => AnyRSelector::RDots(RDots { syntax }),
             R_IDENTIFIER => AnyRSelector::RIdentifier(RIdentifier { syntax }),
@@ -4259,6 +4276,7 @@ impl AstNode for AnyRSelector {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
+            AnyRSelector::RBogusValue(it) => &it.syntax,
             AnyRSelector::RDotDotI(it) => &it.syntax,
             AnyRSelector::RDots(it) => &it.syntax,
             AnyRSelector::RIdentifier(it) => &it.syntax,
@@ -4267,6 +4285,7 @@ impl AstNode for AnyRSelector {
     }
     fn into_syntax(self) -> SyntaxNode {
         match self {
+            AnyRSelector::RBogusValue(it) => it.syntax,
             AnyRSelector::RDotDotI(it) => it.syntax,
             AnyRSelector::RDots(it) => it.syntax,
             AnyRSelector::RIdentifier(it) => it.syntax,
@@ -4277,6 +4296,7 @@ impl AstNode for AnyRSelector {
 impl std::fmt::Debug for AnyRSelector {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            AnyRSelector::RBogusValue(it) => std::fmt::Debug::fmt(it, f),
             AnyRSelector::RDotDotI(it) => std::fmt::Debug::fmt(it, f),
             AnyRSelector::RDots(it) => std::fmt::Debug::fmt(it, f),
             AnyRSelector::RIdentifier(it) => std::fmt::Debug::fmt(it, f),
@@ -4287,6 +4307,7 @@ impl std::fmt::Debug for AnyRSelector {
 impl From<AnyRSelector> for SyntaxNode {
     fn from(n: AnyRSelector) -> SyntaxNode {
         match n {
+            AnyRSelector::RBogusValue(it) => it.into(),
             AnyRSelector::RDotDotI(it) => it.into(),
             AnyRSelector::RDots(it) => it.into(),
             AnyRSelector::RIdentifier(it) => it.into(),
