@@ -211,12 +211,28 @@ aether/
     │       ├── diagnostics.rs     # expected_* diagnostic constructors
     │       ├── token_source.rs    # RTokenSource
     │       ├── parser.rs          # RParser + context flags
+    │       ├── lexer.rs           # RLexer; ends with `#[cfg(test)] mod tests;`
     │       ├── lexer/
-    │       │   ├── mod.rs         # RLexer
-    │       │   └── tests.rs       # `#[cfg(test)]` over private lexer internals;
-    │       │                      #   stays here, see §10.2
+    │       │   ├── tests.rs       # the assert_lex! family + `mod` declarations
+    │       │   └── tests/         # one file per dispatch arm — see §8.6
+    │       │       ├── bom.rs
+    │       │       ├── whitespace.rs
+    │       │       ├── comments.rs
+    │       │       ├── line_breaks.rs
+    │       │       ├── puncts.rs
+    │       │       ├── brackets.rs
+    │       │       ├── keywords.rs
+    │       │       ├── identifiers.rs
+    │       │       ├── backticks.rs
+    │       │       ├── numbers.rs
+    │       │       ├── dots.rs
+    │       │       ├── specials.rs
+    │       │       ├── strings.rs
+    │       │       ├── raw_strings.rs
+    │       │       ├── checkpoint.rs
+    │       │       └── coverage.rs
+    │       ├── syntax.rs
     │       └── syntax/
-    │           ├── mod.rs
     │           ├── expr.rs        # Pratt loop, primary exprs
     │           ├── call.rs        # call / subset / subset2 / arg lists
     │           ├── function.rs    # function defs, lambdas, parameters
@@ -304,7 +320,7 @@ the scaffolding.
 | 1 | Repo bootstrap | Workspace builds, CI green, nothing else |
 | 2 | Vendor + rename syntax layer | `just codegen` reproduces `aether_r_syntax` + `aether_r_factory`, identical to air's modulo the rename |
 | 3 | Grammar deviations | `.ungram` + kinds updated, regenerated, documented |
-| 4 | Lexer | Standalone `RLexer` with its own token-stream tests |
+| 4 | Lexer | Standalone `RLexer`, plus sixteen `#[cfg(test)]` token-stream test files under `src/lexer/tests/` (§8.6) |
 | 5 | Parser scaffolding | `RParser`, `RTokenSource`, diagnostics, `parse()` returns an empty `R_ROOT` |
 | 6 | Test harness + corpus import | All 89 tree-sitter tests imported as `[pending]`; oracle wired up |
 | 7 | Literals, identifiers, program | `1`, `"a"`, `foo`, `TRUE`, `NA_integer_`, `..1`, `...` |
@@ -953,8 +969,16 @@ code compiles, `docs/deviations.md` seeded, and the delta vs air's generated cod
 
 ## 8. Phase 4 — The lexer
 
-`crates/aether_r_parser/src/lexer/mod.rs`. This phase produces a **standalone,
+`crates/aether_r_parser/src/lexer.rs`. This phase produces a **standalone,
 independently testable** lexer. No parser yet.
+
+The lexer is one module, `lexer.rs`, with a `#[cfg(test)] mod tests;` at the
+bottom. Its tests live under `lexer/` and are therefore descendants of the module
+they test, which is the whole reason they sit here rather than in a test crate:
+they read private fields (`after_newline`, `string_delimiter`) and call private
+helpers directly, and `#[cfg(test)]` keeps every byte of them out of the parser
+air links against. §8.6 is the test plan and it is not an afterthought — the lexer
+is the one component whose bugs every later phase inherits silently.
 
 ### 8.1 The trait we implement
 
@@ -995,7 +1019,7 @@ names optimistically rather than looking ahead for the `=`.
 ### 8.2 Skeleton
 
 ```rust
-// crates/aether_r_parser/src/lexer/mod.rs
+// crates/aether_r_parser/src/lexer.rs
 use aether_r_syntax::{RSyntaxKind, RSyntaxKind::*, T};
 use biome_parser::diagnostic::ParseDiagnostic;
 use biome_parser::lexer::{
@@ -1032,6 +1056,20 @@ pub(crate) enum RStringDelimiter {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RawBracket { Paren, Bracket, Brace }
+
+/// The re-lexing requests the parser can make.
+///
+/// Only one exists, and by §8.4 only one ever should: `[[` and `]]` are lexed
+/// greedily, and the parser splits them back apart at its single split site
+/// (§11.3). Modelled as an enum rather than a unit type because
+/// [`biome_parser::lexer::ReLexer`] requires an associated `ReLexContext`, and
+/// because a second variant would be a design change worth seeing in a diff.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RReLexContext {
+    /// Re-lex `[[` as `[`, or `]]` as `]`, leaving the second bracket to be
+    /// lexed as the next token. A no-op on any other current token.
+    SplitBrackets,
+}
 
 pub(crate) struct RLexer<'src> {
     source: &'src str,
@@ -1129,6 +1167,30 @@ Two obligations follow from that field, both easy to miss:
   lexing resumes from. Restore both, or a rewind across a newline silently loses
   the break.
 
+`LexerCheckpoint` is a concrete struct in `biome_parser`, not an associated type,
+and its full field list at the pinned rev is:
+
+```rust
+pub struct LexerCheckpoint<Kind> {
+    pub position: TextSize,
+    pub current_start: TextSize,
+    pub current_kind: Kind,
+    pub current_flags: TokenFlags,
+    pub after_line_break: bool,
+    pub unicode_bom_length: usize,
+    pub diagnostics_pos: u32,
+}
+```
+
+So **`unicode_bom_length` is not optional for aether even though nothing in R
+reads it.** In JS it exists for `read_shebang`, which checks `start != 0 && start
+!= self.unicode_bom_length` so that a shebang after a BOM is still a shebang; R
+has no shebang and no second reader. `RLexer` still needs the field, because
+`checkpoint()` must construct the struct and `rewind()` destructures it — and
+`JsLexer` sets it from `consume_potential_bom`'s returned length (§8.3.1). Set it
+the same way rather than hardcoding `0`: it costs one line, and a `0` there is a
+lie that the next person has to re-derive.
+
 ### 8.3 `lex_token` dispatch
 
 Order matters. Copy the ordering decisions from tree-sitter-r's `grammar.js`
@@ -1164,12 +1226,65 @@ fn lex_token(&mut self) -> RSyntaxKind {
         b'%' => self.consume_special(),
 
         b'_' | b'a'..=b'z' | b'A'..=b'Z' => self.consume_identifier_or_keyword(),
-        b if b >= 128 => self.consume_identifier_or_keyword(), // unicode XID_Start
+
+        // The unicode arm, and also where the BOM is resolved — see §8.3.1
+        b if b >= 128 => self.consume_unicode(),
 
         _ => self.consume_punct(),
     }
 }
 ```
+
+#### 8.3.1 The BOM
+
+`RRoot` has a `bom: 'UNICODE_BOM'?` slot, so `UNICODE_BOM` has to be produced or
+that slot is unreachable. **Handle it exactly the way `biome_js_parser` does**, in
+the `>= 128` arm rather than in an arm of its own:
+
+```rust
+/// The `byte >= 128` arm, which is also where the BOM is resolved.
+fn consume_unicode(&mut self) -> RSyntaxKind {
+    // A BOM is only a BOM at offset 0. Elsewhere U+FEFF is not an identifier
+    // character either — it is category Cf, so neither XID_Start nor
+    // XID_Continue — but that is the identifier scanner's problem, not this
+    // arm's.
+    if self.position == 0 {
+        if let Some((bom, _)) = self.consume_potential_bom(UNICODE_BOM) {
+            return bom;
+        }
+    }
+    self.consume_identifier_or_keyword()
+}
+```
+
+Four things about `consume_potential_bom`, all verified against
+`biome_parser/src/lexer.rs` at the pinned rev rather than assumed:
+
+- **It is trait-provided.** Do not hand-roll a peek-then-consume pair. It takes
+  the kind to return, so the call is `self.consume_potential_bom(UNICODE_BOM)`.
+
+- **It is safe to call speculatively.** The body advances by `bom.len()` *before*
+  matching, but `Bom::Null.len()` is `0`, so a non-match advances nothing. That is
+  why no guard beyond `position == 0` is needed.
+
+- **It works on `source().get(0..3)`, a `str` slice, not on raw bytes.** A source
+  shorter than three bytes, or one whose first three bytes are not a char
+  boundary, yields `None` and is skipped. This is why matching on `0xEF` yourself
+  is both redundant and more fragile than it looks.
+
+- **It returns the byte length, and JS stores it** in a `unicode_bom_length`
+  field. Its only JS reader is `read_shebang`, which R has no analogue of — but
+  see §8.2, because the field is not optional for us.
+
+#### 8.3.2 Unicode whitespace is deliberately not handled here
+
+`biome_js_parser`'s `>= 128` arm also routes unicode line breaks and unicode
+spaces (NBSP, en quad, ideographic space) to `consume_newline_or_whitespaces`,
+short-circuited by a `UNICODE_WHITESPACE_STARTS` table. Aether's arm above does
+not, because tree-sitter-r's whitespace set is ASCII-only and the oracle is the
+thing we are matching. If that turns out to be wrong, it is a change to this one
+function — but do not add it speculatively, and if it is added, it belongs in
+`docs/deviations.md` under "tree-sitter-r vs. R".
 
 ### 8.4 The token inventory
 
@@ -1201,6 +1316,34 @@ NaN NA NA_integer_ NA_real_ NA_complex_ NA_character_`.
 Lex as `IDENT` first, then map the text to a keyword kind — the standard Biome
 approach, and it automatically gets the `else_idx` case right (tree-sitter-r
 issue #200: `elseμ <- 1` must not see an `else` keyword).
+
+**Do not reach for the generated `RSyntaxKind::from_keyword()` to do that
+mapping.** Checked against `aether_r_syntax/src/generated/kind.rs`: codegen
+derives it from the `keywords` array in `r_kinds_src.rs`, which spells the R
+constants in lowercase placeholder form, so `from_keyword` matches `"true"`,
+`"na_integer"`, `"na_double"` — none of which is R source text. `from_keyword("TRUE")`
+is `None`. The lexer needs its own literal table, and the two spellings do not
+line up one-for-one:
+
+| R source | `RSyntaxKind` |
+|---|---|
+| `TRUE` / `FALSE` / `NULL` | `TRUE_KW` / `FALSE_KW` / `NULL_KW` |
+| `Inf` / `NaN` | `INF_KW` / `NAN_KW` |
+| `NA` | `NA_LOGICAL_KW` |
+| `NA_integer_` | `NA_INTEGER_KW` |
+| `NA_real_` | **`NA_DOUBLE_KW`** — the one name that does not follow the text |
+| `NA_complex_` | `NA_COMPLEX_KW` |
+| `NA_character_` | `NA_CHARACTER_KW` |
+| `function` … `break` | `FUNCTION_KW` … `BREAK_KW`, lowercase and identical |
+
+`keywords.rs` (§8.6) pins every row of that table, `NA_real_ → NA_DOUBLE_KW`
+above all, since it is the one an implementer will get wrong by pattern-matching
+on the name.
+
+One more generated-code landmine while you are here: the `T!` macro has a
+`[#] => HASH` arm, but `RSyntaxKind` has no `HASH` variant — the arm only fails to
+compile if something invokes it. Comments are `COMMENT`; there is no `#` token.
+Do not write `T![#]`.
 
 **Literals.**
 ```
@@ -1372,87 +1515,280 @@ snapshots line up):
 
 ### 8.6 Testing this phase
 
-`crates/aether_r_parser/src/lexer/tests.rs`. A macro-driven table asserting the exact
-token stream, in Biome's style:
+All of it is `#[cfg(test)]` inside `aether_r_parser`. The markdown corpus of §10.2
+is the *parser's* harness and the lexer does not use it: the lexer's entire output
+is a flat list of `(kind, range)`, and an exact assertion on that list is both more
+precise and more readable than a snapshot of it would be. Snapshots earn their keep
+when the expected value is too large to write by hand; a token stream is not.
+
+#### Module layout
 
 ```rust
-macro_rules! assert_lex {
-    ($src:expr, $($kind:ident:$len:expr),* $(,)?) => {{
-        let mut lexer = RLexer::from_str($src);
-        let mut idx = 0usize;
-        let mut tokens = vec![];
-        loop {
-            let kind = lexer.next_token(RLexContext::Regular);
-            if kind == EOF { break }
-            tokens.push((kind, lexer.current_range()));
+// crates/aether_r_parser/src/lexer.rs — the last lines in the file
+#[cfg(test)]
+mod tests;
+```
+
+```rust
+// crates/aether_r_parser/src/lexer/tests.rs
+//
+// The driver and the assertion macros. Every assertion itself lives in a
+// submodule, one per dispatch arm of `lex_token` (§8.3) plus one per piece of
+// cross-cutting machinery.
+
+mod backticks;
+mod bom;
+mod brackets;
+mod checkpoint;
+mod comments;
+mod coverage;
+mod dots;
+mod identifiers;
+mod keywords;
+mod line_breaks;
+mod numbers;
+mod puncts;
+mod raw_strings;
+mod specials;
+mod strings;
+mod whitespace;
+
+use super::*;
+```
+
+Because `tests` is a *descendant* of `lexer`, these files read `after_newline`
+and `string_delimiter` directly, with no accessor and no `pub(crate)` widening.
+That is the whole reason the tests sit here instead of in a test crate, and it is
+worth not giving up: an accessor added only for tests is a permanent hole in the
+lexer's encapsulation, and there is no version of this file layout that needs one.
+
+One file per dispatch arm is not a filing convention, it is the coverage argument.
+`lex_token` is a `match`, `coverage.rs` proves every kind is reachable, and the
+file list makes an arm with no test file visible by inspection.
+
+#### The driver
+
+The lexer cannot be driven by `next_token(Regular)` alone: string bodies and
+closing delimiters are lexed in a context the *parser* supplies (§8.1). The tests
+supply it the same way `RTokenSource` will, derived from the previous token rather
+than hand-written per call, so the tests exercise the real contract:
+
+```rust
+/// Lex `source` to completion, driving `RLexContext` the way §9.1 will.
+pub(super) fn lex(source: &str) -> (Vec<(RSyntaxKind, TextRange)>, Vec<ParseDiagnostic>) {
+    let mut lexer = RLexer::from_str(source);
+    let mut tokens = Vec::new();
+    let mut context = RLexContext::Regular;
+
+    loop {
+        let kind = lexer.next_token(context);
+        if kind == EOF {
+            break;
         }
-        let expected: Vec<(RSyntaxKind, usize)> = vec![$(($kind, $len)),*];
-        // assert kinds and lengths, and that lengths sum to src.len()
-    }};
+        tokens.push((kind, lexer.current_range()));
+
+        // Match on what came back, not on what was requested: a string with an
+        // empty body answers a `StringContent` request with `STRING_CLOSE`, and
+        // the next token after that is `Regular` again.
+        context = match (kind, lexer.string_delimiter) {
+            (STRING_OPEN, Some(delimiter)) => RLexContext::StringContent(delimiter),
+            (STRING_CONTENT, Some(delimiter)) => RLexContext::StringEnd(delimiter),
+            _ => RLexContext::Regular,
+        };
+    }
+
+    (tokens, lexer.finish())
+}
+```
+
+#### The macros
+
+Three, each with one job. They are thin wrappers over one `#[track_caller]`
+function so that the failure output is written once and is good.
+
+```rust
+/// Assert the exact token stream, and that the lexer emitted NO diagnostics.
+///
+/// The silence is half the assertion. A lexer that produces the right tokens and
+/// also complains about them is broken in a way that a kinds-and-lengths table
+/// alone will not catch, and `[error]` corpus tests will not catch it either
+/// because they only require *some* diagnostic.
+macro_rules! assert_lex {
+    ($source:expr, $($kind:ident : $length:expr),* $(,)?) => {
+        $crate::lexer::tests::check_lex($source, &[$(($kind, $length)),*], &[])
+    };
 }
 
-#[test] fn lex_number_suffixes() {
-    assert_lex!("1L 1i 1 0x1p3 .5 1e 1e+ 1e-3",
-        R_INTEGER_LITERAL:2, WHITESPACE:1,
-        R_COMPLEX_LITERAL:2, WHITESPACE:1,
-        R_DOUBLE_LITERAL:1,  WHITESPACE:1,
-        R_DOUBLE_LITERAL:5,  /* ... */);
+/// [`assert_lex!`] plus the diagnostics expected, in order.
+///
+/// Messages match as substrings, so a test pins the wording it cares about
+/// without re-encoding the full rendering.
+macro_rules! assert_lex_err {
+    ($source:expr, $($kind:ident : $length:expr),* $(,)? => $($message:literal),+ $(,)?) => {
+        $crate::lexer::tests::check_lex($source, &[$(($kind, $length)),*], &[$($message),+])
+    };
 }
 
-#[test] fn lex_dot_dispatch() {
+/// Assert `PRECEDING_LINE_BREAK` on each NON-TRIVIA token, in order.
+///
+/// Trivia is filtered out on purpose: the flag is sticky across it by design
+/// (§8.2), and "which real token reports a preceding break" is the only question
+/// the parser ever asks (§8.5).
+macro_rules! assert_line_breaks {
+    ($source:expr, $($kind:ident : $preceded:literal),* $(,)?) => {
+        $crate::lexer::tests::check_line_breaks($source, &[$(($kind, $preceded)),*])
+    };
+}
+```
+
+```rust
+#[track_caller]
+pub(super) fn check_lex(source: &str, expected: &[(RSyntaxKind, u32)], messages: &[&str]) {
+    let (tokens, diagnostics) = lex(source);
+
+    // Render the WHOLE stream on any failure. A message naming only the offending
+    // token sends you back to re-run with `--no-capture` and print it yourself.
+    let render = || -> String {
+        tokens
+            .iter()
+            .map(|(kind, range)| format!("  {kind:?}@{range:?} {:?}", &source[*range]))
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+
+    assert_eq!(
+        tokens.len(), expected.len(),
+        "expected {} tokens, lexed {}:\n{}", expected.len(), tokens.len(), render(),
+    );
+
+    // The ranges must TILE the source: start at 0, each adjacent to the last, the
+    // final one ending at `source.len()`. This is strictly stronger than summing
+    // lengths — it also rejects a lexer that overlaps or rewinds — and it makes
+    // reconstructing the input to compare it redundant.
+    let mut offset = TextSize::from(0);
+    for (index, ((kind, range), (want_kind, want_length))) in
+        tokens.iter().zip(expected).enumerate()
+    {
+        assert_eq!(*kind, *want_kind, "token {index}:\n{}", render());
+        assert_eq!(range.len(), TextSize::from(*want_length), "token {index}:\n{}", render());
+        assert_eq!(range.start(), offset, "token {index} leaves a gap:\n{}", render());
+        offset = range.end();
+    }
+    assert_eq!(
+        usize::from(offset), source.len(),
+        "tokens stop short of the end of the source:\n{}", render(),
+    );
+
+    let actual: Vec<String> = diagnostics.iter().map(render_message).collect();
+    assert_eq!(actual.len(), messages.len(), "diagnostics:\n{actual:#?}");
+    for (actual, expected) in actual.iter().zip(messages) {
+        assert!(actual.contains(expected), "expected {expected:?} in {actual:?}");
+    }
+}
+```
+
+That tiling check is the single highest-value assertion in the phase, and it is
+free on every test because it lives in the shared function rather than being
+something each test remembers to do.
+
+#### The files
+
+| File | Pins |
+|---|---|
+| `bom.rs` | `UNICODE_BOM:3` at offset 0 and nowhere else — a bare BOM file, a BOM before a token, and U+FEFF mid-file *not* becoming a second `UNICODE_BOM`. Plus the two short-source cases `consume_potential_bom` guards with its `get(0..3)` (§8.3.1): a one-byte and a two-byte file must not panic or mis-slice. The `RRoot::bom` slot is dead without this file. |
+| `whitespace.rs` | Runs of space/tab/`\x0B`/`\x0C` coalescing into one `WHITESPACE`; `\n` and lone `\r` as `NEWLINE:1`; `\r\n` as **one** `NEWLINE:2`; `\n\n` as two tokens; `\r\r\n` as two. |
+| `comments.rs` | `#` to end of line; a comment ending the file with no newline; `# x\r\n` leaving the `\r` **out** of the comment and inside the `NEWLINE`; the empty comment `#`; non-ASCII inside a comment. |
+| `line_breaks.rs` | The sticky flag of §8.2: false on the first token; true after a newline; surviving `WHITESPACE` **and** `COMMENT`; cleared by the first non-trivia token. `1\n  # c\n  + 2` reports the break on `+` and not on `2`. |
+| `puncts.rs` | Every punct kind at least once, and the whole maximal-munch table of §8.4 as a prefix sweep: `<`, `<-`, `<<-`, `<<` (**two** tokens), `<=`, `>`, `>=`, `-`, `->`, `->>`, `:`, `::`, `:::`, `::::`, `:=`, `*`, `**`, `\|`, `\|\|`, `\|>`, `&`, `&&`, `=`, `==`, `!`, `!=`. Adjacency cases too: `1<-2` vs `1 < -2`. |
+| `brackets.rs` | Greedy `[[`/`]]`; `x[ [1] ]` staying four separate brackets; `[[[` as `L_BRACK2` + `L_BRACK`; and `re_lex(SplitBrackets)` — splitting `[[` into `L_BRACK:1` with the second bracket still to come, being a no-op on any other token, and being idempotent. |
+| `keywords.rs` | Every row of the keyword table in §8.4, `NA_real_` → `NA_DOUBLE_KW` included. Case sensitivity in both directions: `If`/`Function` are `IDENT`, and so are `true`/`false`/`null`. The `else` prefixes: `elseif`, `else_idx`, `elseμ` (tree-sitter-r #200). |
+| `identifiers.rs` | `foo`, `foo.bar`, `a1`, `_` alone, `_foo` as one `IDENT` (not rejected here — §8.4), `.foo`, `.`, `..`, and unicode XID starts and continues. |
+| `backticks.rs` | One `IDENT` spanning the delimiters; `` `a\`b` `` with the escape; the empty `` `` ``; the multi-line name of §8.4; and an unterminated one running to EOF with `unterminated_backtick_identifier` pointing at the **opening** delimiter. |
+| `numbers.rs` | `1`, `1L`, `1i`, `1.`, `.5`, `1e`, `1e+`, `1e-3`, `1e5L`, hex `0xFF`, `0x1p3`, `0x.8p1`, `0xFFL`. The trailing-empty-exponent case is deliberate (§8.4) and needs a comment saying so, or it reads as a bug. |
+| `dots.rs` | The §8.3 dispatch: `...` → `DOTS`, `..1`/`..12` → `DOTDOTI`, `.5` → `R_DOUBLE_LITERAL`, `.foo`/`.`/`..` → `IDENT`, `...1` → `DOTS` then a literal. `.1L` and `.1i` are the regression for tree-sitter-r #190 and belong here rather than in `numbers.rs`, since the bug was in the dispatch. |
+| `specials.rs` | `%%`, `%/%`, `%in%`, `%>%`, `%o%`, and the empty `%%`. The newline case of §8.4: `%foo\n1` keeps `%foo` as `SPECIAL:4`, does **not** consume the newline, and carries `unterminated_special`. Plus the two inherited tree-sitter divergences — `%foo` at EOF errors, and `%a\b%` is not a `SPECIAL` — each with a comment pointing at `docs/deviations.md`. |
+| `strings.rs` | The `STRING_OPEN`/`STRING_CONTENT`/`STRING_CLOSE` triple for `'` and `"`; the empty string emitting **no** `STRING_CONTENT`; escapes staying inside one content token; the multi-line string; `#` and `%` inert inside a body; the other quote character inert inside; and an unterminated string running to EOF. |
+| `raw_strings.rs` | All three bracket pairs; hyphen counts 0, 1, and several; a close that matches the bracket but not the hyphen count *not* terminating; `R'...'` uppercase; `rnorm` and `r + 1` falling through to the identifier and punct arms; an unterminated raw string. |
+| `checkpoint.rs` | `checkpoint()`/`rewind()` restoring every field of `LexerCheckpoint` (§8.2): position, kind, `current_flags`, `after_newline`, and `unicode_bom_length`. The §8.2 warning gets a test of its own: rewind to before a newline, lex forward again, and assert `has_preceding_line_break()` still reports it. That bug is invisible until Phase 12's `else` handling and silent even then. |
+| `coverage.rs` | See below. |
+
+Diagnostics are asserted in the file that owns the construct — the unterminated
+backtick in `backticks.rs`, the unterminated special in `specials.rs` — rather
+than collected into a `diagnostics.rs`. A diagnostic is part of how a construct
+lexes, and splitting the two means changing one without noticing the other.
+
+Two of the original tests, relocated, to fix the shape:
+
+```rust
+// lexer/tests/dots.rs
+#[test]
+fn dispatch() {
     assert_lex!("... ..1 .5 .foo . ..",
         DOTS:3, WHITESPACE:1, DOTDOTI:3, WHITESPACE:1,
         R_DOUBLE_LITERAL:2, WHITESPACE:1, IDENT:4, WHITESPACE:1,
         IDENT:1, WHITESPACE:1, IDENT:2);
 }
 
-#[test] fn lex_backtick_is_an_identifier() {
-    // One IDENT token, backticks included. NOT a STRING_OPEN/CONTENT/CLOSE triple.
-    assert_lex!("`my var` `a\\`b`",
-        IDENT:8, WHITESPACE:1, IDENT:6);
-}
-
-#[test] fn lex_backtick_spans_newlines() {
-    // Legal R: one identifier whose name contains a newline.
-    assert_lex!("`my\nvar`", IDENT:8);
-}
-
-#[test] fn lex_special_stops_at_newline() {
-    // R's `SpecialValue` ungets the newline and errors, so the NEWLINE token
-    // survives to terminate the statement.
-    //
-    // `%foo` is still emitted as SPECIAL, with an `unterminated_special`
-    // diagnostic attached — NOT as a bogus token. `r_kinds_src.rs` has no
-    // error-token kind (`R_BOGUS` is a *node*), and adding one would be a
-    // gratuitous divergence from air's kind list. The parser wraps the token in a
-    // bogus node if it cannot use it.
-    assert_lex!("%foo\n1",
-        SPECIAL:4, NEWLINE:1, R_DOUBLE_LITERAL:1);
-    // …and a well-formed one is a single SPECIAL.
-    assert_lex!("a %in% b",
-        IDENT:1, WHITESPACE:1, SPECIAL:4, WHITESPACE:1, IDENT:1);
-}
-
-#[test] fn lex_string_spans_newlines() {
-    // Same rule for strings — see tree-sitter-r's `Strings` corpus test.
-    assert_lex!("\"foo\nbar\"",
-        STRING_OPEN:1, STRING_CONTENT:7, STRING_CLOSE:1);
-}
-
-#[test] fn lex_else_is_not_a_prefix() {
-    assert_lex!("else elseif else_idx elseμ",
-        ELSE_KW:4, WHITESPACE:1, IDENT:6, WHITESPACE:1,
-        IDENT:8, WHITESPACE:1, IDENT:6);
+// lexer/tests/specials.rs
+#[test]
+fn stops_at_newline() {
+    // R's `SpecialValue` ungets the newline and errors, so the NEWLINE survives to
+    // terminate the statement. `%foo` is still a SPECIAL with a diagnostic
+    // attached, NOT a bogus token: `r_kinds_src.rs` has no error-token kind
+    // (`R_BOGUS` is a *node*), and adding one would diverge from air's kind list
+    // for nothing. The parser wraps the token in a bogus node if it cannot use it.
+    assert_lex_err!("%foo\n1",
+        SPECIAL:4, NEWLINE:1, R_DOUBLE_LITERAL:1
+        => "Unterminated");
 }
 ```
 
-**Always assert that token lengths sum to the source length.** That single
-invariant catches the majority of lexer bugs and is the lexer-level analogue of
-the round-trip check.
+#### `coverage.rs` — the anti-gap guard
 
-**Done when:** every token kind in `r_kinds_src.rs` has lexer coverage, all
-`literals.md` inputs lex without diagnostics (they will not *parse* yet), and the
-sum-of-lengths invariant holds on every test.
+"Every token kind has lexer coverage" is the acceptance criterion for this phase,
+and as prose it is unfalsifiable: nobody re-derives it by hand across sixteen
+files. `MANIFEST.toml` does this job for the corpus (§10.3.3); this does it for
+the token inventory.
+
+`RSyntaxKind` is `#[repr(u16)]` and ends in `__LAST`, and the `SyntaxKind` trait
+gives a safe `from_raw`, so the full inventory is enumerable:
+
+```rust
+/// Sources that between them must produce every lexable kind.
+const SOURCES: &[&str] = &[ /* one per construct; the test names the gaps for you */ ];
+
+/// Kinds the lexer legitimately never produces, each with a reason. Adding a
+/// node kind to `r.ungram` therefore does NOT fail this test, but adding a token
+/// kind does, until something lexes it.
+fn is_lexable(kind: RSyntaxKind) -> bool {
+    !matches!(kind, TOMBSTONE | EOF | __LAST) && !kind.is_list() && !is_node(kind)
+}
+
+#[test]
+fn every_lexable_kind_is_produced() {
+    let mut produced = HashSet::new();
+    for source in SOURCES {
+        produced.extend(lex(source).0.into_iter().map(|(kind, _)| kind));
+    }
+
+    let missing: Vec<_> = (0..RSyntaxKind::__LAST as u16)
+        .map(|raw| RSyntaxKind::from_raw(RawSyntaxKind(raw)))
+        .filter(|kind| is_lexable(*kind) && !produced.contains(kind))
+        .collect();
+
+    assert!(missing.is_empty(), "no test lexes: {missing:#?}");
+}
+```
+
+The failure mode it is built for is not "someone forgot a test today" — it is
+Phase 3-style grammar edits landing a new token kind in `r_kinds_src.rs` months
+from now with nothing lexing it. That failure is otherwise discovered by the
+parser, as a confusing missing-slot bug several phases downstream.
+
+**Done when:** `coverage.rs` passes with an empty `missing` list; every file in
+the table above exists and is non-trivial; every `assert_lex!` in the suite tiles
+its source; and the R sources in the eventual `literals/*.md` corpus files all lex
+with **zero** diagnostics (they will not *parse* yet — there is no parser).
 
 ---
 
@@ -2063,8 +2399,12 @@ acyclic and `aether_r_parser` ships to air with no test-only dependencies.
 
 The harness is library code rather than living in `tests/`, because `xtask
 accept` needs `Document` and `check` too and cannot reach into another crate's
-`tests/` directory. The lexer's `#[cfg(test)]` unit tests (§8.6) stay in
-`aether_r_parser`, since they exercise private internals.
+`tests/` directory.
+
+**This harness is for the parser only.** The lexer keeps its own `#[cfg(test)]`
+suite inside `aether_r_parser` (§8.6): those tests read private fields, and a
+token stream is small enough to assert exactly rather than snapshot. There is no
+lexer corpus and `xtask accept` never looks at `src/`.
 
 **Tests never write to disk.** nextest runs each test in its own process, in
 parallel, so anything in the test path that writes files is a latent race. The
@@ -2712,7 +3052,7 @@ off the tests the feature enables, regenerate, review the diff.
 
 ### 11.1 Phase 7 — Literals, identifiers, program
 
-`src/syntax/value.rs`, `src/syntax/mod.rs`.
+`src/syntax/value.rs`, `src/syntax.rs`.
 
 ```rust
 pub(crate) fn parse_root(p: &mut RParser) {
@@ -3167,11 +3507,8 @@ So the list has to own its terminator, including the case where the lexer glued
 that terminator to someone else's:
 
 ```rust
-// crates/aether_r_parser/src/lexer/mod.rs
-pub(crate) enum RReLexContext {
-    /// Split a `]]` into `]` `]`, or a `[[` into `[` `[`.
-    SplitBrackets,
-}
+// `RReLexContext::SplitBrackets` is defined in §8.2 and lands in Phase 4; this is
+// its one and only call site.
 
 // crates/aether_r_parser/src/syntax/call.rs
 //
