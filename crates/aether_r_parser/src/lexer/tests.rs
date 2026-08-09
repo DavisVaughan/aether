@@ -53,7 +53,7 @@ pub(super) fn lex(source: &str) -> (Vec<LexedToken>, Vec<ParseDiagnostic>) {
 
         // Match on what came back, not on what was requested: a string with an
         // empty body answers a `StringContent` request with `STRING_CLOSE`, and
-        // the token after that is `Regular` again.
+        // the token after that is `Regular` again
         context = match (kind, lexer.string_delimiter) {
             (STRING_OPEN, Some(delimiter)) => RLexContext::StringContent(delimiter),
             (STRING_CONTENT, Some(delimiter)) => RLexContext::StringEnd(delimiter),

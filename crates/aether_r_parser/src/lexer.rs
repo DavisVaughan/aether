@@ -37,7 +37,7 @@ use biome_parser::lexer::{
 use biome_rowan::{SyntaxKind, TextRange, TextSize};
 use unicode_ident::{is_xid_continue, is_xid_start};
 
-/// The context the parser lexes the next token in.
+/// The context the parser lexes the next token in
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) enum RLexContext {
     #[default]
@@ -49,7 +49,7 @@ pub(crate) enum RLexContext {
     /// the body is empty, so `""` is two tokens and not three.
     StringContent(RStringDelimiter),
 
-    /// Lex the closing delimiter of a string.
+    /// Lex the closing delimiter of a string
     StringEnd(RStringDelimiter),
 }
 
@@ -68,7 +68,7 @@ pub(crate) enum RStringDelimiter {
     Single,
     Double,
     /// `r"---[` … `]---"`, closed by the matching bracket, the same number of
-    /// hyphens, and the same quote.
+    /// hyphens, and the same quote
     Raw {
         quote: u8,
         hyphens: u8,
@@ -77,7 +77,7 @@ pub(crate) enum RStringDelimiter {
 }
 
 impl RStringDelimiter {
-    /// The quote character the string closes with.
+    /// The quote character the string closes with
     fn quote(self) -> u8 {
         match self {
             Self::Single => b'\'',
@@ -129,7 +129,7 @@ pub(crate) enum RReLexContext {
 pub(crate) struct RLexer<'src> {
     source: &'src str,
 
-    /// Byte offset of the next token.
+    /// Byte offset of the next token
     position: usize,
 
     /// Byte offset of the current token. Its range is `current_start..position`.
@@ -202,13 +202,13 @@ impl<'src> Lexer<'src> for RLexer<'src> {
         };
 
         // Stamped after lexing so that the lex functions are free to set other
-        // flags first, and set on the one bit rather than by assigning the set.
+        // flags first, and set on the one bit rather than by assigning the set
         self.current_flags
             .set(TokenFlags::PRECEDING_LINE_BREAK, self.after_newline);
         self.current_kind = kind;
 
         // The bit survives across trivia, so `1\n  # c\n  + 2` reports the break
-        // on `+` rather than on the whitespace that happens to precede it.
+        // on `+` rather than on the whitespace that happens to precede it
         if !kind.is_trivia() {
             self.after_newline = false;
         }
@@ -221,7 +221,7 @@ impl<'src> Lexer<'src> for RLexer<'src> {
         self.current_flags.has_preceding_line_break()
     }
 
-    /// R has no token-level unicode escapes.
+    /// R has no token-level unicode escapes
     fn has_unicode_escape(&self) -> bool {
         false
     }
@@ -349,13 +349,13 @@ impl<'src> RLexer<'src> {
 
     /// The order of these arms is load-bearing, and several of the decisions
     /// come straight from tree-sitter-r's `grammar.js` comments, where they
-    /// record real bugs.
+    /// record real bugs
     fn lex_token(&mut self) -> RSyntaxKind {
         debug_assert!(!self.is_eof());
 
         match self.current_byte_unchecked() {
             // One arm for both, as in `biome_js_parser`: `consume_newline`
-            // already treats `\r\n` as a single newline.
+            // already treats `\r\n` as a single newline
             b'\n' | b'\r' | b'\t' | b' ' | b'\x0B' | b'\x0C' => {
                 self.consume_newline_or_whitespaces()
             }
@@ -368,7 +368,7 @@ impl<'src> RLexer<'src> {
 
             // `r"(…)"` and `R'---[…]---'`, falling through to the identifier
             // rule when what follows the `r` is not a raw string prefix, so
-            // `rnorm` and `r"abc"` still lex as a name.
+            // `rnorm` and `r"abc"` still lex as a name
             b'r' | b'R' => match self.scan_raw_string_open() {
                 Some(open) => self.consume_raw_string_open(open),
                 None => self.consume_identifier_or_keyword(),
@@ -376,14 +376,14 @@ impl<'src> RLexer<'src> {
 
             b'0'..=b'9' => self.consume_number(),
 
-            // `.` is overloaded four ways: `...`, `..1`, `.5`, and `.foo`.
+            // `.` is overloaded four ways: `...`, `..1`, `.5`, and `.foo`
             b'.' => self.consume_dot(),
 
             b'%' => self.consume_special(),
 
             b'_' | b'a'..=b'z' | b'A'..=b'Z' => self.consume_identifier_or_keyword(),
 
-            // The unicode arm, and also where the BOM is resolved.
+            // The unicode arm, and also where the BOM is resolved
             byte if byte >= 128 => self.consume_unicode(),
 
             _ => self.consume_punct(),
@@ -400,7 +400,7 @@ impl<'src> RLexer<'src> {
         kind
     }
 
-    /// `#` to the end of the line, exclusive of the line break itself.
+    /// `#` to the end of the line, exclusive of the line break itself
     fn consume_comment(&mut self) -> RSyntaxKind {
         self.assert_byte(b'#');
         self.advance(1);
@@ -440,7 +440,7 @@ impl<'src> RLexer<'src> {
     }
 
     /// Whether `[\p{XID_Continue}.]` matches `offset` bytes ahead of the current
-    /// position.
+    /// position
     fn at_identifier_part(&self, offset: usize) -> bool {
         match self.byte_at(offset) {
             Some(b'.' | b'_' | b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z') => true,
@@ -450,7 +450,7 @@ impl<'src> RLexer<'src> {
     }
 
     /// The character `offset` bytes ahead, or `None` past the end of the source
-    /// or at a byte that is not a character boundary.
+    /// or at a byte that is not a character boundary
     fn char_at(&self, offset: usize) -> Option<char> {
         self.source.get(self.position + offset..)?.chars().next()
     }
@@ -493,7 +493,7 @@ impl<'src> RLexer<'src> {
         IDENT
     }
 
-    /// The `byte >= 128` arm, which is also where the BOM is resolved.
+    /// The `byte >= 128` arm, which is also where the BOM is resolved
     fn consume_unicode(&mut self) -> RSyntaxKind {
         // A BOM is only a BOM at offset 0. Elsewhere U+FEFF is not an identifier
         // character either — it is category Cf, so neither XID_Start nor
@@ -565,7 +565,7 @@ impl<'src> RLexer<'src> {
         }
     }
 
-    /// `...` or `/[.][.]\d+/` at the current position, with its length.
+    /// `...` or `/[.][.]\d+/` at the current position, with its length
     fn scan_dotted_token(&self) -> Option<(RSyntaxKind, usize)> {
         if self.byte_at(1) != Some(b'.') {
             return None;
@@ -588,7 +588,7 @@ impl<'src> RLexer<'src> {
     // Numbers
 
     /// A hexadecimal or decimal literal, plus the `L` and `i` suffixes that turn
-    /// it into an integer or a complex.
+    /// it into an integer or a complex
     fn consume_number(&mut self) -> RSyntaxKind {
         if !self.consume_hex_literal() {
             self.consume_decimal_literal();
@@ -597,7 +597,7 @@ impl<'src> RLexer<'src> {
         // tree-sitter-r spells the suffixes as tokens of their own rather than
         // as part of the literal's regex, so an identifier that merely starts
         // with one wins on length: `1L` is an integer, but `1Li` is the literal
-        // `1` followed by the name `Li`.
+        // `1` followed by the name `Li`
         let suffixed = match self.current_byte() {
             Some(b'L') => R_INTEGER_LITERAL,
             Some(b'i') => R_COMPLEX_LITERAL,
@@ -777,7 +777,7 @@ impl<'src> RLexer<'src> {
 
                 // An empty body emits no `STRING_CONTENT` at all: the close
                 // follows the open directly, matching tree-sitter-r and keeping
-                // `RStringValue`'s optional `content` slot meaningful.
+                // `RStringValue`'s optional `content` slot meaningful
                 if self.position == usize::from(self.current_start) {
                     self.lex_string_end(delimiter)
                 } else {
@@ -847,7 +847,7 @@ impl<'src> RLexer<'src> {
 
             if content_end > start {
                 // Rewind to the content and re-consume the closing sequence on
-                // the next call, now that it is known to be there.
+                // the next call, now that it is known to be there
                 self.position = content_end;
                 return STRING_CONTENT;
             }
@@ -890,7 +890,7 @@ impl<'src> RLexer<'src> {
                 bracket,
             } => {
                 // `consume_raw_string_content` already matched the whole
-                // sequence, so this only has to re-consume it.
+                // sequence, so this only has to re-consume it
                 self.assert_byte(bracket.close());
                 self.advance(1);
                 let matched = self.consume_repeated(b'-', usize::from(hyphens));
@@ -1022,7 +1022,7 @@ fn keyword_kind(text: &str) -> Option<RSyntaxKind> {
         "NaN" => T![nan],
         "NA" => T![na_logical],
         "NA_integer_" => T![na_integer],
-        // The one row whose kind does not follow the R spelling.
+        // The one row whose kind does not follow the R spelling
         "NA_real_" => T![na_double],
         "NA_complex_" => T![na_complex],
         "NA_character_" => T![na_character],

@@ -18,7 +18,7 @@ fn single_quoted() {
 }
 
 /// An empty body emits no `STRING_CONTENT` at all, which is what makes
-/// `RStringValue`'s optional `content` slot meaningful.
+/// `RStringValue`'s optional `content` slot meaningful
 #[test]
 fn empty_strings_have_no_content_token() {
     assert_lex!("\"\"", STRING_OPEN: 1, STRING_CLOSE: 1);
@@ -58,7 +58,7 @@ fn unterminated_runs_to_the_end_of_the_file() {
     assert_lex!("'a\nb", STRING_OPEN: 1, STRING_CONTENT: 3);
 }
 
-/// A backslash at the very end of the file must not read past it.
+/// A backslash at the very end of the file must not read past it
 #[test]
 fn a_trailing_escape_does_not_run_past_the_end() {
     assert_lex!("\"a\\", STRING_OPEN: 1, STRING_CONTENT: 2);

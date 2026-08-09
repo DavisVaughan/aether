@@ -16,7 +16,7 @@ fn empty_name() {
     assert_lex!("``", IDENT: 2);
 }
 
-/// An escaped backtick does not close the name.
+/// An escaped backtick does not close the name
 #[test]
 fn escapes_apply() {
     assert_lex!("`a\\`b`", IDENT: 6);
@@ -24,7 +24,7 @@ fn escapes_apply() {
 }
 
 /// Legal R, and tree-sitter-r's `quoted` regex permits it: the `[^`\\]` class
-/// includes `\n`, and the escape branch allows an escaped newline outright.
+/// includes `\n`, and the escape branch allows an escaped newline outright
 #[test]
 fn names_may_span_newlines() {
     assert_lex!(

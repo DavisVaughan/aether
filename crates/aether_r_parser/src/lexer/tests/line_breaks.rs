@@ -30,7 +30,7 @@ fn set_by_a_newline_and_cleared_by_the_next_real_token() {
 #[test]
 fn survives_whitespace_and_comments() {
     // The break is reported on `+`, not on the whitespace that precedes it and
-    // not on the `2` that follows it.
+    // not on the `2` that follows it
     assert_line_breaks!(
         "1\n  # c\n  + 2",
         R_DOUBLE_LITERAL: false,
@@ -48,7 +48,7 @@ fn a_trailing_comment_does_not_set_it() {
     );
 }
 
-/// A string is three tokens, and only the first of them can carry the break.
+/// A string is three tokens, and only the first of them can carry the break
 #[test]
 fn strings_report_the_break_on_the_open() {
     assert_line_breaks!(

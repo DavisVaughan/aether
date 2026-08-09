@@ -1,7 +1,7 @@
 //! `checkpoint()` and `rewind()` have to carry every field of
 //! [`LexerCheckpoint`], and the two line-break fields are not redundant:
 //! `current_flags` records what was stamped on the checkpointed token, while
-//! `after_line_break` is the sticky state lexing resumes from.
+//! `after_line_break` is the sticky state lexing resumes from
 
 use super::*;
 
@@ -32,7 +32,7 @@ fn rewind_restores_the_sticky_line_break() {
     assert_eq!(lexer.next_token(RLexContext::Regular), NEWLINE);
     assert!(lexer.after_newline);
 
-    // Checkpointed with the break still pending, and consumed straight after.
+    // Checkpointed with the break still pending, and consumed straight after
     let checkpoint = lexer.checkpoint();
     assert_eq!(lexer.next_token(RLexContext::Regular), R_DOUBLE_LITERAL);
     assert!(lexer.has_preceding_line_break());
@@ -76,7 +76,7 @@ fn rewind_restores_the_bom_length() {
 }
 
 /// Diagnostics raised after the checkpoint are dropped, so a rewind cannot leave
-/// the parser reporting an error about text it decided not to lex that way.
+/// the parser reporting an error about text it decided not to lex that way
 #[test]
 fn rewind_truncates_diagnostics() {
     let mut lexer = RLexer::from_str("a %in");

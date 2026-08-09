@@ -1,4 +1,4 @@
-//! A hand-written recursive descent and Pratt parser for R.
+//! A hand-written recursive descent and Pratt parser for R
 
 // The lexer, and the diagnostics it raises, are the crate's only content until
 // `RTokenSource` and `RParser` land. Nothing outside `#[cfg(test)]` drives them

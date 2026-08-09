@@ -25,6 +25,6 @@ fn crlf_is_one_newline() {
 #[test]
 fn each_line_break_is_its_own_token() {
     assert_lex!("\n\n", NEWLINE: 1, NEWLINE: 1);
-    // The first `\r` stands alone; only the second pairs with the `\n`.
+    // The first `\r` stands alone; only the second pairs with the `\n`
     assert_lex!("\r\r\n", NEWLINE: 1, NEWLINE: 2);
 }

@@ -55,7 +55,7 @@ fn a_digit_after_the_dot_makes_a_number() {
     assert_lex!(".1i", R_COMPLEX_LITERAL: 3);
     // The number stops at the first character it cannot use, and a name starts
     // there — `.` matches only one byte of an identifier, so the number is
-    // always the longer match.
+    // always the longer match
     assert_lex!(".5abc", R_DOUBLE_LITERAL: 2, IDENT: 3);
 }
 

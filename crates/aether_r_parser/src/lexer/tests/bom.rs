@@ -13,7 +13,7 @@ fn bom_before_a_token() {
 #[test]
 fn a_bom_is_only_a_bom_at_offset_zero() {
     // U+FEFF is category Cf, so it is neither XID_Start nor XID_Continue and
-    // cannot join the identifier either.
+    // cannot join the identifier either
     assert_lex_err!(
         "a\u{FEFF}",
         IDENT: 1, IDENT: 3
@@ -22,7 +22,7 @@ fn a_bom_is_only_a_bom_at_offset_zero() {
 }
 
 // `consume_potential_bom` matches on `source().get(0..3)`, so a source shorter
-// than three bytes has to fall through rather than panic or mis-slice.
+// than three bytes has to fall through rather than panic or mis-slice
 #[test]
 fn source_shorter_than_a_bom() {
     assert_lex!("a", IDENT: 1);

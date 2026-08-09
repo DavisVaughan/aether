@@ -34,7 +34,7 @@ fn unicode_starts_and_continues() {
     assert_lex!("aμ1", IDENT: 4);
 }
 
-/// A character that is neither XID_Start nor punctuation starts no token at all.
+/// A character that is neither XID_Start nor punctuation starts no token at all
 #[test]
 fn a_character_that_is_not_an_identifier_start() {
     assert_lex_err!("€", IDENT: 3 => "Unexpected character");

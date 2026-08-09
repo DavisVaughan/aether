@@ -42,7 +42,7 @@ fn a_bracket_that_does_not_close() {
 }
 
 /// The bracket matches but the hyphen count does not, so the string never
-/// closes and the content runs to the end of the file.
+/// closes and the content runs to the end of the file
 #[test]
 fn the_hyphen_count_has_to_match() {
     assert_lex!("r\"-(a)\"", STRING_OPEN: 4, STRING_CONTENT: 3);
@@ -54,12 +54,12 @@ fn unterminated_runs_to_the_end_of_the_file() {
 }
 
 /// The prefix has to be complete, so anything short of it falls through to the
-/// identifier and punctuation arms.
+/// identifier and punctuation arms
 #[test]
 fn an_incomplete_prefix_is_just_a_name() {
     assert_lex!("rnorm", IDENT: 5);
     assert_lex!("r + 1", IDENT: 1, WHITESPACE: 1, PLUS: 1, WHITESPACE: 1, R_DOUBLE_LITERAL: 1);
-    // A quote with no bracket after it: an ordinary name and an ordinary string.
+    // A quote with no bracket after it: an ordinary name and an ordinary string
     assert_lex!(
         "r\"abc\"",
         IDENT: 1,
@@ -70,7 +70,7 @@ fn an_incomplete_prefix_is_just_a_name() {
     assert_lex!("r\"-abc\"", IDENT: 1, STRING_OPEN: 1, STRING_CONTENT: 4, STRING_CLOSE: 1);
 }
 
-/// Escapes are not special inside a raw string; that is the point of one.
+/// Escapes are not special inside a raw string; that is the point of one
 #[test]
 fn backslashes_are_literal() {
     assert_lex!("r\"(a\\)\"", STRING_OPEN: 3, STRING_CONTENT: 2, STRING_CLOSE: 2);

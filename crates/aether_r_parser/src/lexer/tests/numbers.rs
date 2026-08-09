@@ -29,7 +29,7 @@ fn a_suffix_that_starts_a_name_is_a_name() {
     assert_lex!("1LL", R_DOUBLE_LITERAL: 1, IDENT: 2);
     assert_lex!("1iL", R_DOUBLE_LITERAL: 1, IDENT: 2);
     assert_lex!("1L_", R_DOUBLE_LITERAL: 1, IDENT: 2);
-    // `.` continues an identifier too.
+    // `.` continues an identifier too
     assert_lex!("1L.", R_DOUBLE_LITERAL: 1, IDENT: 2);
     assert_lex!(".1L.", R_DOUBLE_LITERAL: 2, IDENT: 2);
 }
@@ -44,7 +44,7 @@ fn exponents_may_be_empty() {
     assert_lex!("1e-3", R_DOUBLE_LITERAL: 4);
     assert_lex!("1e5", R_DOUBLE_LITERAL: 3);
     // Which is also why these are a literal and a name, not one name and not one
-    // literal with a subtraction in it.
+    // literal with a subtraction in it
     assert_lex!("1east", R_DOUBLE_LITERAL: 2, IDENT: 3);
     assert_lex!("1e-a", R_DOUBLE_LITERAL: 3, IDENT: 1);
 }
@@ -55,15 +55,15 @@ fn hexadecimals() {
     assert_lex!("0XFF", R_DOUBLE_LITERAL: 4);
     assert_lex!("0xFFL", R_INTEGER_LITERAL: 5);
     assert_lex!("0x1.8", R_DOUBLE_LITERAL: 5);
-    // R accepts a hexadecimal with nothing after the dot, surprisingly.
+    // R accepts a hexadecimal with nothing after the dot, surprisingly
     assert_lex!("0x.", R_DOUBLE_LITERAL: 3);
     assert_lex!("0x.8", R_DOUBLE_LITERAL: 4);
-    // `e` is a hexadecimal digit, not the start of a decimal exponent.
+    // `e` is a hexadecimal digit, not the start of a decimal exponent
     assert_lex!("0x1e", R_DOUBLE_LITERAL: 4);
 }
 
 /// A binary exponent's digits are *not* optional, unlike a decimal one's, so a
-/// bare `p` falls out of the literal and becomes a name.
+/// bare `p` falls out of the literal and becomes a name
 #[test]
 fn binary_exponents() {
     assert_lex!("0x1p3", R_DOUBLE_LITERAL: 5);
@@ -74,7 +74,7 @@ fn binary_exponents() {
 }
 
 /// `0x` with no body is not a hexadecimal at all: the `0` is a literal and the
-/// `x` starts a name.
+/// `x` starts a name
 #[test]
 fn a_hexadecimal_prefix_with_no_body() {
     assert_lex!("0x", R_DOUBLE_LITERAL: 1, IDENT: 1);
