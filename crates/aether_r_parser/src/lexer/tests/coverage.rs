@@ -14,8 +14,8 @@ use super::*;
 use biome_rowan::RawSyntaxKind;
 use std::collections::HashSet;
 
-/// Sources that between them must produce every lexable kind. The test names the
-/// gaps for you.
+/// Well-formed sources, which between them must produce every lexable kind but
+/// `ERROR_TOKEN`. The test names the gaps for you.
 const SOURCES: &[&str] = &[
     "\u{FEFF}",
     ";,{}()?~$@\\+/^",
@@ -27,6 +27,11 @@ const SOURCES: &[&str] = &[
     "foo ... ..1 1 1L 1i %in%\n# comment\n",
     "\"a\"",
 ];
+
+/// Sources for the kinds no well-formed source can reach. `ERROR_TOKEN` is the
+/// only one, and it comes with a diagnostic by construction, so it needs a list
+/// of its own rather than a hole in [`SOURCES`].
+const ERROR_SOURCES: &[&str] = &["\u{1}"];
 
 /// Every kind before `R_ROOT` in `RSyntaxKind` is a token; `R_ROOT` and
 /// everything after it is a node. So adding a node kind to `r.ungram` does not
@@ -43,6 +48,14 @@ fn every_lexable_kind_is_produced() {
         assert!(
             diagnostics.is_empty(),
             "coverage sources are well-formed R; {source:?} lexed with diagnostics",
+        );
+        produced.extend(tokens.into_iter().map(|token| token.kind));
+    }
+    for source in ERROR_SOURCES {
+        let (tokens, diagnostics) = lex(source);
+        assert!(
+            !diagnostics.is_empty(),
+            "{source:?} is in ERROR_SOURCES but lexed cleanly",
         );
         produced.extend(tokens.into_iter().map(|token| token.kind));
     }

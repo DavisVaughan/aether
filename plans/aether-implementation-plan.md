@@ -965,6 +965,10 @@ code compiles, `docs/deviations.md` seeded, and the delta vs air's generated cod
   so nothing renumbers, `AnyRSelector::can_cast` accepting it, and arms in
   `is_bogus()` and `to_bogus()`
 
+Phase 4 adds a third set — `ERROR_TOKEN` (§8.4, deviation 6) — so this is the
+delta as of *this* phase, not a standing invariant. Keep the list growing here as
+kinds land.
+
 ---
 
 ## 8. Phase 4 — The lexer
@@ -1244,18 +1248,26 @@ the `>= 128` arm rather than in an arm of its own:
 ```rust
 /// The `byte >= 128` arm, which is also where the BOM is resolved.
 fn consume_unicode(&mut self) -> RSyntaxKind {
-    // A BOM is only a BOM at offset 0. Elsewhere U+FEFF is not an identifier
-    // character either — it is category Cf, so neither XID_Start nor
-    // XID_Continue — but that is the identifier scanner's problem, not this
-    // arm's.
+    // A BOM is only a BOM at offset 0. Elsewhere U+FEFF is category Cf, so
+    // neither XID_Start nor XID_Continue, and it falls to `consume_unexpected`
+    // below like any other character that starts nothing.
     if self.position == 0 {
-        if let Some((bom, _)) = self.consume_potential_bom(UNICODE_BOM) {
+        if let Some((bom, length)) = self.consume_potential_bom(UNICODE_BOM) {
+            self.unicode_bom_length = length;
             return bom;
         }
     }
-    self.consume_identifier_or_keyword()
+
+    if is_xid_start(self.current_char_unchecked()) {
+        self.consume_identifier_or_keyword()
+    } else {
+        self.consume_unexpected()
+    }
 }
 ```
+
+Both this arm and `consume_punct`'s fallback end at `consume_unexpected`, which
+is §8.4's `ERROR_TOKEN` case.
 
 Four things about `consume_potential_bom`, all verified against
 `biome_parser/src/lexer.rs` at the pinned rev rather than assumed:
@@ -1470,6 +1482,27 @@ separate node, and neither does `r.ungram` (`RStringValue` has exactly
 close is the matching `)]}` + the same hyphen count + the same quote. Port
 `scan_raw_string_open` and `scan_raw_string_content_or_close` from
 `tree-sitter-r/src/scanner.c` (lines ~527–700) more or less directly.
+
+**`ERROR_TOKEN`.** A character that starts no token at all. Consume exactly one
+character, raise `unexpected_character`, and return `ERROR_TOKEN` — the same
+shape `biome_js_parser` uses at both of its equivalent sites. The reachable cases
+are narrow: every printable ASCII character starts some R token, so this is only
+control characters and non-ASCII characters that are neither `XID_Start` nor
+`XID_Continue`.
+
+This kind is **added to `r_kinds_src.rs` in this phase**; air's kind list has no
+error token. Deviation 6 in `docs/deviations.md` carries the full argument, but
+the short version is that all eight other Biome grammars declare `ERROR_TOKEN`,
+and air is the outlier only because tree-sitter did its lexing. Adding it is one
+line in `r_kinds_src.rs`, one generated line in `kind.rs`, and one arm each in the
+hand-written `is_bogus()` and `to_bogus()` (not bogus itself; degrades to
+`R_BOGUS` like every other token).
+
+Do **not** use `IDENT` for this. It round-trips and it carries a diagnostic, so
+every invariant holds — but `IDENT` is accepted wherever a name is, so `x <- €`
+would build a clean `R_BINARY_EXPRESSION` whose right slot claims `€` is a name,
+and nothing in the harness would catch it. `ERROR_TOKEN` starts no production, so
+the parser's only move is a bogus node. See §11.1 for that side.
 
 ### 8.5 Newlines: the crucial decision
 
@@ -1699,16 +1732,17 @@ something each test remembers to do.
 | `whitespace.rs` | Runs of space/tab/`\x0B`/`\x0C` coalescing into one `WHITESPACE`; `\n` and lone `\r` as `NEWLINE:1`; `\r\n` as **one** `NEWLINE:2`; `\n\n` as two tokens; `\r\r\n` as two. |
 | `comments.rs` | `#` to end of line; a comment ending the file with no newline; `# x\r\n` leaving the `\r` **out** of the comment and inside the `NEWLINE`; the empty comment `#`; non-ASCII inside a comment. |
 | `line_breaks.rs` | The sticky flag of §8.2: false on the first token; true after a newline; surviving `WHITESPACE` **and** `COMMENT`; cleared by the first non-trivia token. `1\n  # c\n  + 2` reports the break on `+` and not on `2`. |
-| `puncts.rs` | Every punct kind at least once, and the whole maximal-munch table of §8.4 as a prefix sweep: `<`, `<-`, `<<-`, `<<` (**two** tokens), `<=`, `>`, `>=`, `-`, `->`, `->>`, `:`, `::`, `:::`, `::::`, `:=`, `*`, `**`, `\|`, `\|\|`, `\|>`, `&`, `&&`, `=`, `==`, `!`, `!=`. Adjacency cases too: `1<-2` vs `1 < -2`. |
+| `puncts.rs` | Every punct kind at least once, and the whole maximal-munch table of §8.4 as a prefix sweep: `<`, `<-`, `<<-`, `<<` (**two** tokens), `<=`, `>`, `>=`, `-`, `->`, `->>`, `:`, `::`, `:::`, `::::`, `:=`, `*`, `**`, `\|`, `\|\|`, `\|>`, `&`, `&&`, `=`, `==`, `!`, `!=`. Adjacency cases too: `1<-2` vs `1 < -2`. Plus the ASCII half of `ERROR_TOKEN` (§8.4) — a control byte, which is where the punct arm's fallback lands. |
 | `brackets.rs` | Greedy `[[`/`]]`; `x[ [1] ]` staying four separate brackets; `[[[` as `L_BRACK2` + `L_BRACK`; and `re_lex(SplitBrackets)` — splitting `[[` into `L_BRACK:1` with the second bracket still to come, being a no-op on any other token, and being idempotent. |
 | `keywords.rs` | Every row of the keyword table in §8.4, `NA_real_` → `NA_DOUBLE_KW` included. Case sensitivity in both directions: `If`/`Function` are `IDENT`, and so are `true`/`false`/`null`. The `else` prefixes: `elseif`, `else_idx`, `elseμ` (tree-sitter-r #200). |
-| `identifiers.rs` | `foo`, `foo.bar`, `a1`, `_` alone, `_foo` as one `IDENT` (not rejected here — §8.4), `.foo`, `.`, `..`, and unicode XID starts and continues. |
+| `identifiers.rs` | `foo`, `foo.bar`, `a1`, `_` alone, `_foo` as one `IDENT` (not rejected here — §8.4), `.foo`, `.`, `..`, and unicode XID starts and continues. Plus the non-ASCII half of `ERROR_TOKEN`: a character such as `€` that is neither `XID_Start` nor punctuation. |
 | `backticks.rs` | One `IDENT` spanning the delimiters; `` `a\`b` `` with the escape; the empty `` `` ``; the multi-line name of §8.4; and an unterminated one running to EOF with `unterminated_backtick_identifier` pointing at the **opening** delimiter. |
 | `numbers.rs` | `1`, `1L`, `1i`, `1.`, `.5`, `1e`, `1e+`, `1e-3`, `1e5L`, hex `0xFF`, `0x1p3`, `0x.8p1`, `0xFFL`. The trailing-empty-exponent case is deliberate (§8.4) and needs a comment saying so, or it reads as a bug. |
 | `dots.rs` | The §8.3 dispatch: `...` → `DOTS`, `..1`/`..12` → `DOTDOTI`, `.5` → `R_DOUBLE_LITERAL`, `.foo`/`.`/`..` → `IDENT`, `...1` → `DOTS` then a literal. `.1L` and `.1i` are the regression for tree-sitter-r #190 and belong here rather than in `numbers.rs`, since the bug was in the dispatch. |
 | `specials.rs` | `%%`, `%/%`, `%in%`, `%>%`, `%o%`, and the empty `%%`. The newline case of §8.4: `%foo\n1` keeps `%foo` as `SPECIAL:4`, does **not** consume the newline, and carries `unterminated_special`. Plus the two inherited tree-sitter divergences — `%foo` at EOF errors, and `%a\b%` is not a `SPECIAL` — each with a comment pointing at `docs/deviations.md`. |
 | `strings.rs` | The `STRING_OPEN`/`STRING_CONTENT`/`STRING_CLOSE` triple for `'` and `"`; the empty string emitting **no** `STRING_CONTENT`; escapes staying inside one content token; the multi-line string; `#` and `%` inert inside a body; the other quote character inert inside; and an unterminated string running to EOF. |
 | `raw_strings.rs` | All three bracket pairs; hyphen counts 0, 1, and several; a close that matches the bracket but not the hyphen count *not* terminating; `R'...'` uppercase; `rnorm` and `r + 1` falling through to the identifier and punct arms; an unterminated raw string. |
+| `error_token.rs` | What holds of an `ERROR_TOKEN` however the dispatch reached it, the two arms themselves being covered by `puncts.rs` and `identifiers.rs`: the token spans the whole character at all four UTF-8 widths; a run produces one token *and one diagnostic naming that character* each, not one merged token; lexing continues afterwards; `a€b` is three tokens; and the token is non-trivia, so it takes the sticky break flag and clears it. |
 | `checkpoint.rs` | `checkpoint()`/`rewind()` restoring every field of `LexerCheckpoint` (§8.2): position, kind, `current_flags`, `after_newline`, and `unicode_bom_length`. The §8.2 warning gets a test of its own: rewind to before a newline, lex forward again, and assert `has_preceding_line_break()` still reports it. That bug is invisible until Phase 12's `else` handling and silent even then. |
 | `coverage.rs` | See below. |
 
@@ -1734,9 +1768,9 @@ fn dispatch() {
 fn stops_at_newline() {
     // R's `SpecialValue` ungets the newline and errors, so the NEWLINE survives to
     // terminate the statement. `%foo` is still a SPECIAL with a diagnostic
-    // attached, NOT a bogus token: `r_kinds_src.rs` has no error-token kind
-    // (`R_BOGUS` is a *node*), and adding one would diverge from air's kind list
-    // for nothing. The parser wraps the token in a bogus node if it cannot use it.
+    // attached, NOT an `ERROR_TOKEN`: the text is a well-formed operator that was
+    // cut short, so the parser can still use it, and `ERROR_TOKEN` is reserved for
+    // characters that start nothing at all (§8.4).
     assert_lex_err!("%foo\n1",
         SPECIAL:4, NEWLINE:1, R_DOUBLE_LITERAL:1
         => "Unterminated");
@@ -1754,8 +1788,16 @@ the token inventory.
 gives a safe `from_raw`, so the full inventory is enumerable:
 
 ```rust
-/// Sources that between them must produce every lexable kind.
-const SOURCES: &[&str] = &[ /* one per construct; the test names the gaps for you */ ];
+/// Well-formed sources, which between them must produce every lexable kind but
+/// `ERROR_TOKEN`. The test names the gaps for you.
+const SOURCES: &[&str] = &[ /* one per construct */ ];
+
+/// Sources for the kinds no well-formed source can reach. `ERROR_TOKEN` is the
+/// only one, and it comes with a diagnostic by construction, so it needs a list
+/// of its own rather than a hole in `SOURCES`. Both lists feed `produced`, and
+/// each asserts its own diagnostic polarity — that is what stops a source from
+/// drifting between the two lists unnoticed.
+const ERROR_SOURCES: &[&str] = &["\u{1}"];
 
 /// Kinds the lexer legitimately never produces, each with a reason. Adding a
 /// node kind to `r.ungram` therefore does NOT fail this test, but adding a token
@@ -1768,6 +1810,11 @@ fn is_lexable(kind: RSyntaxKind) -> bool {
 fn every_lexable_kind_is_produced() {
     let mut produced = HashSet::new();
     for source in SOURCES {
+        // ... assert the source lexed cleanly ...
+        produced.extend(lex(source).0.into_iter().map(|(kind, _)| kind));
+    }
+    for source in ERROR_SOURCES {
+        // ... assert the source did NOT lex cleanly ...
         produced.extend(lex(source).0.into_iter().map(|(kind, _)| kind));
     }
 
@@ -3103,6 +3150,21 @@ fn parse_literal_expression(p: &mut RParser) -> ParsedSyntax {
     Present(m.complete(p, kind))
 }
 
+/// A character the lexer could not make a token of. Copy `biome_js_parser`'s
+/// `parse_primary_expression` arm exactly: start a marker, bump the token, and
+/// complete it as a bogus node.
+///
+/// No diagnostic here — the lexer already raised `unexpected_character` and
+/// pointed at the character. A second one at the same range is noise, and
+/// invariant 2 (bogus nodes always come with at least one diagnostic) is already
+/// satisfied by the lexer's.
+fn parse_error_token(p: &mut RParser) -> ParsedSyntax {
+    if !p.at(ERROR_TOKEN) { return Absent }
+    let m = p.start();
+    p.bump_any();
+    Present(m.complete(p, R_BOGUS_EXPRESSION))
+}
+
 /// `R_STRING_VALUE` is three tokens; the middle one needs a lex context.
 fn parse_string_value(p: &mut RParser) -> ParsedSyntax {
     if !p.at(STRING_OPEN) { return Absent }
@@ -3116,6 +3178,17 @@ fn parse_string_value(p: &mut RParser) -> ParsedSyntax {
     Present(m.complete(p, R_STRING_VALUE))
 }
 ```
+
+`parse_error_token` hangs off `parse_primary_expression`, alongside
+`parse_literal_expression` — not off `parse_literal_expression` itself, which
+answers "one token, one value node" and would be lying. Placing it in the atom
+dispatch rather than leaving it to statement-list recovery is what keeps the
+damage to one token: recovery would skip to the next statement boundary and
+swallow whatever followed the stray character on the same line.
+
+`ERROR_TOKEN` needs no entry in any recovery set. It starts no production, so
+every `at(...)` test in the parser is already false for it, and the token can
+only be reached by the arm above.
 
 **Enable: the 19 imported tree-sitter tests across all five `corpus/literals/`
 files.** That is **19 of 89 green** at the end of the very first parser phase,

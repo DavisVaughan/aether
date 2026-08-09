@@ -517,11 +517,13 @@ impl<'src> RLexer<'src> {
 
     /// A character that starts no token.
     ///
-    /// `RSyntaxKind` has no error-token kind — `R_BOGUS` and friends are *node*
-    /// kinds — so the character is reported here and handed on as an `IDENT`.
-    /// Losing it is not an option: round-tripping the source is an invariant,
-    /// and folding it into trivia would make it silently disappear the way
-    /// semicolons used to.
+    /// Exactly one character is consumed and handed on as `ERROR_TOKEN`, which
+    /// is `biome_js_parser`'s treatment of the same case. Losing the character
+    /// is not an option — round-tripping the source is an invariant, and folding
+    /// it into trivia would make it silently disappear the way semicolons used
+    /// to — but neither is calling it an `IDENT`, which is accepted wherever a
+    /// name is and would let junk parse into a well-formed tree. `ERROR_TOKEN`
+    /// starts nothing, so the parser can only wrap it in a bogus node.
     fn consume_unexpected(&mut self) -> RSyntaxKind {
         let start = self.text_position();
         let character = self.current_char_unchecked();
@@ -529,7 +531,7 @@ impl<'src> RLexer<'src> {
 
         let range = TextRange::new(start, self.text_position());
         self.push_diagnostic(unexpected_character(range, character));
-        IDENT
+        ERROR_TOKEN
     }
 
     // -----------------------------------------------------------------------

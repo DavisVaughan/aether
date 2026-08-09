@@ -25,10 +25,9 @@ fn in_context() {
 /// survives to terminate the statement and the next line parses normally. Aether
 /// stops before it for the same reason.
 ///
-/// `%foo` is still a `SPECIAL` carrying a diagnostic, not a bogus token:
-/// `r_kinds_src.rs` has no error-token kind, and adding one would diverge from
-/// air's kind list for nothing. The parser wraps the token in a bogus node if it
-/// cannot use it.
+/// `%foo` is still a `SPECIAL` carrying a diagnostic, not an `ERROR_TOKEN`: the
+/// text is a well-formed operator that was cut short, so the parser can still
+/// use it. `ERROR_TOKEN` is for characters that start nothing at all.
 #[test]
 fn stops_at_a_newline() {
     assert_lex_err!(

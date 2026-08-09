@@ -37,5 +37,5 @@ fn unicode_starts_and_continues() {
 /// A character that is neither XID_Start nor punctuation starts no token at all
 #[test]
 fn a_character_that_is_not_an_identifier_start() {
-    assert_lex_err!("€", IDENT: 3 => "Unexpected character");
+    assert_lex_err!("€", ERROR_TOKEN: 3 => "Unexpected character");
 }

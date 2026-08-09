@@ -78,6 +78,9 @@ pub const R_KINDS_SRC: KindsSrc = KindsSrc {
         "STRING_OPEN",
         "STRING_CONTENT",
         "STRING_CLOSE",
+        // A character that starts no R token. Every other Biome grammar carries
+        // this kind; air omits it only because tree-sitter did its lexing.
+        "ERROR_TOKEN",
     ],
     nodes: &[
         "R_ROOT",

@@ -87,6 +87,7 @@ pub enum RSyntaxKind {
     STRING_OPEN,
     STRING_CONTENT,
     STRING_CLOSE,
+    ERROR_TOKEN,
     R_ROOT,
     R_IDENTIFIER,
     R_DOTS,

@@ -7,6 +7,7 @@ mod checkpoint;
 mod comments;
 mod coverage;
 mod dots;
+mod error_token;
 mod identifiers;
 mod keywords;
 mod line_breaks;

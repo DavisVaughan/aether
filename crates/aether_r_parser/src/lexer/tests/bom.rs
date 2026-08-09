@@ -16,7 +16,7 @@ fn a_bom_is_only_a_bom_at_offset_zero() {
     // cannot join the identifier either
     assert_lex_err!(
         "a\u{FEFF}",
-        IDENT: 1, IDENT: 3
+        IDENT: 1, ERROR_TOKEN: 3
         => "Unexpected character"
     );
 }

@@ -35,7 +35,7 @@ them, since the ledger runs ahead of the parser.
 | 3 | Namespace RHS | `optional()`, silent | required, diagnostic + bogus |
 | 4 | Error recovery | whole-file bogus node | localized bogus nodes, tree still walkable |
 | 5 | `AnyRSelector` | 4 variants, no bogus | new `RBogusSelector` kind added as a fifth variant, so a malformed RHS is contained in the `right` slot instead of collapsing the whole expression |
-| 6 | A character that starts no token | `ERROR` node | reported, then lexed as `IDENT` — there is no error-token kind to give it |
+| 6 | A character that starts no token | `ERROR` node | new `ERROR_TOKEN` kind added, reported by the lexer and wrapped in a bogus node by the parser |
 | 7 | `1 L` | one `integer` spanning the space | the literal `1`, then the name `L` |
 
 ### 1. Semicolons are real tokens
@@ -278,9 +278,9 @@ impl FormatBogusNodeRule<RBogusSelector> for FormatRBogusSelector {}
 `FormatAnyRSelector` in `air_r_formatter/src/r/any/selector.rs` gains a fifth arm
 in the same generated pass.
 
-### 6. A character that starts no token becomes an `IDENT`
+### 6. A character that starts no token becomes an `ERROR_TOKEN`
 
-Landed in Phase 4.
+Landed in Phase 4. `ERROR_TOKEN` is a new token kind, added to `r_kinds_src.rs`.
 
 Example:
 
@@ -288,19 +288,46 @@ Example:
 €
 ```
 
-tree-sitter-r produces an `ERROR` node. Aether has nowhere to put one:
-`r_kinds_src.rs` has no error-token kind, `R_BOGUS` and friends are *node* kinds,
-and adding a token kind would diverge from air's kind list. Dropping the
-character is not an option either — the tree has to round-trip, and folding it
-into trivia would make it silently disappear exactly the way semicolons used to.
+tree-sitter-r produces an `ERROR` node. Aether reports the character with an
+`Unexpected character` diagnostic and hands it on as an `ERROR_TOKEN`, which the
+parser can only wrap in a bogus node. The file never parses cleanly, so the
+oracle skips it, and the character survives into the tree where a reader can see
+it.
 
-So the lexer reports it with an `Unexpected character` diagnostic and hands it on
-as an `IDENT`. The file never parses cleanly, so the oracle skips it, and the
-character survives into the tree where a reader can see it.
+Dropping the character is not an option — the tree has to round-trip, and folding
+it into trivia would make it silently disappear exactly the way semicolons used
+to.
+
+Why a new kind rather than reusing `IDENT`:
+
+- `IDENT` is accepted wherever a name is, so `x <- €` would build a well-formed
+  `R_BINARY_EXPRESSION` with an `R_IDENTIFIER` right-hand side. The diagnostic
+  would be there, but the tree would assert that `€` is a name, and nothing in
+  the harness would catch it — round-trip passes either way. `ERROR_TOKEN` starts
+  no production, so the damage is contained in a bogus node by construction.
+
+- Every other Biome grammar has this kind: js, css, json, graphql, grit, html,
+  markdown, and yaml all declare `ERROR_TOKEN` in their own `tokens` list. It is
+  a convention rather than a `SyntaxKind` requirement, which is how air managed
+  without it — air has no lexer, and any tree-sitter `ERROR` makes it discard the
+  tree for one whole-file `R_BOGUS_EXPRESSION`, so no producer ever existed.
+  Aether lexes, so it is in the same position as the other eight.
 
 The reachable cases are narrow. Every printable ASCII character starts some R
 token, so this is only control characters and non-ASCII characters that are
 neither `XID_Start` nor `XID_Continue`.
+
+Swap-in cost: `RSyntaxKind` is generated, so the kind follows from air's own
+codegen once `r_kinds_src.rs` carries it. The hand-written touch points are the
+`is_bogus()` and `to_bogus()` arms in `air_r_syntax/src/lib.rs` — `ERROR_TOKEN` is
+not bogus itself and degrades to `R_BOGUS` like every other token. The formatter
+needs nothing: `FormatBogusNodeRule` prints verbatim and never inspects the kinds
+of the tokens inside a bogus node.
+
+Unlike `R_BOGUS_SELECTOR` this one does renumber, since token kinds precede node
+kinds in the generated enum. Nothing depends on the numbering — no explicit
+discriminants are emitted, and `to_raw`/`from_raw` round-trip within a single
+build — so the generated diff is the one added line.
 
 ### 7. `1 L` is a literal and a name
 
