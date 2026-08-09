@@ -25,6 +25,9 @@
 //!
 //! Backticked names are *not* strings — see [`RLexer::consume_backtick_identifier`].
 
+#[cfg(test)]
+mod tests;
+
 use crate::diagnostics::{
     unexpected_character, unterminated_backtick_identifier, unterminated_special,
 };
@@ -1029,6 +1032,3 @@ fn keyword_kind(text: &str) -> Option<RSyntaxKind> {
         _ => return None,
     })
 }
-
-#[cfg(test)]
-mod tests;

@@ -17,6 +17,23 @@
 //! reachable, and the module list below makes an arm with no test file visible
 //! by inspection.
 
+mod backticks;
+mod bom;
+mod brackets;
+mod checkpoint;
+mod comments;
+mod coverage;
+mod dots;
+mod identifiers;
+mod keywords;
+mod line_breaks;
+mod numbers;
+mod puncts;
+mod raw_strings;
+mod specials;
+mod strings;
+mod whitespace;
+
 use super::*;
 use biome_diagnostics::PrintDescription;
 
@@ -75,6 +92,9 @@ macro_rules! assert_lex {
         $crate::lexer::tests::check_lex($source, &[$(($kind, $length)),*], &[])
     };
 }
+// `macro_rules!` scoping is textual, so the three macros reach the submodules
+// declared above them by path rather than by falling into scope
+pub(super) use assert_lex;
 
 /// [`assert_lex!`] plus the diagnostics expected, in order.
 ///
@@ -85,6 +105,7 @@ macro_rules! assert_lex_err {
         $crate::lexer::tests::check_lex($source, &[$(($kind, $length)),*], &[$($message),+])
     };
 }
+pub(super) use assert_lex_err;
 
 /// Assert `PRECEDING_LINE_BREAK` on each non-trivia token, in order.
 ///
@@ -96,6 +117,7 @@ macro_rules! assert_line_breaks {
         $crate::lexer::tests::check_line_breaks($source, &[$(($kind, $preceded)),*])
     };
 }
+pub(super) use assert_line_breaks;
 
 #[track_caller]
 pub(super) fn check_lex(source: &str, expected: &[(RSyntaxKind, u32)], messages: &[&str]) {
@@ -199,20 +221,3 @@ fn render(source: &str, tokens: &[LexedToken]) -> String {
         .collect::<Vec<_>>()
         .join("\n")
 }
-
-mod backticks;
-mod bom;
-mod brackets;
-mod checkpoint;
-mod comments;
-mod coverage;
-mod dots;
-mod identifiers;
-mod keywords;
-mod line_breaks;
-mod numbers;
-mod puncts;
-mod raw_strings;
-mod specials;
-mod strings;
-mod whitespace;
