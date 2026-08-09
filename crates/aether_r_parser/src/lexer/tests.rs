@@ -1,21 +1,4 @@
-//! The lexer's own tests.
-//!
-//! They live under the module they test, rather than in a test crate, because
-//! they read private state such as `after_newline` and `string_delimiter` and
-//! call private helpers directly. An accessor added only for tests would be a
-//! permanent hole in the lexer's encapsulation, and `#[cfg(test)]` keeps every
-//! byte of this out of the parser air links against.
-//!
-//! The lexer's entire output is a flat list of `(kind, range)`, so an exact
-//! assertion on that list is both more precise and more readable than a snapshot
-//! of it would be. Snapshots earn their keep when the expected value is too
-//! large to write by hand; a token stream is not.
-//!
-//! There is one file per dispatch arm of `lex_token`, plus one per piece of
-//! cross-cutting machinery. That is not a filing convention, it is the coverage
-//! argument: `lex_token` is a `match`, `coverage` proves every kind is
-//! reachable, and the module list below makes an arm with no test file visible
-//! by inspection.
+//! Lexer test infrastructure
 
 mod backticks;
 mod bom;
@@ -81,12 +64,7 @@ pub(super) fn lex(source: &str) -> (Vec<LexedToken>, Vec<ParseDiagnostic>) {
     (tokens, lexer.finish())
 }
 
-/// Assert the exact token stream, and that the lexer emitted no diagnostics.
-///
-/// The silence is half the assertion. A lexer that produces the right tokens and
-/// also complains about them is broken in a way a kinds-and-lengths table alone
-/// will not catch, and `[error]` corpus tests will not catch it either because
-/// they only require *some* diagnostic.
+/// Assert the exact token stream, and that the lexer emitted no diagnostics
 macro_rules! assert_lex {
     ($source:expr, $($kind:ident : $length:expr),* $(,)?) => {
         $crate::lexer::tests::check_lex($source, &[$(($kind, $length)),*], &[])
@@ -96,10 +74,7 @@ macro_rules! assert_lex {
 // declared above them by path rather than by falling into scope
 pub(super) use assert_lex;
 
-/// [`assert_lex!`] plus the diagnostics expected, in order.
-///
-/// Messages match as substrings, so a test pins the wording it cares about
-/// without re-encoding the full rendering.
+/// [`assert_lex!`] plus the diagnostics expected, in order
 macro_rules! assert_lex_err {
     ($source:expr, $($kind:ident : $length:expr),* $(,)? => $($message:literal),+ $(,)?) => {
         $crate::lexer::tests::check_lex($source, &[$(($kind, $length)),*], &[$($message),+])
@@ -107,11 +82,7 @@ macro_rules! assert_lex_err {
 }
 pub(super) use assert_lex_err;
 
-/// Assert `PRECEDING_LINE_BREAK` on each non-trivia token, in order.
-///
-/// Trivia is filtered out on purpose: the flag is sticky across it by design,
-/// and "which real token reports a preceding break" is the only question the
-/// parser ever asks.
+/// Assert `PRECEDING_LINE_BREAK` on each non-trivia token, in order
 macro_rules! assert_line_breaks {
     ($source:expr, $($kind:ident : $preceded:literal),* $(,)?) => {
         $crate::lexer::tests::check_line_breaks($source, &[$(($kind, $preceded)),*])
@@ -132,10 +103,7 @@ pub(super) fn check_lex(source: &str, expected: &[(RSyntaxKind, u32)], messages:
         tokens.len(),
     );
 
-    // The ranges must tile the source: start at 0, each adjacent to the last,
-    // the final one ending at `source.len()`. That is strictly stronger than
-    // summing lengths — it also rejects a lexer that overlaps or rewinds — and
-    // it makes reconstructing the input to compare it redundant.
+    // The ranges must cover the whole source
     let mut offset = TextSize::from(0);
     for (index, (token, (want_kind, want_length))) in tokens.iter().zip(expected).enumerate() {
         assert_eq!(token.kind, *want_kind, "token {index}:\n{render}");
