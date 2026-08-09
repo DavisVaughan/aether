@@ -35,6 +35,8 @@ them, since the ledger runs ahead of the parser.
 | 3 | Namespace RHS | `optional()`, silent | required, diagnostic + bogus |
 | 4 | Error recovery | whole-file bogus node | localized bogus nodes, tree still walkable |
 | 5 | `AnyRSelector` | 4 variants, no bogus | new `RBogusSelector` kind added as a fifth variant, so a malformed RHS is contained in the `right` slot instead of collapsing the whole expression |
+| 6 | A character that starts no token | `ERROR` node | reported, then lexed as `IDENT` — there is no error-token kind to give it |
+| 7 | `1 L` | one `integer` spanning the space | the literal `1`, then the name `L` |
 
 ### 1. Semicolons are real tokens
 
@@ -275,6 +277,54 @@ impl FormatBogusNodeRule<RBogusSelector> for FormatRBogusSelector {}
 
 `FormatAnyRSelector` in `air_r_formatter/src/r/any/selector.rs` gains a fifth arm
 in the same generated pass.
+
+### 6. A character that starts no token becomes an `IDENT`
+
+Landed in Phase 4.
+
+Example:
+
+```r
+€
+```
+
+tree-sitter-r produces an `ERROR` node. Aether has nowhere to put one:
+`r_kinds_src.rs` has no error-token kind, `R_BOGUS` and friends are *node* kinds,
+and adding a token kind would diverge from air's kind list. Dropping the
+character is not an option either — the tree has to round-trip, and folding it
+into trivia would make it silently disappear exactly the way semicolons used to.
+
+So the lexer reports it with an `Unexpected character` diagnostic and hands it on
+as an `IDENT`. The file never parses cleanly, so the oracle skips it, and the
+character survives into the tree where a reader can see it.
+
+The reachable cases are narrow. Every printable ASCII character starts some R
+token, so this is only control characters and non-ASCII characters that are
+neither `XID_Start` nor `XID_Continue`.
+
+### 7. `1 L` is a literal and a name
+
+Landed in Phase 4.
+
+Example:
+
+```r
+1 L
+```
+
+tree-sitter-r spells `integer` as `seq($._float_literal, "L")` rather than as one
+regex, so the `L` is a token of its own and `extras` lets whitespace fall between
+the two. `1 L` and `1 i` therefore come out as a single `integer` and `complex`
+spanning the space, which is not what R does — R stops the literal at the digit
+and reads `L` as a name.
+
+Aether cannot reproduce it even in principle: `R_INTEGER_LITERAL` is one token in
+air's kind list, and one token cannot span a gap. It follows R here.
+
+The adjacent case is the one that matters in practice, and aether does match
+tree-sitter on all of it: the suffix is taken only when it is not the start of a
+longer name, so `1L` is an integer while `1Li` is the literal `1` followed by the
+name `Li`.
 
 ## tree-sitter-r vs. R
 
