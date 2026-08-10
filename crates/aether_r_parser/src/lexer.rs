@@ -369,14 +369,6 @@ impl<'src> RLexer<'src> {
             b'\'' => self.consume_string_open(RStringDelimiter::Single),
             b'`' => self.consume_backtick_identifier(),
 
-            // `r"(…)"` and `R'---[…]---'`, falling through to the identifier
-            // rule when what follows the `r` is not a raw string prefix, so
-            // `rnorm` and `r"abc"` still lex as a name
-            b'r' | b'R' => match self.scan_raw_string_open() {
-                Some(open) => self.consume_raw_string_open(open),
-                None => self.consume_identifier_or_keyword(),
-            },
-
             b'0'..=b'9' => self.consume_number(),
 
             // `.` is overloaded four ways: `...`, `..1`, `.5`, and `.foo`
@@ -384,7 +376,14 @@ impl<'src> RLexer<'src> {
 
             b'%' => self.consume_special(),
 
-            b'_' | b'a'..=b'z' | b'A'..=b'Z' => self.consume_identifier_or_keyword(),
+            // `r"(…)"` and `R'---[…]---'` share this arm with every other name
+            // rather than taking one of their own, which would split the letter
+            // range and cost the whole match its jump table for `s` onwards.
+            // `rnorm` and a bare `r` still lex as names.
+            b'_' | b'a'..=b'z' | b'A'..=b'Z' => match self.scan_raw_string_open() {
+                Some(open) => self.consume_raw_string_open(open),
+                None => self.consume_identifier_or_keyword(),
+            },
 
             b';' => self.eat_byte(T![;]),
             b',' => self.eat_byte(T![,]),
@@ -809,10 +808,15 @@ impl<'src> RLexer<'src> {
     /// The `r"---[` prefix of a raw string, as a delimiter and its byte length,
     /// or `None` when what follows is not one.
     ///
+    /// Answers for any identifier start, not just `r`, so that [`Self::lex_token`]
+    /// can ask without first singling out `r` and `R`.
+    ///
     /// Ported from `scan_raw_string_open` in tree-sitter-r's `src/scanner.c`,
     /// down to bailing out on the pathological 256th hyphen.
     fn scan_raw_string_open(&self) -> Option<(RStringDelimiter, usize)> {
-        debug_assert!(matches!(self.current_byte(), Some(b'r' | b'R')));
+        if !matches!(self.current_byte(), Some(b'r' | b'R')) {
+            return None;
+        }
 
         let quote = match self.byte_at(1) {
             Some(quote @ (b'"' | b'\'')) => quote,

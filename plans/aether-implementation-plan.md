@@ -1215,10 +1215,6 @@ fn lex_token(&mut self) -> RSyntaxKind {
         b'\'' => self.consume_string_open(RStringDelimiter::Single),
         b'`'  => self.consume_backtick_identifier(),
 
-        // `r"(...)"` / `R'---[...]---'`. Falls through to identifier if the
-        // raw-string prefix does not actually match.
-        b'r' | b'R' if self.peek_is_raw_string_open() => self.consume_raw_string_open(),
-
         b'0'..=b'9' => self.consume_number(),
 
         // `.` is overloaded: `...`, `..1`, `.5` (a number!), `.foo` (identifier).
@@ -1229,7 +1225,13 @@ fn lex_token(&mut self) -> RSyntaxKind {
 
         b'%' => self.consume_special(),
 
-        b'_' | b'a'..=b'z' | b'A'..=b'Z' => self.consume_identifier_or_keyword(),
+        // `r"(...)"` / `R'---[...]---'` share this arm with every other name,
+        // falling through to the identifier rule when the prefix does not match
+        // — see below for why they do not get an arm of their own.
+        b'_' | b'a'..=b'z' | b'A'..=b'Z' => match self.scan_raw_string_open() {
+            Some(open) => self.consume_raw_string_open(open),
+            None => self.consume_identifier_or_keyword(),
+        },
 
         // Maximal munch over the operators, inline in this same match rather
         // than behind a `consume_punct` — one arm per leading byte, nesting a
@@ -1257,6 +1259,24 @@ Keep this one match. The punct arms are a third of it and the temptation to
 extract them is real, but the dispatch reads as a single decision on the leading
 byte and splitting it means holding two orderings in your head — and the order
 is load-bearing, per the note above.
+
+**Do not give `r`/`R` an arm of its own.** It is the obvious way to write the
+raw-string check and it costs the whole match its jump table. LLVM compiles this
+`match` to one range check plus an indirect jump, but the range has to be
+contiguous: a `b'r' | b'R'` arm ahead of `b'a'..=b'z'` splits the letters, the
+table shrinks to `\t..=r`, and every byte from `s` up — eight common lowercase
+letters, plus `{`, `|`, `}`, `~` — falls out to a comparison chain instead. In R
+source that is a large fraction of all bytes. Measured on 2.3 MB of R with a
+skeleton of this dispatch, the split arm costs about 14%, which is also more than
+switching the whole match to `biome_unicode_table::lookup_byte` would win back
+(that pays an extra dependent load, and measured ~4% *slower* than this version).
+
+Verify with `cargo rustc --release -p aether_r_parser --lib -- --emit asm` and
+look for the range check ahead of the `LJTI` reference in `next_token`: it should
+read `sub #9` / `cmp #117`, covering `\t..=~`.
+
+`scan_raw_string_open` therefore checks for `r`/`R` itself and answers `None` for
+every other identifier start, rather than asserting the caller already looked.
 
 #### 8.3.1 The BOM
 
