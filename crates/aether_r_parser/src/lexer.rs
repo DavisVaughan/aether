@@ -386,10 +386,76 @@ impl<'src> RLexer<'src> {
 
             b'_' | b'a'..=b'z' | b'A'..=b'Z' => self.consume_identifier_or_keyword(),
 
+            b';' => self.eat_byte(T![;]),
+            b',' => self.eat_byte(T![,]),
+            b'{' => self.eat_byte(T!['{']),
+            b'}' => self.eat_byte(T!['}']),
+            b'(' => self.eat_byte(T!['(']),
+            b')' => self.eat_byte(T![')']),
+            b'?' => self.eat_byte(T![?]),
+            b'~' => self.eat_byte(T![~]),
+            b'+' => self.eat_byte(T![+]),
+            b'/' => self.eat_byte(T![/]),
+            b'^' => self.eat_byte(T![^]),
+            b'$' => self.eat_byte(T![$]),
+            b'@' => self.eat_byte(T![@]),
+            b'\\' => self.eat_byte(T!["\\"]),
+
+            b'[' => match self.peek_byte() {
+                Some(b'[') => self.eat_bytes(2, T!["[["]),
+                _ => self.eat_byte(T!['[']),
+            },
+            b']' => match self.peek_byte() {
+                Some(b']') => self.eat_bytes(2, T!["]]"]),
+                _ => self.eat_byte(T![']']),
+            },
+            b'<' => match (self.peek_byte(), self.byte_at(2)) {
+                (Some(b'<'), Some(b'-')) => self.eat_bytes(3, T![<<-]),
+                (Some(b'-'), _) => self.eat_bytes(2, T![<-]),
+                (Some(b'='), _) => self.eat_bytes(2, T![<=]),
+                _ => self.eat_byte(T![<]),
+            },
+            b'-' => match (self.peek_byte(), self.byte_at(2)) {
+                (Some(b'>'), Some(b'>')) => self.eat_bytes(3, T![->>]),
+                (Some(b'>'), _) => self.eat_bytes(2, T![->]),
+                _ => self.eat_byte(T![-]),
+            },
+            b':' => match (self.peek_byte(), self.byte_at(2)) {
+                (Some(b':'), Some(b':')) => self.eat_bytes(3, T![:::]),
+                (Some(b':'), _) => self.eat_bytes(2, T![::]),
+                (Some(b'='), _) => self.eat_bytes(2, T![:=]),
+                _ => self.eat_byte(T![:]),
+            },
+            b'>' => match self.peek_byte() {
+                Some(b'=') => self.eat_bytes(2, T![>=]),
+                _ => self.eat_byte(T![>]),
+            },
+            b'=' => match self.peek_byte() {
+                Some(b'=') => self.eat_bytes(2, T![==]),
+                _ => self.eat_byte(T![=]),
+            },
+            b'!' => match self.peek_byte() {
+                Some(b'=') => self.eat_bytes(2, T![!=]),
+                _ => self.eat_byte(T![!]),
+            },
+            b'&' => match self.peek_byte() {
+                Some(b'&') => self.eat_bytes(2, T![&&]),
+                _ => self.eat_byte(T![&]),
+            },
+            b'|' => match self.peek_byte() {
+                Some(b'|') => self.eat_bytes(2, T![||]),
+                Some(b'>') => self.eat_bytes(2, T![|>]),
+                _ => self.eat_byte(T![|]),
+            },
+            b'*' => match self.peek_byte() {
+                Some(b'*') => self.eat_bytes(2, T![**]),
+                _ => self.eat_byte(T![*]),
+            },
+
             // The unicode arm, and also where the BOM is resolved
             byte if byte >= 128 => self.consume_unicode(),
 
-            _ => self.consume_punct(),
+            _ => self.consume_unexpected(),
         }
     }
 
@@ -400,6 +466,11 @@ impl<'src> RLexer<'src> {
 
     fn eat_byte(&mut self, kind: RSyntaxKind) -> RSyntaxKind {
         self.advance(1);
+        kind
+    }
+
+    fn eat_bytes(&mut self, n: usize, kind: RSyntaxKind) -> RSyntaxKind {
+        self.advance(n);
         kind
     }
 
@@ -909,91 +980,6 @@ impl<'src> RLexer<'src> {
         STRING_CLOSE
     }
 
-    // -----------------------------------------------------------------------
-    // Punctuation
-
-    /// Maximal munch over R's operators.
-    ///
-    /// `[[` and `]]` are greedy here and split by the parser where the nesting
-    /// demands it. `<<` is deliberately *not* a token: `<<-` is three bytes, and
-    /// a bare `<<` is two `<` tokens.
-    fn consume_punct(&mut self) -> RSyntaxKind {
-        match self.current_byte_unchecked() {
-            b';' => self.eat_byte(T![;]),
-            b',' => self.eat_byte(T![,]),
-            b'{' => self.eat_byte(T!['{']),
-            b'}' => self.eat_byte(T!['}']),
-            b'(' => self.eat_byte(T!['(']),
-            b')' => self.eat_byte(T![')']),
-            b'?' => self.eat_byte(T![?]),
-            b'~' => self.eat_byte(T![~]),
-            b'+' => self.eat_byte(T![+]),
-            b'/' => self.eat_byte(T![/]),
-            b'^' => self.eat_byte(T![^]),
-            b'$' => self.eat_byte(T![$]),
-            b'@' => self.eat_byte(T![@]),
-            b'\\' => self.eat_byte(T!["\\"]),
-
-            b'[' => match self.peek_byte() {
-                Some(b'[') => self.eat_bytes(2, T!["[["]),
-                _ => self.eat_byte(T!['[']),
-            },
-            b']' => match self.peek_byte() {
-                Some(b']') => self.eat_bytes(2, T!["]]"]),
-                _ => self.eat_byte(T![']']),
-            },
-            b'<' => match (self.peek_byte(), self.byte_at(2)) {
-                (Some(b'<'), Some(b'-')) => self.eat_bytes(3, T![<<-]),
-                (Some(b'-'), _) => self.eat_bytes(2, T![<-]),
-                (Some(b'='), _) => self.eat_bytes(2, T![<=]),
-                _ => self.eat_byte(T![<]),
-            },
-            b'-' => match (self.peek_byte(), self.byte_at(2)) {
-                (Some(b'>'), Some(b'>')) => self.eat_bytes(3, T![->>]),
-                (Some(b'>'), _) => self.eat_bytes(2, T![->]),
-                _ => self.eat_byte(T![-]),
-            },
-            b':' => match (self.peek_byte(), self.byte_at(2)) {
-                (Some(b':'), Some(b':')) => self.eat_bytes(3, T![:::]),
-                (Some(b':'), _) => self.eat_bytes(2, T![::]),
-                (Some(b'='), _) => self.eat_bytes(2, T![:=]),
-                _ => self.eat_byte(T![:]),
-            },
-            b'>' => match self.peek_byte() {
-                Some(b'=') => self.eat_bytes(2, T![>=]),
-                _ => self.eat_byte(T![>]),
-            },
-            b'=' => match self.peek_byte() {
-                Some(b'=') => self.eat_bytes(2, T![==]),
-                _ => self.eat_byte(T![=]),
-            },
-            b'!' => match self.peek_byte() {
-                Some(b'=') => self.eat_bytes(2, T![!=]),
-                _ => self.eat_byte(T![!]),
-            },
-            b'&' => match self.peek_byte() {
-                Some(b'&') => self.eat_bytes(2, T![&&]),
-                _ => self.eat_byte(T![&]),
-            },
-            b'|' => match self.peek_byte() {
-                Some(b'|') => self.eat_bytes(2, T![||]),
-                Some(b'>') => self.eat_bytes(2, T![|>]),
-                _ => self.eat_byte(T![|]),
-            },
-            b'*' => match self.peek_byte() {
-                Some(b'*') => self.eat_bytes(2, T![**]),
-                _ => self.eat_byte(T![*]),
-            },
-
-            _ => self.consume_unexpected(),
-        }
-    }
-
-    fn eat_bytes(&mut self, n: usize, kind: RSyntaxKind) -> RSyntaxKind {
-        self.advance(n);
-        kind
-    }
-
     fn re_lex_split_brackets(&mut self) -> RSyntaxKind {
         match self.current_kind {
             T!["[["] => self.eat_byte(T!['[']),
@@ -1027,7 +1013,6 @@ fn keyword_kind(text: &str) -> Option<RSyntaxKind> {
         "NaN" => T![nan],
         "NA" => T![na_logical],
         "NA_integer_" => T![na_integer],
-        // The one row whose kind does not follow the R spelling
         "NA_real_" => T![na_double],
         "NA_complex_" => T![na_complex],
         "NA_character_" => T![na_character],

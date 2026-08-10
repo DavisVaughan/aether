@@ -1231,13 +1231,32 @@ fn lex_token(&mut self) -> RSyntaxKind {
 
         b'_' | b'a'..=b'z' | b'A'..=b'Z' => self.consume_identifier_or_keyword(),
 
+        // Maximal munch over the operators, inline in this same match rather
+        // than behind a `consume_punct` — one arm per leading byte, nesting a
+        // second match on `peek_byte` where the byte is a prefix of something
+        // longer. The full table is in §8.4.
+        b';' => self.eat_byte(T![;]),
+        // …
+        b'<' => match (self.peek_byte(), self.byte_at(2)) {
+            (Some(b'<'), Some(b'-')) => self.eat_bytes(3, T![<<-]),
+            (Some(b'-'), _)          => self.eat_bytes(2, T![<-]),
+            (Some(b'='), _)          => self.eat_bytes(2, T![<=]),
+            _                        => self.eat_byte(T![<]),
+        },
+        // …
+
         // The unicode arm, and also where the BOM is resolved — see §8.3.1
         b if b >= 128 => self.consume_unicode(),
 
-        _ => self.consume_punct(),
+        _ => self.consume_unexpected(),
     }
 }
 ```
+
+Keep this one match. The punct arms are a third of it and the temptation to
+extract them is real, but the dispatch reads as a single decision on the leading
+byte and splitting it means holding two orderings in your head — and the order
+is load-bearing, per the note above.
 
 #### 8.3.1 The BOM
 
@@ -1266,8 +1285,8 @@ fn consume_unicode(&mut self) -> RSyntaxKind {
 }
 ```
 
-Both this arm and `consume_punct`'s fallback end at `consume_unexpected`, which
-is §8.4's `ERROR_TOKEN` case.
+Both this arm and the match's final `_` end at `consume_unexpected`, which is
+§8.4's `ERROR_TOKEN` case.
 
 Four things about `consume_potential_bom`, all verified against
 `biome_parser/src/lexer.rs` at the pinned rev rather than assumed:
@@ -1732,7 +1751,7 @@ something each test remembers to do.
 | `whitespace.rs` | Runs of space/tab/`\x0B`/`\x0C` coalescing into one `WHITESPACE`; `\n` and lone `\r` as `NEWLINE:1`; `\r\n` as **one** `NEWLINE:2`; `\n\n` as two tokens; `\r\r\n` as two. |
 | `comments.rs` | `#` to end of line; a comment ending the file with no newline; `# x\r\n` leaving the `\r` **out** of the comment and inside the `NEWLINE`; the empty comment `#`; non-ASCII inside a comment. |
 | `line_breaks.rs` | The sticky flag of §8.2: false on the first token; true after a newline; surviving `WHITESPACE` **and** `COMMENT`; cleared by the first non-trivia token. `1\n  # c\n  + 2` reports the break on `+` and not on `2`. |
-| `puncts.rs` | Every punct kind at least once, and the whole maximal-munch table of §8.4 as a prefix sweep: `<`, `<-`, `<<-`, `<<` (**two** tokens), `<=`, `>`, `>=`, `-`, `->`, `->>`, `:`, `::`, `:::`, `::::`, `:=`, `*`, `**`, `\|`, `\|\|`, `\|>`, `&`, `&&`, `=`, `==`, `!`, `!=`. Adjacency cases too: `1<-2` vs `1 < -2`. Plus the ASCII half of `ERROR_TOKEN` (§8.4) — a control byte, which is where the punct arm's fallback lands. |
+| `puncts.rs` | Every punct kind at least once, and the whole maximal-munch table of §8.4 as a prefix sweep: `<`, `<-`, `<<-`, `<<` (**two** tokens), `<=`, `>`, `>=`, `-`, `->`, `->>`, `:`, `::`, `:::`, `::::`, `:=`, `*`, `**`, `\|`, `\|\|`, `\|>`, `&`, `&&`, `=`, `==`, `!`, `!=`. Adjacency cases too: `1<-2` vs `1 < -2`. Plus the ASCII half of `ERROR_TOKEN` (§8.4) — a control byte, which is where the dispatch's final `_` lands. |
 | `brackets.rs` | Greedy `[[`/`]]`; `x[ [1] ]` staying four separate brackets; `[[[` as `L_BRACK2` + `L_BRACK`; and `re_lex(SplitBrackets)` — splitting `[[` into `L_BRACK:1` with the second bracket still to come, being a no-op on any other token, and being idempotent. |
 | `keywords.rs` | Every row of the keyword table in §8.4, `NA_real_` → `NA_DOUBLE_KW` included. Case sensitivity in both directions: `If`/`Function` are `IDENT`, and so are `true`/`false`/`null`. The `else` prefixes: `elseif`, `else_idx`, `elseμ` (tree-sitter-r #200). |
 | `identifiers.rs` | `foo`, `foo.bar`, `a1`, `_` alone, `_foo` as one `IDENT` (not rejected here — §8.4), `.foo`, `.`, `..`, and unicode XID starts and continues. Plus the non-ASCII half of `ERROR_TOKEN`: a character such as `€` that is neither `XID_Start` nor punctuation. |
