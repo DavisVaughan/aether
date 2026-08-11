@@ -353,10 +353,9 @@ impl<'src> RLexer<'src> {
             b'@' => self.eat_byte(T![@]),
             b'\\' => self.eat_byte(T!["\\"]),
 
-            // Never `]]`, however many brackets follow. Subsets nest, so a run
-            // of closers belongs to several of them at once and only the parser
-            // knows where the boundaries fall — it asks for the `]]` it wants
-            // with [`RReLexContext::JoinBrackets`].
+            // Lexer emits `]` but never `]]`. Only the parser can decide if we
+            // are in a [`RReLexContext::JoinBrackets`] context or not, at which
+            // point re-lexing will join contiguous brackets.
             b']' => self.eat_byte(T![']']),
 
             // `[[` is greedy in R's own `gram.y` and in tree-sitter-r's scanner:
