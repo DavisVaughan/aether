@@ -15,7 +15,7 @@ use biome_rowan::RawSyntaxKind;
 use std::collections::HashSet;
 
 /// Well-formed sources, which between them must produce every lexable kind but
-/// `ERROR_TOKEN`. The test names the gaps for you.
+/// `ERROR_TOKEN` and `R_BRACK2`. The test names the gaps for you.
 const SOURCES: &[&str] = &[
     "\u{FEFF}",
     ";,{}()?~$@\\+/^",
@@ -32,6 +32,17 @@ const SOURCES: &[&str] = &[
 /// only one, and it comes with a diagnostic by construction, so it needs a list
 /// of its own rather than a hole in [`SOURCES`].
 const ERROR_SOURCES: &[&str] = &["\u{1}"];
+
+/// The kinds only a re-lex can produce.
+///
+/// `R_BRACK2` is the only one, and deliberately so: `]]` lexes as two `]` and
+/// the parser joins them where the nesting says to. Driving that here rather
+/// than excusing the kind keeps the guard total.
+fn re_lexed_kinds() -> HashSet<RSyntaxKind> {
+    let mut lexer = RLexer::from_str("]]");
+    lexer.next_token(RLexContext::Regular);
+    HashSet::from([lexer.re_lex(RReLexContext::JoinBrackets)])
+}
 
 /// Every kind before `R_ROOT` in `RSyntaxKind` is a token; `R_ROOT` and
 /// everything after it is a node. So adding a node kind to `r.ungram` does not
@@ -59,6 +70,7 @@ fn every_lexable_kind_is_produced() {
         );
         produced.extend(tokens.into_iter().map(|token| token.kind));
     }
+    produced.extend(re_lexed_kinds());
 
     let missing: Vec<_> = (0..RSyntaxKind::__LAST as u16)
         .map(|raw| RSyntaxKind::from_raw(RawSyntaxKind(raw)))

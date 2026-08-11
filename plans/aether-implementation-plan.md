@@ -1063,16 +1063,16 @@ pub(crate) enum RawStringBracket { Paren, Bracket, Brace }
 
 /// The re-lexing requests the parser can make.
 ///
-/// Only one exists, and by §8.4 only one ever should: `[[` and `]]` are lexed
-/// greedily, and the parser splits them back apart at its single split site
-/// (§11.3). Modelled as an enum rather than a unit type because
+/// Only one exists, and by §8.4 only one ever should: `]]` is lexed as two `]`
+/// and the parser joins them back together at its single join site (§11.3).
+/// Modelled as an enum rather than a unit type because
 /// [`biome_parser::lexer::ReLexer`] requires an associated `ReLexContext`, and
 /// because a second variant would be a design change worth seeing in a diff.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RReLexContext {
-    /// Re-lex `[[` as `[`, or `]]` as `]`, leaving the second bracket to be
-    /// lexed as the next token. A no-op on any other current token.
-    SplitBrackets,
+    /// Re-lex `]` as `]]` when the very next byte is another `]`. A no-op on any
+    /// other current token, and idempotent.
+    JoinBrackets,
 }
 
 pub(crate) struct RLexer<'src> {
@@ -1352,15 +1352,40 @@ is three chars and `<<` alone is not a token); `-` → `->` → `->>`; `:` → `
 **`[` and `[[`.** tree-sitter-r resolves these in the external scanner with a scope
 stack, because `x[[1]]` vs `x[ [1] ]` vs `x[[1], 2]` are genuinely ambiguous and
 issue #177 (`Unsupported Subset2 With ]] Over Multiple Lines`) is in the errors
-corpus. **Aether lexes greedily: two adjacent brackets always produce a single
-`[[` or `]]` token.** The *parser* splits them back apart where the nesting
-demands it, via `p.re_lex(RReLexContext::SplitBrackets)` — the same technique
-Biome's JS parser uses for `>>` inside nested generics. Do not carry a scope
-stack in the lexer. There is exactly **one** split site — the argument list's
-terminator check, `ArgumentListEnd::split_and_check` — and §11.3 explains why it
-has to be there and nowhere else, with the `x[a[b]]` worked example. This is the
-single most important design call in the lexer and the one most likely to be got
-wrong.
+corpus. **Aether lexes the openers greedily and the closers one at a time: `[[` is
+always a single token, `]]` is always two `]`.** The *parser* joins the closers
+where the nesting says to, via `p.re_lex(RReLexContext::JoinBrackets)`. Do not
+carry a scope stack in the lexer. There is exactly **one** join site — the
+argument list's terminator check, `ArgumentListEnd::join_and_check` — and §11.3
+explains why it has to be there and nowhere else, with the `x[[a[b]]]` worked
+example. This is the single most important design call in the lexer and the one
+most likely to be got wrong.
+
+The asymmetry is the point, and every reference implementation shares it.
+Openers stack left to right, so two adjacent ones never straddle a boundary and
+greedy is unambiguous; R's own `gram.y` lexes `[[` as one `LBB` token and
+tree-sitter-r's `scan_open_bracket_or_bracket2` says "greedily accept that". But
+closers stack right to left, so a run of them belongs to several constructs at
+once and only the parser knows where the boundaries fall. `gram.y`'s rule is
+literally `expr LBB sublist ']' ']'` — two tokens, never joined — and
+tree-sitter-r decides each `]` from `stack_peek(stack)`, i.e. from the construct
+that wants it.
+
+`biome_js_parser` draws the line in the same place, and it is worth being precise
+about which half is which, because the two are easy to swap. `<` is lexed greedily
+into `<<`, and `JsReLexContext::TypeArgumentLessThan` splits it back for
+`B<<A>()>` — an opener. `>` is never lexed greedily at all: the dispatch arm is
+`MOR => self.eat_byte(T![>])`, so `>>` does not exist in the token stream, and
+`JsReLexContext::BinaryOperator` joins `> >` at the one site that wants a shift
+operator. Nested generics need no re-lex whatsoever, which is exactly the
+property we want for nested subsets.
+
+The concrete reason to prefer the fine-grained closer over a greedy `]]` plus a
+split: a token that appears unbidden has to be spelled out in every terminator
+check and every recovery set anywhere in the parser that mentions `]`, and
+missing one lets recovery swallow *two* closers, stripping an enclosing construct
+of its terminator. A `]]` that only ever exists because a subset2 asked for it
+cannot be swallowed by anything.
 
 **Keywords.** `function for in while repeat if else next break TRUE FALSE NULL Inf
 NaN NA NA_integer_ NA_real_ NA_complex_ NA_character_`.
@@ -1772,7 +1797,7 @@ something each test remembers to do.
 | `comments.rs` | `#` to end of line; a comment ending the file with no newline; `# x\r\n` leaving the `\r` **out** of the comment and inside the `NEWLINE`; the empty comment `#`; non-ASCII inside a comment. |
 | `line_breaks.rs` | The sticky flag of §8.2: false on the first token; true after a newline; surviving `WHITESPACE` **and** `COMMENT`; cleared by the first non-trivia token. `1\n  # c\n  + 2` reports the break on `+` and not on `2`. |
 | `puncts.rs` | Every punct kind at least once, and the whole maximal-munch table of §8.4 as a prefix sweep: `<`, `<-`, `<<-`, `<<` (**two** tokens), `<=`, `>`, `>=`, `-`, `->`, `->>`, `:`, `::`, `:::`, `::::`, `:=`, `*`, `**`, `\|`, `\|\|`, `\|>`, `&`, `&&`, `=`, `==`, `!`, `!=`. Adjacency cases too: `1<-2` vs `1 < -2`. Plus the ASCII half of `ERROR_TOKEN` (§8.4) — a control byte, which is where the dispatch's final `_` lands. |
-| `brackets.rs` | Greedy `[[`/`]]`; `x[ [1] ]` staying four separate brackets; `[[[` as `L_BRACK2` + `L_BRACK`; and `re_lex(SplitBrackets)` — splitting `[[` into `L_BRACK:1` with the second bracket still to come, being a no-op on any other token, and being idempotent. |
+| `brackets.rs` | The asymmetry of §8.4: greedy `[[`, `]]` as two `R_BRACK`, `x[ [1] ]` staying four separate brackets, `[[[` as `L_BRACK2` + `L_BRACK`. Then `re_lex(JoinBrackets)` — joining `]]` into `R_BRACK2:2`, leaving the rest of a longer run for the next join (`]]]]`, the `x[[a[[b]]]]` ladder), being idempotent, being a no-op on any other token including `[[`, and being a no-op at EOF. Two cases carry the weight: adjacency, where `] ]` and `]\n]` must **not** join (issue #177), and the preceding-line-break flag surviving the rewind that a join performs. |
 | `keywords.rs` | Every row of the keyword table in §8.4, `NA_real_` → `NA_DOUBLE_KW` included. Case sensitivity in both directions: `If`/`Function` are `IDENT`, and so are `true`/`false`/`null`. The `else` prefixes: `elseif`, `else_idx`, `elseμ` (tree-sitter-r #200). |
 | `identifiers.rs` | `foo`, `foo.bar`, `a1`, `_` alone, `_foo` as one `IDENT` (not rejected here — §8.4), `.foo`, `.`, `..`, and unicode XID starts and continues. Plus the non-ASCII half of `ERROR_TOKEN`: a character such as `€` that is neither `XID_Start` nor punctuation. |
 | `backticks.rs` | One `IDENT` spanning the delimiters; `` `a\`b` `` with the escape; the empty `` `` ``; the multi-line name of §8.4; and an unterminated one running to EOF with `unterminated_backtick_identifier` pointing at the **opening** delimiter. |
@@ -1828,7 +1853,7 @@ gives a safe `from_raw`, so the full inventory is enumerable:
 
 ```rust
 /// Well-formed sources, which between them must produce every lexable kind but
-/// `ERROR_TOKEN`. The test names the gaps for you.
+/// `ERROR_TOKEN` and `R_BRACK2`. The test names the gaps for you.
 const SOURCES: &[&str] = &[ /* one per construct */ ];
 
 /// Sources for the kinds no well-formed source can reach. `ERROR_TOKEN` is the
@@ -1837,6 +1862,12 @@ const SOURCES: &[&str] = &[ /* one per construct */ ];
 /// each asserts its own diagnostic polarity — that is what stops a source from
 /// drifting between the two lists unnoticed.
 const ERROR_SOURCES: &[&str] = &["\u{1}"];
+
+/// The kinds only a re-lex can produce. `R_BRACK2` is the only one, and
+/// deliberately so (§8.4): `]]` lexes as two `]` and the parser joins them where
+/// the nesting says to. Driving that here rather than excusing the kind keeps
+/// the guard total.
+fn re_lexed_kinds() -> HashSet<RSyntaxKind> { /* lex `]]`, join, collect */ }
 
 /// Kinds the lexer legitimately never produces, each with a reason. Adding a
 /// node kind to `r.ungram` therefore does NOT fail this test, but adding a token
@@ -1856,6 +1887,7 @@ fn every_lexable_kind_is_produced() {
         // ... assert the source did NOT lex cleanly ...
         produced.extend(lex(source).0.into_iter().map(|(kind, _)| kind));
     }
+    produced.extend(re_lexed_kinds());
 
     let missing: Vec<_> = (0..RSyntaxKind::__LAST as u16)
         .map(|raw| RSyntaxKind::from_raw(RawSyntaxKind(raw)))
@@ -3601,25 +3633,27 @@ tree-sitter-r solves this with an external-scanner scope stack, and it has a fil
 bug about it (#177, `Unsupported Subset2 With ]] Over Multiple Lines`) plus four
 errors-corpus tests about mismatched brackets.
 
-**Approach: lex greedily, split via re-lex.** The lexer always produces `[[` and
-`]]` when it sees two adjacent brackets. When the parser is inside a single-`[`
-subset and encounters `]]`, it re-lexes to split it into two `]` tokens. This is
-exactly what Biome's JS parser does for `>>` inside nested generics.
+**Approach: greedy openers, one-at-a-time closers, join via re-lex.** §8.4 makes
+the case for the asymmetry and names the precedents; what it means here is that a
+run of closing brackets reaches the parser as single `]` tokens, and the subset2
+that wants a `]]` asks for one. `L_BRACK2` arrives whole; `R_BRACK2` exists only
+because a list asked for it.
 
-**The split must happen at the loop guard, not after the list returns.** This is
-the detail the whole approach turns on. If `parse_argument_list` runs to
-completion first and the caller splits afterwards, the list never terminates
-correctly: at `]]` its guard `p.at(end)` is false, it is not at `,` either, so
-recovery fires — and `]]` is in no recovery set, so recovery *consumes both
-brackets* and runs to EOF. The caller then finds no `]]` to split, `expect(']')`
-errors, and the enclosing subset has lost its terminator too. One valid nesting
-becomes a cascade of errors.
+**The join must happen at the loop guard, not after the list returns.** This is
+the detail the whole approach turns on. Only the guard can tell a `]` that closes
+*this* list from a `]` that closes someone else's, and if it cannot, the list
+never recognises its own terminator: at `]` the guard `p.at(end)` is false, it is
+not at `,` either, so every valid `x[[1]]` leaves through the error-recovery
+branch instead of the loop condition. It happens to survive that today only
+because `]` is in the recovery set and recovery therefore consumes nothing —
+resting a correct parse of valid code on a recovery set's contents is exactly the
+kind of load-bearing accident this section exists to prevent.
 
-So the list has to own its terminator, including the case where the lexer glued
-that terminator to someone else's:
+So the list has to own its terminator, including the case where the lexer refused
+to spell that terminator out:
 
 ```rust
-// `RReLexContext::SplitBrackets` is defined in §8.2 and lands in Phase 4; this is
+// `RReLexContext::JoinBrackets` is defined in §8.2 and lands in Phase 4; this is
 // its one and only call site.
 
 // crates/aether_r_parser/src/syntax/call.rs
@@ -3627,71 +3661,81 @@ that terminator to someone else's:
 /// What closes an argument list. A type rather than a bare `RSyntaxKind`,
 /// for the same reason `StatementListEnd` (§11.7) is one: the recovery set is
 /// derived from the terminator instead of hardcoded at each call site. Here
-/// there is a second reason — `[` has a terminator the lexer may have glued to
-/// its neighbour, and only the terminator itself knows that.
+/// there is a second reason — `[[` has a terminator the lexer deliberately does
+/// not produce, and only the terminator itself knows to ask for it.
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum ArgumentListEnd {
     RParen,   // `f(…)`
-    RBrack,   // `x[…]`  — a `]]` here is this list's `]` plus someone else's
-    RBrack2,  // `x[[…]]`
+    RBrack,   // `x[…]`
+    RBrack2,  // `x[[…]]` — its `]]` arrives as two `]` and has to be asked for
 }
 
 impl ArgumentListEnd {
     /// True when the current token closes this list.
     ///
-    /// **Side-effecting by design.** For `RBrack`, a `]]` is split into two `]`
-    /// before the answer is returned, so every caller downstream — the loop
-    /// guard, the recovery set, and the final `expect` — sees the exact closing
-    /// token and none of them has to know the split happened.
-    fn split_and_check(self, p: &mut RParser) -> bool {
+    /// **Side-effecting by design.** For `RBrack2`, an adjacent pair of `]` is
+    /// joined into one `]]` before the answer is returned, so every caller
+    /// downstream — the loop guard, the recovery set, and the final `expect` —
+    /// sees the exact closing token and none of them has to know the join
+    /// happened.
+    fn join_and_check(self, p: &mut RParser) -> bool {
         match self {
             Self::RParen => p.at(T![')']),
-            Self::RBrack => {
-                if p.at(T!["]]"]) {
-                    // `x[a[b]]` — this list owns only the first `]`.
-                    p.re_lex(RReLexContext::SplitBrackets);
+            Self::RBrack => p.at(T![']']),
+            Self::RBrack2 => {
+                // `x[[a]]` — this list wants both brackets, and gets them only
+                // if they are adjacent. `x[[a] ]` and #177's `x[[a]\n]` are
+                // errors in tree-sitter-r and stay errors here (§8.4).
+                if p.at(T![']']) {
+                    p.re_lex(RReLexContext::JoinBrackets);
                 }
-                p.at(T![']'])
+                p.at(T!["]]"])
             }
-            Self::RBrack2 => p.at(T!["]]"]),
         }
     }
 
     /// Deliberately uniform across all three variants, and deliberately wider
     /// than this list's own terminator: recovery must never consume a closing
-    /// delimiter of ANY kind or arity. Eating one turns a single error into a
-    /// cascade by stripping an enclosing construct of its terminator — the same
-    /// rule as `a$)` in §11.4, where the `)` is left alone for exactly this
-    /// reason.
+    /// delimiter of ANY kind. Eating one turns a single error into a cascade by
+    /// stripping an enclosing construct of its terminator — the same rule as
+    /// `a$)` in §11.4, where the `)` is left alone for exactly this reason.
+    ///
+    /// There is no `T!["]]"]` here, and that is the payoff of §8.4's direction
+    /// rather than an oversight: nothing but `join_and_check` produces that
+    /// token, and it only does so when the list is about to terminate, so
+    /// recovery can never be looking at one. A lexer that glued closers would
+    /// oblige this set — and every other set in the parser that mentions `]` —
+    /// to name both arities, and to swallow two closers wherever one was missed.
     fn recovery_set(self) -> TokenSet<RSyntaxKind> {
         token_set![
             T![,],
-            T![')'], T![']'], T!["]]"], T!['}'],
+            T![')'], T![']'], T!['}'],
             T![EOF],
         ]
     }
 }
 
-fn parse_subset_arguments(p: &mut RParser) {
+fn parse_subset2_arguments(p: &mut RParser) {
     let m = p.start();
-    p.bump(T!['[']);
+    p.bump(T!["[["]);
     // Nothing to clear: `ALLOW_NEWLINE_BEFORE_ELSE` may stay set from an
     // enclosing `{`, and inside brackets it is harmless — see `parse_else_clause`.
     p.with_flags(RContextFlags::IGNORE_NEWLINES, RContextFlags::empty(), |p| {
-        parse_argument_list(p, ArgumentListEnd::RBrack);
+        parse_argument_list(p, ArgumentListEnd::RBrack2);
     });
-    // The list split any `]]` on its way out, so this is a plain expect.
-    p.expect(T![']']);
-    m.complete(p, R_SUBSET_ARGUMENTS);
+    // The list joined its `]]` on the way out, so this is a plain expect.
+    p.expect(T!["]]"]);
+    m.complete(p, R_SUBSET2_ARGUMENTS);
 }
 ```
 
-**No merge-back is ever needed, and the ladder cases confirm it** — worth stating,
+**Nothing is ever undone, and the ladder cases confirm it** — worth stating,
 because it is where a reader will stop. `x[[a[b]]]` lexes as
-`x` `[[` `a` `[` `b` `]]` `]`. The inner `[` splits the `]]` and consumes only the
-first `]`; the lexer then resumes at the next byte and lexes *fresh*, greedily
-producing `]]` for the outer subset2. Because `re_lex` re-reads only the current
-token and leaves position advancement alone, a split never has to be undone.
+`x` `[[` `a` `[` `b` `]` `]` `]`. The inner `[` takes the first `]` without asking
+anyone; the outer subset2 then joins the two that are left. `x[[a[[b]]]]` is the
+same story twice: the inner subset2 joins a pair, and the outer joins the pair
+behind it. Because a join reads forward from the current token and never rewinds
+past it, no split, merge, or unget is ever needed.
 
 Add the nesting ladder as aether-authored tests in `expressions/subset.md`:
 `x[a[b]]`, `x[[a[b]]]`, `x[a[[b]]]`, `x[[a[[b]]]]`. All clean parses, no markers —
@@ -3700,10 +3744,11 @@ and the imported corpus only covers mismatched brackets and `#177`.
 
 **Verify `re_lex` against buffered lookahead** at the pinned rev before writing
 this. `TokenSourceWithBufferedLexer` caches lookahead tokens, and re-lexing the
-current token must invalidate that cache. Biome's JS parser relies on the same
-contract for `>>`, so it almost certainly holds — but a stale cache here yields a
-wrong tree that still round-trips, which is precisely the class of bug no
-invariant in this project catches.
+current token must invalidate that cache. `BufferedLexer::re_lex` clears the
+lookahead whenever the kind changes, which is the contract `biome_js_parser`
+relies on for `>>` — but confirm it holds through `RTokenSource`, because a stale
+cache here yields a wrong tree that still round-trips, which is precisely the
+class of bug no invariant in this project catches.
 
 The mirror case (`x[[a]` — a `[[` that should have been two `[`) is a genuine
 syntax error in R; produce a diagnostic and recover rather than trying to be
@@ -3728,9 +3773,9 @@ fn parse_argument_list(p: &mut RParser, end: ArgumentListEnd) {
     let mut first = true;
 
     loop {
-        // Splits a `]]` as a side effect when `end` is `RBrack`, so from here
+        // Joins a `]]` as a side effect when `end` is `RBrack2`, so from here
         // down the terminator is always a single, exact token.
-        if end.split_and_check(p) || p.at(T![EOF]) { break }
+        if end.join_and_check(p) || p.at(T![EOF]) { break }
 
         // `fn(,,a,,b,,)` means an iteration may legitimately consume only a
         // comma, so progress is asserted across the whole iteration rather than
@@ -4157,7 +4202,7 @@ fn parse_braced_statements(p: &mut RParser) -> ParsedSyntax {
 /// Owning the terminator as a type means the recovery set is derived from it
 /// rather than hardcoded, so a future list terminator cannot forget to add
 /// itself to the set. `ArgumentListEnd` (§11.3) is the same pattern, and carries
-/// the additional job of splitting a glued `]]`.
+/// the additional job of asking the lexer for a `]]`.
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum StatementListEnd {
     Eof,

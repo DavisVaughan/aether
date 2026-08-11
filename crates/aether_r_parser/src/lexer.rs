@@ -85,9 +85,9 @@ impl RawStringBracket {
 /// The re-lexing requests the parser can make
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RReLexContext {
-    /// Re-lex `[[` as `[`, or `]]` as `]`, leaving the second bracket for the
-    /// next token. A no-op on any other current token, and idempotent.
-    SplitBrackets,
+    /// Re-lex `]` as `]]` when the very next byte is another `]`. A no-op on any
+    /// other current token, and idempotent.
+    JoinBrackets,
 }
 
 pub(crate) struct RLexer<'src> {
@@ -264,7 +264,7 @@ impl<'src> ReLexer<'src> for RLexer<'src> {
         self.position = u32::from(self.current_start) as usize;
 
         let re_lexed_kind = match context {
-            RReLexContext::SplitBrackets => self.re_lex_split_brackets(),
+            RReLexContext::JoinBrackets => self.re_lex_join_brackets(),
         };
 
         if self.current_kind == re_lexed_kind {
@@ -357,13 +357,18 @@ impl<'src> RLexer<'src> {
             b'@' => self.eat_byte(T![@]),
             b'\\' => self.eat_byte(T!["\\"]),
 
+            // Never `]]`, however many brackets follow. Subsets nest, so a run
+            // of closers belongs to several of them at once and only the parser
+            // knows where the boundaries fall — it asks for the `]]` it wants
+            // with [`RReLexContext::JoinBrackets`].
+            b']' => self.eat_byte(T![']']),
+
+            // `[[` is greedy in R's own `gram.y` and in tree-sitter-r's scanner:
+            // two adjacent opening brackets are always a subset2, because
+            // openers nest to the right and never share a boundary.
             b'[' => match self.peek_byte() {
                 Some(b'[') => self.eat_bytes(2, T!["[["]),
                 _ => self.eat_byte(T!['[']),
-            },
-            b']' => match self.peek_byte() {
-                Some(b']') => self.eat_bytes(2, T!["]]"]),
-                _ => self.eat_byte(T![']']),
             },
             b'<' => match (self.peek_byte(), self.byte_at(2)) {
                 (Some(b'<'), Some(b'-')) => self.eat_bytes(3, T![<<-]),
@@ -941,10 +946,11 @@ impl<'src> RLexer<'src> {
         STRING_CLOSE
     }
 
-    fn re_lex_split_brackets(&mut self) -> RSyntaxKind {
+    /// Adjacency is the whole check: `re_lex` rewinds to `current_start` and
+    /// never skips trivia, so `x[[1] ]` can never be joined into a `]]`.
+    fn re_lex_join_brackets(&mut self) -> RSyntaxKind {
         match self.current_kind {
-            T!["[["] => self.eat_byte(T!['[']),
-            T!["]]"] => self.eat_byte(T![']']),
+            T![']'] if self.peek_byte() == Some(b']') => self.eat_bytes(2, T!["]]"]),
             kind => kind,
         }
     }
