@@ -19,10 +19,7 @@ pub(crate) enum RLexContext {
     #[default]
     Regular,
 
-    /// Lex the body of a string opened with this delimiter.
-    ///
-    /// Answers with `STRING_CLOSE` rather than an empty `STRING_CONTENT` when
-    /// the body is empty, so `""` is two tokens and not three.
+    /// Lex the body of a string opened with this delimiter
     StringContent(RStringDelimiter),
 
     /// Lex the closing delimiter of a string
