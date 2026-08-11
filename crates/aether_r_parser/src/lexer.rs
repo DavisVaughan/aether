@@ -448,10 +448,6 @@ impl<'src> RLexer<'src> {
 
     /// Consumes an identifier mimicking `[\p{XID_Start}_][\p{XID_Continue}.]*`.
     /// If the consumed identifier maps to a keyword, that is returned instead.
-    ///
-    /// Lexing the name first and mapping afterwards is what gets tree-sitter-r's
-    /// #200 right for free: `elseμ` is one identifier, not `else` followed by a
-    /// stray `μ`.
     fn consume_identifier_or_keyword(&mut self) -> RSyntaxKind {
         let start = self.position;
         self.advance_char_unchecked();
