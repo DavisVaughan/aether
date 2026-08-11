@@ -231,9 +231,8 @@ impl<'src> Lexer<'src> for RLexer<'src> {
         self.position += char.len_utf8();
     }
 
-    /// Overridden solely to maintain `after_line_break`; the provided body
-    /// cannot, since it has no access to this type's fields. `biome_js_parser`
-    /// overrides it for the same reason and with the same body.
+    /// Overridden to update `after_line_break`. The default cannot since this is
+    /// a custom field. `biome_js_parser` overrides it for the same reason.
     ///
     /// Inheriting the trait's `consume_newline` also gets `\r\n` treated as a
     /// single newline for free.
