@@ -117,7 +117,7 @@ pub(crate) struct RLexer<'src> {
     /// hardcoded `0` would be a lie the next reader has to re-derive.
     unicode_bom_length: usize,
 
-    /// Set when `STRING_OPEN` is emitted, cleared after `STRING_CLOSE`.
+    /// Set when `STRING_OPEN` is emitted, cleared after `STRING_CLOSE`
     ///
     /// This is how the caller knows which [`RLexContext`] to lex the body and
     /// the closing delimiter in. It is not restored by [`Lexer::rewind`],
