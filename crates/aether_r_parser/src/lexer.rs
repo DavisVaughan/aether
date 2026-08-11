@@ -120,12 +120,8 @@ pub(crate) struct RLexer<'src> {
     /// Set when `STRING_OPEN` is emitted, cleared after `STRING_CLOSE`
     ///
     /// This is how the caller knows which [`RLexContext`] to lex the body and
-    /// the closing delimiter in. It is not restored by [`Lexer::rewind`],
-    /// because [`LexerCheckpoint`] has no slot for it; that is sound only
-    /// because lookahead lexes in [`RLexContext::Regular`] and so can never be
-    /// used to peek past a `STRING_OPEN` in the first place. The debug
-    /// assertions in `lex_string_content` and `lex_string_end` catch it loudly
-    /// if that ever stops being true.
+    /// the closing delimiter in. The debug assertions in `lex_string_content`
+    /// and `lex_string_end` catch if this is ever done incorrectly.
     string_delimiter: Option<RStringDelimiter>,
 
     diagnostics: Vec<ParseDiagnostic>,
