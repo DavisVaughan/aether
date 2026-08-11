@@ -41,7 +41,7 @@ pub(crate) enum RStringDelimiter {
     Raw {
         quote: u8,
         hyphens: u8,
-        bracket: RawBracket,
+        bracket: RawStringBracket,
     },
 }
 
@@ -57,13 +57,13 @@ impl RStringDelimiter {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum RawBracket {
+pub(crate) enum RawStringBracket {
     Paren,
     Bracket,
     Brace,
 }
 
-impl RawBracket {
+impl RawStringBracket {
     fn from_open(byte: u8) -> Option<Self> {
         match byte {
             b'(' => Some(Self::Paren),
@@ -796,7 +796,7 @@ impl<'src> RLexer<'src> {
             offset += 1;
         }
 
-        let bracket = RawBracket::from_open(self.byte_at(offset)?)?;
+        let bracket = RawStringBracket::from_open(self.byte_at(offset)?)?;
 
         let delimiter = RStringDelimiter::Raw {
             quote,
@@ -869,7 +869,7 @@ impl<'src> RLexer<'src> {
         &mut self,
         quote: u8,
         hyphens: u8,
-        bracket: RawBracket,
+        bracket: RawStringBracket,
     ) -> RSyntaxKind {
         let close = bracket.close();
         let start = self.position;

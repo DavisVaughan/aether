@@ -1053,13 +1053,13 @@ pub(crate) enum RStringDelimiter {
     Single,
     Double,
     /// `r"---[` … `]---"`. Records the quote char, hyphen count, bracket pair.
-    Raw { quote: u8, hyphens: u8, bracket: RawBracket },
+    Raw { quote: u8, hyphens: u8, bracket: RawStringBracket },
 }
 // NOTE: there is deliberately no `Backtick` variant. See §8.4 — a backtick-quoted
 // name is an IDENT, not a string.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum RawBracket { Paren, Bracket, Brace }
+pub(crate) enum RawStringBracket { Paren, Bracket, Brace }
 
 /// The re-lexing requests the parser can make.
 ///
