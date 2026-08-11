@@ -979,7 +979,7 @@ independently testable** lexer. No parser yet.
 The lexer is one module, `lexer.rs`, with a `#[cfg(test)] mod tests;` at the
 bottom. Its tests live under `lexer/` and are therefore descendants of the module
 they test, which is the whole reason they sit here rather than in a test crate:
-they read private fields (`after_newline`, `string_delimiter`) and call private
+they read private fields (`after_line_break`, `string_delimiter`) and call private
 helpers directly, and `#[cfg(test)]` keeps every byte of them out of the parser
 air links against. §8.6 is the test plan and it is not an afterthought — the lexer
 is the one component whose bugs every later phase inherits silently.
@@ -1085,7 +1085,7 @@ pub(crate) struct RLexer<'src> {
     /// once a *non-trivia* token has been stamped with it. This is what lets the
     /// lexer report a preceding line break even though `NEWLINE` is a token in
     /// its own right (§8.5), and it is exactly `biome_js_parser`'s mechanism.
-    after_newline: bool,
+    after_line_break: bool,
     diagnostics: Vec<ParseDiagnostic>,
     /// Set when we emit `STRING_OPEN`; cleared after `STRING_CLOSE`.
     string_delimiter: Option<RStringDelimiter>,
@@ -1115,14 +1115,14 @@ impl<'src> Lexer<'src> for RLexer<'src> {
         // Stamp the flag AFTER lexing, so `lex_token` may set other flags first,
         // and use `set` on the single bit rather than assigning the whole set.
         self.current_flags
-            .set(TokenFlags::PRECEDING_LINE_BREAK, self.after_newline);
+            .set(TokenFlags::PRECEDING_LINE_BREAK, self.after_line_break);
         self.current_kind = kind;
 
         // The bit survives across trivia. `consume_newline` sets it; the WHITESPACE
         // and COMMENT tokens that may follow leave it alone; the first non-trivia
         // token consumes it. So `1\n  # c\n  + 2` reports the line break on `+`.
         if !kind.is_trivia() {
-            self.after_newline = false;
+            self.after_line_break = false;
         }
 
         debug_assert!(self.current_start <= TextSize::from(self.position as u32));
@@ -1133,7 +1133,7 @@ impl<'src> Lexer<'src> for RLexer<'src> {
         self.current_flags.contains(TokenFlags::PRECEDING_LINE_BREAK)
     }
 
-    /// Overridden solely to maintain `after_newline`; the provided body cannot,
+    /// Overridden solely to maintain `after_line_break`; the provided body cannot,
     /// since it has no access to this type's fields. `biome_js_parser` overrides
     /// it for exactly the same reason and with the same body.
     ///
@@ -1141,7 +1141,7 @@ impl<'src> Lexer<'src> for RLexer<'src> {
     /// single newline for free, which is what §8.5 requires.
     fn consume_newline_or_whitespaces(&mut self) -> RSyntaxKind {
         if self.consume_newline() {
-            self.after_newline = true;
+            self.after_line_break = true;
             NEWLINE
         } else {
             self.consume_whitespaces();
@@ -1156,7 +1156,7 @@ impl<'src> Lexer<'src> for RLexer<'src> {
 
 Two obligations follow from that field, both easy to miss:
 
-- **`after_newline` is set by overriding `consume_newline_or_whitespaces`.** The
+- **`after_line_break` is set by overriding `consume_newline_or_whitespaces`.** The
   trait provides that method, but the provided body cannot set a field on the
   concrete lexer, so JS overrides it to add one line and aether does the same.
   Dispatch newline and whitespace through this single method (§8.3) rather than
@@ -1206,7 +1206,7 @@ fn lex_token(&mut self) -> RSyntaxKind {
     match byte {
         // One arm for both, as in `biome_js_parser`. The trait-provided
         // `consume_newline` inside it already treats `\r\n` as a single newline
-        // (§8.5), and the override in §8.2 is what sets `after_newline`.
+        // (§8.5), and the override in §8.2 is what sets `after_line_break`.
         b'\n' | b'\r' | b'\t' | b' ' | b'\x0B' | b'\x0C'
                                => self.consume_newline_or_whitespaces(),
         b'#'                   => self.consume_comment(),
@@ -1594,7 +1594,7 @@ of desync bugs.
 
 So, with ownership stated once:
 - `RLexer` emits `NEWLINE` as its own kind, **and owns the preceding-line-break
-  flag**: it carries `after_newline` across calls and stamps
+  flag**: it carries `after_line_break` across calls and stamps
   `PRECEDING_LINE_BREAK` onto the first non-trivia token that follows (§8.2).
   This is verbatim what `biome_js_parser`'s lexer does for ASI.
 - `RTokenSource` reports `NEWLINE` (and `WHITESPACE`, `COMMENT`) as trivia. It
@@ -1665,7 +1665,7 @@ mod whitespace;
 use super::*;
 ```
 
-Because `tests` is a *descendant* of `lexer`, these files read `after_newline`
+Because `tests` is a *descendant* of `lexer`, these files read `after_line_break`
 and `string_delimiter` directly, with no accessor and no `pub(crate)` widening.
 That is the whole reason the tests sit here instead of in a test crate, and it is
 worth not giving up: an accessor added only for tests is a permanent hole in the
@@ -3585,7 +3585,7 @@ interactions rather than the rule itself:
 ````
 
 The third has no marker because it is a **clean** parse, and it is the one that
-can regress silently. It only passes because §8.2's `after_newline` flag is sticky
+can regress silently. It only passes because §8.2's `after_line_break` flag is sticky
 across trivia, so the line break still reaches `2` with a comment sitting between.
 If that stickiness breaks, this test fails and the lexer bug is caught at its
 source rather than surfacing later as a mystery `expected_statement_separator`.
