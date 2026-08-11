@@ -948,7 +948,7 @@ impl<'src> RLexer<'src> {
     }
 }
 
-/// R's keywords and constants, spelled as they appear in source.
+/// R's keywords and constants, spelled as they appear in source
 ///
 /// Deliberately not `RSyntaxKind::from_keyword()`: codegen derives that from the
 /// lowercase placeholder names in `r_kinds_src.rs`, so it matches `"true"` and
