@@ -262,18 +262,18 @@ impl<'src> ReLexer<'src> for RLexer<'src> {
         let old_position = self.position;
         self.position = u32::from(self.current_start) as usize;
 
-        let re_lexed_kind = match context {
+        let new_kind = match context {
             RReLexContext::JoinBrackets => self.re_lex_join_brackets(),
         };
 
-        if self.current_kind == re_lexed_kind {
+        if self.current_kind == new_kind {
             // Nothing was re-lexed. Return the existing token untouched.
             self.position = old_position;
         } else {
-            self.current_kind = re_lexed_kind;
+            self.current_kind = new_kind;
         }
 
-        re_lexed_kind
+        new_kind
     }
 }
 
