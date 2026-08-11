@@ -577,7 +577,7 @@ impl<'src> RLexer<'src> {
         }
 
         let start = self.position;
-        let dotted = self.scan_dotted_token();
+        let dotted = self.scan_dot_dot_dot_or_dot_dot_i();
 
         self.advance(1);
         self.consume_identifier_parts();
@@ -593,7 +593,7 @@ impl<'src> RLexer<'src> {
     }
 
     /// `...` or `/[.][.]\d+/` at the current position, with its length
-    fn scan_dotted_token(&self) -> Option<(RSyntaxKind, usize)> {
+    fn scan_dot_dot_dot_or_dot_dot_i(&self) -> Option<(RSyntaxKind, usize)> {
         if self.byte_at(1) != Some(b'.') {
             return None;
         }
