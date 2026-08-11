@@ -46,7 +46,7 @@ pub(crate) enum RStringDelimiter {
 }
 
 impl RStringDelimiter {
-    /// The quote character the string closes with
+    /// The string quote character
     fn quote(self) -> u8 {
         match self {
             Self::Single => b'\'',
