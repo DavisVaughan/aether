@@ -162,7 +162,7 @@ impl<'src> Lexer<'src> for RLexer<'src> {
         };
 
         // Stamped after lexing so that the lex functions are free to set other
-        // flags first, and set on the one bit rather than by assigning the set
+        // flags first
         self.current_flags
             .set(TokenFlags::PRECEDING_LINE_BREAK, self.after_line_break);
         self.current_kind = kind;
