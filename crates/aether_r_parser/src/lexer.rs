@@ -358,9 +358,8 @@ impl<'src> RLexer<'src> {
             // point re-lexing will join contiguous brackets.
             b']' => self.eat_byte(T![']']),
 
-            // `[[` is greedy in R's own `gram.y` and in tree-sitter-r's scanner:
-            // two adjacent opening brackets are always a subset2, because
-            // openers nest to the right and never share a boundary.
+            // `[[` is greedy in R's own `gram.y` and in tree-sitter-r's scanner.
+            // Two adjacent opening brackets are always a subset2.
             b'[' => match self.peek_byte() {
                 Some(b'[') => self.eat_bytes(2, T!["[["]),
                 _ => self.eat_byte(T!['[']),
