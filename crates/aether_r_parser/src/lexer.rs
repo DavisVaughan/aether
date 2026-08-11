@@ -110,7 +110,7 @@ pub(crate) struct RLexer<'src> {
     /// `biome_js_parser`'s mechanism.
     after_newline: bool,
 
-    /// Byte length of the BOM, if the source starts with one.
+    /// Byte length of the BOM, if the source starts with one
     ///
     /// Nothing in R reads this. It exists because [`LexerCheckpoint`] carries
     /// it, and setting it from `consume_potential_bom` costs one line where a
