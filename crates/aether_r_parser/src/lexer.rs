@@ -82,7 +82,7 @@ impl RawStringBracket {
     }
 }
 
-/// The re-lexing requests the parser can make.
+/// The re-lexing requests the parser can make
 ///
 /// Only one exists, and by the greedy-bracket rule only one ever should. It is
 /// an enum rather than a unit type because [`ReLexer`] requires an associated
