@@ -462,7 +462,7 @@ impl<'src> RLexer<'src> {
         self.advance_char_unchecked();
         self.consume_identifier_parts();
 
-        keyword_kind(&self.source[start..self.position]).unwrap_or(IDENT)
+        Self::keyword_kind(&self.source[start..self.position]).unwrap_or(IDENT)
     }
 
     /// `[\p{XID_Continue}.]*`
@@ -486,6 +486,32 @@ impl<'src> RLexer<'src> {
     /// or at a byte that is not a character boundary
     fn char_at(&self, offset: usize) -> Option<char> {
         self.source.get(self.position + offset..)?.chars().next()
+    }
+
+    /// R's keywords and constants, spelled as they appear in source
+    fn keyword_kind(text: &str) -> Option<RSyntaxKind> {
+        Some(match text {
+            "function" => T![function],
+            "for" => T![for],
+            "in" => T![in],
+            "while" => T![while],
+            "repeat" => T![repeat],
+            "if" => T![if],
+            "else" => T![else],
+            "next" => T![next],
+            "break" => T![break],
+            "TRUE" => T![true],
+            "FALSE" => T![false],
+            "NULL" => T![null],
+            "Inf" => T![inf],
+            "NaN" => T![nan],
+            "NA" => T![na_logical],
+            "NA_integer_" => T![na_integer],
+            "NA_real_" => T![na_double],
+            "NA_complex_" => T![na_complex],
+            "NA_character_" => T![na_character],
+            _ => return None,
+        })
     }
 
     /// A backtick-quoted name, which is an `IDENT` covering the delimiters and
@@ -946,30 +972,4 @@ impl<'src> RLexer<'src> {
         self.push_diagnostic(unexpected_character(range, character));
         ERROR_TOKEN
     }
-}
-
-/// R's keywords and constants, spelled as they appear in source
-fn keyword_kind(text: &str) -> Option<RSyntaxKind> {
-    Some(match text {
-        "function" => T![function],
-        "for" => T![for],
-        "in" => T![in],
-        "while" => T![while],
-        "repeat" => T![repeat],
-        "if" => T![if],
-        "else" => T![else],
-        "next" => T![next],
-        "break" => T![break],
-        "TRUE" => T![true],
-        "FALSE" => T![false],
-        "NULL" => T![null],
-        "Inf" => T![inf],
-        "NaN" => T![nan],
-        "NA" => T![na_logical],
-        "NA_integer_" => T![na_integer],
-        "NA_real_" => T![na_double],
-        "NA_complex_" => T![na_complex],
-        "NA_character_" => T![na_character],
-        _ => return None,
-    })
 }
