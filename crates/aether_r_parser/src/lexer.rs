@@ -536,25 +536,6 @@ impl<'src> RLexer<'src> {
         }
     }
 
-    /// A character that starts no token.
-    ///
-    /// Exactly one character is consumed and handed on as `ERROR_TOKEN`, which
-    /// is `biome_js_parser`'s treatment of the same case. Losing the character
-    /// is not an option — round-tripping the source is an invariant, and folding
-    /// it into trivia would make it silently disappear the way semicolons used
-    /// to — but neither is calling it an `IDENT`, which is accepted wherever a
-    /// name is and would let junk parse into a well-formed tree. `ERROR_TOKEN`
-    /// starts nothing, so the parser can only wrap it in a bogus node.
-    fn consume_unexpected(&mut self) -> RSyntaxKind {
-        let start = self.text_position();
-        let character = self.current_char_unchecked();
-        self.advance(character.len_utf8());
-
-        let range = TextRange::new(start, self.text_position());
-        self.push_diagnostic(unexpected_character(range, character));
-        ERROR_TOKEN
-    }
-
     // -----------------------------------------------------------------------
     // Dots
 
@@ -942,6 +923,28 @@ impl<'src> RLexer<'src> {
             T![']'] if self.peek_byte() == Some(b']') => self.eat_bytes(2, T!["]]"]),
             kind => kind,
         }
+    }
+
+    // -----------------------------------------------------------------------
+    // Errors
+
+    /// A character that starts no token.
+    ///
+    /// Exactly one character is consumed and handed on as `ERROR_TOKEN`, which
+    /// is `biome_js_parser`'s treatment of the same case. Losing the character
+    /// is not an option — round-tripping the source is an invariant, and folding
+    /// it into trivia would make it silently disappear the way semicolons used
+    /// to — but neither is calling it an `IDENT`, which is accepted wherever a
+    /// name is and would let junk parse into a well-formed tree. `ERROR_TOKEN`
+    /// starts nothing, so the parser can only wrap it in a bogus node.
+    fn consume_unexpected(&mut self) -> RSyntaxKind {
+        let start = self.text_position();
+        let character = self.current_char_unchecked();
+        self.advance(character.len_utf8());
+
+        let range = TextRange::new(start, self.text_position());
+        self.push_diagnostic(unexpected_character(range, character));
+        ERROR_TOKEN
     }
 }
 
