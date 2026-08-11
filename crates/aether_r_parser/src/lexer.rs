@@ -333,7 +333,6 @@ impl<'src> RLexer<'src> {
             // Raw strings share this arm with every other name
             // rather than taking one of their own, which would split the letter
             // range and cost the whole match its jump table for `s` onwards.
-            // `rnorm` and a bare `r` still lex as names.
             b'_' | b'a'..=b'z' | b'A'..=b'Z' => match self.scan_raw_string_open() {
                 Some(open) => self.consume_raw_string_open(open),
                 None => self.consume_identifier_or_keyword(),
