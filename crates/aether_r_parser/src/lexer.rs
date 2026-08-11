@@ -246,7 +246,7 @@ impl<'src> Lexer<'src> for RLexer<'src> {
         }
     }
 
-    /// R's whitespace is ASCII: space, tab, vertical tab, and form feed.
+    /// R's whitespace is ASCII: space, tab, vertical tab, and form feed
     ///
     /// The trait's body is written for CSS and diagnoses vertical tab and form
     /// feed, which are ordinary whitespace here.
