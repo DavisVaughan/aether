@@ -330,7 +330,7 @@ impl<'src> RLexer<'src> {
 
             b'%' => self.consume_special(),
 
-            // `r"(…)"` and `R'---[…]---'` share this arm with every other name
+            // Raw strings share this arm with every other name
             // rather than taking one of their own, which would split the letter
             // range and cost the whole match its jump table for `s` onwards.
             // `rnorm` and a bare `r` still lex as names.
