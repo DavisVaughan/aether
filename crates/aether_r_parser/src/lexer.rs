@@ -313,8 +313,6 @@ impl<'src> RLexer<'src> {
         debug_assert!(!self.is_eof());
 
         match self.current_byte_unchecked() {
-            // One arm for both, as in `biome_js_parser`: `consume_newline`
-            // already treats `\r\n` as a single newline
             b'\n' | b'\r' | b'\t' | b' ' | b'\x0B' | b'\x0C' => {
                 self.consume_newline_or_whitespaces()
             }
