@@ -1,30 +1,3 @@
-//! The R lexer.
-//!
-//! Three decisions shape everything below, and all three are deliberate:
-//!
-//! - **Newlines are tokens.** `NEWLINE` is lexed like any other token and the
-//!   token source turns it into trivia. The lexer additionally carries
-//!   [`RLexer::after_newline`] across calls so it can stamp
-//!   `PRECEDING_LINE_BREAK` on the first non-trivia token of a line, which is
-//!   how the parser asks "did a line break happen here" without the lexer
-//!   knowing anything about `(`, `[`, or `{`. tree-sitter-r answers the same
-//!   question with a scope stack in its external scanner; a recursive descent
-//!   parser already knows its own nesting, and duplicating that knowledge here
-//!   is the classic way to desynchronise the two.
-//!
-//! - **`[[` and `]]` are lexed greedily.** Two adjacent brackets always produce
-//!   one token. The parser splits them back apart where the nesting demands it
-//!   with [`RReLexContext::SplitBrackets`], the same way `biome_js_parser`
-//!   splits `>>` inside nested generics.
-//!
-//! - **Strings are lexed in three tokens under a context supplied by the
-//!   caller.** `STRING_OPEN`, an optional `STRING_CONTENT`, then `STRING_CLOSE`.
-//!   The body cannot be lexed without knowing which delimiter opened it, and
-//!   raw strings need the hyphen count and bracket too, so the delimiter travels
-//!   in [`RLexContext`].
-//!
-//! Backticked names are *not* strings — see [`RLexer::consume_backtick_identifier`].
-
 #[cfg(test)]
 mod tests;
 
