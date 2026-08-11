@@ -570,9 +570,8 @@ impl<'src> RLexer<'src> {
     fn consume_dot(&mut self) -> RSyntaxKind {
         self.assert_byte(b'.');
 
-        // A digit after the `.` always makes a number, never a name.
-        // tree-sitter-r orders it that way deliberately: otherwise `.1i` and
-        // `.1L` lex as identifiers (their #190).
+        // A digit after the `.` always makes a number, never a name, otherwise
+        // `.1i` and `.1L` lex as identifiers (r-lib/tree-sitter-r#190).
         if matches!(self.peek_byte(), Some(b'0'..=b'9')) {
             return self.consume_number();
         }
