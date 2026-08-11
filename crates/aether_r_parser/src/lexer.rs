@@ -560,7 +560,7 @@ impl<'src> RLexer<'src> {
     // -----------------------------------------------------------------------
     // Dots
 
-    /// `...`, `..1`, `.5`, and `.foo` all start with a `.`.
+    /// `...`, `..1`, `.5`, and `.foo` all start with a `.`
     ///
     /// `dots` and `dot_dot_i` overlap with the identifier rule, and tree-sitter-r
     /// resolves the overlap by match length: `...a` and `..1a` are single
