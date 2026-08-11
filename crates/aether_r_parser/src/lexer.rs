@@ -407,7 +407,6 @@ impl<'src> RLexer<'src> {
                 _ => self.eat_byte(T![*]),
             },
 
-            // The unicode arm, and also where the BOM is resolved
             byte if byte >= 128 => self.consume_unicode(),
 
             _ => self.consume_unexpected(),
