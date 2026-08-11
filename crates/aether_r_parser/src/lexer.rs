@@ -90,6 +90,15 @@ pub(crate) enum RReLexContext {
     JoinBrackets,
 }
 
+impl RLexer<'_> {
+    fn re_lex_join_brackets(&mut self) -> RSyntaxKind {
+        match self.current_kind {
+            T![']'] if self.peek_byte() == Some(b']') => self.eat_bytes(2, T!["]]"]),
+            kind => kind,
+        }
+    }
+}
+
 pub(crate) struct RLexer<'src> {
     source: &'src str,
 
@@ -914,13 +923,6 @@ impl<'src> RLexer<'src> {
 
         self.string_delimiter = None;
         STRING_CLOSE
-    }
-
-    fn re_lex_join_brackets(&mut self) -> RSyntaxKind {
-        match self.current_kind {
-            T![']'] if self.peek_byte() == Some(b']') => self.eat_bytes(2, T!["]]"]),
-            kind => kind,
-        }
     }
 
     // -----------------------------------------------------------------------
