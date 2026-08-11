@@ -916,8 +916,6 @@ impl<'src> RLexer<'src> {
         STRING_CLOSE
     }
 
-    /// Adjacency is the whole check: `re_lex` rewinds to `current_start` and
-    /// never skips trivia, so `x[[1] ]` can never be joined into a `]]`.
     fn re_lex_join_brackets(&mut self) -> RSyntaxKind {
         match self.current_kind {
             T![']'] if self.peek_byte() == Some(b']') => self.eat_bytes(2, T!["]]"]),
