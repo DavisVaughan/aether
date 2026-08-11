@@ -32,10 +32,6 @@ impl LexContext for RLexContext {
     }
 }
 
-/// What opened a string, and therefore what will close it.
-///
-/// There is deliberately no `Backtick` variant: a backtick-quoted name is an
-/// `IDENT`, not a string.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RStringDelimiter {
     Single,
