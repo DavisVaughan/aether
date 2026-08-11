@@ -108,7 +108,7 @@ pub(crate) struct RLexer<'src> {
     /// is what lets the lexer report a preceding line break even though
     /// `NEWLINE` is a token in its own right, and it is exactly
     /// `biome_js_parser`'s mechanism.
-    after_newline: bool,
+    after_line_break: bool,
 
     /// Byte length of the BOM, if the source starts with one
     ///
@@ -164,13 +164,13 @@ impl<'src> Lexer<'src> for RLexer<'src> {
         // Stamped after lexing so that the lex functions are free to set other
         // flags first, and set on the one bit rather than by assigning the set
         self.current_flags
-            .set(TokenFlags::PRECEDING_LINE_BREAK, self.after_newline);
+            .set(TokenFlags::PRECEDING_LINE_BREAK, self.after_line_break);
         self.current_kind = kind;
 
         // The bit survives across trivia, so `1\n  # c\n  + 2` reports the break
         // on `+` rather than on the whitespace that happens to precede it
         if !kind.is_trivia() {
-            self.after_newline = false;
+            self.after_line_break = false;
         }
 
         debug_assert!(self.current_start <= TextSize::from(self.position as u32));
@@ -201,7 +201,7 @@ impl<'src> Lexer<'src> for RLexer<'src> {
         self.current_start = current_start;
         self.current_kind = current_kind;
         self.current_flags = current_flags;
-        self.after_newline = after_line_break;
+        self.after_line_break = after_line_break;
         self.unicode_bom_length = unicode_bom_length;
         self.diagnostics.truncate(diagnostics_pos as usize);
     }
@@ -231,15 +231,15 @@ impl<'src> Lexer<'src> for RLexer<'src> {
         self.position += char.len_utf8();
     }
 
-    /// Overridden solely to maintain `after_newline`; the provided body cannot,
-    /// since it has no access to this type's fields. `biome_js_parser`
+    /// Overridden solely to maintain `after_line_break`; the provided body
+    /// cannot, since it has no access to this type's fields. `biome_js_parser`
     /// overrides it for the same reason and with the same body.
     ///
     /// Inheriting the trait's `consume_newline` also gets `\r\n` treated as a
     /// single newline for free.
     fn consume_newline_or_whitespaces(&mut self) -> Self::Kind {
         if self.consume_newline() {
-            self.after_newline = true;
+            self.after_line_break = true;
             NEWLINE
         } else {
             self.consume_whitespaces();
@@ -285,7 +285,7 @@ impl<'src> LexerWithCheckpoint<'src> for RLexer<'src> {
             current_start: self.current_start,
             current_kind: self.current_kind,
             current_flags: self.current_flags,
-            after_line_break: self.after_newline,
+            after_line_break: self.after_line_break,
             unicode_bom_length: self.unicode_bom_length,
             diagnostics_pos: self.diagnostics.len() as u32,
         }
@@ -300,7 +300,7 @@ impl<'src> RLexer<'src> {
             current_start: TextSize::from(0),
             current_kind: TOMBSTONE,
             current_flags: TokenFlags::empty(),
-            after_newline: false,
+            after_line_break: false,
             unicode_bom_length: 0,
             string_delimiter: None,
             diagnostics: Vec::new(),

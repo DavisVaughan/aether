@@ -30,16 +30,16 @@ fn rewind_restores_the_sticky_line_break() {
 
     assert_eq!(lexer.next_token(RLexContext::Regular), R_DOUBLE_LITERAL);
     assert_eq!(lexer.next_token(RLexContext::Regular), NEWLINE);
-    assert!(lexer.after_newline);
+    assert!(lexer.after_line_break);
 
     // Checkpointed with the break still pending, and consumed straight after
     let checkpoint = lexer.checkpoint();
     assert_eq!(lexer.next_token(RLexContext::Regular), R_DOUBLE_LITERAL);
     assert!(lexer.has_preceding_line_break());
-    assert!(!lexer.after_newline);
+    assert!(!lexer.after_line_break);
 
     lexer.rewind(checkpoint);
-    assert!(lexer.after_newline);
+    assert!(lexer.after_line_break);
     assert_eq!(lexer.next_token(RLexContext::Regular), R_DOUBLE_LITERAL);
     assert!(lexer.has_preceding_line_break());
 }
