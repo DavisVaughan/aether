@@ -83,11 +83,6 @@ impl RawStringBracket {
 }
 
 /// The re-lexing requests the parser can make
-///
-/// Only one exists, and by the greedy-bracket rule only one ever should. It is
-/// an enum rather than a unit type because [`ReLexer`] requires an associated
-/// `ReLexContext`, and because a second variant would be a design change worth
-/// seeing in a diff.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RReLexContext {
     /// Re-lex `[[` as `[`, or `]]` as `]`, leaving the second bracket for the
