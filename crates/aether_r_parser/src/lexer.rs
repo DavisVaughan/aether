@@ -542,9 +542,7 @@ impl<'src> RLexer<'src> {
 
     /// The `byte >= 128` arm, which is also where the BOM is resolved
     fn consume_unicode(&mut self) -> RSyntaxKind {
-        // A BOM is only a BOM at offset 0. Elsewhere U+FEFF is not an identifier
-        // character either — it is category Cf, so neither XID_Start nor
-        // XID_Continue — but that is the identifier scanner's problem.
+        // A BOM is only a BOM at offset 0. Elsewhere it falls through as unexpected.
         if self.position == 0
             && let Some((bom, length)) = self.consume_potential_bom(UNICODE_BOM)
         {
