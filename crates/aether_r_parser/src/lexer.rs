@@ -36,7 +36,7 @@ impl LexContext for RLexContext {
 pub(crate) enum RStringDelimiter {
     Single,
     Double,
-    /// `r"---[` … `]---"`, closed by the matching bracket, the same number of
+    /// `r"---[...]---"`, closed by the matching bracket, the same number of
     /// hyphens, and the same quote
     Raw {
         quote: u8,
