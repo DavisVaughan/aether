@@ -949,11 +949,6 @@ impl<'src> RLexer<'src> {
 }
 
 /// R's keywords and constants, spelled as they appear in source
-///
-/// Deliberately not `RSyntaxKind::from_keyword()`: codegen derives that from the
-/// lowercase placeholder names in `r_kinds_src.rs`, so it matches `"true"` and
-/// `"na_double"` rather than `TRUE` and `NA_real_`, and `from_keyword("TRUE")`
-/// is `None`.
 fn keyword_kind(text: &str) -> Option<RSyntaxKind> {
     Some(match text {
         "function" => T![function],
