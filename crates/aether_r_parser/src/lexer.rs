@@ -446,8 +446,8 @@ impl<'src> RLexer<'src> {
     // -----------------------------------------------------------------------
     // Identifiers and keywords
 
-    /// `[\p{XID_Start}_][\p{XID_Continue}.]*`, mapped to a keyword kind when the
-    /// text is one.
+    /// Consumes an identifier mimicking `[\p{XID_Start}_][\p{XID_Continue}.]*`.
+    /// If the consumed identifier maps to a keyword, that is returned instead.
     ///
     /// Lexing the name first and mapping afterwards is what gets tree-sitter-r's
     /// #200 right for free: `elseμ` is one identifier, not `else` followed by a
