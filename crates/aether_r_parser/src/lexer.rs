@@ -86,7 +86,7 @@ impl RawStringBracket {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RReLexContext {
     /// Re-lex `]` as `]]` when the very next byte is another `]`. A no-op on any
-    /// other current token, and idempotent.
+    /// other current token.
     JoinBrackets,
 }
 
