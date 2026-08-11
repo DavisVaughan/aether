@@ -1218,10 +1218,10 @@ fn lex_token(&mut self) -> RSyntaxKind {
         b'0'..=b'9' => self.consume_number(),
 
         // `.` is overloaded: `...`, `..1`, `.5` (a number!), `.foo` (identifier).
-        // tree-sitter-r has an explicit note: an identifier may start with `.`
-        // only if the `.` is NOT followed by a digit, otherwise `.1i` and `.1L`
-        // get misparsed as identifiers (their issue #190).
-        b'.' => self.consume_dot_dispatch(),
+        // The digit decides, in R and in tree-sitter-r alike: an identifier may
+        // start with `.` only if the `.` is NOT followed by a digit, otherwise
+        // `.1i` and `.1L` get misparsed as identifiers (their issue #190).
+        b'.' => self.consume_dot(),
 
         b'%' => self.consume_special(),
 
@@ -1506,8 +1506,20 @@ Add an aether-authored test for the multi-line backtick to
 `literals/identifiers.md` — tree-sitter-r's corpus covers multi-line *strings* but
 never a multi-line backticked name, so nothing else would catch a regression here.
 
-**Dots.** `...` → `DOTS`; `/[.][.]\d+/` → `DOTDOTI`. Both must be tried *before*
-the identifier rule, or `identifier` swallows them.
+**Dots.** `...` → `DOTS`; `/[.][.]\d+/` → `DOTDOTI`. tree-sitter-r gives each a
+rule of its own and lets tree-sitter arbitrate against `identifier` by match
+length. **Do not reproduce that arbitration.** Follow R instead, which is both
+simpler and lands on the same answers: one character decides between a number and
+a name (`typeofnext()` in `src/main/gram.y` — digit or not, nothing more), then
+one whole name is consumed and its *text* is classified. `...` and `..i` are not
+tokens at all in R; `"..."` is a row in the keyword table and `..1` is an ordinary
+symbol.
+
+The two rules agree because `...` and `..\d+` are built entirely from identifier
+characters, so the identifier match is never shorter than the dotted one — length
+arbitration can only ever come out equal, which is to say the whole name is
+exactly `...` or exactly `..` and digits. Classifying the finished text says that
+directly, and it is the same munch-then-map shape as the keyword table above.
 
 **Special.** `/%[^%\\\n]*%/` → `SPECIAL`. Covers `%%`, `%/%`, `%in%`, `%>%`.
 
@@ -1802,12 +1814,12 @@ something each test remembers to do.
 | `identifiers.rs` | `foo`, `foo.bar`, `a1`, `_` alone, `_foo` as one `IDENT` (not rejected here — §8.4), `.foo`, `.`, `..`, and unicode XID starts and continues. Plus the non-ASCII half of `ERROR_TOKEN`: a character such as `€` that is neither `XID_Start` nor punctuation. |
 | `backticks.rs` | One `IDENT` spanning the delimiters; `` `a\`b` `` with the escape; the empty `` `` ``; the multi-line name of §8.4; and an unterminated one running to EOF with `unterminated_backtick_identifier` pointing at the **opening** delimiter. |
 | `numbers.rs` | `1`, `1L`, `1i`, `1.`, `.5`, `1e`, `1e+`, `1e-3`, `1e5L`, hex `0xFF`, `0x1p3`, `0x.8p1`, `0xFFL`. The trailing-empty-exponent case is deliberate (§8.4) and needs a comment saying so, or it reads as a bug. |
-| `dots.rs` | The §8.3 dispatch: `...` → `DOTS`, `..1`/`..12` → `DOTDOTI`, `.5` → `R_DOUBLE_LITERAL`, `.foo`/`.`/`..` → `IDENT`, `...1` → `DOTS` then a literal. `.1L` and `.1i` are the regression for tree-sitter-r #190 and belong here rather than in `numbers.rs`, since the bug was in the dispatch. |
+| `dots.rs` | The §8.3 dispatch: `...` → `DOTS`, `..1`/`..12` → `DOTDOTI`, `.5` → `R_DOUBLE_LITERAL`, `.foo`/`.`/`..` → `IDENT`. Then the names that merely start dot-like and are therefore ordinary identifiers: `....`, `...a`, `...1`, `..1a`, `..1.`, `..1e5`. `.1L` and `.1i` are the regression for tree-sitter-r #190 and belong here rather than in `numbers.rs`, since the bug was in the dispatch. |
 | `specials.rs` | `%%`, `%/%`, `%in%`, `%>%`, `%o%`, and the empty `%%`. The newline case of §8.4: `%foo\n1` keeps `%foo` as `SPECIAL:4`, does **not** consume the newline, and carries `unterminated_special`. Plus the two inherited tree-sitter divergences — `%foo` at EOF errors, and `%a\b%` is not a `SPECIAL` — each with a comment pointing at `docs/deviations.md`. |
 | `strings.rs` | The `STRING_OPEN`/`STRING_CONTENT`/`STRING_CLOSE` triple for `'` and `"`; the empty string emitting **no** `STRING_CONTENT`; escapes staying inside one content token; the multi-line string; `#` and `%` inert inside a body; the other quote character inert inside; and an unterminated string running to EOF. |
 | `raw_strings.rs` | All three bracket pairs; hyphen counts 0, 1, and several; a close that matches the bracket but not the hyphen count *not* terminating; `R'...'` uppercase; `rnorm` and `r + 1` falling through to the identifier and punct arms; an unterminated raw string. |
 | `error_token.rs` | What holds of an `ERROR_TOKEN` however the dispatch reached it, the two arms themselves being covered by `puncts.rs` and `identifiers.rs`: the token spans the whole character at all four UTF-8 widths; a run produces one token *and one diagnostic naming that character* each, not one merged token; lexing continues afterwards; `a€b` is three tokens; and the token is non-trivia, so it takes the sticky break flag and clears it. |
-| `checkpoint.rs` | `checkpoint()`/`rewind()` restoring every field of `LexerCheckpoint` (§8.2): position, kind, `current_flags`, `after_newline`, and `unicode_bom_length`. The §8.2 warning gets a test of its own: rewind to before a newline, lex forward again, and assert `has_preceding_line_break()` still reports it. That bug is invisible until Phase 12's `else` handling and silent even then. |
+| `checkpoint.rs` | `checkpoint()`/`rewind()` restoring every field of `LexerCheckpoint` (§8.2): position, kind, `current_flags`, `after_line_break`, and `unicode_bom_length`. The §8.2 warning gets a test of its own: rewind to before a newline, lex forward again, and assert `has_preceding_line_break()` still reports it. That bug is invisible until Phase 12's `else` handling and silent even then. |
 | `coverage.rs` | See below. |
 
 Diagnostics are asserted in the file that owns the construct — the unterminated

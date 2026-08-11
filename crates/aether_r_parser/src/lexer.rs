@@ -562,11 +562,11 @@ impl<'src> RLexer<'src> {
 
     /// `...`, `..1`, `.5`, and `.foo` all start with a `.`
     ///
-    /// `dots` and `dot_dot_i` overlap with the identifier rule, and tree-sitter-r
-    /// resolves the overlap by match length: `...a` and `..1a` are single
-    /// identifiers, while an equal-length match such as `...` or `..12` goes to
-    /// the more specific rule because its rule is declared first. This function
-    /// reproduces that, rather than committing to `dots` on sight.
+    /// R decides between a number and a name on the single character after the
+    /// `.` (`typeofnext()` in `src/main/gram.y`), then consumes one whole name
+    /// and classifies its text. `...` and `..i` are not tokens of their own
+    /// there — `"..."` is a row in R's keyword table, and `..1` is an ordinary
+    /// symbol.
     fn consume_dot(&mut self) -> RSyntaxKind {
         self.assert_byte(b'.');
 
@@ -577,37 +577,22 @@ impl<'src> RLexer<'src> {
         }
 
         let start = self.position;
-        let dotted = self.scan_dot_dot_dot_or_dot_dot_i();
-
         self.advance(1);
         self.consume_identifier_parts();
-        let identifier_length = self.position - start;
 
-        match dotted {
-            Some((kind, length)) if length >= identifier_length => {
-                self.position = start + length;
-                kind
-            }
-            _ => IDENT,
-        }
+        Self::dot_kind(&self.source[start..self.position])
     }
 
-    /// `...` or `/[.][.]\d+/` at the current position, with its length
-    fn scan_dot_dot_dot_or_dot_dot_i(&self) -> Option<(RSyntaxKind, usize)> {
-        if self.byte_at(1) != Some(b'.') {
-            return None;
-        }
-
-        match self.byte_at(2) {
-            Some(b'.') => Some((T![...], 3)),
-            Some(b'0'..=b'9') => {
-                let mut length = 3;
-                while matches!(self.byte_at(length), Some(b'0'..=b'9')) {
-                    length += 1;
-                }
-                Some((DOTDOTI, length))
+    /// The two names the parser has to tell apart from any other identifier
+    fn dot_kind(text: &str) -> RSyntaxKind {
+        match text.as_bytes() {
+            b"..." => T![...],
+            [b'.', b'.', digits @ ..]
+                if !digits.is_empty() && digits.iter().all(u8::is_ascii_digit) =>
+            {
+                DOTDOTI
             }
-            _ => None,
+            _ => IDENT,
         }
     }
 
