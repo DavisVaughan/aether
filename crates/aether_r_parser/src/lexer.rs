@@ -514,18 +514,6 @@ impl<'src> RLexer<'src> {
         })
     }
 
-    /// A backtick-quoted name, which is an `IDENT` covering the delimiters and
-    /// everything between them — never an `R_STRING_VALUE`.
-    ///
-    /// tree-sitter-r puts the quoted form inside its `identifier` rule, and R
-    /// lexes it with the *same* function it lexes strings with
-    /// (`StringValue(c, forSymbol=true)` in `src/main/gram.y`). So escapes apply
-    /// and the name may span newlines, both on purpose — the multiline support
-    /// was added deliberately, replacing a `return ERROR`.
-    ///
-    /// An unterminated one therefore genuinely runs to the end of the file, in
-    /// aether exactly as in R. What keeps the error useful is where it points,
-    /// not where the scan stops.
     fn consume_backtick_identifier(&mut self) -> RSyntaxKind {
         self.assert_byte(b'`');
         let open = TextRange::at(self.text_position(), TextSize::from(1));
