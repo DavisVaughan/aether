@@ -470,25 +470,18 @@ impl<'src> RLexer<'src> {
 
     /// `[\p{XID_Continue}.]*`
     fn consume_identifier_parts(&mut self) {
-        while self.at_identifier_part(0) {
+        while self.at_identifier_part() {
             self.advance_char_unchecked();
         }
     }
 
-    /// Whether `[\p{XID_Continue}.]` matches `offset` bytes ahead of the current
-    /// position
-    fn at_identifier_part(&self, offset: usize) -> bool {
-        match self.byte_at(offset) {
+    /// Whether `[\p{XID_Continue}.]` matches at the current position
+    fn at_identifier_part(&self) -> bool {
+        match self.current_byte() {
             Some(b'.' | b'_' | b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z') => true,
-            Some(byte) if byte >= 128 => self.char_at(offset).is_some_and(is_xid_continue),
+            Some(byte) if byte >= 128 => is_xid_continue(self.current_char_unchecked()),
             _ => false,
         }
-    }
-
-    /// The character `offset` bytes ahead, or `None` past the end of the source
-    /// or at a byte that is not a character boundary
-    fn char_at(&self, offset: usize) -> Option<char> {
-        self.source.get(self.position + offset..)?.chars().next()
     }
 
     /// R's keywords and constants, spelled as they appear in source
@@ -663,22 +656,16 @@ impl<'src> RLexer<'src> {
     /// The `L` and `i` that turn the literal before them into an integer or a
     /// complex
     ///
-    /// tree-sitter-r spells these as tokens of their own rather than as part of
-    /// the literal's regex, so an identifier that merely starts with one wins on
-    /// length: `1L` is an integer, but `1Li` is the literal `1` followed by the
-    /// name `Li`. R splits that one the other way, `1L` then `i` — see
-    /// `docs/deviations.md`.
+    /// Taken whatever follows, as `NumericValue` in `src/main/gram.y` takes them,
+    /// so `1Li` is `1L` and the name `i`. tree-sitter-r spells the suffixes as
+    /// tokens of their own and lets a name that merely starts with one win on
+    /// length — see `docs/deviations.md`.
     fn consume_suffix(&mut self) -> RSyntaxKind {
-        let suffixed = match self.current_byte() {
-            Some(b'L') => R_INTEGER_LITERAL,
-            Some(b'i') => R_COMPLEX_LITERAL,
-            _ => return R_DOUBLE_LITERAL,
-        };
-
-        if self.at_identifier_part(1) {
-            return R_DOUBLE_LITERAL;
+        match self.current_byte() {
+            Some(b'L') => self.eat_byte(R_INTEGER_LITERAL),
+            Some(b'i') => self.eat_byte(R_COMPLEX_LITERAL),
+            _ => R_DOUBLE_LITERAL,
         }
-        self.eat_byte(suffixed)
     }
 
     /// An optional sign and the exponent's digits, reporting whether the digits

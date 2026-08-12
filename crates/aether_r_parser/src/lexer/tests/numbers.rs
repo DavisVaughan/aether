@@ -18,23 +18,23 @@ fn suffixes() {
     assert_lex!("1L(", R_INTEGER_LITERAL: 2, L_PAREN: 1);
 }
 
-/// tree-sitter-r spells `L` and `i` as tokens of their own rather than as part
-/// of the literal's regex, so an identifier that merely starts with one wins on
-/// length.
+/// A suffix is taken whatever follows it, as `NumericValue` in `src/main/gram.y`
+/// takes it. Every split below is R's, down to the byte.
 ///
-/// R splits these the other way — `NumericValue` in `src/main/gram.y` breaks out
-/// of its loop on the suffix and leaves the rest to start a symbol, so `1Li` is
-/// `1L` then `i`. Both readings are a parse error in the end, and aether follows
-/// the oracle. Every expectation here was checked against `tree-sitter parse`.
+/// tree-sitter-r spells `L` and `i` as tokens of their own rather than as part of
+/// the literal's regex, so a name that merely starts with one wins on length and
+/// `1Li` comes out as `1` and `Li`. See `docs/deviations.md`.
 #[test]
-fn a_suffix_that_starts_a_name_is_a_name() {
-    assert_lex!("1Li", R_DOUBLE_LITERAL: 1, IDENT: 2);
-    assert_lex!("1LL", R_DOUBLE_LITERAL: 1, IDENT: 2);
-    assert_lex!("1iL", R_DOUBLE_LITERAL: 1, IDENT: 2);
-    assert_lex!("1L_", R_DOUBLE_LITERAL: 1, IDENT: 2);
-    // `.` continues an identifier too
-    assert_lex!("1L.", R_DOUBLE_LITERAL: 1, IDENT: 2);
-    assert_lex!(".1L.", R_DOUBLE_LITERAL: 2, IDENT: 2);
+fn a_suffix_is_always_taken() {
+    assert_lex!("1Li", R_INTEGER_LITERAL: 2, IDENT: 1);
+    assert_lex!("1LL", R_INTEGER_LITERAL: 2, IDENT: 1);
+    assert_lex!("1iL", R_COMPLEX_LITERAL: 2, IDENT: 1);
+    assert_lex!("1L_", R_INTEGER_LITERAL: 2, IDENT: 1);
+    assert_lex!("1LForever", R_INTEGER_LITERAL: 2, IDENT: 7);
+    assert_lex!("1e5iL", R_COMPLEX_LITERAL: 4, IDENT: 1);
+    // `.` starts a name of its own here, rather than continuing the literal
+    assert_lex!("1L.", R_INTEGER_LITERAL: 2, IDENT: 1);
+    assert_lex!(".1L.", R_INTEGER_LITERAL: 3, IDENT: 1);
 }
 
 #[test]
