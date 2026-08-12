@@ -20,9 +20,12 @@ fn suffixes() {
 
 /// tree-sitter-r spells `L` and `i` as tokens of their own rather than as part
 /// of the literal's regex, so an identifier that merely starts with one wins on
-/// length. Taking the suffix unconditionally would make `1Li` an integer
-/// followed by the name `i`, which is not what any of R, tree-sitter-r, or the
-/// person who wrote it means.
+/// length.
+///
+/// R splits these the other way — `NumericValue` in `src/main/gram.y` breaks out
+/// of its loop on the suffix and leaves the rest to start a symbol, so `1Li` is
+/// `1L` then `i`. Both readings are a parse error in the end, and aether follows
+/// the oracle. Every expectation here was checked against `tree-sitter parse`.
 #[test]
 fn a_suffix_that_starts_a_name_is_a_name() {
     assert_lex!("1Li", R_DOUBLE_LITERAL: 1, IDENT: 2);
