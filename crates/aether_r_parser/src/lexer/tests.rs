@@ -40,22 +40,31 @@ pub(super) fn lex(source: &str) -> (Vec<LexedToken>, Vec<ParseDiagnostic>) {
     let mut tokens = Vec::new();
     let mut context = RLexContext::Regular;
 
+    // The delimiter of the string being lexed, read off the `STRING_OPEN`
+    // token's text because the lexer keeps no memory of it
+    let mut delimiter = None;
+
     loop {
         let kind = lexer.next_token(context);
         if kind == EOF {
             break;
         }
 
+        let range = lexer.current_range();
         tokens.push(LexedToken {
             kind,
-            range: lexer.current_range(),
+            range,
             preceding_line_break: lexer.has_preceding_line_break(),
         });
+
+        if kind == STRING_OPEN {
+            delimiter = RStringDelimiter::from_open(&source[range]);
+        }
 
         // Match on what came back, not on what was requested: a string with an
         // empty body answers a `StringContent` request with `STRING_CLOSE`, and
         // the token after that is `Regular` again
-        context = match (kind, lexer.string_delimiter) {
+        context = match (kind, delimiter) {
             (STRING_OPEN, Some(delimiter)) => RLexContext::StringContent(delimiter),
             (STRING_CONTENT, Some(delimiter)) => RLexContext::StringEnd(delimiter),
             _ => RLexContext::Regular,

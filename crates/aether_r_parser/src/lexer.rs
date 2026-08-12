@@ -15,6 +15,10 @@ use biome_rowan::{SyntaxKind, TextRange, TextSize};
 use unicode_ident::{is_xid_continue, is_xid_start};
 
 /// The context the parser lexes the next token in
+///
+/// The two string contexts carry the delimiter because the lexer remembers
+/// nothing between calls. The caller derives it from the `STRING_OPEN` token's
+/// text with [`RStringDelimiter::from_open()`].
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) enum RLexContext {
     #[default]
@@ -47,6 +51,31 @@ pub(crate) enum RStringDelimiter {
 }
 
 impl RStringDelimiter {
+    /// The delimiter that `text`, the text of a `STRING_OPEN` token, opens, or
+    /// `None` for any other text
+    ///
+    /// The lexer keeps no memory of the string it opened, so this is how the
+    /// caller recovers the delimiter it has to name in [`RLexContext`]. Reading
+    /// it back off the token is what lets the whole of [`RLexer`]'s mutable
+    /// state fit in a [`LexerCheckpoint`], and a rewind is only total if it
+    /// does.
+    pub(crate) fn from_open(text: &str) -> Option<Self> {
+        match text.as_bytes() {
+            [b'\''] => Some(Self::Single),
+            [b'"'] => Some(Self::Double),
+            [b'r' | b'R', quote @ (b'\'' | b'"'), hyphens @ .., bracket]
+                if hyphens.iter().all(|byte| *byte == b'-') =>
+            {
+                Some(Self::Raw {
+                    quote: *quote,
+                    hyphens: u8::try_from(hyphens.len()).ok()?,
+                    bracket: RawStringBracket::from_open(*bracket)?,
+                })
+            }
+            _ => None,
+        }
+    }
+
     /// The string quote character
     fn quote(self) -> u8 {
         match self {
@@ -126,13 +155,6 @@ pub(crate) struct RLexer<'src> {
     /// it, and setting it from `consume_potential_bom` costs one line where a
     /// hardcoded `0` would be a lie the next reader has to re-derive.
     unicode_bom_length: usize,
-
-    /// Set when `STRING_OPEN` is emitted, cleared after `STRING_CLOSE`
-    ///
-    /// This is how the caller knows which [`RLexContext`] to lex the body and
-    /// the closing delimiter in. The debug assertions in `lex_string_content`
-    /// and `lex_string_end` catch if this is ever done incorrectly.
-    string_delimiter: Option<RStringDelimiter>,
 
     diagnostics: Vec<ParseDiagnostic>,
 }
@@ -311,7 +333,6 @@ impl<'src> RLexer<'src> {
             current_flags: TokenFlags::empty(),
             after_line_break: false,
             unicode_bom_length: 0,
-            string_delimiter: None,
             diagnostics: Vec::new(),
         }
     }
@@ -718,7 +739,6 @@ impl<'src> RLexer<'src> {
     fn consume_string_open(&mut self, delimiter: RStringDelimiter) -> RSyntaxKind {
         self.assert_byte(delimiter.quote());
         self.advance(1);
-        self.string_delimiter = Some(delimiter);
         STRING_OPEN
     }
 
@@ -755,14 +775,21 @@ impl<'src> RLexer<'src> {
 
     fn consume_raw_string_open(&mut self, open: (RStringDelimiter, usize)) -> RSyntaxKind {
         let (delimiter, length) = open;
+        let start = self.position;
         self.advance(length);
-        self.string_delimiter = Some(delimiter);
+
+        // The caller reads the delimiter back off this token's text, so the two
+        // readings of the same prefix have to agree
+        debug_assert_eq!(
+            RStringDelimiter::from_open(&self.source[start..self.position]),
+            Some(delimiter),
+        );
+
         STRING_OPEN
     }
 
     fn lex_string_content(&mut self, delimiter: RStringDelimiter) -> RSyntaxKind {
         debug_assert!(!self.is_eof());
-        debug_assert_eq!(self.string_delimiter, Some(delimiter));
 
         match delimiter {
             RStringDelimiter::Single | RStringDelimiter::Double => {
@@ -829,7 +856,6 @@ impl<'src> RLexer<'src> {
 
     fn lex_string_end(&mut self, delimiter: RStringDelimiter) -> RSyntaxKind {
         debug_assert!(!self.is_eof());
-        debug_assert_eq!(self.string_delimiter, Some(delimiter));
 
         match delimiter {
             RStringDelimiter::Single | RStringDelimiter::Double => {
@@ -848,7 +874,6 @@ impl<'src> RLexer<'src> {
             }
         }
 
-        self.string_delimiter = None;
         STRING_CLOSE
     }
 
