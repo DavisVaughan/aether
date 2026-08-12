@@ -624,8 +624,7 @@ impl<'src> RLexer<'src> {
         self.consume_suffix()
     }
 
-    /// `0[xX](([0-9a-fA-F]+(\.[0-9a-fA-F]*)?)|(\.[0-9a-fA-F]*))([pP][+-]?[0-9]+)?`,
-    /// plus a suffix
+    /// `0[xX](([0-9a-fA-F]+(\.[0-9a-fA-F]*)?)|(\.[0-9a-fA-F]*))([pP][+-]?[0-9]+)?`
     ///
     /// `0x.` is a whole literal — R allows it, surprisingly.
     ///
