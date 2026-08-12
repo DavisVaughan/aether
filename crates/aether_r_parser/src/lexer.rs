@@ -462,6 +462,7 @@ impl<'src> RLexer<'src> {
     /// If the consumed identifier maps to a keyword, that is returned instead.
     fn consume_identifier_or_keyword(&mut self) -> RSyntaxKind {
         let start = self.position;
+        // `XID_Start` or `_`
         self.advance_char_unchecked();
         self.consume_identifier_parts();
 
