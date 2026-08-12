@@ -625,13 +625,6 @@ impl<'src> RLexer<'src> {
     }
 
     /// `0[xX](([0-9a-fA-F]+(\.[0-9a-fA-F]*)?)|(\.[0-9a-fA-F]*))([pP][+-]?[0-9]+)?`
-    ///
-    /// `0x.` is a whole literal — R allows it, surprisingly.
-    ///
-    /// Once the `0x` is there the rest is required, so what the grammar still
-    /// wants is diagnosed rather than un-lexed: `0x`, `0xg`, and `0x1p` are all
-    /// unterminated hexadecimals. tree-sitter-r instead re-splits them into a
-    /// shorter number and a name — see `docs/deviations.md`.
     fn consume_hexadecimal(&mut self) -> RSyntaxKind {
         let start = self.text_position();
         self.advance(2);
