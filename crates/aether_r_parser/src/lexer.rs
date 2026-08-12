@@ -604,10 +604,6 @@ impl<'src> RLexer<'src> {
 
     /// `(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d+)?`
     ///
-    /// Both alternatives fall out of one pass, because "digits, then optionally
-    /// a dot and more digits" covers `1`, `1.`, `1.5` and `.5` alike. The caller
-    /// guarantees at least one digit is present on one side of the dot.
-    ///
     /// An `e` commits to an exponent the same way a `0x` commits to a body, so
     /// `1e` and `1e+` are diagnosed. tree-sitter-r's regex ends `[eE][+-]?\d*`
     /// and takes them as whole literals — see `docs/deviations.md`.
