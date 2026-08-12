@@ -345,7 +345,7 @@ impl<'src> RLexer<'src> {
             // Raw strings share this arm with every other name
             // rather than taking one of their own, which would split the letter
             // range and cost the whole match its jump table for `s` onwards.
-            b'_' | b'a'..=b'z' | b'A'..=b'Z' => match self.scan_raw_string_open() {
+            b'_' | b'a'..=b'z' | b'A'..=b'Z' => match self.as_raw_string_open() {
                 Some(open) => self.consume_raw_string_open(open),
                 None => self.consume_identifier_or_keyword(),
             },
@@ -724,13 +724,7 @@ impl<'src> RLexer<'src> {
 
     /// The `r"---[` prefix of a raw string, as a delimiter and its byte length,
     /// or `None` when what follows is not one.
-    ///
-    /// Answers for any identifier start, not just `r`, so that [`Self::lex_token`]
-    /// can ask without first singling out `r` and `R`.
-    ///
-    /// Ported from `scan_raw_string_open` in tree-sitter-r's `src/scanner.c`,
-    /// down to bailing out on the pathological 256th hyphen.
-    fn scan_raw_string_open(&self) -> Option<(RStringDelimiter, usize)> {
+    fn as_raw_string_open(&self) -> Option<(RStringDelimiter, usize)> {
         if !matches!(self.current_byte(), Some(b'r' | b'R')) {
             return None;
         }
@@ -743,10 +737,12 @@ impl<'src> RLexer<'src> {
         let mut offset = 2;
         let mut hyphens: u8 = 0;
         while self.byte_at(offset) == Some(b'-') {
+            // Bail on pathological 256 hyphens
             hyphens = hyphens.checked_add(1)?;
             offset += 1;
         }
 
+        // Bail if token after hyphen isn't recognized
         let bracket = RawStringBracket::from_open(self.byte_at(offset)?)?;
 
         let delimiter = RStringDelimiter::Raw {
@@ -772,9 +768,8 @@ impl<'src> RLexer<'src> {
             RStringDelimiter::Single | RStringDelimiter::Double => {
                 self.consume_quoted_string_content(delimiter.quote());
 
-                // An empty body emits no `STRING_CONTENT` at all: the close
-                // follows the open directly, matching tree-sitter-r and keeping
-                // `RStringValue`'s optional `content` slot meaningful
+                // An empty body emits no `STRING_CONTENT` at all. The close
+                // follows the open directly.
                 if self.position == usize::from(self.current_start) {
                     self.lex_string_end(delimiter)
                 } else {
@@ -789,11 +784,7 @@ impl<'src> RLexer<'src> {
         }
     }
 
-    /// Everything up to the closing quote, in one token.
-    ///
-    /// Escape sequences are not modelled separately — neither `r.ungram` nor
-    /// air's tree walker has a node for them — so a backslash simply consumes
-    /// the character after it, which is what keeps `"a\"b"` a single string.
+    /// Everything up to the closing quote
     fn consume_quoted_string_content(&mut self, quote: u8) {
         while let Some(byte) = self.current_byte() {
             match byte {
@@ -809,13 +800,12 @@ impl<'src> RLexer<'src> {
         }
     }
 
-    /// Ported from `scan_raw_string_content_or_close` in tree-sitter-r's
-    /// `src/scanner.c`.
+    /// Raw string content
     ///
     /// The subtle part is what happens when a closing bracket turns out not to
     /// start the closing sequence: scanning resumes from wherever the attempt
     /// stopped, *not* from the byte after the bracket. Otherwise `r"(())"` and
-    /// `r"-())-"` both fail to find their close (their #162).
+    /// `r"-())-"` both fail to find their close (r-lib/tree-sitter-r#162).
     fn consume_raw_string_content(
         &mut self,
         quote: u8,
@@ -858,7 +848,7 @@ impl<'src> RLexer<'src> {
         STRING_CONTENT
     }
 
-    /// Consume exactly `count` copies of `byte`, stopping at the first mismatch.
+    /// Consume exactly `count` copies of `byte`, stopping at the first mismatch
     ///
     /// A failed run leaves the position at the mismatch rather than rewinding,
     /// which is what the raw string scan above relies on.
