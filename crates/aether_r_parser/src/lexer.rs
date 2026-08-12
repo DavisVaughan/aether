@@ -688,11 +688,8 @@ impl<'src> RLexer<'src> {
 
     /// `/%[^%\\\n]*%/`, i.e. `%%`, `%/%`, `%in%`, `%o%`, and friends
     ///
-    /// Unlike strings and backticked names, a `%...%` may not span a newline. R
-    /// ungets the newline before reporting the error, so the statement still
-    /// terminates and the next line parses normally; aether stops before the
-    /// newline for the same reason, and keeps the partial `%foo` as a `SPECIAL`
-    /// carrying the diagnostic.
+    /// Unlike strings and backticked names, a `%...%` may not span a newline.
+    /// The partial `%foo` is kept as a `SPECIAL` carrying the diagnostic.
     ///
     /// The backslash and the end of file are the two places aether follows
     /// tree-sitter-r rather than R, which accepts both. See `docs/deviations.md`.
