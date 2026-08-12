@@ -37,7 +37,7 @@ them, since the ledger runs ahead of the parser.
 | 5 | `AnyRSelector` | 4 variants, no bogus | new `RBogusSelector` kind added as a fifth variant, so a malformed RHS is contained in the `right` slot instead of collapsing the whole expression |
 | 6 | A character that starts no token | `ERROR` node | new `ERROR_TOKEN` kind added, reported by the lexer and wrapped in a bogus node by the parser |
 | 7 | `1 L` | one `integer` spanning the space | the literal `1`, then the name `L` |
-| 8 | Unterminated numbers | `0x`, `0x1p`, `1e` re-split or accepted, all silently | one literal token carrying `Unterminated hexadecimal literal.` or `Unterminated exponent.` |
+| 8 | Unterminated numbers | `0x`, `0x1p`, `1e` re-split or accepted, all silently | one literal token carrying `Unterminated hexadecimal literal.`, `Unterminated binary exponent.`, or `Unterminated exponent.` |
 
 ### 1. Semicolons are real tokens
 
@@ -388,7 +388,7 @@ that was consumed and carries a diagnostic.
 | `0x` | `float 0`, `identifier x` | `R_DOUBLE_LITERAL@0..2`, `Unterminated hexadecimal literal.` |
 | `0xg` | `float 0`, `identifier xg` | `R_DOUBLE_LITERAL@0..2`, then `identifier g` |
 | `0xp3` | `float 0`, `identifier xp3` | `R_DOUBLE_LITERAL@0..2`, then `identifier p3` |
-| `0x1p` | `float 0x1`, `identifier p` | `R_DOUBLE_LITERAL@0..4` |
+| `0x1p` | `float 0x1`, `identifier p` | `R_DOUBLE_LITERAL@0..4`, `Unterminated binary exponent.` |
 | `0x1p+` | `float 0x1`, `identifier p`, `+` | `R_DOUBLE_LITERAL@0..5` |
 | `1e` | `float 1e` | `R_DOUBLE_LITERAL@0..2`, `Unterminated exponent.` |
 | `1e+` | `float 1e+` | `R_DOUBLE_LITERAL@0..3` |

@@ -3,7 +3,7 @@ mod tests;
 
 use crate::diagnostics::{
     unexpected_character, unterminated_backtick_identifier, unterminated_exponent,
-    unterminated_hexadecimal, unterminated_special,
+    unterminated_hexadecimal, unterminated_hexadecimal_binary_exponent, unterminated_special,
 };
 use aether_r_syntax::RSyntaxKind::{self, *};
 use aether_r_syntax::T;
@@ -659,7 +659,7 @@ impl<'src> RLexer<'src> {
 
         if matches!(self.current_byte(), Some(b'p' | b'P')) && !self.consume_exponent() {
             let range = TextRange::new(start, self.text_position());
-            self.push_diagnostic(unterminated_hexadecimal(range));
+            self.push_diagnostic(unterminated_hexadecimal_binary_exponent(range));
         }
 
         self.consume_suffix()

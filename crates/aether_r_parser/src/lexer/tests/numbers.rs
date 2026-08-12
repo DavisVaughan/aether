@@ -87,15 +87,15 @@ fn binary_exponents() {
     assert_lex!("0x1.8p3", R_DOUBLE_LITERAL: 7);
 }
 
-/// A `p` with no digits is the same mistake as a `0x` with no body, and carries
-/// the same diagnostic
+/// A `p` with no digits leaves the literal just as unfinished as a `0x` with no
+/// body, but it is a different mistake and says so
 #[test]
 fn a_binary_exponent_with_no_digits() {
-    assert_lex_err!("0x1p", R_DOUBLE_LITERAL: 4 => "Unterminated hexadecimal");
-    assert_lex_err!("0x1p+", R_DOUBLE_LITERAL: 5 => "Unterminated hexadecimal");
-    assert_lex_err!("0x1p-", R_DOUBLE_LITERAL: 5 => "Unterminated hexadecimal");
-    assert_lex_err!("0x.p", R_DOUBLE_LITERAL: 4 => "Unterminated hexadecimal");
-    assert_lex_err!("0x.8p", R_DOUBLE_LITERAL: 5 => "Unterminated hexadecimal");
+    assert_lex_err!("0x1p", R_DOUBLE_LITERAL: 4 => "Unterminated binary exponent");
+    assert_lex_err!("0x1p+", R_DOUBLE_LITERAL: 5 => "Unterminated binary exponent");
+    assert_lex_err!("0x1p-", R_DOUBLE_LITERAL: 5 => "Unterminated binary exponent");
+    assert_lex_err!("0x.p", R_DOUBLE_LITERAL: 4 => "Unterminated binary exponent");
+    assert_lex_err!("0x.8p", R_DOUBLE_LITERAL: 5 => "Unterminated binary exponent");
 }
 
 /// `0x` commits to a hexadecimal, so a missing body is diagnosed rather than
