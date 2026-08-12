@@ -904,15 +904,10 @@ impl<'src> RLexer<'src> {
     // -----------------------------------------------------------------------
     // Errors
 
-    /// A character that starts no token.
+    /// A character that starts no token
     ///
-    /// Exactly one character is consumed and handed on as `ERROR_TOKEN`, which
-    /// is `biome_js_parser`'s treatment of the same case. Losing the character
-    /// is not an option — round-tripping the source is an invariant, and folding
-    /// it into trivia would make it silently disappear the way semicolons used
-    /// to — but neither is calling it an `IDENT`, which is accepted wherever a
-    /// name is and would let junk parse into a well-formed tree. `ERROR_TOKEN`
-    /// starts nothing, so the parser can only wrap it in a bogus node.
+    /// Exactly one character is consumed and passed on as `ERROR_TOKEN`, which
+    /// is what `biome_js_parser` also does.
     fn consume_unexpected(&mut self) -> RSyntaxKind {
         let start = self.text_position();
         let character = self.current_char_unchecked();
