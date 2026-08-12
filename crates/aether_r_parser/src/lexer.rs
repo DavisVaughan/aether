@@ -686,7 +686,7 @@ impl<'src> RLexer<'src> {
     // -----------------------------------------------------------------------
     // Special operators
 
-    /// `/%[^%\\\n]*%/` — `%%`, `%/%`, `%in%`, `%o%`, and friends.
+    /// `/%[^%\\\n]*%/`, i.e. `%%`, `%/%`, `%in%`, `%o%`, and friends
     ///
     /// Unlike strings and backticked names, a `%…%` may not span a newline. R
     /// ungets the newline before reporting the error, so the statement still
