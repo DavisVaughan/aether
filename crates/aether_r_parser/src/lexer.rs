@@ -627,6 +627,8 @@ impl<'src> RLexer<'src> {
     /// `0[xX](([0-9a-fA-F]+(\.[0-9a-fA-F]*)?)|(\.[0-9a-fA-F]*))([pP][+-]?[0-9]+)?`
     fn consume_hexadecimal(&mut self) -> RSyntaxKind {
         let start = self.text_position();
+
+        // The `0x`
         self.advance(2);
 
         if !matches!(
