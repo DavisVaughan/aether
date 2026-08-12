@@ -656,11 +656,6 @@ impl<'src> RLexer<'src> {
 
     /// The `L` and `i` that turn the literal before them into an integer or a
     /// complex
-    ///
-    /// Taken whatever follows, as `NumericValue` in `src/main/gram.y` takes them,
-    /// so `1Li` is `1L` and the name `i`. tree-sitter-r spells the suffixes as
-    /// tokens of their own and lets a name that merely starts with one win on
-    /// length — see `docs/deviations.md`.
     fn consume_suffix(&mut self) -> RSyntaxKind {
         match self.current_byte() {
             Some(b'L') => self.eat_byte(R_INTEGER_LITERAL),
