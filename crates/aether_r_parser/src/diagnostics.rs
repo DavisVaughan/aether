@@ -23,9 +23,6 @@ pub(crate) fn unterminated_special(open: TextRange) -> ParseDiagnostic {
 
 /// A `0x` that the grammar needs more of: no body at all, or a `p` exponent with
 /// no digits
-///
-/// tree-sitter-r re-splits these into a shorter number and a name, so `0x` is `0`
-/// and `x`. Aether keeps the literal and says what is missing.
 pub(crate) fn unterminated_hexadecimal(range: TextRange) -> ParseDiagnostic {
     ParseDiagnostic::new("Unterminated hexadecimal literal.", range).with_hint(
         "`0x` must be followed by hexadecimal digits, and a `p` exponent by decimal digits.",
