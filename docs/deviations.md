@@ -38,6 +38,7 @@ them, since the ledger runs ahead of the parser.
 | 6 | A character that starts no token | `ERROR` node | new `ERROR_TOKEN` kind added, reported by the lexer and wrapped in a bogus node by the parser |
 | 7 | `L` and `i` suffixes | tokens of their own, so `1 L` is one `integer` and `1Li` is `1` and `Li` | part of the literal, taken whatever follows, as R takes them |
 | 8 | Unterminated numbers | `0x`, `0x1p`, `1e` re-split or accepted, all silently | one literal token carrying `Unterminated hexadecimal literal.`, `Unterminated binary exponent.`, or `Unterminated exponent.` |
+| 9 | A backslash inside `%...%` | excluded by the `special` regex, so `%a\b%` errors | ordinary text, as R takes it, so `%a\b%` is one `SPECIAL` |
 
 ### 1. Semicolons are real tokens
 
@@ -438,6 +439,34 @@ deviation 7's business and carry no diagnostic.
 
 Corpus tests: `literals/numbers.md`, the unterminated cases marked `[error]`.
 
+### 9. A backslash inside `%...%` is ordinary text
+
+Landed in Phase 4.
+
+Example:
+
+```r
+a %a\b% b
+```
+
+tree-sitter-r's `special` is `/%[^%\\\n]*%/`, a character class that excludes
+backslash, so this errors. Their own grammar comment concedes the regex is
+approximate: "This could probably be fine tuned to disallow more things."
+
+R's `SpecialValue` in `src/main/gram.y` excludes only the newline, so `%a\b%` is
+an ordinary `SPECIAL`. Aether follows R and takes the whole operator.
+
+| source | tree-sitter-r | R and aether |
+|---|---|---|
+| `a %a\b% b` | `%a`, `\`, `b`, `%` — an `ERROR` node | one `SPECIAL` spanning `%a\b%` |
+
+Why: nothing is gained by rejecting a program R accepts, and a backslash carries
+no meaning inside `%...%` for the lexer to act on — there are no escapes there,
+so it is one more character in the operator's name. The newline is different,
+since R stops at it too.
+
+Corpus tests: `expressions/specials.md`, marked `[deviation]`.
+
 ## tree-sitter-r vs. R
 
 Places where tree-sitter-r already disagrees with R's own parser. Aether follows
@@ -461,27 +490,12 @@ errors.
 
 Aether follows tree-sitter and errors.
 
-Note that aether does copy R for the neighbouring case, an unterminated `%…%` cut
+Note that aether does copy R for the neighbouring case, an unterminated `%...%` cut
 short by a newline: R ungets the newline before reporting, so the error stays
 local and the next line parses normally. Aether stops before the newline too,
 keeping the partial `%foo` as a `SPECIAL` token with the diagnostic attached.
 That is not a deviation from tree-sitter, just a recovery choice tree-sitter has
 no equivalent of.
-
-### Backslashes inside `%…%`
-
-Example:
-
-```r
-a %a\b% b
-```
-
-R's `SpecialValue` does not exclude backslash, so this is a valid `SPECIAL`.
-tree-sitter-r's character class `[^%\\\n]` does exclude it, so it errors. Their
-own grammar comment concedes the regex is approximate: "This could probably be
-fine tuned to disallow more things."
-
-Aether follows tree-sitter and errors.
 
 ## Inherited from air
 

@@ -45,20 +45,18 @@ fn unterminated_at_end_of_file() {
     assert_lex_err!("x %in", IDENT: 1, WHITESPACE: 1, SPECIAL: 3 => "Unterminated");
 }
 
-/// Also inherited: R's `SpecialValue` does not exclude backslash, so `%a\b%` is
-/// a valid operator in R. tree-sitter-r's character class `[^%\\\n]` excludes
-/// it, and their own comment concedes the regex is approximate. Aether follows
-/// tree-sitter. See `docs/deviations.md`.
+/// R's `SpecialValue` does not exclude backslash, so `%a\b%` is a valid operator
+/// in R. tree-sitter-r's character class `[^%\\\n]` excludes it, and their own
+/// comment concedes the regex is approximate. Aether follows R. See
+/// `docs/deviations.md`.
 #[test]
-fn a_backslash_ends_the_operator() {
-    assert_lex_err!(
+fn a_backslash_is_ordinary_text() {
+    assert_lex!(
         "a %a\\b% b",
         IDENT: 1,
         WHITESPACE: 1,
-        SPECIAL: 2,
-        BACKSLASH: 1,
+        SPECIAL: 5,
+        WHITESPACE: 1,
         IDENT: 1,
-        SPECIAL: 3
-        => "Unterminated", "Unterminated"
     );
 }

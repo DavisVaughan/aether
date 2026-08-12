@@ -686,13 +686,13 @@ impl<'src> RLexer<'src> {
     // -----------------------------------------------------------------------
     // Special operators
 
-    /// `/%[^%\\\n]*%/`, i.e. `%%`, `%/%`, `%in%`, `%o%`, and friends
+    /// `/%[^%\n]*%/`, i.e. `%%`, `%/%`, `%in%`, `%o%`, and friends
     ///
     /// Unlike strings and backticked names, a `%...%` may not span a newline.
     /// The partial `%foo` is kept as a `SPECIAL` carrying the diagnostic.
     ///
-    /// The backslash and the end of file are the two places aether follows
-    /// tree-sitter-r rather than R, which accepts both. See `docs/deviations.md`.
+    /// The end of file is the one place aether follows tree-sitter-r rather than
+    /// R, which accepts a `%foo` there. See `docs/deviations.md`.
     fn consume_special(&mut self) -> RSyntaxKind {
         self.assert_byte(b'%');
         let open = TextRange::at(self.text_position(), TextSize::from(1));
@@ -706,7 +706,7 @@ impl<'src> RLexer<'src> {
                     self.advance(1);
                     return SPECIAL;
                 }
-                b'\n' | b'\r' | b'\\' => break,
+                b'\n' | b'\r' => break,
                 byte => self.advance_byte_or_char(byte),
             }
         }

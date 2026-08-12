@@ -11,7 +11,7 @@ pub(crate) fn unterminated_backtick_identifier(open: TextRange, eof: TextRange) 
     )
 }
 
-/// A `%…%` operator cut short by a newline, a backslash, or the end of the file
+/// A `%...%` operator cut short by a newline or the end of the file
 ///
 /// R's `SpecialValue` ungets the newline before reporting, so the error stays
 /// local and the next line still parses; aether stops before the newline for the
