@@ -603,10 +603,6 @@ impl<'src> RLexer<'src> {
     // Numbers
 
     /// `(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d+)?`
-    ///
-    /// An `e` commits to an exponent the same way a `0x` commits to a body, so
-    /// `1e` and `1e+` are diagnosed. tree-sitter-r's regex ends `[eE][+-]?\d*`
-    /// and takes them as whole literals — see `docs/deviations.md`.
     fn consume_number(&mut self) -> RSyntaxKind {
         let start = self.text_position();
         self.consume_digits(u8::is_ascii_digit);
