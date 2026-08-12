@@ -612,9 +612,13 @@ impl<'src> RLexer<'src> {
             self.consume_digits(u8::is_ascii_digit);
         }
 
-        if matches!(self.current_byte(), Some(b'e' | b'E')) && !self.consume_exponent() {
-            let range = TextRange::new(start, self.text_position());
-            self.push_diagnostic(unterminated_exponent(range));
+        if matches!(self.current_byte(), Some(b'e' | b'E')) {
+            self.advance(1);
+
+            if !self.consume_exponent() {
+                let range = TextRange::new(start, self.text_position());
+                self.push_diagnostic(unterminated_exponent(range));
+            }
         }
 
         self.consume_suffix()
@@ -649,9 +653,13 @@ impl<'src> RLexer<'src> {
             self.consume_digits(u8::is_ascii_hexdigit);
         }
 
-        if matches!(self.current_byte(), Some(b'p' | b'P')) && !self.consume_exponent() {
-            let range = TextRange::new(start, self.text_position());
-            self.push_diagnostic(unterminated_hexadecimal_binary_exponent(range));
+        if matches!(self.current_byte(), Some(b'p' | b'P')) {
+            self.advance(1);
+
+            if !self.consume_exponent() {
+                let range = TextRange::new(start, self.text_position());
+                self.push_diagnostic(unterminated_hexadecimal_binary_exponent(range));
+            }
         }
 
         self.consume_suffix()
@@ -678,11 +686,9 @@ impl<'src> RLexer<'src> {
         self.eat_byte(suffixed)
     }
 
-    /// A marker the caller has already seen, an optional sign, and its digits,
-    /// reporting whether the digits were there
+    /// An optional sign and the exponent's digits, reporting whether the digits
+    /// were there
     fn consume_exponent(&mut self) -> bool {
-        self.advance(1);
-
         if matches!(self.current_byte(), Some(b'+' | b'-')) {
             self.advance(1);
         }
