@@ -333,6 +333,8 @@ impl<'src> RLexer<'src> {
             b'\'' => self.consume_string_open(RStringDelimiter::Single),
             b'`' => self.consume_backtick_identifier(),
 
+            // Ahead of the digit arm, which would otherwise take the `0`
+            b'0' if matches!(self.peek_byte(), Some(b'x' | b'X')) => self.consume_hexadecimal(),
             b'0'..=b'9' => self.consume_number(),
 
             // `.` is overloaded four ways: `...`, `..1`, `.5`, and `.foo`
@@ -600,38 +602,34 @@ impl<'src> RLexer<'src> {
     // -----------------------------------------------------------------------
     // Numbers
 
-    /// A hexadecimal or decimal literal, plus the `L` and `i` suffixes that turn
-    /// it into an integer or a complex
+    /// `(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d+)?`, plus a suffix
+    ///
+    /// Both alternatives fall out of one pass, because "digits, then optionally
+    /// a dot and more digits" covers `1`, `1.`, `1.5` and `.5` alike. The caller
+    /// guarantees at least one digit is present on one side of the dot.
+    ///
+    /// An `e` commits to an exponent the same way a `0x` commits to a body, so
+    /// `1e` and `1e+` are diagnosed. tree-sitter-r's regex ends `[eE][+-]?\d*`
+    /// and takes them as whole literals — see `docs/deviations.md`.
     fn consume_number(&mut self) -> RSyntaxKind {
-        if self.at_hex_prefix() {
-            self.consume_hex_literal();
-        } else {
-            self.consume_decimal_literal();
+        let start = self.text_position();
+        self.consume_digits(u8::is_ascii_digit);
+
+        if self.current_byte() == Some(b'.') {
+            self.advance(1);
+            self.consume_digits(u8::is_ascii_digit);
         }
 
-        // tree-sitter-r spells the suffixes as tokens of their own rather than
-        // as part of the literal's regex, so an identifier that merely starts
-        // with one wins on length: `1L` is an integer, but `1Li` is the literal
-        // `1` followed by the name `Li`. R splits that one the other way, `1L`
-        // then `i` — see `docs/deviations.md`.
-        let suffixed = match self.current_byte() {
-            Some(b'L') => R_INTEGER_LITERAL,
-            Some(b'i') => R_COMPLEX_LITERAL,
-            _ => return R_DOUBLE_LITERAL,
-        };
-
-        if self.at_identifier_part(1) {
-            return R_DOUBLE_LITERAL;
+        if matches!(self.current_byte(), Some(b'e' | b'E')) && !self.consume_exponent() {
+            let range = TextRange::new(start, self.text_position());
+            self.push_diagnostic(unterminated_exponent(range));
         }
-        self.eat_byte(suffixed)
+
+        self.consume_suffix()
     }
 
-    /// `0[xX]`, which commits to a hexadecimal however the rest turns out
-    fn at_hex_prefix(&self) -> bool {
-        self.current_byte() == Some(b'0') && matches!(self.peek_byte(), Some(b'x' | b'X'))
-    }
-
-    /// `0[xX](([0-9a-fA-F]+(\.[0-9a-fA-F]*)?)|(\.[0-9a-fA-F]*))([pP][+-]?[0-9]+)?`
+    /// `0[xX](([0-9a-fA-F]+(\.[0-9a-fA-F]*)?)|(\.[0-9a-fA-F]*))([pP][+-]?[0-9]+)?`,
+    /// plus a suffix
     ///
     /// `0x.` is a whole literal — R allows it, surprisingly.
     ///
@@ -639,7 +637,7 @@ impl<'src> RLexer<'src> {
     /// wants is diagnosed rather than un-lexed: `0x`, `0xg`, and `0x1p` are all
     /// unterminated hexadecimals. tree-sitter-r instead re-splits them into a
     /// shorter number and a name — see `docs/deviations.md`.
-    fn consume_hex_literal(&mut self) {
+    fn consume_hexadecimal(&mut self) -> RSyntaxKind {
         let start = self.text_position();
         self.advance(2);
 
@@ -649,7 +647,7 @@ impl<'src> RLexer<'src> {
         ) {
             let range = TextRange::new(start, self.text_position());
             self.push_diagnostic(unterminated_hexadecimal(range));
-            return;
+            return self.consume_suffix();
         }
 
         self.consume_digits(u8::is_ascii_hexdigit);
@@ -663,30 +661,29 @@ impl<'src> RLexer<'src> {
             let range = TextRange::new(start, self.text_position());
             self.push_diagnostic(unterminated_hexadecimal(range));
         }
+
+        self.consume_suffix()
     }
 
-    /// `(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d+)?`
+    /// The `L` and `i` that turn the literal before them into an integer or a
+    /// complex
     ///
-    /// Both alternatives fall out of one pass, because "digits, then optionally
-    /// a dot and more digits" covers `1`, `1.`, `1.5` and `.5` alike. The caller
-    /// guarantees at least one digit is present on one side of the dot.
-    ///
-    /// An `e` commits to an exponent the same way a `0x` commits to a body, so
-    /// `1e` and `1e+` are diagnosed. tree-sitter-r's regex ends `[eE][+-]?\d*`
-    /// and takes them as whole literals — see `docs/deviations.md`.
-    fn consume_decimal_literal(&mut self) {
-        let start = self.text_position();
-        self.consume_digits(u8::is_ascii_digit);
+    /// tree-sitter-r spells these as tokens of their own rather than as part of
+    /// the literal's regex, so an identifier that merely starts with one wins on
+    /// length: `1L` is an integer, but `1Li` is the literal `1` followed by the
+    /// name `Li`. R splits that one the other way, `1L` then `i` — see
+    /// `docs/deviations.md`.
+    fn consume_suffix(&mut self) -> RSyntaxKind {
+        let suffixed = match self.current_byte() {
+            Some(b'L') => R_INTEGER_LITERAL,
+            Some(b'i') => R_COMPLEX_LITERAL,
+            _ => return R_DOUBLE_LITERAL,
+        };
 
-        if self.current_byte() == Some(b'.') {
-            self.advance(1);
-            self.consume_digits(u8::is_ascii_digit);
+        if self.at_identifier_part(1) {
+            return R_DOUBLE_LITERAL;
         }
-
-        if matches!(self.current_byte(), Some(b'e' | b'E')) && !self.consume_exponent() {
-            let range = TextRange::new(start, self.text_position());
-            self.push_diagnostic(unterminated_exponent(range));
-        }
+        self.eat_byte(suffixed)
     }
 
     /// A marker the caller has already seen, an optional sign, and its digits,

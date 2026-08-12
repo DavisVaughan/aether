@@ -1215,6 +1215,11 @@ fn lex_token(&mut self) -> RSyntaxKind {
         b'\'' => self.consume_string_open(RStringDelimiter::Single),
         b'`'  => self.consume_backtick_identifier(),
 
+        // Hexadecimals get an arm of their own, ahead of the digit arm that
+        // would otherwise take the `0`. They share only the `L`/`i` suffix with
+        // a decimal, and folding them together buys one caller a prefix test it
+        // then has to undo — see §8.4.
+        b'0' if matches!(self.peek_byte(), Some(b'x' | b'X')) => self.consume_hexadecimal(),
         b'0'..=b'9' => self.consume_number(),
 
         // `.` is overloaded: `...`, `..1`, `.5` (a number!), `.foo` (identifier).
