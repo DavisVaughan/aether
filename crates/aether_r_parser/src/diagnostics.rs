@@ -12,10 +12,6 @@ pub(crate) fn unterminated_backtick_identifier(open: TextRange, eof: TextRange) 
 }
 
 /// A `%...%` operator cut short by a newline or the end of the file
-///
-/// R's `SpecialValue` ungets the newline before reporting, so the error stays
-/// local and the next line still parses; aether stops before the newline for the
-/// same reason.
 pub(crate) fn unterminated_special(open: TextRange) -> ParseDiagnostic {
     ParseDiagnostic::new("Unterminated `%` operator.", open)
         .with_hint("A `%...%` operator must be closed by a second `%` on the same line.")
