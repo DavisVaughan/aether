@@ -36,7 +36,7 @@ them, since the ledger runs ahead of the parser.
 | 4 | Error recovery | whole-file bogus node | localized bogus nodes, tree still walkable |
 | 5 | `AnyRSelector` | 4 variants, no bogus | new `RBogusSelector` kind added as a fifth variant, so a malformed RHS is contained in the `right` slot instead of collapsing the whole expression |
 | 6 | A character that starts no token | `ERROR` node | new `ERROR_TOKEN` kind added, reported by the lexer and wrapped in a bogus node by the parser |
-| 7 | `1 L` | one `integer` spanning the space | the literal `1`, then the name `L` |
+| 7 | `L` and `i` suffixes | tokens of their own, so `1 L` is one `integer` and `1Li` is `1` and `Li` | part of the literal, taken whatever follows, as R takes them |
 | 8 | Unterminated numbers | `0x`, `0x1p`, `1e` re-split or accepted, all silently | one literal token carrying `Unterminated hexadecimal literal.`, `Unterminated binary exponent.`, or `Unterminated exponent.` |
 
 ### 1. Semicolons are real tokens
@@ -330,7 +330,7 @@ kinds in the generated enum. Nothing depends on the numbering — no explicit
 discriminants are emitted, and `to_raw`/`from_raw` round-trip within a single
 build — so the generated diff is the one added line.
 
-### 7. `1 L` is a literal and a name
+### 7. `L` and `i` belong to the literal, not to the token stream
 
 Landed in Phase 4.
 
@@ -338,21 +338,46 @@ Example:
 
 ```r
 1 L
+1Li
 ```
 
 tree-sitter-r spells `integer` as `seq($._float_literal, "L")` rather than as one
-regex, so the `L` is a token of its own and `extras` lets whitespace fall between
-the two. `1 L` and `1 i` therefore come out as a single `integer` and `complex`
-spanning the space, which is not what R does — R stops the literal at the digit
-and reads `L` as a name.
+regex, so the `L` is a token of its own. Two things follow from that, and aether
+disagrees with both.
 
-Aether cannot reproduce it even in principle: `R_INTEGER_LITERAL` is one token in
-air's kind list, and one token cannot span a gap. It follows R here.
+`extras` may fall between the two tokens, so `1 L` and `1 i` come out as a single
+`integer` and `complex` spanning the space. Aether cannot reproduce that even in
+principle — `R_INTEGER_LITERAL` is one token in air's kind list, and one token
+cannot span a gap.
 
-The adjacent case is the one that matters in practice, and aether does match
-tree-sitter on all of it: the suffix is taken only when it is not the start of a
-longer name, so `1L` is an integer while `1Li` is the literal `1` followed by the
-name `Li`.
+And the `L` competes with `identifier` on length, so a name that merely starts
+with a suffix wins outright: `1Li` is the float `1` followed by the name `Li`.
+
+R does neither. `NumericValue` in `src/main/gram.y` stops the literal at the digit
+when a space follows, and otherwise takes the suffix whatever comes next: the `L`
+enters the scan loop and breaks it, the `i` is picked up after it, and neither is
+ever pushed back. Aether follows R on both counts.
+
+| source | tree-sitter-r | R and aether |
+|---|---|---|
+| `1 L` | one `integer` spanning the space | `1`, then the name `L` |
+| `1Li` | `float 1`, `identifier Li` | `1L`, then the name `i` |
+| `1iL` | `float 1`, `identifier iL` | `1i`, then the name `L` |
+| `1LL` | `float 1`, `identifier LL` | `1L`, then the name `L` |
+| `1L.` | `float 1`, `identifier L.` | `1L`, then the name `.` |
+| `1e5iL` | `float 1e5`, `identifier iL` | `1e5i`, then the name `L` |
+
+Every row but the first is a syntax error in R and in aether, arriving as two
+expressions on one line (§11.7). tree-sitter-r parses all of them cleanly, since
+its `program` does not require a separator between expressions. So nothing is
+lost by disagreeing: the oracle only compares trees for inputs aether parses
+cleanly, and it skips every one of these either way.
+
+Why follow R rather than the oracle: R's rule cannot disagree with R about a
+program R accepts, because it never looks past the suffix. The lookahead rule can
+only differ on programs R rejects, and there it puts the error one token earlier
+than R does. It also cost a byte of lookahead that nothing else in the lexer
+needed.
 
 ### 8. An unfinished number literal is diagnosed, not re-split
 
@@ -407,9 +432,9 @@ in deviation 6: the text is a well-formed literal that was cut short, so the
 parser can still use it, and `ERROR_TOKEN` is reserved for characters that start
 nothing at all.
 
-The line is drawn at what the grammar *requires*, not at what R happens to
-reject. `1L`, `1Li`, and `1 L` are untouched — a suffix is optional, so nothing is
-missing when it is absent or when a name follows it.
+The line is drawn at what the grammar *requires*. A suffix is optional, so a
+literal that ends without one is finished, not unterminated — `1L` and `1Li` are
+deviation 7's business and carry no diagnostic.
 
 Corpus tests: `literals/numbers.md`, the unterminated cases marked `[error]`.
 
