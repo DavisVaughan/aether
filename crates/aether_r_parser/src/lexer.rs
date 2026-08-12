@@ -602,14 +602,17 @@ impl<'src> RLexer<'src> {
     /// A hexadecimal or decimal literal, plus the `L` and `i` suffixes that turn
     /// it into an integer or a complex
     fn consume_number(&mut self) -> RSyntaxKind {
-        if !self.consume_hex_literal() {
+        if self.at_hex_prefix() {
+            self.consume_hex_literal();
+        } else {
             self.consume_decimal_literal();
         }
 
         // tree-sitter-r spells the suffixes as tokens of their own rather than
         // as part of the literal's regex, so an identifier that merely starts
         // with one wins on length: `1L` is an integer, but `1Li` is the literal
-        // `1` followed by the name `Li`
+        // `1` followed by the name `Li`. R splits that one the other way, `1L`
+        // then `i` — see `docs/deviations.md`.
         let suffixed = match self.current_byte() {
             Some(b'L') => R_INTEGER_LITERAL,
             Some(b'i') => R_COMPLEX_LITERAL,
@@ -622,33 +625,32 @@ impl<'src> RLexer<'src> {
         self.eat_byte(suffixed)
     }
 
+    /// `0x` opens a hexadecimal only when a body follows, so a bare `0x` is the
+    /// number `0` and the name `x`
+    fn at_hex_prefix(&self) -> bool {
+        self.current_byte() == Some(b'0')
+            && matches!(self.peek_byte(), Some(b'x' | b'X'))
+            && matches!(
+                self.byte_at(2),
+                Some(b'.' | b'0'..=b'9' | b'a'..=b'f' | b'A'..=b'F')
+            )
+    }
+
     /// `0[xX](([0-9a-fA-F]+(\.[0-9a-fA-F]*)?)|(\.[0-9a-fA-F]*))([pP][+-]?[0-9]+)?`
     ///
-    /// Returns `false` without advancing when the `0x` is there but the body is
-    /// not, so `0x` lexes as the number `0` followed by the identifier `x`.
     /// `0x.` is a whole literal — R allows it, surprisingly.
-    fn consume_hex_literal(&mut self) -> bool {
-        if self.current_byte() != Some(b'0') || !matches!(self.peek_byte(), Some(b'x' | b'X')) {
-            return false;
-        }
-
-        let start = self.position;
+    fn consume_hex_literal(&mut self) {
         self.advance(2);
+        self.consume_digits(u8::is_ascii_hexdigit);
 
-        let integral = self.consume_digits(u8::is_ascii_hexdigit);
-        let fractional = self.current_byte() == Some(b'.');
-        if fractional {
+        if self.current_byte() == Some(b'.') {
             self.advance(1);
             self.consume_digits(u8::is_ascii_hexdigit);
         }
 
-        if integral == 0 && !fractional {
-            self.position = start;
-            return false;
+        if self.at_binary_exponent() {
+            self.consume_exponent();
         }
-
-        self.consume_exponent(b'p', b'P', true);
-        true
     }
 
     /// `(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d*)?`
@@ -664,39 +666,43 @@ impl<'src> RLexer<'src> {
             self.consume_digits(u8::is_ascii_digit);
         }
 
-        self.consume_exponent(b'e', b'E', false);
+        // A decimal exponent's digits are optional, so `1e` and `1e+` are whole
+        // literals and `1east` is the literal `1e` followed by `ast`
+        if matches!(self.current_byte(), Some(b'e' | b'E')) {
+            self.consume_exponent();
+        }
     }
 
-    /// An exponent marker, an optional sign, and its digits.
-    ///
-    /// `digits_required` is the difference between the two literal forms, and it
-    /// is not an oversight in either direction. A binary exponent needs digits,
-    /// so `0x1p` is the literal `0x1` followed by the identifier `p`. A decimal
-    /// exponent does not, so `1e` and `1e+` are whole literals and `1east` is
-    /// the literal `1e` followed by `ast`. Both match tree-sitter-r.
-    fn consume_exponent(&mut self, lower: u8, upper: u8, digits_required: bool) {
-        let start = self.position;
-
-        if !matches!(self.current_byte(), Some(byte) if byte == lower || byte == upper) {
-            return;
+    /// `[pP][+-]?[0-9]+`, which is all or nothing, unlike a decimal exponent:
+    /// `0x1p` is the literal `0x1` followed by the name `p`
+    fn at_binary_exponent(&self) -> bool {
+        if !matches!(self.current_byte(), Some(b'p' | b'P')) {
+            return false;
         }
+
+        let digit = if matches!(self.peek_byte(), Some(b'+' | b'-')) {
+            2
+        } else {
+            1
+        };
+        matches!(self.byte_at(digit), Some(b'0'..=b'9'))
+    }
+
+    /// A marker the caller has already checked, an optional sign, and its digits
+    fn consume_exponent(&mut self) {
         self.advance(1);
 
         if matches!(self.current_byte(), Some(b'+' | b'-')) {
             self.advance(1);
         }
 
-        if self.consume_digits(u8::is_ascii_digit) == 0 && digits_required {
-            self.position = start;
-        }
+        self.consume_digits(u8::is_ascii_digit);
     }
 
-    fn consume_digits(&mut self, is_digit: fn(&u8) -> bool) -> usize {
-        let start = self.position;
+    fn consume_digits(&mut self, is_digit: fn(&u8) -> bool) {
         while matches!(self.current_byte(), Some(byte) if is_digit(&byte)) {
             self.advance(1);
         }
-        self.position - start
     }
 
     // -----------------------------------------------------------------------
