@@ -602,7 +602,7 @@ impl<'src> RLexer<'src> {
     // -----------------------------------------------------------------------
     // Numbers
 
-    /// `(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d+)?`, plus a suffix
+    /// `(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d+)?`
     ///
     /// Both alternatives fall out of one pass, because "digits, then optionally
     /// a dot and more digits" covers `1`, `1.`, `1.5` and `.5` alike. The caller
