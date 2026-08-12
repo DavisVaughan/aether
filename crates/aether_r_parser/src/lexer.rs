@@ -464,24 +464,24 @@ impl<'src> RLexer<'src> {
         let start = self.position;
         // `XID_Start` or `_`
         self.advance_char_unchecked();
-        self.consume_identifier_parts();
+        self.consume_xid_continue_or_dot();
 
         Self::keyword_kind(&self.source[start..self.position]).unwrap_or(IDENT)
     }
 
     /// `[\p{XID_Continue}.]*`
-    fn consume_identifier_parts(&mut self) {
-        while self.at_identifier_part() {
-            self.advance_char_unchecked();
-        }
-    }
-
-    /// Whether `[\p{XID_Continue}.]` matches at the current position
-    fn at_identifier_part(&self) -> bool {
-        match self.current_byte() {
-            Some(b'.' | b'_' | b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z') => true,
-            Some(byte) if byte >= 128 => is_xid_continue(self.current_char_unchecked()),
-            _ => false,
+    fn consume_xid_continue_or_dot(&mut self) {
+        loop {
+            match self.current_byte() {
+                Some(b'.' | b'_' | b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z') => self.advance(1),
+                Some(byte) if byte >= 128 => {
+                    if !is_xid_continue(self.current_char_unchecked()) {
+                        break;
+                    }
+                    self.advance_char_unchecked();
+                }
+                _ => break,
+            }
         }
     }
 
@@ -575,7 +575,7 @@ impl<'src> RLexer<'src> {
 
         let start = self.position;
         self.advance(1);
-        self.consume_identifier_parts();
+        self.consume_xid_continue_or_dot();
 
         Self::dot_kind(&self.source[start..self.position])
     }
