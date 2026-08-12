@@ -688,7 +688,7 @@ impl<'src> RLexer<'src> {
 
     /// `/%[^%\\\n]*%/`, i.e. `%%`, `%/%`, `%in%`, `%o%`, and friends
     ///
-    /// Unlike strings and backticked names, a `%…%` may not span a newline. R
+    /// Unlike strings and backticked names, a `%...%` may not span a newline. R
     /// ungets the newline before reporting the error, so the statement still
     /// terminates and the next line parses normally; aether stops before the
     /// newline for the same reason, and keeps the partial `%foo` as a `SPECIAL`
