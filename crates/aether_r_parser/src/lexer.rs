@@ -631,10 +631,11 @@ impl<'src> RLexer<'src> {
         // The `0x`
         self.advance(2);
 
-        if !matches!(
-            self.current_byte(),
-            Some(b'.' | b'0'..=b'9' | b'a'..=b'f' | b'A'..=b'F')
-        ) {
+        let has_body = self
+            .current_byte()
+            .is_some_and(|byte| byte == b'.' || byte.is_ascii_hexdigit());
+
+        if !has_body {
             let range = TextRange::new(start, self.text_position());
             self.push_diagnostic(unterminated_hexadecimal(range));
             return self.consume_suffix();
