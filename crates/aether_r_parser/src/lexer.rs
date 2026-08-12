@@ -766,21 +766,21 @@ impl<'src> RLexer<'src> {
 
         match delimiter {
             RStringDelimiter::Single | RStringDelimiter::Double => {
-                self.consume_quoted_string_content(delimiter.quote());
-
-                // An empty body emits no `STRING_CONTENT` at all. The close
-                // follows the open directly.
-                if self.position == usize::from(self.current_start) {
-                    self.lex_string_end(delimiter)
-                } else {
-                    STRING_CONTENT
-                }
+                self.consume_quoted_string_content(delimiter.quote())
             }
             RStringDelimiter::Raw {
                 quote,
                 hyphens,
                 bracket,
             } => self.consume_raw_string_content(quote, hyphens, bracket),
+        }
+
+        // An empty body emits no `STRING_CONTENT` at all. The close follows the
+        // open directly.
+        if self.position == usize::from(self.current_start) {
+            self.lex_string_end(delimiter)
+        } else {
+            STRING_CONTENT
         }
     }
 
@@ -800,66 +800,31 @@ impl<'src> RLexer<'src> {
         }
     }
 
-    /// Raw string content
+    /// Everything up to the closing sequence
     ///
-    /// The subtle part is what happens when a closing bracket turns out not to
-    /// start the closing sequence: scanning resumes from wherever the attempt
-    /// stopped, *not* from the byte after the bracket. Otherwise `r"(())"` and
-    /// `r"-())-"` both fail to find their close (r-lib/tree-sitter-r#162).
-    fn consume_raw_string_content(
-        &mut self,
-        quote: u8,
-        hyphens: u8,
-        bracket: RawStringBracket,
-    ) -> RSyntaxKind {
-        let close = bracket.close();
-        let start = self.position;
-
+    /// The subtle part is the closing bracket that turns out not to start one.
+    /// It belongs to the body, and the scan carries on from the byte after it,
+    /// or `r"(())"` and `r"-())-"` never find their close
+    /// (r-lib/tree-sitter-r#162).
+    fn consume_raw_string_content(&mut self, quote: u8, hyphens: u8, bracket: RawStringBracket) {
         while let Some(byte) = self.current_byte() {
-            if byte != close {
-                self.advance_byte_or_char(byte);
-                continue;
+            if self.at_raw_string_close(quote, hyphens, bracket) {
+                break;
             }
-
-            let content_end = self.position;
-            self.advance(1);
-
-            if !self.consume_repeated(b'-', usize::from(hyphens)) {
-                continue;
-            }
-            if self.current_byte() != Some(quote) {
-                continue;
-            }
-            self.advance(1);
-
-            if content_end > start {
-                // Rewind to the content and re-consume the closing sequence on
-                // the next call, now that it is known to be there
-                self.position = content_end;
-                return STRING_CONTENT;
-            }
-
-            self.string_delimiter = None;
-            return STRING_CLOSE;
+            self.advance_byte_or_char(byte);
         }
-
-        // End of file inside the body. The parser reports the unterminated
-        // string when its `expect(STRING_CLOSE)` fails.
-        STRING_CONTENT
     }
 
-    /// Consume exactly `count` copies of `byte`, stopping at the first mismatch
-    ///
-    /// A failed run leaves the position at the mismatch rather than rewinding,
-    /// which is what the raw string scan above relies on.
-    fn consume_repeated(&mut self, byte: u8, count: usize) -> bool {
-        for _ in 0..count {
-            if self.current_byte() != Some(byte) {
-                return false;
-            }
-            self.advance(1);
+    /// Whether a whole closing sequence — the bracket, the hyphens, and the
+    /// quote — starts at the current position
+    fn at_raw_string_close(&self, quote: u8, hyphens: u8, bracket: RawStringBracket) -> bool {
+        if self.current_byte() != Some(bracket.close()) {
+            return false;
         }
-        true
+
+        let hyphens = usize::from(hyphens);
+        (1..=hyphens).all(|offset| self.byte_at(offset) == Some(b'-'))
+            && self.byte_at(hyphens + 1) == Some(quote)
     }
 
     fn lex_string_end(&mut self, delimiter: RStringDelimiter) -> RSyntaxKind {
@@ -876,14 +841,10 @@ impl<'src> RLexer<'src> {
                 hyphens,
                 bracket,
             } => {
-                // `consume_raw_string_content` already matched the whole
-                // sequence, so this only has to re-consume it
-                self.assert_byte(bracket.close());
-                self.advance(1);
-                let matched = self.consume_repeated(b'-', usize::from(hyphens));
-                debug_assert!(matched);
-                self.assert_byte(quote);
-                self.advance(1);
+                debug_assert!(self.at_raw_string_close(quote, hyphens, bracket));
+
+                // The bracket, the hyphens, and the quote
+                self.advance(2 + usize::from(hyphens));
             }
         }
 
