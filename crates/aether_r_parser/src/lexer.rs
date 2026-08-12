@@ -2,7 +2,8 @@
 mod tests;
 
 use crate::diagnostics::{
-    unexpected_character, unterminated_backtick_identifier, unterminated_special,
+    unexpected_character, unterminated_backtick_identifier, unterminated_exponent,
+    unterminated_hexadecimal, unterminated_special,
 };
 use aether_r_syntax::RSyntaxKind::{self, *};
 use aether_r_syntax::T;
@@ -625,22 +626,32 @@ impl<'src> RLexer<'src> {
         self.eat_byte(suffixed)
     }
 
-    /// `0x` opens a hexadecimal only when a body follows, so a bare `0x` is the
-    /// number `0` and the name `x`
+    /// `0[xX]`, which commits to a hexadecimal however the rest turns out
     fn at_hex_prefix(&self) -> bool {
-        self.current_byte() == Some(b'0')
-            && matches!(self.peek_byte(), Some(b'x' | b'X'))
-            && matches!(
-                self.byte_at(2),
-                Some(b'.' | b'0'..=b'9' | b'a'..=b'f' | b'A'..=b'F')
-            )
+        self.current_byte() == Some(b'0') && matches!(self.peek_byte(), Some(b'x' | b'X'))
     }
 
     /// `0[xX](([0-9a-fA-F]+(\.[0-9a-fA-F]*)?)|(\.[0-9a-fA-F]*))([pP][+-]?[0-9]+)?`
     ///
     /// `0x.` is a whole literal — R allows it, surprisingly.
+    ///
+    /// Once the `0x` is there the rest is required, so what the grammar still
+    /// wants is diagnosed rather than un-lexed: `0x`, `0xg`, and `0x1p` are all
+    /// unterminated hexadecimals. tree-sitter-r instead re-splits them into a
+    /// shorter number and a name — see `docs/deviations.md`.
     fn consume_hex_literal(&mut self) {
+        let start = self.text_position();
         self.advance(2);
+
+        if !matches!(
+            self.current_byte(),
+            Some(b'.' | b'0'..=b'9' | b'a'..=b'f' | b'A'..=b'F')
+        ) {
+            let range = TextRange::new(start, self.text_position());
+            self.push_diagnostic(unterminated_hexadecimal(range));
+            return;
+        }
+
         self.consume_digits(u8::is_ascii_hexdigit);
 
         if self.current_byte() == Some(b'.') {
@@ -648,17 +659,23 @@ impl<'src> RLexer<'src> {
             self.consume_digits(u8::is_ascii_hexdigit);
         }
 
-        if self.at_binary_exponent() {
-            self.consume_exponent();
+        if matches!(self.current_byte(), Some(b'p' | b'P')) && !self.consume_exponent() {
+            let range = TextRange::new(start, self.text_position());
+            self.push_diagnostic(unterminated_hexadecimal(range));
         }
     }
 
-    /// `(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d*)?`
+    /// `(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d+)?`
     ///
     /// Both alternatives fall out of one pass, because "digits, then optionally
     /// a dot and more digits" covers `1`, `1.`, `1.5` and `.5` alike. The caller
     /// guarantees at least one digit is present on one side of the dot.
+    ///
+    /// An `e` commits to an exponent the same way a `0x` commits to a body, so
+    /// `1e` and `1e+` are diagnosed. tree-sitter-r's regex ends `[eE][+-]?\d*`
+    /// and takes them as whole literals — see `docs/deviations.md`.
     fn consume_decimal_literal(&mut self) {
+        let start = self.text_position();
         self.consume_digits(u8::is_ascii_digit);
 
         if self.current_byte() == Some(b'.') {
@@ -666,43 +683,31 @@ impl<'src> RLexer<'src> {
             self.consume_digits(u8::is_ascii_digit);
         }
 
-        // A decimal exponent's digits are optional, so `1e` and `1e+` are whole
-        // literals and `1east` is the literal `1e` followed by `ast`
-        if matches!(self.current_byte(), Some(b'e' | b'E')) {
-            self.consume_exponent();
+        if matches!(self.current_byte(), Some(b'e' | b'E')) && !self.consume_exponent() {
+            let range = TextRange::new(start, self.text_position());
+            self.push_diagnostic(unterminated_exponent(range));
         }
     }
 
-    /// `[pP][+-]?[0-9]+`, which is all or nothing, unlike a decimal exponent:
-    /// `0x1p` is the literal `0x1` followed by the name `p`
-    fn at_binary_exponent(&self) -> bool {
-        if !matches!(self.current_byte(), Some(b'p' | b'P')) {
-            return false;
-        }
-
-        let digit = if matches!(self.peek_byte(), Some(b'+' | b'-')) {
-            2
-        } else {
-            1
-        };
-        matches!(self.byte_at(digit), Some(b'0'..=b'9'))
-    }
-
-    /// A marker the caller has already checked, an optional sign, and its digits
-    fn consume_exponent(&mut self) {
+    /// A marker the caller has already seen, an optional sign, and its digits,
+    /// reporting whether the digits were there
+    fn consume_exponent(&mut self) -> bool {
         self.advance(1);
 
         if matches!(self.current_byte(), Some(b'+' | b'-')) {
             self.advance(1);
         }
 
-        self.consume_digits(u8::is_ascii_digit);
+        self.consume_digits(u8::is_ascii_digit)
     }
 
-    fn consume_digits(&mut self, is_digit: fn(&u8) -> bool) {
+    /// Whether any digit was consumed
+    fn consume_digits(&mut self, is_digit: fn(&u8) -> bool) -> bool {
+        let start = self.position;
         while matches!(self.current_byte(), Some(byte) if is_digit(&byte)) {
             self.advance(1);
         }
+        self.position != start
     }
 
     // -----------------------------------------------------------------------

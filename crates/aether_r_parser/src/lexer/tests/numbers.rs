@@ -37,20 +37,31 @@ fn a_suffix_that_starts_a_name_is_a_name() {
     assert_lex!(".1L.", R_DOUBLE_LITERAL: 2, IDENT: 2);
 }
 
-/// A decimal exponent's digits are optional in tree-sitter-r's regex
-/// (`[eE][+-]?\d*`), so `1e` and `1e+` are whole literals rather than a number
-/// followed by a name. That is deliberate upstream, not a bug here.
 #[test]
-fn exponents_may_be_empty() {
-    assert_lex!("1e", R_DOUBLE_LITERAL: 2);
-    assert_lex!("1e+", R_DOUBLE_LITERAL: 3);
-    assert_lex!("1e-3", R_DOUBLE_LITERAL: 4);
+fn exponents() {
     assert_lex!("1e5", R_DOUBLE_LITERAL: 3);
+    assert_lex!("1e+3", R_DOUBLE_LITERAL: 4);
+    assert_lex!("1e-3", R_DOUBLE_LITERAL: 4);
     assert_lex!("1.e5", R_DOUBLE_LITERAL: 4);
-    // Which is also why these are a literal and a name, not one name and not one
-    // literal with a subtraction in it
-    assert_lex!("1east", R_DOUBLE_LITERAL: 2, IDENT: 3);
-    assert_lex!("1e-a", R_DOUBLE_LITERAL: 3, IDENT: 1);
+}
+
+/// An `e` commits to an exponent, so its digits are required. tree-sitter-r's
+/// regex ends `[eE][+-]?\d*` and takes `1e` as a whole literal; R rejects it, and
+/// so does aether — see `docs/deviations.md`.
+#[test]
+fn a_decimal_exponent_with_no_digits() {
+    assert_lex_err!("1e", R_DOUBLE_LITERAL: 2 => "Unterminated exponent");
+    assert_lex_err!("1e+", R_DOUBLE_LITERAL: 3 => "Unterminated exponent");
+    assert_lex_err!("1e-", R_DOUBLE_LITERAL: 3 => "Unterminated exponent");
+    // The literal still stops where it stopped, so the name after it is intact
+    assert_lex_err!("1east", R_DOUBLE_LITERAL: 2, IDENT: 3 => "Unterminated exponent");
+    assert_lex_err!("1e-a", R_DOUBLE_LITERAL: 3, IDENT: 1 => "Unterminated exponent");
+    // A space does not rescue it either, in R or here
+    assert_lex_err!(
+        "1e + 2",
+        R_DOUBLE_LITERAL: 2, WHITESPACE: 1, PLUS: 1, WHITESPACE: 1, R_DOUBLE_LITERAL: 1
+        => "Unterminated exponent"
+    );
 }
 
 #[test]
@@ -66,30 +77,36 @@ fn hexadecimals() {
     assert_lex!("0x1e", R_DOUBLE_LITERAL: 4);
 }
 
-/// A binary exponent's digits are *not* optional, unlike a decimal one's, so a
-/// bare `p` falls out of the literal and becomes a name
 #[test]
 fn binary_exponents() {
     assert_lex!("0x1p3", R_DOUBLE_LITERAL: 5);
     assert_lex!("0x.8p1", R_DOUBLE_LITERAL: 6);
     assert_lex!("0x1p+3", R_DOUBLE_LITERAL: 6);
+    assert_lex!("0x1p-3", R_DOUBLE_LITERAL: 6);
     assert_lex!("0x.p3", R_DOUBLE_LITERAL: 5);
     assert_lex!("0x1.8p3", R_DOUBLE_LITERAL: 7);
-    assert_lex!("0x1p", R_DOUBLE_LITERAL: 3, IDENT: 1);
-    assert_lex!("0x.p", R_DOUBLE_LITERAL: 3, IDENT: 1);
-    assert_lex!("0x.8p", R_DOUBLE_LITERAL: 4, IDENT: 1);
-    // A sign with no digits after it is no exponent either
-    assert_lex!("0x1p+", R_DOUBLE_LITERAL: 3, IDENT: 1, PLUS: 1);
 }
 
-/// `0x` with no body is not a hexadecimal at all: the `0` is a literal and the
-/// `x` starts a name
+/// A `p` with no digits is the same mistake as a `0x` with no body, and carries
+/// the same diagnostic
 #[test]
-fn a_hexadecimal_prefix_with_no_body() {
-    assert_lex!("0x", R_DOUBLE_LITERAL: 1, IDENT: 1);
-    assert_lex!("0xg", R_DOUBLE_LITERAL: 1, IDENT: 2);
+fn a_binary_exponent_with_no_digits() {
+    assert_lex_err!("0x1p", R_DOUBLE_LITERAL: 4 => "Unterminated hexadecimal");
+    assert_lex_err!("0x1p+", R_DOUBLE_LITERAL: 5 => "Unterminated hexadecimal");
+    assert_lex_err!("0x1p-", R_DOUBLE_LITERAL: 5 => "Unterminated hexadecimal");
+    assert_lex_err!("0x.p", R_DOUBLE_LITERAL: 4 => "Unterminated hexadecimal");
+    assert_lex_err!("0x.8p", R_DOUBLE_LITERAL: 5 => "Unterminated hexadecimal");
+}
+
+/// `0x` commits to a hexadecimal, so a missing body is diagnosed rather than
+/// re-split into the number `0` and the name `x`, which is what tree-sitter-r
+/// does — see `docs/deviations.md`
+#[test]
+fn a_hexadecimal_with_no_body() {
+    assert_lex_err!("0x", R_DOUBLE_LITERAL: 2 => "Unterminated hexadecimal");
+    assert_lex_err!("0xg", R_DOUBLE_LITERAL: 2, IDENT: 1 => "Unterminated hexadecimal");
     // The body may not start with the binary exponent either
-    assert_lex!("0xp3", R_DOUBLE_LITERAL: 1, IDENT: 3);
+    assert_lex_err!("0xp3", R_DOUBLE_LITERAL: 2, IDENT: 2 => "Unterminated hexadecimal");
 }
 
 #[test]

@@ -1429,8 +1429,25 @@ integer         = _float_literal "L"   → R_INTEGER_LITERAL
 complex         = _float_literal "i"   → R_COMPLEX_LITERAL
 float           = _float_literal       → R_DOUBLE_LITERAL
 ```
-Note `[eE][+-]?\d*` permits a **trailing empty exponent** (`1e`) — that is
-deliberate in tree-sitter-r; match it.
+Note `[eE][+-]?\d*` permits a **trailing empty exponent** (`1e`). **Do not match
+that**, and do not match tree-sitter's handling of a hexadecimal that fails to
+finish either. A `0x` commits to a hexadecimal and an `e` or `p` commits to an
+exponent; when what the grammar requires next is absent, tree-sitter un-matches
+the longer token and re-splits the bytes into something shorter that happens to
+parse — `0x` becomes `0` and `x`, `0x1p` becomes `0x1` and `p` — or, for `1e`,
+simply accepts. R rejects all of them from the lexer.
+
+Aether follows R: the literal keeps every byte it consumed and carries
+`unterminated_hexadecimal` or `unterminated_exponent`. The token boundaries barely
+move, so this costs almost nothing in tree shape and buys the whole message.
+Without it the failure still surfaces — `0x` lexes as two expressions on one line
+and trips §11.7's separator rule — but as `expected a statement separator`, which
+is useless while half-typing `0xFF`. Logged as deviation 8 in
+`docs/deviations.md`; the corresponding `literals/numbers.md` cases are `[error]`.
+
+The line is what the grammar *requires*, not what R happens to reject: `1L`,
+`1Li`, and `1 L` are untouched, because a suffix is optional and nothing is
+missing when a name follows it instead.
 
 **Identifiers.**
 ```
@@ -1813,7 +1830,7 @@ something each test remembers to do.
 | `keywords.rs` | Every row of the keyword table in §8.4, `NA_real_` → `NA_DOUBLE_KW` included. Case sensitivity in both directions: `If`/`Function` are `IDENT`, and so are `true`/`false`/`null`. The `else` prefixes: `elseif`, `else_idx`, `elseμ` (tree-sitter-r #200). |
 | `identifiers.rs` | `foo`, `foo.bar`, `a1`, `_` alone, `_foo` as one `IDENT` (not rejected here — §8.4), `.foo`, `.`, `..`, and unicode XID starts and continues. Plus the non-ASCII half of `ERROR_TOKEN`: a character such as `€` that is neither `XID_Start` nor punctuation. |
 | `backticks.rs` | One `IDENT` spanning the delimiters; `` `a\`b` `` with the escape; the empty `` `` ``; the multi-line name of §8.4; and an unterminated one running to EOF with `unterminated_backtick_identifier` pointing at the **opening** delimiter. |
-| `numbers.rs` | `1`, `1L`, `1i`, `1.`, `.5`, `1e`, `1e+`, `1e-3`, `1e5L`, hex `0xFF`, `0x1p3`, `0x.8p1`, `0xFFL`. The trailing-empty-exponent case is deliberate (§8.4) and needs a comment saying so, or it reads as a bug. |
+| `numbers.rs` | `1`, `1L`, `1i`, `1.`, `.5`, `1e-3`, `1e5L`, hex `0xFF`, `0x1p3`, `0x.8p1`, `0x.`, `0xFFL`. Then deviation 8, which is the half of this file that can regress silently: `0x`, `0xg`, `0xp3`, `0x1p`, `0x1p+`, `0x1p-`, `0x.p`, `0x.8p` all carry `Unterminated hexadecimal literal.`, and `1e`, `1e+`, `1e-`, `1east`, `1e-a`, `1e + 2` carry `Unterminated exponent.` — each asserting the token stream *and* the diagnostic, since the split is nearly unchanged and only the diagnostic distinguishes the two designs. |
 | `dots.rs` | The §8.3 dispatch: `...` → `DOTS`, `..1`/`..12` → `DOTDOTI`, `.5` → `R_DOUBLE_LITERAL`, `.foo`/`.`/`..` → `IDENT`. Then the names that merely start dot-like and are therefore ordinary identifiers: `....`, `...a`, `...1`, `..1a`, `..1.`, `..1e5`. `.1L` and `.1i` are the regression for tree-sitter-r #190 and belong here rather than in `numbers.rs`, since the bug was in the dispatch. |
 | `specials.rs` | `%%`, `%/%`, `%in%`, `%>%`, `%o%`, and the empty `%%`. The newline case of §8.4: `%foo\n1` keeps `%foo` as `SPECIAL:4`, does **not** consume the newline, and carries `unterminated_special`. Plus the two inherited tree-sitter divergences — `%foo` at EOF errors, and `%a\b%` is not a `SPECIAL` — each with a comment pointing at `docs/deviations.md`. |
 | `strings.rs` | The `STRING_OPEN`/`STRING_CONTENT`/`STRING_CLOSE` triple for `'` and `"`; the empty string emitting **no** `STRING_CONTENT`; escapes staying inside one content token; the multi-line string; `#` and `%` inert inside a body; the other quote character inert inside; and an unterminated string running to EOF. |

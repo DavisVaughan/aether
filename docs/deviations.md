@@ -37,6 +37,7 @@ them, since the ledger runs ahead of the parser.
 | 5 | `AnyRSelector` | 4 variants, no bogus | new `RBogusSelector` kind added as a fifth variant, so a malformed RHS is contained in the `right` slot instead of collapsing the whole expression |
 | 6 | A character that starts no token | `ERROR` node | new `ERROR_TOKEN` kind added, reported by the lexer and wrapped in a bogus node by the parser |
 | 7 | `1 L` | one `integer` spanning the space | the literal `1`, then the name `L` |
+| 8 | Unterminated numbers | `0x`, `0x1p`, `1e` re-split or accepted, all silently | one literal token carrying `Unterminated hexadecimal literal.` or `Unterminated exponent.` |
 
 ### 1. Semicolons are real tokens
 
@@ -352,6 +353,65 @@ The adjacent case is the one that matters in practice, and aether does match
 tree-sitter on all of it: the suffix is taken only when it is not the start of a
 longer name, so `1L` is an integer while `1Li` is the literal `1` followed by the
 name `Li`.
+
+### 8. An unfinished number literal is diagnosed, not re-split
+
+Landed in Phase 4.
+
+Example:
+
+```r
+0x
+0x1p
+1e
+```
+
+A `0x` commits to a hexadecimal and an `e` or `p` commits to an exponent. When
+what the grammar requires next is not there, tree-sitter-r un-matches the longer
+token and re-splits the bytes into something shorter that happens to be valid:
+`0x` becomes the number `0` and the name `x`, `0x1p` becomes `0x1` and `p`. Where
+even that is unnecessary it simply accepts — its `_number_literal` regex ends
+`[eE][+-]?\d*`, so `1e` and `1e+` are whole floats.
+
+R rejects all of them, from the lexer, at the start of the literal:
+
+```
+> 1e
+Error: unexpected input in "1e"
+```
+
+Aether follows R on the verdict and keeps the token: the literal spans everything
+that was consumed and carries a diagnostic.
+
+| source | tree-sitter-r | aether |
+|---|---|---|
+| `0x` | `float 0`, `identifier x` | `R_DOUBLE_LITERAL@0..2`, `Unterminated hexadecimal literal.` |
+| `0xg` | `float 0`, `identifier xg` | `R_DOUBLE_LITERAL@0..2`, then `identifier g` |
+| `0xp3` | `float 0`, `identifier xp3` | `R_DOUBLE_LITERAL@0..2`, then `identifier p3` |
+| `0x1p` | `float 0x1`, `identifier p` | `R_DOUBLE_LITERAL@0..4` |
+| `0x1p+` | `float 0x1`, `identifier p`, `+` | `R_DOUBLE_LITERAL@0..5` |
+| `1e` | `float 1e` | `R_DOUBLE_LITERAL@0..2`, `Unterminated exponent.` |
+| `1e+` | `float 1e+` | `R_DOUBLE_LITERAL@0..3` |
+| `1east` | `float 1e`, `identifier ast` | `R_DOUBLE_LITERAL@0..2`, then `identifier ast` |
+
+Why: the token boundaries barely change — `1east` splits the same way either
+way — so this buys almost nothing in tree shape and everything in the message.
+Without it, `0x` is not silently accepted either: it lexes as two expressions on
+one line, and §11.7's statement separator rule reports `expected a statement
+separator between two expressions`, which is a bewildering thing to read while
+half-typing `0xFF`. The lexer is the only place that still knows a hexadecimal
+was started, so it is the only place that can say so.
+
+Keeping the token rather than emitting an `ERROR_TOKEN` follows the `%foo` rule
+in deviation 6: the text is a well-formed literal that was cut short, so the
+parser can still use it, and `ERROR_TOKEN` is reserved for characters that start
+nothing at all.
+
+The line is drawn at what the grammar *requires*, not at what R happens to
+reject. `1L`, `1Li`, and `1 L` are untouched — a suffix is optional, so nothing is
+missing when it is absent or when a name follows it.
+
+Corpus tests: `literals/numbers.md`, the unterminated cases marked `[error]`.
 
 ## tree-sitter-r vs. R
 
