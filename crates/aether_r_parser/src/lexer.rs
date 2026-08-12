@@ -696,6 +696,8 @@ impl<'src> RLexer<'src> {
     fn consume_special(&mut self) -> RSyntaxKind {
         self.assert_byte(b'%');
         let open = TextRange::at(self.text_position(), TextSize::from(1));
+
+        // The `%`
         self.advance(1);
 
         while let Some(byte) = self.current_byte() {
