@@ -1,8 +1,3 @@
-//! Raw strings: `r`, a quote, 0–255 hyphens, and one of `([{`.
-//!
-//! Ported from `scan_raw_string_open` and `scan_raw_string_content_or_close` in
-//! tree-sitter-r's `src/scanner.c`.
-
 use super::*;
 
 #[test]
