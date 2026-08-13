@@ -1,12 +1,3 @@
-//! The four-way dispatch on a leading `.`.
-//!
-//! One character decides between a number and a name; a whole name is then
-//! consumed and its text classified, so `...` and `..i` win only when they are
-//! the entire name. tree-sitter-r arrives at the same answers by giving `dots`
-//! and `dot_dot_i` rules of their own and resolving the overlap with the
-//! identifier rule by match length. Every expectation below was checked against
-//! `tree-sitter parse` at the pinned revision.
-
 use super::*;
 
 #[test]
