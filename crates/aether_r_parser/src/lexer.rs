@@ -15,10 +15,6 @@ use biome_rowan::{SyntaxKind, TextRange, TextSize};
 use unicode_ident::{is_xid_continue, is_xid_start};
 
 /// The context the parser lexes the next token in
-///
-/// The two string contexts carry the delimiter because the lexer remembers
-/// nothing between calls. The caller reads it off the `STRING_OPEN` token's
-/// text with [`RStringDelimiter::from_open()`].
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) enum RLexContext {
     #[default]
