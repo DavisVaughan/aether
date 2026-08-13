@@ -16,9 +16,6 @@ fn rewind_restores_the_current_token() {
     assert_eq!(lexer.next_token(RLexContext::Regular), WHITESPACE);
 }
 
-/// Restore `after_line_break` or a rewind across a newline silently loses the
-/// break. That bug is invisible until `else` attachment depends on it, and
-/// silent even then.
 #[test]
 fn rewind_restores_the_sticky_line_break() {
     let mut lexer = RLexer::from_str("1\n2");
