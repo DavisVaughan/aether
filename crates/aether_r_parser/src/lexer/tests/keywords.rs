@@ -43,7 +43,7 @@ fn keywords_are_case_sensitive() {
 }
 
 /// Lexing the whole name before consulting the keyword table is what gets these
-/// right for free. tree-sitter-r had to fix `elseμ` specifically (their #200).
+/// right for free. tree-sitter-r had to fix `elseμ` specifically (r-lib/tree-sitter-r#200).
 #[test]
 fn a_keyword_prefix_is_not_a_keyword() {
     assert_lex!("elseif", IDENT: 6);
