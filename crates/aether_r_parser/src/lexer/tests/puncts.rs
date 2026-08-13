@@ -87,7 +87,6 @@ fn bang() {
     assert_lex!("!=", NOT_EQUAL: 2);
 }
 
-/// Maximal munch is what makes these two different programs
 #[test]
 fn adjacency_changes_the_meaning() {
     assert_lex!("1<-2", R_DOUBLE_LITERAL: 1, ASSIGN: 2, R_DOUBLE_LITERAL: 1);
