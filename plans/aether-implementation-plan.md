@@ -93,32 +93,11 @@ current `main`.
 
 ### The Biome dependency pin — critical
 
-```toml
-biome_formatter    = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
-biome_line_index   = { git = "https://github.com/lionel-/biome", rev = "a1296ea6..." }
-biome_parser       = { git = "https://github.com/lionel-/biome", rev = "a1296ea6..." }
-biome_rowan        = { git = "https://github.com/lionel-/biome", rev = "a1296ea6..." }
-biome_string_case  = { git = "https://github.com/lionel-/biome", rev = "a1296ea6..." }
-biome_text_size    = { git = "https://github.com/lionel-/biome", rev = "a1296ea6..." }
-biome_unicode_table= { git = "https://github.com/lionel-/biome", rev = "a1296ea6..." }
-biome_ungrammar    = { path = "./crates/biome_ungrammar" }
-tree-sitter        = "0.24.7"
-tree-sitter-r      = { git = "https://github.com/r-lib/tree-sitter-r", rev = "d459b97a9a11dd81643ab674938bede2874663b0" }
-```
-
-**Aether must pin the exact same Biome rev.** If aether and air disagree on the
-Biome rev, `RSyntaxNode` types are nominally different and the swap-in at the end
-becomes an ordeal. Additionally aether needs two crates air does not currently
-depend on, from the same rev:
-
-```toml
-biome_console      = { git = "https://github.com/lionel-/biome", rev = "a1296ea6..." }
-biome_diagnostics  = { git = "https://github.com/lionel-/biome", rev = "a1296ea6..." }
-```
-
-These are required for `ParseDiagnostic` rendering (`biome_diagnostics::print_diagnostic_to_string`
-via `biome_console::fmt::Formatter`), which the markdown harness needs to emit the
-`diagnostics` cell.
+Air's Biome deps come from a fork at a pinned rev, not crates.io, and aether's
+`Cargo.toml` pins the same one. Aether adds `biome_console` and
+`biome_diagnostics` from that rev, which air does not depend on — they are what
+render the `diagnostics` cell in the markdown harness (§10.2). See §5 for the
+consequences of the two ever disagreeing.
 
 ### Crate naming
 
@@ -206,32 +185,17 @@ aether/
     ├── aether_r_parser/           # THE NEW PARSER
     │   └── src/
     │       ├── lib.rs
-    │       ├── parse.rs           # public `parse()` entry point
-    │       ├── options.rs
-    │       ├── diagnostics.rs     # expected_* diagnostic constructors
-    │       ├── token_source.rs    # RTokenSource
-    │       ├── parser.rs          # RParser + context flags
+    │       ├── diagnostics.rs     # every diagnostic constructor, in one file
     │       ├── lexer.rs           # RLexer; ends with `#[cfg(test)] mod tests;`
     │       ├── lexer/
     │       │   ├── tests.rs       # the assert_lex! family + `mod` declarations
     │       │   └── tests/         # one file per dispatch arm — see §8.6
-    │       │       ├── bom.rs
-    │       │       ├── whitespace.rs
-    │       │       ├── comments.rs
-    │       │       ├── line_breaks.rs
-    │       │       ├── puncts.rs
-    │       │       ├── brackets.rs
-    │       │       ├── keywords.rs
-    │       │       ├── identifiers.rs
-    │       │       ├── backticks.rs
-    │       │       ├── numbers.rs
-    │       │       ├── dots.rs
-    │       │       ├── specials.rs
-    │       │       ├── strings.rs
-    │       │       ├── raw_strings.rs
-    │       │       ├── checkpoint.rs
-    │       │       └── coverage.rs
-    │       ├── syntax.rs
+    │       │
+    │       ├── parse.rs           # ← Phase 5: public `parse()` entry point
+    │       ├── options.rs         # ← Phase 5
+    │       ├── token_source.rs    # ← Phase 5: RTokenSource
+    │       ├── parser.rs          # ← Phase 5: RParser + context flags
+    │       ├── syntax.rs          # ← Phase 7 onward
     │       └── syntax/
     │           ├── expr.rs        # Pratt loop, primary exprs
     │           ├── call.rs        # call / subset / subset2 / arg lists
@@ -239,66 +203,35 @@ aether/
     │           ├── control.rs     # if/else, for, while, repeat
     │           ├── block.rs       # braced exprs, statement lists, semicolons
     │           └── value.rs       # literals, strings, keywords-as-values
-    ├── aether_r_test_macros/      # proc-macro: `gen_corpus_tests!` (§10.2)
+    ├── aether_r_test_macros/      # ← Phase 6. proc-macro: `gen_corpus_tests!`
     │   └── src/lib.rs             #   modelled on air's `tests_macros`
-    ├── aether_r_parser_tests/     # every corpus test, plus the harness that
-    │   ├── src/                   #   runs them. Depends on the parser; nothing
-    │   │   ├── document.rs        #   depends on it except `xtask`.
+    ├── aether_r_parser_tests/     # ← Phase 6. Every corpus test, plus the
+    │   ├── src/                   #   harness that runs them. Depends on the
+    │   │   ├── document.rs        #   parser; nothing depends on it but `xtask`.
     │   │   ├── check.rs           # run one test, produce its cells (§10.2)
     │   │   └── runner.rs          # `run_file`: read-only compare; panics on
     │   │                          #   mismatch, for use from a `#[test]`
     │   └── tests/
     │       ├── main.rs            # globs corpus/**/*.md → crate::run_file
     │       ├── quick_test.rs      # scratchpad, #[ignore]d
-    │       └── corpus/            # THE TESTS — see §10.3 for the full mapping
-    │           ├── MANIFEST.toml   # every imported test name → its home file
-    │           ├── literals/         # each X.md has a sibling X.snap.md
-    │           │   ├── identifiers.md
-    │           │   ├── identifiers.snap.md
-    │           │   ├── numbers.md
-    │           │   ├── numbers.snap.md
-    │           │   ├── strings.md
-    │           │   ├── strings.snap.md
-    │           │   ├── comments.md
-    │           │   ├── comments.snap.md
-    │           │   ├── constants.md
-    │           │   └── constants.snap.md
-    │           ├── expressions/      # …and so on: X.md + X.snap.md throughout
-    │           │   ├── unary.md
-    │           │   ├── binary.md
-    │           │   ├── colon.md
-    │           │   ├── specials.md
-    │           │   ├── formula.md
-    │           │   ├── help.md
-    │           │   ├── assignment.md
-    │           │   ├── precedence.md
-    │           │   ├── extract.md
-    │           │   ├── namespace.md
-    │           │   ├── call.md
-    │           │   ├── subset.md
-    │           │   ├── subset2.md
-    │           │   └── parenthesized.md
+    │       └── corpus/            # THE TESTS — §10.3.2 has the full mapping
+    │           ├── MANIFEST.toml  # every imported test name → its home file
+    │           ├── literals/      # each X.md has a sibling X.snap.md
+    │           ├── expressions/
     │           ├── functions/
-    │           │   ├── definition.md
-    │           │   ├── lambda.md
-    │           │   └── parameters.md
     │           ├── control/
-    │           │   ├── if.md
-    │           │   ├── for.md
-    │           │   ├── while.md
-    │           │   └── repeat.md
     │           ├── statements/
-    │           │   ├── braces.md
-    │           │   ├── newlines.md
-    │           │   └── semicolons.md
     │           └── recovery/
-    │               └── unmatched-delimiters.md
-    └── aether_r_oracle/           # dev-only differential oracle
+    └── aether_r_oracle/           # ← Phase 6. Dev-only differential oracle
         ├── Cargo.toml             # depends on tree-sitter, tree-sitter-r
         └── src/
             ├── lib.rs
             └── treesitter.rs      # vendored air parse.rs walker
 ```
+
+Everything above the `← Phase N` markers exists. The parser crate currently holds
+the lexer and its diagnostics and nothing else; `lib.rs` carries an
+`#[allow(dead_code)]` on both modules until `RTokenSource` drives them in Phase 5.
 
 ---
 
@@ -315,351 +248,148 @@ the scaffolding.
    tests. This is a deliberate local step — the oracle is feature-gated and CI
    does not run it (§10.4.1).
 
-| Phase | Title | Deliverable |
-|---|---|---|
-| 1 | Repo bootstrap | Workspace builds, CI green, nothing else |
-| 2 | Vendor + rename syntax layer | `just codegen` reproduces `aether_r_syntax` + `aether_r_factory`, identical to air's modulo the rename |
-| 3 | Grammar deviations | `.ungram` + kinds updated, regenerated, documented |
-| 4 | Lexer | Standalone `RLexer`, plus sixteen `#[cfg(test)]` token-stream test files under `src/lexer/tests/` (§8.6) |
-| 5 | Parser scaffolding | `RParser`, `RTokenSource`, diagnostics, `parse()` returns an empty `R_ROOT` |
-| 6 | Test harness + corpus import | All 89 tree-sitter tests imported as `[pending]`; oracle wired up |
-| 7 | Literals, identifiers, program | `1`, `"a"`, `foo`, `TRUE`, `NA_integer_`, `..1`, `...` |
-| 8 | Binary & unary operators | The Pratt core, precedence table, newline sensitivity |
-| 9 | Calls, subset, subset2 | `f(a, b=1)`, `x[i]`, `x[[i]]`, hole arguments |
-| 10 | Extract & namespace | `$`, `@`, `::`, `:::` and the deviation from tree-sitter |
-| 11 | Functions | `function(x) y`, `\(x) y`, parameters, defaults |
-| 12 | Control flow | `if`/`else` (incl. the newline rule), `for`, `while`, `repeat` |
-| 13 | Blocks, statements, semicolons | `{}`, `R_STATEMENT_LIST`, real semicolon tokens |
-| 14 | Recovery polish + air integration | Errors corpus fully green; swap into air |
+Phases 1–4 have landed. Their sections below are compressed to the decisions
+later phases depend on; the repo, `docs/deviations.md`, and the code's own
+comments are the source of truth for everything else.
+
+| Phase | Title | Deliverable | |
+|---|---|---|---|
+| 1 | Repo bootstrap | Workspace builds, CI green, nothing else | ✅ |
+| 2 | Vendor + rename syntax layer | `just codegen` reproduces `aether_r_syntax` + `aether_r_factory`, identical to air's modulo the rename | ✅ |
+| 3 | Grammar deviations | `.ungram` + kinds updated, regenerated, documented | ✅ |
+| 4 | Lexer | Standalone `RLexer`, plus seventeen `#[cfg(test)]` token-stream test files under `src/lexer/tests/` (§8.6) | ✅ |
+| 5 | Parser scaffolding | `RParser`, `RTokenSource`, diagnostics, `parse()` returns an empty `R_ROOT` | |
+| 6 | Test harness + corpus import | All 89 tree-sitter tests imported as `[pending]`; oracle wired up | |
+| 7 | Literals, identifiers, program | `1`, `"a"`, `foo`, `TRUE`, `NA_integer_`, `..1`, `...` | |
+| 8 | Binary & unary operators | The Pratt core, precedence table, newline sensitivity | |
+| 9 | Calls, subset, subset2 | `f(a, b=1)`, `x[i]`, `x[[i]]`, hole arguments | |
+| 10 | Extract & namespace | `$`, `@`, `::`, `:::` and the deviation from tree-sitter | |
+| 11 | Functions | `function(x) y`, `\(x) y`, parameters, defaults | |
+| 12 | Control flow | `if`/`else` (incl. the newline rule), `for`, `while`, `repeat` | |
+| 13 | Blocks, statements, semicolons | `{}`, `R_STATEMENT_LIST`, real semicolon tokens | |
+| 14 | Recovery polish + air integration | Errors corpus fully green; swap into air | |
 
 ---
 
-## 5. Phase 1 — Repo bootstrap
+## 5. Phase 1 — Repo bootstrap — LANDED
 
-Create the workspace. Nothing R-specific yet.
+The workspace, CI, and the tooling every later phase runs. The repo is the source
+of truth for all of it; what follows is only what a later phase needs to know.
 
-```toml
-# Cargo.toml
-[workspace]
-members = ["crates/*", "xtask", "xtask/codegen"]
-resolver = "2"
+**The Biome pin.** `Cargo.toml` pins the same fork and rev as air
+(`lionel-/biome` @ `a1296ea6`), plus `biome_console` and `biome_diagnostics`,
+which air does not depend on and the markdown harness needs for diagnostic
+rendering. Aether and air must not disagree on this rev: `RSyntaxNode` types are
+nominally different across revs, and the swap-in (§12.3) would become an ordeal.
+Treat a rev bump as its own PR with a full snapshot regeneration.
 
-[workspace.package]
-authors      = ["Posit Software, PBC"]
-edition      = "2024"
-rust-version = "1.86"
-license      = "MIT"
-repository   = "https://github.com/posit-dev/aether"
-publish      = false
+`[workspace.dependencies]` already names crates that do not exist yet
+(`aether_r_oracle`, `aether_r_parser_tests`, `aether_r_test_macros`). Cargo does
+not resolve a workspace dependency until something depends on it, so the entries
+are inert until the phase that creates the crate.
 
-[workspace.dependencies]
-# --- pinned to the same fork+rev as posit-dev/air ---
-biome_console       = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
-biome_diagnostics   = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
-biome_parser        = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
-biome_rowan         = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
-biome_string_case   = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
-biome_text_size     = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
-biome_unicode_table = { git = "https://github.com/lionel-/biome", rev = "a1296ea6ba363d8b8d8f02181b2a4ce9315c5ef9" }
-biome_ungrammar     = { path = "./crates/biome_ungrammar" }
+**The commands** are in `justfile` and documented in `CLAUDE.md`. Two omissions
+are deliberate:
 
-aether_r_factory      = { path = "./crates/aether_r_factory" }
-aether_r_oracle       = { path = "./crates/aether_r_oracle" }   # optional, see §10.4.1
-aether_r_parser       = { path = "./crates/aether_r_parser" }
-aether_r_parser_tests = { path = "./crates/aether_r_parser_tests" }
-aether_r_syntax       = { path = "./crates/aether_r_syntax" }
-aether_r_test_macros  = { path = "./crates/aether_r_test_macros" }
+- `just test` does not run `cargo test --doc`. Nextest does not run doctests, and
+  aether has none worth running; add the line back if that changes rather than
+  letting it silently do nothing.
 
-bitflags      = "2.6"
-enumflags2    = "0.7"
-proc-macro2   = "1.0"          # aether_r_test_macros only
-quote         = "1.0"          # aether_r_test_macros only
-rustc-hash    = "2.0"
-serde         = { version = "1.0", features = ["derive"] }
-similar       = "2.6"          # unified diffs in harness failure output
-tracing       = "0.1"
-# Only ever built under `--features oracle` (§10.4.1). Deleted at swap-in.
-tree-sitter   = "0.24.7"
-tree-sitter-r = { git = "https://github.com/r-lib/tree-sitter-r", rev = "d459b97a9a11dd81643ab674938bede2874663b0" }
-unicode-ident = "1.0"
+- No recipe and no CI job passes `--features oracle`. The default test run builds
+  no C dependency and stays fast (§10.4.1).
 
-[workspace.lints.rust]
-# copy air's [lints] block verbatim
-```
+### 5.1 Why nextest
 
-`justfile`:
+Three of its properties matter directly here, and they are the reason `CLAUDE.md`
+says tests run under nextest rather than `cargo test`.
 
-```make
-# Regenerate aether_r_syntax and aether_r_factory from r.ungram
-codegen:
-    cargo run -p xtask_codegen -- grammar
-    cargo fmt
+**Process-per-test isolation.** A panic in one corpus file cannot take down the
+others, and a stack overflow from runaway recursion — very possible while
+developing a recursive descent parser — is reported as a clean failure rather
+than killing the run.
 
-# Run the full test suite
-test:
-    cargo nextest run --workspace
-    cargo test --doc --workspace          # nextest does not run doctests
+**Timeouts.** `cargo test` hangs forever on an infinite loop; nextest terminates
+and reports it. `.config/nextest.toml` sets
+`slow-timeout = { period = "10s", terminate-after = 3 }`, which turns "the parser
+never loops forever" (invariant 3) from a six-hour CI hang into a normal red
+test.
 
-# Regenerate all markdown snapshots, then verify they are stable
-accept:
-    cargo run -p xtask -- accept
-    cargo nextest run --workspace
+**Filter expressions.** `-E 'test(/Dollar/)'` beats substring matching once there
+are ~90 named corpus tests.
 
-# Differential check against tree-sitter-r. Local only; CI does not run this,
-# and the whole crate is deleted at swap-in.
-oracle:
-    cargo nextest run -p aether_r_parser_tests --features oracle
-
-# Run the scratchpad in tests/quick_test.rs
-quick:
-    cargo nextest run -p aether_r_parser_tests --run-ignored all -E 'test(quick_test)' --no-capture
-```
-
-Note `just test` deliberately omits `--features oracle`: the default test run
-builds no C dependency and stays fast, and the oracle is invoked on purpose at the
-end of each phase.
-
-### 5.1 nextest
-
-**The test runner is [`cargo-nextest`](https://nexte.st), not `cargo test`.**
-This is not cosmetic — three of its properties matter directly for a parser project.
-
-**Process-per-test isolation.** Each test binary invocation runs one test in its
-own process. A panic in one corpus file cannot take down the others, and a stack
-overflow from runaway recursion (very possible while developing a recursive
-descent parser) is reported as a clean failure rather than killing the run.
-
-**Timeouts.** `cargo test` hangs forever on an infinite loop. nextest terminates
-and reports it. Given that "the parser never loops forever" is one of our stated
-invariants (§14), this turns a class of bug from "CI hangs for six hours" into a
-normal red test.
-
-**Filter expressions.** `-E 'test(/Dollar/)'` is far better than substring matching
-once there are ~90 named corpus tests.
-
-`.config/nextest.toml`:
-
-```toml
-[profile.default]
-# Report every failing corpus file in one run instead of stopping at the first.
-fail-fast = false
-# A parser test that takes 10s is looping. Warn, then kill.
-slow-timeout = { period = "10s", terminate-after = 3 }
-failure-output = "immediate-final"
-status-level = "fail"
-
-[profile.ci]
-inherits = "default"
-fail-fast = false
-retries = 0
-failure-output = "immediate-final"
-final-status-level = "slow"
-
-[profile.ci.junit]
-path = "junit.xml"
-```
-
-Note `retries = 0` deliberately: parser tests are deterministic, and a retry that
-turns a real failure green is strictly harmful here.
-
-**Two caveats to remember:**
-1. nextest does **not** run doctests. `just test` runs `cargo test --doc`
-   separately. If aether ends up with no doctests worth running, drop that line
-   rather than letting it silently do nothing.
-2. `#[ignore]` tests need `--run-ignored all` (see the `quick` recipe above).
+`retries = 0` in the CI profile is deliberate: parser tests are deterministic,
+and a retry that turns a real failure green is strictly harmful. `#[ignore]`d
+tests need `--run-ignored all`, which is what the `quick` recipe passes.
 
 ### 5.2 CI
 
-`.github/workflows/ci.yml` jobs:
+`.github/workflows/ci.yml` runs fmt, clippy with `-D warnings`, the nextest
+suite under the `ci` profile, and a codegen freshness gate
+(`just codegen && git diff --exit-code`).
 
-```yaml
-- uses: taiki-e/install-action@nextest
-- run: cargo fmt --all --check
-- run: cargo clippy --workspace --all-targets -- -D warnings
-- run: cargo nextest run --workspace --profile ci
-- run: cargo test --doc --workspace
-# codegen freshness
-- run: just codegen && git diff --exit-code
-# snapshot freshness: `accept` must be a no-op on a clean tree
-- run: cargo run -p xtask -- accept && git diff --exit-code
-```
-
-That last job is worth calling out: it means a PR can never land with stale
-snapshot cells, because regenerating them on CI must produce no diff.
-
-**No oracle job, deliberately** (§10.4.1). `--features oracle` appears nowhere
-above, so CI never builds tree-sitter-r or its C toolchain. The oracle is a local
-development aid with a scheduled death; paying for it on every push, and keeping
-it green as a merge gate, would be spending real budget on a crate we plan to
-delete.
-
-**Done when:** the empty workspace builds, `cargo nextest run --workspace` runs
-(zero tests, exit 0), and CI is green.
+One more freshness gate joins it in Phase 6, and the workflow carries a `TODO!`
+comment marking the spot: `cargo run -p xtask -- accept && git diff --exit-code`.
+That gate is what makes it impossible to land a PR with stale snapshot cells,
+because regenerating them on CI must produce no diff.
 
 ---
 
-## 6. Phase 2 — Vendor the syntax layer
+## 6. Phase 2 — Vendor the syntax layer — LANDED
 
-Copy from air, unchanged:
+`xtask/codegen/`, `crates/biome_ungrammar/`, `crates/aether_r_syntax/`, and
+`crates/aether_r_factory/` are vendored from air. `just codegen` regenerates the
+last two from `xtask/codegen/r.ungram`.
 
-```
-air/xtask/codegen/            → aether/xtask/codegen/
-air/xtask/codegen/r.ungram    → aether/xtask/codegen/r.ungram
-air/crates/biome_ungrammar/   → aether/crates/biome_ungrammar/
-air/crates/air_r_syntax/      → aether/crates/aether_r_syntax/
-air/crates/air_r_factory/     → aether/crates/aether_r_factory/
-```
-
-Then apply **the rename**, which is three lines in
-`xtask/codegen/src/language_kind.rs`:
-
-```diff
--    pub fn formatter_crate_name(&self) -> String { format!("air_{self}_formatter") }
--    pub fn syntax_crate_name(&self)    -> String { format!("air_{self}_syntax") }
--    pub fn factory_crate_name(&self)   -> String { format!("air_{self}_factory") }
-+    pub fn syntax_crate_name(&self)    -> String { format!("aether_{self}_syntax") }
-+    pub fn factory_crate_name(&self)   -> String { format!("aether_{self}_factory") }
-```
-
-Because `ast.rs` derives its output paths from these functions, codegen now writes
-to `crates/aether_r_syntax/src/generated/` and `crates/aether_r_factory/src/generated/`
-without any further changes, and the generated factory emits
-`use aether_r_syntax::…`. Delete `formatter_crate_name` and
-`xtask/codegen/src/formatter.rs` along with it — aether has no formatter.
-
-The hand-written files in the syntax crate (`lib.rs`, `syntax_node.rs`,
-`call_ext.rs`, `argument_ext.rs`) and the factory's `lib.rs` are *not* generated,
-so rename their crate references by hand. There are only a handful.
-
-Air's codegen is otherwise multi-language-aware (`language_kind.rs` is built around
-a `LanguageKind` enum with a single `R` variant); trim it further only if it drags
-in unrelated deps. A smaller diff against upstream air is worth more than tidiness.
-
-**Acceptance test for this phase — do not skip it.** Two checks:
-
-1. `just codegen` on a clean checkout leaves `git diff --exit-code` empty
-   (codegen is idempotent).
-2. Aether's `crates/aether_r_syntax/src/generated/` is **byte-identical to air's
-   `crates/air_r_syntax/src/generated/` after applying `s/air_r_/aether_r_/g` to
-   air's copy**. Script this as a one-off comparison and paste the result in the
-   PR. If it does not match, you have codegen drift that will silently corrupt
-   every tree comparison for the rest of the project.
-
-```bash
-# scratch check, not committed
-diff <(sed 's/air_r_/aether_r_/g' ../air/crates/air_r_syntax/src/generated/nodes.rs) \
-     crates/aether_r_syntax/src/generated/nodes.rs
-```
-
-Also vendor air's hand-written syntax extensions: `syntax_node.rs`, `call_ext.rs`,
-`argument_ext.rs`, and `lib.rs`. These are not generated and are used by air's
-formatter, so they must come along for the swap-in to work.
-
-**Done when:** `just codegen` is idempotent and output matches air byte-for-byte.
-
----
-
-## 7. Phase 3 — Grammar deviations
-
-This is where aether's tree intentionally diverges. Landing it now means every
-later phase targets the final shape.
-
-### 7.1 Semicolons
-
-**Current behavior.** `SEMICOLON` exists in `r_kinds_src.rs` but never appears in a
-tree. `parse.rs` maps `;` to `TriviaPieceKind::Whitespace`
-(there are four `TODO(semicolon)` comments about this). So `1;2` snapshots as:
-
-```
-RDoubleValue { value_token: R_DOUBLE_LITERAL@0..1 "1" [] [] },
-RDoubleValue { value_token: R_DOUBLE_LITERAL@1..3 "2" [Whitespace(";")] [] },
-```
-
-The `;` is literally inside a whitespace trivia piece. The formatter can never
-`format_removed()` it because it is not a token.
-
-**Why the obvious fix does not work.** You cannot put `SEMICOLON` tokens directly
-into air's existing `R_EXPRESSION_LIST`. Biome's `AstNodeListIterator::slot_to_node`
-panics on a token slot:
+**The rename was three functions** in `xtask/codegen/src/language_kind.rs`:
 
 ```rust
-SyntaxSlot::Token(token) => panic!(
-    "Expected node of type `{:?}` but found token `{:?}` instead.", ...
-),
+pub fn syntax_crate_name(&self)  -> String { format!("aether_{self}_syntax") }
+pub fn factory_crate_name(&self) -> String { format!("aether_{self}_factory") }
 ```
 
-Node lists are homogeneous. A separated list (`(A (';' A)* ';'?)`) is also wrong,
-because R separates statements by newline far more often than by `;`, and every
-missing separator would become an error slot.
+`ast.rs` derives its output paths from them, so renaming them also redirected
+codegen output and rewrote the `use aether_r_syntax::…` lines the generated
+factory emits. `formatter_crate_name()` and `xtask/codegen/src/formatter.rs` were
+dropped — aether has no formatter crate, and air keeps its own codegen for that.
 
-**The design: `RStatementList` of `RStatement`.** Air's `RExpressionList` is
-replaced outright — it is not kept alongside — because once each element carries an
-optional semicolon it is a list of *statements*, not of expressions, and the name
-should say so.
+The hand-written files in the syntax crate (`lib.rs`, `syntax_node.rs`,
+`call_ext.rs`, `argument_ext.rs`) came along too. They are not generated, and
+air's formatter uses them, so they must be here for the swap-in to work.
+
+Phase 2's acceptance check — that aether's generated output is byte-identical to
+air's after `s/air_r_/aether_r_/g` — passed at the time and is not re-run. What
+guards it going forward is the codegen freshness gate in CI, plus the fact that
+Phase 3's deviations are now the only intended delta.
+
+---
+
+## 7. Phase 3 — Grammar deviations — LANDED
+
+Aether's tree diverges from air's here, deliberately and before any parser code,
+so every later phase targets the final shape.
+
+**`docs/deviations.md` is the source of truth.** It carries the full argument for
+each deviation, with examples and both trees, and it has grown past what this
+plan seeded — deviations 6 through 9 landed with the lexer in Phase 4. Do not
+restate it here; add to it.
+
+What later phases code against:
+
+**`RStatementList` of `RStatement`** replaces `RExpressionList` outright. Both of
+`RStatement`'s slots are optional, the same trick `RArgument` already uses:
 
 ```ungram
-// ----------------------------------------------------------------
-// Statements
-
 RStatementList = RStatement*
 
-// A single statement.
-//
-// Both slots are optional, using the same trick as `RArgument`:
-// - `1`      → expression, no semicolon
-// - `1;`     → expression + semicolon
-// - `;`      → no expression, semicolon only (R allows `;;` and a leading `;`)
-//
-// A statement with neither slot filled is never produced by the parser.
 RStatement =
 	expression: AnyRExpression?
 	semicolon: ';'?
 ```
 
-The `RArgument` precedent is already in the file, with a comment explaining the
-same technique:
+`1` fills the first slot, `1;` fills both, and a bare `;` fills only the second.
+A statement with neither slot filled is never produced by the parser.
 
-```ungram
-RArgument =
-	name_clause: RArgumentNameClause?
-	value: AnyRExpression?
-```
-
-The two nodes that held an `RExpressionList` are updated in place:
-
-```diff
- RRoot =
- 	bom: 'UNICODE_BOM'?
--	expressions: RExpressionList
-+	statements: RStatementList
- 	eof: 'EOF'
-
--RBracedExpressions =
-+RBracedStatements =
- 	'{'
--	expressions: RExpressionList
-+	statements: RStatementList
- 	'}'
-```
-
-**The field is renamed too**, so the generated accessors read the way the tree
-actually is. Consumers walk `.statements()`, then reach through each statement:
-
-```rust
-for statement in root.statements() {
-    // `expression` is `Option<AnyRExpression>` — absent for a bare `;`
-    if let Some(expression) = statement.expression() {
-        // …
-    }
-    // `semicolon_token` is `Option<SyntaxToken>` — present only when written
-    if let Some(semicolon) = statement.semicolon_token() {
-        // the formatter's `format_removed(&semicolon)` hook
-    }
-}
-```
-
-The exact generated signatures, confirmed against air's current
-`crates/air_r_syntax/src/generated/nodes.rs`:
+The generated accessors, which §11.7 and §12.3 both write against:
 
 ```rust
 impl RRoot {
@@ -669,576 +399,105 @@ impl RRoot {
 }
 
 impl RStatement {
-    pub fn as_fields(&self) -> RStatementFields { ... }
     pub fn expression(&self) -> Option<AnyRExpression> { ... }
     pub fn semicolon_token(&self) -> Option<SyntaxToken> { ... }
 }
 ```
 
-Three codegen rules are doing the work here, and they are worth internalising
-because they determine what the formatter code will look like: an optional node
-slot becomes `Option<T>` (exactly like today's `RArgument::value()`), an optional
-token slot becomes `Option<SyntaxToken>` *and* gets a `_token` suffix (exactly like
-today's `RRoot::bom_token()`), and a list slot is returned bare because it is
-always present even when empty. So `root.statements()` needs no unwrapping and
-iterates directly.
+Three codegen rules produce that shape, and they are worth internalising because
+they determine what air's formatter code will look like: an optional node slot
+becomes `Option<T>`, an optional token slot becomes `Option<SyntaxToken>` and
+gains a `_token` suffix, and a list slot is returned bare because it is always
+present even when empty. So `root.statements()` needs no unwrapping.
 
-`RBracedExpressions` is renamed to **`RBracedStatements`** in the same pass, since
-it now holds statements rather than expressions. Two more mechanical edits follow
-from it — the union that lists it:
+**`RBracedExpressions` is now `RBracedStatements`**, since it holds statements.
 
-```diff
- AnyRExpression =
- 	AnyRValue
- 	| RIdentifier
- 	…
--	| RBracedExpressions
-+	| RBracedStatements
-```
+**`R_BOGUS_SELECTOR` is a fifth `AnyRSelector` variant.** Without it the
+generated factory does not panic on a failed cast of the `right` slot — it maps
+`R_EXTRACT_EXPRESSION` through `to_bogus()` and collapses the whole expression
+into one bogus node. Round-trip still passes, so nothing in the harness would
+catch it. Phase 10 (§11.4) is what finally uses the kind.
 
-and `r_kinds_src.rs`:
-
-```diff
--        "R_BRACED_EXPRESSIONS",
-+        "R_BRACED_STATEMENTS",
-```
-
-At swap time this renames air's `AnyRExpression::RBracedExpressions` variant and
-its formatter rule file
-`crates/air_r_formatter/src/r/expressions/braced_expressions.rs`
-(→ `braced_statements.rs`). Air's formatter codegen derives those paths from the
-node names, so re-running air's formatter codegen after the swap generates the new
-stub; expect to move the hand-written body across by hand and retarget its `impl`.
-
-In `r_kinds_src.rs`, the `nodes` array changes:
-
-```diff
--        "R_EXPRESSION_LIST",
-+        "R_STATEMENT_LIST",
-+        "R_STATEMENT",
-```
-
-`R_STATEMENT_LIST` must be recognised as a **list** kind so
-`SyntaxKind::is_list()` returns true for it — air's codegen derives that from the
-`*` in the ungram rule, so it happens automatically, but the harness's
-`has_bogus_nodes_or_empty_slots` check depends on it, so verify it after
-regenerating.
-
-**Consequences to write down in the PR description**, because air's formatter will
-need updating at swap time:
-- `RStatementList` iteration yields `RStatement`, not `AnyRExpression`.
-- `RRoot::statements()` and `RBracedStatements::statements()` replace
-  `.expressions()`; every walk gains a `.expression()` hop to reach the payload.
-- `RStatement::semicolon_token()` is the new hook the formatter uses to drop or
-  rewrite semicolons.
-- Air's formatter rules that walk expressions directly gain one `.expression()`
-  hop and a `format_removed(semicolon)`. **Settled with the owner:** the
-  semicolon is removed and replaced by a hard line break, so `1;2` formats as two
-  lines. See §12.3 step 4 for the two comment-placement rules this forces.
-
-**Two alternatives were considered and rejected.** Keeping semicolons as trivia
-under a dedicated `TriviaPieceKind` is not possible at all — `TriviaPieceKind` is
-a Biome enum and aether does not fork it. Emitting `;` as a real token while
-keeping a list of bare expressions, with the `;` as a slot on each expression
-node, works but requires touching every expression node in the grammar. The
-wrapper is cleaner and is what Phase 3 lands.
-
-### 7.2 Extract operator RHS
-
-**Current behavior.** tree-sitter-r's `extract_operator` has `optional(field("rhs", ...))`
-deliberately — the grammar comment says this is so `dplyr::` yields a namespace
-node with a known package name for completions. Air's `.ungram` already declares
-the RHS **required** (`right: AnyRSelector`), so the mismatch shows up as
-`right: missing (required)` with **no diagnostic**, and the test lives in
-`tests/snapshots/undefined/` precisely because nobody was happy with it. Its header
-comment says:
-
-> tree-sitter-r currently allows an `optional()` RHS, but our grammar requires a
-> RHS, so we get `missing (required)`. These should eventually be parse errors.
-
-**Aether's behavior.** No `.ungram` change is needed — the slot is already
-required. The deviation is purely in the parser:
-
-- `a$b`, `a$"b"`, `a$...`, `a$..1` → `R_EXTRACT_EXPRESSION`, clean.
-- `a$` → `R_EXTRACT_EXPRESSION` with a missing `right` slot **plus** an
-  `expected_selector` diagnostic pointing at the position after `$`, with a
-  secondary label on the `$` itself. The diagnostic names the specific operator,
-  so `a$`, `a@`, `a::` and `a:::` each read differently:
-
-  ```
-  × Expected an identifier, a string, `...` or `..i` but instead found the end of the file.
-
-    1 │ dplyr::
-      │      ── `::` requires a name on the right
-      │        ▲
-      │        ╰── Expected an identifier, a string, `...` or `..i` here.
-  ```
-- `a$1`, `a$NA`, `a$NULL`, `a$TRUE`, `a$(b)`, `a${b}` → the RHS is present but not
-  a valid selector: wrap it in a bogus node and emit `expected_selector` with the
-  offending range labelled. **Settled with the owner:** the bogus node consumes
-  exactly one atom — no postfix, no infix — so `a$1 + 2` still parses the `+`
-  normally. §11.4 has the full boundary table. The bogus node's kind is
-  `R_BOGUS_SELECTOR`, a new node kind — see §7.2.1.
-
-Same treatment for `@`, `::`, `:::`.
-
-#### 7.2.1 `AnyRSelector` needs a bogus variant
-
-Checked against air's generated code, and this does **not** work out of the box.
-`AnyRSelector` has no bogus variant:
-
-```rust
-// air/crates/air_r_syntax/src/generated/nodes.rs
-pub enum AnyRSelector {
-    RDotDotI(RDotDotI),
-    RDots(RDots),
-    RIdentifier(RIdentifier),
-    RStringValue(RStringValue),
-}
-```
-
-and the generated factory does not panic when the `right` slot fails to cast — it
-does something quieter and worse:
-
-```rust
-// air/crates/air_r_factory/src/generated/syntax_factory.rs, R_EXTRACT_EXPRESSION
-if current_element.is_some() {
-    return RawSyntaxNode::new(
-        R_EXTRACT_EXPRESSION.to_bogus(),
-        children.into_iter().map(Some),
-    );
-}
-```
-
-`to_bogus()` maps `R_EXTRACT_EXPRESSION` to `R_BOGUS_EXPRESSION`, so `a$1` would
-collapse the **whole** extract expression into a single bogus node rather than
-producing an `R_EXTRACT_EXPRESSION` with a bogus RHS. Round-trip still passes, so
-nothing in the harness would catch it; it would only show up by reading the
-snapshot.
-
-The fix is a **new bogus node kind, `RBogusSelector`**, landed in Phase 3 with the
-other grammar deviations. Two edits to `r.ungram`:
-
-```diff
- RBogus = SyntaxElement*
- RBogusValue = SyntaxElement*
- RBogusExpression = SyntaxElement*
-+RBogusSelector = SyntaxElement*
-
- AnyRSelector =
- 	RIdentifier
- 	| RStringValue
- 	| RDots
- 	| RDotDotI
-+	| RBogusSelector
-```
-
-and one to `r_kinds_src.rs`:
-
-```diff
-         "R_BOGUS",
-         "R_BOGUS_VALUE",
-         "R_BOGUS_EXPRESSION",
-+        "R_BOGUS_SELECTOR",
-```
-
-Adding a kind means the two hand-written `RSyntaxKind` matches in
-`aether_r_syntax/src/lib.rs` need arms — they are exhaustive, so the compiler
-demands it. `is_bogus()` returns `true`, and `to_bogus()` is idempotent, exactly
-as `R_BOGUS_VALUE` is:
-
-```rust
-// Bogus selector
-RSyntaxKind::R_BOGUS_SELECTOR => RSyntaxKind::R_BOGUS_SELECTOR,
-```
-
-Note what does *not* change: the four selector node kinds keep their existing
-`to_bogus()` mappings. `to_bogus()` answers "this node kind failed to build, what
-does it degrade to", which is about the node being built, not the slot it sits in
-— and `R_IDENTIFIER` or `R_STRING_VALUE` appear in plenty of non-selector
-positions. Only the parser decides to build an `R_BOGUS_SELECTOR`, and it only
-does so in a selector slot.
-
-**Why a new kind rather than reusing `RBogusValue`.** Biome's convention is one
-bogus kind per restricted position, and `js.ungram` has ten of them —
-`JsBogusBinding`, `JsBogusParameter`, `JsBogusMember`, `JsBogusAssignment`,
-`JsBogusImportAssertionEntry`, `JsBogusNamedImportSpecifier`, `TsBogusType`, and
-the rest. `AnyJsDecorator` is the one place Biome reuses a broader bogus kind
-(`JsBogusExpression`) in a restricted union, and it is the exception. Two concrete
-payoffs here:
-
-- **The name does not lie.** The bogus RHS wraps one whole prefix atom (§11.4), so
-  `a${b}` wraps `R_BRACED_STATEMENTS`, `a$(b)` wraps `R_PARENTHESIZED_EXPRESSION`,
-  and `a$-1` wraps `R_UNARY_EXPRESSION`. None of those is a value. Snapshots are
-  the artifact reviewers read most, and they should read truthfully.
-
-- **The kind alone identifies the position.** A tree walker — air's LSP, a lint
-  rule — seeing `R_BOGUS_SELECTOR` knows a selector was malformed without
-  inspecting the parent. `R_BOGUS_VALUE` would have been ambiguous with a
-  malformed literal.
-
-`R_BOGUS_SELECTOR` is also disjoint from `AnyRExpression`, where `R_BOGUS_VALUE`
-is a member via `AnyRValue`. That makes `RExtractExpression`'s `left`
-(`AnyRExpression`) and `right` (`AnyRSelector`) slots unable to accept the same
-bogus kind. Not load-bearing — the required operator token between them already
-anchors the factory's positional scan, verified by driving `RSyntaxFactory`
-directly for both orderings — but it costs nothing to keep them disjoint.
-
-**Swap-in cost**, since this is one more kind than air has: air's `RSyntaxKind`,
-`nodes.rs`, and both factories are generated, so they follow from air's own
-codegen. The hand-written touch points are air's `is_bogus()` and `to_bogus()` in
-`air_r_syntax/src/lib.rs`, and one formatter rule file. The latter is nearly free
-— air's bogus rules are empty impls that its codegen stubs out:
-
-```rust
-impl FormatBogusNodeRule<RBogusSelector> for FormatRBogusSelector {}
-```
-
-`FormatAnyRSelector` in `air_r_formatter/src/r/any/selector.rs` gains a fifth arm
-in the same generated pass.
-
-This means `tests/snapshots/undefined/extract_expression_error.R` and
-`namespace_expression_error.R` become *error* tests in aether, and their corpus
-counterparts (`Dollar No RHS`, `Slot No RHS`, `Namespace With Missing RHS`) get
-marked `[deviation]` so the oracle skips them.
-
-### 7.3 The deviation ledger
-
-Create `docs/deviations.md` in aether and keep it current. Every intentional
-difference from tree-sitter-r goes here with an example, the tree-sitter output,
-the aether output, and the rationale. The oracle reads nothing from this file, but
-reviewers will, and so will whoever updates air's formatter.
-
-Give it **three** headings. The first is aether's own deviations. The second,
-*"tree-sitter-r vs. R"*, records places where tree-sitter-r already differs from R
-and aether follows tree-sitter for oracle agreement — see §8.4 for two concrete
-ones (`%foo` at EOF, and backslashes inside `%…%`). The third, *"Inherited from
-air"*, records air conventions aether copies without endorsing, so they are
-findable when the swap is done and snapshots can be regenerated in one deliberate
-pass. Keeping the categories apart matters: the first is a set of choices we made
-and can revisit, the second is upstream behaviour we are deliberately not fixing,
-and the third is a to-do with a natural date.
-
-Seed the third with the one entry we know of:
-
-> **Trivia attachment polarity.** Air attaches whitespace between two same-line
-> tokens as *leading* of the following token; Biome's own parsers attach it as
-> *trailing* of the preceding one. Air also makes the same
-> whitespace-before-a-newline trailing or leading depending on whether any token
-> follows later in the file (`1 + \n1` vs `1  \n `). Aether copies both, because
-> deviating would change every snapshot and every oracle comparison for no
-> user-visible gain — the formatter regenerates whitespace regardless, and
-> round-trip holds either way (§9.1).
->
-> The JS-shaped simplification, if this is ever revisited, is `JsTokenSource`'s
-> whole body: `let mut trailing = !first;` and, in a single streaming pass,
-> `if kind.is_newline() { trailing = false; }` before pushing each piece. No gap
-> buffer, no one-piece lookahead, no `between_two_tokens`, and the three special
-> cases collapse — whitespace and comments are trailing of the preceding token
-> until a newline is seen, then leading. That is roughly forty lines shorter than
-> §9.1's loop and states in one sentence. The cost of adopting it is a
-> whole-corpus snapshot regeneration, which is cheap *after* the swap and
-> expensive before it, since it would mask exactly the drift the oracle is
-> watching for.
-
-Seed the first with:
-
-| # | Deviation | tree-sitter-r | aether |
-|---|---|---|---|
-| 1 | Semicolons | trivia, invisible | `SEMICOLON` token in `RStatement`; formatter removes it and hard-breaks the line, so `1;2` → two lines |
-| 1b | Statement list | `R_EXPRESSION_LIST` of expressions | `R_STATEMENT_LIST` of `R_STATEMENT` |
-| 1c | Braces | `R_BRACED_EXPRESSIONS` | `R_BRACED_STATEMENTS` |
-| 2 | Extract RHS | `optional()`, silent | required, diagnostic + bogus |
-| 3 | Namespace RHS | `optional()`, silent | required, diagnostic + bogus |
-| 4 | Error recovery | whole-file bogus node | localized bogus nodes, tree still walkable |
-| 5 | `AnyRSelector` | 4 variants, no bogus | new `RBogusSelector` kind added as a fifth variant, so a malformed RHS is contained in the `right` slot instead of collapsing the whole expression (§7.2.1) |
-
-**Done when:** `.ungram` and `r_kinds_src.rs` updated, `just codegen` run, generated
-code compiles, `docs/deviations.md` seeded, and the delta vs air's generated code is
-*only* these two sets of changes:
-
-- the statement list — `R_EXPRESSION_LIST` replaced by `R_STATEMENT_LIST`,
-  `R_STATEMENT` added, and `RRoot`/`RBracedStatements` pointing at the new list
-  type
-
-- the bogus selector — `R_BOGUS_SELECTOR` added as the last kind before `__LAST`
-  so nothing renumbers, `AnyRSelector::can_cast` accepting it, and arms in
-  `is_bogus()` and `to_bogus()`
-
-Phase 4 adds a third set — `ERROR_TOKEN` (§8.4, deviation 6) — so this is the
-delta as of *this* phase, not a standing invariant. Keep the list growing here as
-kinds land.
+`R_STATEMENT_LIST` is recognised as a list kind, so `SyntaxKind::is_list()`
+returns true for it. The harness's `has_bogus_nodes_or_empty_slots` check
+(§10.2) depends on that.
 
 ---
 
-## 8. Phase 4 — The lexer
+## 8. Phase 4 — The lexer — LANDED
 
-`crates/aether_r_parser/src/lexer.rs`. This phase produces a **standalone,
-independently testable** lexer. No parser yet.
+`crates/aether_r_parser/src/lexer.rs`, one module, with its tests underneath it
+in `src/lexer/tests/`. The tests are descendants of the module they test, which
+is why they sit there rather than in a test crate: they read private fields
+(`after_line_break`, `diagnostics`) and call private helpers directly, and
+`#[cfg(test)]` keeps every byte of them out of the parser air links against.
 
-The lexer is one module, `lexer.rs`, with a `#[cfg(test)] mod tests;` at the
-bottom. Its tests live under `lexer/` and are therefore descendants of the module
-they test, which is the whole reason they sit here rather than in a test crate:
-they read private fields (`after_line_break`, `diagnostics`) and call private
-helpers directly, and `#[cfg(test)]` keeps every byte of them out of the parser
-air links against. §8.6 is the test plan and it is not an afterthought — the lexer
-is the one component whose bugs every later phase inherits silently.
+The code is the source of truth for how it lexes. What follows is the contract
+the parser phases are written against, plus the landmines.
 
-### 8.1 The trait we implement
+### 8.1 The traits we implement
 
-From `biome_parser::lexer::Lexer` at the pinned rev:
+`RLexer` implements `biome_parser::lexer::Lexer`, `LexerWithCheckpoint`, and
+`ReLexer`. `LexerWithCheckpoint` is what gives `NthToken` lookahead for free via
+`BufferedLexer`.
 
-```rust
-pub trait Lexer<'src> {
-    const NEWLINE: Self::Kind;
-    const WHITESPACE: Self::Kind;
-    type Kind: SyntaxKind;
-    type LexContext: LexContext + Default;
-    type ReLexContext;
+**Lookahead lexes in `RLexContext::default()`**, so it is only meaningful for
+tokens whose lexing is context-free — it cannot peek past a `STRING_OPEN`, whose
+body would come back lexed as code. That constraint is why §11.3 parses argument
+names optimistically rather than looking ahead for the `=`.
 
-    fn source(&self) -> &'src str;
-    fn current(&self) -> Self::Kind;
-    fn current_start(&self) -> TextSize;
-    fn next_token(&mut self, context: Self::LexContext) -> Self::Kind;
-    fn has_preceding_line_break(&self) -> bool;
-    fn has_unicode_escape(&self) -> bool;
-    fn rewind(&mut self, checkpoint: LexerCheckpoint<Self::Kind>);
-    fn finish(self) -> Vec<ParseDiagnostic>;
-    fn position(&self) -> usize;
-    fn push_diagnostic(&mut self, diagnostic: ParseDiagnostic);
-    // + provided: current_range, current_flags, consume_newline_or_whitespaces, ...
-}
-
-pub trait LexerWithCheckpoint<'src>: Lexer<'src> {
-    fn checkpoint(&self) -> LexerCheckpoint<Self::Kind>;
-}
-```
-
-Implement both. `LexerWithCheckpoint` is what gives us `NthToken` lookahead for
-free via `BufferedLexer`. Note that `nth` lexes ahead in `RLexContext::default()`,
-so it is only meaningful for tokens whose lexing is context-free — it cannot be
-used to peek past a `STRING_OPEN`, whose body would come back lexed as code. That
-constraint is why §11.3 parses argument names optimistically rather than looking
-ahead for the `=`.
-
-The kinds such a lookahead returns are useless, but they are *only* useless: it
+The kinds such a lookahead returns are useless, but they are only useless: it
 leaves nothing behind for the real pass to trip over, because the lexer keeps no
 state a rewind cannot restore. §8.2.1 is where that is arranged, and it is load
 bearing — the lookahead pass and the rewind that undoes it are both
 `BufferedLexer`'s business, not the parser's, so no parser-side discipline can
 substitute for it.
 
-### 8.2 Skeleton
+### 8.2 Lexer state and the sticky line-break flag
 
-```rust
-// crates/aether_r_parser/src/lexer.rs
-use aether_r_syntax::{RSyntaxKind, RSyntaxKind::*, T};
-use biome_parser::diagnostic::ParseDiagnostic;
-use biome_parser::lexer::{
-    Lexer, LexerCheckpoint, LexerWithCheckpoint, LexContext, TokenFlags,
-};
-use biome_rowan::{TextRange, TextSize};
+Every field of `RLexer` is one `LexerCheckpoint` restores, and `checkpoint()` /
+`rewind()` carry all of them. Two are worth knowing about:
 
-/// The two string contexts carry the delimiter because the lexer remembers
-/// nothing between calls. The caller derives it from the `STRING_OPEN` token's
-/// text with `RStringDelimiter::from_open()`.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub(crate) enum RLexContext {
-    #[default]
-    Regular,
-    /// Lex the body of a string opened with this delimiter.
-    /// Emits `STRING_CONTENT` (possibly empty → we skip straight to close).
-    StringContent(RStringDelimiter),
-    /// Lex the closing delimiter of a string.
-    StringEnd(RStringDelimiter),
-}
+**`after_line_break`** is sticky across `next_token` calls. It is set by the
+overridden `consume_newline_or_whitespaces()` and cleared only once a non-trivia
+token has been stamped with `PRECEDING_LINE_BREAK`. That is what lets the lexer
+report a preceding line break even though `NEWLINE` is a token in its own right,
+and it is exactly `biome_js_parser`'s mechanism for ASI. It survives `WHITESPACE`
+and `COMMENT`, so `1\n  # c\n  + 2` reports the break on `+` and not on `2`.
 
-impl LexContext for RLexContext {
-    fn is_regular(&self) -> bool {
-        matches!(self, RLexContext::Regular)
-    }
-}
+`LexerCheckpoint` carries `after_line_break` alongside `current_flags`, and the
+two are not redundant: `current_flags` records what was stamped on the
+checkpointed token, while `after_line_break` is the sticky state lexing resumes
+from. A rewind that restored only one would silently lose the break — invisible
+until Phase 12's `else` handling, and silent even then. `checkpoint.rs` has a
+test for exactly this.
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum RStringDelimiter {
-    Single,
-    Double,
-    /// `r"---[` … `]---"`. Records the quote char, hyphen count, bracket pair.
-    Raw { quote: u8, hyphens: u8, bracket: RawStringBracket },
-}
-// NOTE: there is deliberately no `Backtick` variant. See §8.4 — a backtick-quoted
-// name is an IDENT, not a string.
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum RawStringBracket { Paren, Bracket, Brace }
-
-/// The re-lexing requests the parser can make.
-///
-/// Only one exists, and by §8.4 only one ever should: `]]` is lexed as two `]`
-/// and the parser joins them back together at its single join site (§11.3).
-/// Modelled as an enum rather than a unit type because
-/// [`biome_parser::lexer::ReLexer`] requires an associated `ReLexContext`, and
-/// because a second variant would be a design change worth seeing in a diff.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum RReLexContext {
-    /// Re-lex `]` as `]]` when the very next byte is another `]`. A no-op on any
-    /// other current token, and idempotent.
-    JoinBrackets,
-}
-
-pub(crate) struct RLexer<'src> {
-    source: &'src str,
-    position: usize,
-    current_kind: RSyntaxKind,
-    current_start: TextSize,
-    current_flags: TokenFlags,
-    /// Sticky across `next_token` calls: set by `consume_newline`, cleared only
-    /// once a *non-trivia* token has been stamped with it. This is what lets the
-    /// lexer report a preceding line break even though `NEWLINE` is a token in
-    /// its own right (§8.5), and it is exactly `biome_js_parser`'s mechanism.
-    after_line_break: bool,
-    unicode_bom_length: usize,
-    diagnostics: Vec<ParseDiagnostic>,
-}
-// NOTE: every field here is one `LexerCheckpoint` restores. The lexer holds no
-// memory of the string it opened — see "The lexer keeps no string state" below.
-
-impl<'src> Lexer<'src> for RLexer<'src> {
-    const NEWLINE: RSyntaxKind = NEWLINE;
-    const WHITESPACE: RSyntaxKind = WHITESPACE;
-    type Kind = RSyntaxKind;
-    type LexContext = RLexContext;
-    type ReLexContext = RReLexContext;
-
-    fn next_token(&mut self, context: RLexContext) -> RSyntaxKind {
-        self.current_flags = TokenFlags::empty();
-        self.current_start = TextSize::from(self.position as u32);
-
-        let kind = if self.is_eof() {
-            EOF
-        } else {
-            match context {
-                RLexContext::Regular => self.lex_token(),
-                RLexContext::StringContent(d) => self.lex_string_content(d),
-                RLexContext::StringEnd(d) => self.lex_string_end(d),
-            }
-        };
-
-        // Stamp the flag AFTER lexing, so `lex_token` may set other flags first,
-        // and use `set` on the single bit rather than assigning the whole set.
-        self.current_flags
-            .set(TokenFlags::PRECEDING_LINE_BREAK, self.after_line_break);
-        self.current_kind = kind;
-
-        // The bit survives across trivia. `consume_newline` sets it; the WHITESPACE
-        // and COMMENT tokens that may follow leave it alone; the first non-trivia
-        // token consumes it. So `1\n  # c\n  + 2` reports the line break on `+`.
-        if !kind.is_trivia() {
-            self.after_line_break = false;
-        }
-
-        debug_assert!(self.current_start <= TextSize::from(self.position as u32));
-        kind
-    }
-
-    fn has_preceding_line_break(&self) -> bool {
-        self.current_flags.contains(TokenFlags::PRECEDING_LINE_BREAK)
-    }
-
-    /// Overridden solely to maintain `after_line_break`; the provided body cannot,
-    /// since it has no access to this type's fields. `biome_js_parser` overrides
-    /// it for exactly the same reason and with the same body.
-    ///
-    /// Inheriting the provided `consume_newline` also gets `\r\n` treated as a
-    /// single newline for free, which is what §8.5 requires.
-    fn consume_newline_or_whitespaces(&mut self) -> RSyntaxKind {
-        if self.consume_newline() {
-            self.after_line_break = true;
-            NEWLINE
-        } else {
-            self.consume_whitespaces();
-            WHITESPACE
-        }
-    }
-
-    fn has_unicode_escape(&self) -> bool { false } // R has none at token level
-    // ... trivial accessors
-}
-```
-
-Two obligations follow from that field, both easy to miss:
-
-- **`after_line_break` is set by overriding `consume_newline_or_whitespaces`.** The
-  trait provides that method, but the provided body cannot set a field on the
-  concrete lexer, so JS overrides it to add one line and aether does the same.
-  Dispatch newline and whitespace through this single method (§8.3) rather than
-  splitting them: `consume_newline` is trait-provided, returns `bool` rather than
-  a kind, and already handles `\r\n` as one unit. If R's whitespace set turns out
-  to differ from the provided `consume_whitespaces`, override *that* — the
-  dispatch stays one arm either way.
-- **`checkpoint()` and `rewind()` must carry it.** `LexerCheckpoint` has a
-  dedicated `after_line_break: bool` field for exactly this, alongside
-  `current_flags`. The two are not redundant: `current_flags` records what was
-  stamped on the checkpointed token, while `after_line_break` is the sticky state
-  lexing resumes from. Restore both, or a rewind across a newline silently loses
-  the break.
-
-`LexerCheckpoint` is a concrete struct in `biome_parser`, not an associated type,
-and its full field list at the pinned rev is:
-
-```rust
-pub struct LexerCheckpoint<Kind> {
-    pub position: TextSize,
-    pub current_start: TextSize,
-    pub current_kind: Kind,
-    pub current_flags: TokenFlags,
-    pub after_line_break: bool,
-    pub unicode_bom_length: usize,
-    pub diagnostics_pos: u32,
-}
-```
-
-So **`unicode_bom_length` is not optional for aether even though nothing in R
-reads it.** In JS it exists for `read_shebang`, which checks `start != 0 && start
-!= self.unicode_bom_length` so that a shebang after a BOM is still a shebang; R
-has no shebang and no second reader. `RLexer` still needs the field, because
-`checkpoint()` must construct the struct and `rewind()` destructures it — and
-`JsLexer` sets it from `consume_potential_bom`'s returned length (§8.3.1). Set it
-the same way rather than hardcoding `0`: it costs one line, and a `0` there is a
-lie that the next person has to re-derive.
+**`unicode_bom_length`** is set from `consume_potential_bom()` even though
+nothing in R reads it. `LexerCheckpoint` has the field, so `checkpoint()` must
+construct it and `rewind()` must destructure it; a hardcoded `0` there would be a
+lie the next reader has to re-derive.
 
 #### 8.2.1 The lexer keeps no string state
 
-**Every field of `RLexer` is one `LexerCheckpoint` restores.** That is the whole
-rule, and it is worth stating as an invariant because the one place R tempts you
-to break it is strings. `JsLexer` obeys it too — its only field outside the
-checkpoint is the immutable `options`.
-
-The temptation: a string is three tokens, so the lexer could remember what it
-opened.
+**This is an invariant, not an implementation detail, and §11.3 depends on it.**
+A string is three tokens, so the lexer could remember what it opened:
 
 ```rust
 // NOT what aether does
 string_delimiter: Option<RStringDelimiter>,  // set at STRING_OPEN, cleared at STRING_CLOSE
 ```
 
-That buys dataless context variants — `RLexContext::StringContent` with no
-payload — and the parser never has to name a delimiter. It is also wrong, and
-the reason is `BufferedLexer`, which rewinds the inner lexer *on its own
-initiative* in two places:
-
-- `next_token` calls `reset_lookahead()` whenever `!context.is_regular()`, and
-  that rewinds the inner lexer to the buffered current token. Every
-  `StringContent` and `StringEnd` request is a non-regular context, so **every
-  string body request can rewind**.
-
-- `re_lex` rewinds before and, when the kind is unchanged, after re-lexing.
+That would buy dataless context variants and spare the parser from naming a
+delimiter. It is also wrong, because `BufferedLexer` rewinds the inner lexer on
+its own initiative in two places: `next_token` calls `reset_lookahead()` whenever
+`!context.is_regular()`, so every string body request can rewind, and `re_lex`
+rewinds before and after re-lexing.
 
 Meanwhile `LookaheadIterator::next()` lexes ahead with `LexContext::default()`,
-so a lookahead pass runs `lex_token` over string bodies and sets any such field
-as a side effect. `LexerCheckpoint` has no slot for it, so the rewind restores
-the position and leaves the field describing whichever string the lookahead
-happened to stop inside:
+so a lookahead pass runs `lex_token()` over string bodies and would set such a
+field as a side effect. `LexerCheckpoint` has no slot for it, so the rewind
+restores the position and leaves the field describing whichever string the
+lookahead happened to stop inside:
 
 ```r
 "x" r"(y)"
@@ -1251,275 +510,76 @@ against that delimiter scans for `)"` and swallows the rest of the line. Round
 trip still holds — no bytes are lost — so the corpus would not catch it; only the
 token boundaries are wrong.
 
-Adding the field to `LexerCheckpoint` is possible, since the pinned rev is a
-fork, but it buys one enum payload at the cost of a permanent divergence from
-upstream `biome_parser`. Not worth it.
+**So the delimiter travels in the context**, and the caller reads it back off the
+`STRING_OPEN` token's text with `RStringDelimiter::from_open()`. The text is the
+only channel available in any case: `BufferedLexer`'s `inner` is private with no
+accessor and no `Deref`, and `TokenSourceWithBufferedLexer::lexer()` hands back
+the `BufferedLexer`, not the `RLexer`. Nothing above the lexer can read a lexer
+field, so "ask the lexer for the delimiter" is not implementable at any layer,
+however the lexer is written.
 
-**So the delimiter travels in the context, and the caller reads it back off the
-`STRING_OPEN` token's text.**
+`from_open()` and the lexer's own dispatch share
+`RStringDelimiter::try_from_raw_string_open()`, which reads no further than the
+delimiter itself. That leaves exactly one parser of the hyphen-and-bracket
+grammar, and the sharing is what makes `from_open()`'s `expect` safe — the lexer
+emits a `STRING_OPEN` starting with `r` only where `try_from_raw_string_open()`
+answered `Some` on the same bytes.
 
-The text is the only channel available in any case. `BufferedLexer`'s `inner` is
-private with no accessor and no `Deref`, and `TokenSourceWithBufferedLexer::lexer()`
-hands back the `BufferedLexer`, not the `RLexer`. Nothing above the lexer can
-read a lexer field, so "ask the lexer for the delimiter" is not implementable at
-any layer, however the lexer is written.
+`open_length()` and `close_length()` keep the two lengths in one place.
+`checkpoint.rs` pins the lookahead-then-rewind sequence above, that each open
+form reads back as its delimiter, and that a name like `rnorm` answers `None`.
 
-Reading it back must not mean parsing an opening delimiter twice — once in the
-lexer to find where it ends, once above to say what it was. One function does
-both, because it finds its own end:
+§9.1.1 is the token source's side of this, and it calls the same `from_open()`
+the test driver does, so the two cannot drift.
 
-```rust
-impl RStringDelimiter {
-    /// The delimiter a `STRING_OPEN` token's text opens
-    ///
-    /// The arms are `lex_token`'s: the two quotes, and a raw string by
-    /// elimination, those being the only three forms that open a string.
-    pub(crate) fn from_open(text: &str) -> Self {
-        match text.as_bytes().first() {
-            Some(b'\'') => Self::Single,
-            Some(b'"') => Self::Double,
-            _ => Self::try_from_raw_string_open(text).expect("`text` opens a raw string"),
-        }
-    }
+### 8.3 Dispatch
 
-    /// The raw string delimiter opening at the start of `text`, or `None` when
-    /// none does
-    ///
-    /// Reads no further than the delimiter itself, so the lexer can ask about
-    /// the rest of the source and the parser about a `STRING_OPEN` token's
-    /// text, and the two get the same answer.
-    fn try_from_raw_string_open(text: &str) -> Option<Self> { ... }
-}
-```
+`lex_token()` is one `match` on the leading byte. Read it in the code; the
+ordering decisions carry comments explaining themselves, several of them lifted
+from tree-sitter-r's `grammar.js` where they record filed bugs.
 
-Only the raw form is shared. `'` and `"` are one byte, and both sides already
-match on that byte: the lexer to pick its arm, `from_open` to pick the variant.
-That leaves exactly one parser of the hyphen-and-bracket grammar, and the
-sharing is what makes the `expect` safe — the lexer emits a `STRING_OPEN`
-starting with `r` only where `try_from_raw_string_open` answered `Some` on the
-same bytes, so a caller holding a `STRING_OPEN` cannot reach it.
-
-Two more methods fall out of the type and keep the lengths in one place:
-`open_length()` (`1`, or `3 + hyphens`) is what `consume_string_open` advances
-by, and `close_length()` (`1`, or `2 + hyphens`) is what `lex_string_end` does.
-
-`tests/checkpoint.rs` pins the lookahead-then-rewind sequence above, that each
-open form reads back as its delimiter, and that a name like `rnorm` answers
-`None`.
-
-Deriving from text is also what §9.1 does, so the test driver in §8.6 and
-`RTokenSource` share one recipe.
-
-### 8.3 `lex_token` dispatch
-
-Order matters. Copy the ordering decisions from tree-sitter-r's `grammar.js`
-comments — several of them exist specifically to fix filed bugs.
-
-```rust
-fn lex_token(&mut self) -> RSyntaxKind {
-    let byte = self.current_byte();
-    match byte {
-        // One arm for both, as in `biome_js_parser`. The trait-provided
-        // `consume_newline` inside it already treats `\r\n` as a single newline
-        // (§8.5), and the override in §8.2 is what sets `after_line_break`.
-        b'\n' | b'\r' | b'\t' | b' ' | b'\x0B' | b'\x0C'
-                               => self.consume_newline_or_whitespaces(),
-        b'#'                   => self.consume_comment(),
-
-        b'"'  => self.consume_string_open(RStringDelimiter::Double),
-        b'\'' => self.consume_string_open(RStringDelimiter::Single),
-        b'`'  => self.consume_backtick_identifier(),
-
-        // Hexadecimals get an arm of their own, ahead of the digit arm that
-        // would otherwise take the `0`. They share only the `L`/`i` suffix with
-        // a decimal, and folding them together buys one caller a prefix test it
-        // then has to undo — see §8.4.
-        b'0' if matches!(self.peek_byte(), Some(b'x' | b'X')) => self.consume_hexadecimal(),
-        b'0'..=b'9' => self.consume_number(),
-
-        // `.` is overloaded: `...`, `..1`, `.5` (a number!), `.foo` (identifier).
-        // The digit decides, in R and in tree-sitter-r alike: an identifier may
-        // start with `.` only if the `.` is NOT followed by a digit, otherwise
-        // `.1i` and `.1L` get misparsed as identifiers (their issue #190).
-        b'.' => self.consume_dot(),
-
-        b'%' => self.consume_special(),
-
-        // `r"(...)"` / `R'---[...]---'` share this arm with every other name,
-        // falling through to the identifier rule when the prefix does not match
-        // — see below for why they do not get an arm of their own.
-        b'_' | b'a'..=b'z' | b'A'..=b'Z' => match self.scan_raw_string_open() {
-            Some(open) => self.consume_raw_string_open(open),
-            None => self.consume_identifier_or_keyword(),
-        },
-
-        // Maximal munch over the operators, inline in this same match rather
-        // than behind a `consume_punct` — one arm per leading byte, nesting a
-        // second match on `peek_byte` where the byte is a prefix of something
-        // longer. The full table is in §8.4.
-        b';' => self.eat_byte(T![;]),
-        // …
-        b'<' => match (self.peek_byte(), self.byte_at(2)) {
-            (Some(b'<'), Some(b'-')) => self.eat_bytes(3, T![<<-]),
-            (Some(b'-'), _)          => self.eat_bytes(2, T![<-]),
-            (Some(b'='), _)          => self.eat_bytes(2, T![<=]),
-            _                        => self.eat_byte(T![<]),
-        },
-        // …
-
-        // The unicode arm, and also where the BOM is resolved — see §8.3.1
-        b if b >= 128 => self.consume_unicode(),
-
-        _ => self.consume_unexpected(),
-    }
-}
-```
-
-Keep this one match. The punct arms are a third of it and the temptation to
-extract them is real, but the dispatch reads as a single decision on the leading
-byte and splitting it means holding two orderings in your head — and the order
-is load-bearing, per the note above.
-
-**Do not give `r`/`R` an arm of its own.** It is the obvious way to write the
-raw-string check and it costs the whole match its jump table. LLVM compiles this
-`match` to one range check plus an indirect jump, but the range has to be
-contiguous: a `b'r' | b'R'` arm ahead of `b'a'..=b'z'` splits the letters, the
-table shrinks to `\t..=r`, and every byte from `s` up — eight common lowercase
-letters, plus `{`, `|`, `}`, `~` — falls out to a comparison chain instead. In R
-source that is a large fraction of all bytes. Measured on 2.3 MB of R with a
-skeleton of this dispatch, the split arm costs about 14%, which is also more than
-switching the whole match to `biome_unicode_table::lookup_byte` would win back
-(that pays an extra dependent load, and measured ~4% *slower* than this version).
-
-Verify with `cargo rustc --release -p aether_r_parser --lib -- --emit asm` and
-look for the range check ahead of the `LJTI` reference in `next_token`: it should
-read `sub #9` / `cmp #117`, covering `\t..=~`.
-
-`scan_raw_string_open` therefore checks for `r`/`R` itself and answers `None` for
-every other identifier start, rather than asserting the caller already looked.
-
-#### 8.3.1 The BOM
-
-`RRoot` has a `bom: 'UNICODE_BOM'?` slot, so `UNICODE_BOM` has to be produced or
-that slot is unreachable. **Handle it exactly the way `biome_js_parser` does**, in
-the `>= 128` arm rather than in an arm of its own:
-
-```rust
-/// The `byte >= 128` arm, which is also where the BOM is resolved.
-fn consume_unicode(&mut self) -> RSyntaxKind {
-    // A BOM is only a BOM at offset 0. Elsewhere U+FEFF is category Cf, so
-    // neither XID_Start nor XID_Continue, and it falls to `consume_unexpected`
-    // below like any other character that starts nothing.
-    if self.position == 0 {
-        if let Some((bom, length)) = self.consume_potential_bom(UNICODE_BOM) {
-            self.unicode_bom_length = length;
-            return bom;
-        }
-    }
-
-    if is_xid_start(self.current_char_unchecked()) {
-        self.consume_identifier_or_keyword()
-    } else {
-        self.consume_unexpected()
-    }
-}
-```
-
-Both this arm and the match's final `_` end at `consume_unexpected`, which is
-§8.4's `ERROR_TOKEN` case.
-
-Four things about `consume_potential_bom`, all verified against
-`biome_parser/src/lexer.rs` at the pinned rev rather than assumed:
-
-- **It is trait-provided.** Do not hand-roll a peek-then-consume pair. It takes
-  the kind to return, so the call is `self.consume_potential_bom(UNICODE_BOM)`.
-
-- **It is safe to call speculatively.** The body advances by `bom.len()` *before*
-  matching, but `Bom::Null.len()` is `0`, so a non-match advances nothing. That is
-  why no guard beyond `position == 0` is needed.
-
-- **It works on `source().get(0..3)`, a `str` slice, not on raw bytes.** A source
-  shorter than three bytes, or one whose first three bytes are not a char
-  boundary, yields `None` and is skipped. This is why matching on `0xEF` yourself
-  is both redundant and more fragile than it looks.
-
-- **It returns the byte length, and JS stores it** in a `unicode_bom_length`
-  field. Its only JS reader is `read_shebang`, which R has no analogue of — but
-  see §8.2, because the field is not optional for us.
-
-#### 8.3.2 Unicode whitespace is deliberately not handled here
-
-`biome_js_parser`'s `>= 128` arm also routes unicode line breaks and unicode
-spaces (NBSP, en quad, ideographic space) to `consume_newline_or_whitespaces`,
-short-circuited by a `UNICODE_WHITESPACE_STARTS` table. Aether's arm above does
-not, because tree-sitter-r's whitespace set is ASCII-only and the oracle is the
-thing we are matching. If that turns out to be wrong, it is a change to this one
-function — but do not add it speculatively, and if it is added, it belongs in
-`docs/deviations.md` under "tree-sitter-r vs. R".
+The one structural note worth repeating, because it is invisible from the code
+and easy to undo: **`r`/`R` deliberately does not get an arm of its own.** Raw
+strings share the identifier arm and fall through when the prefix does not match.
+A `b'r' | b'R'` arm ahead of `b'a'..=b'z'` splits the letter range, the jump table
+shrinks to `\t..=r`, and every byte from `s` up falls out to a comparison chain
+— measured at about 14% on 2.3 MB of R source.
 
 ### 8.4 The token inventory
 
-Everything the lexer must be able to produce, taken from
-`xtask/codegen/src/r_kinds_src.rs`:
+The facts the parser phases need, and the ones a later grammar edit can break.
 
-**Puncts.** `; , { } [ ] [[ ]] ( ) ? ~ <- <<- := -> ->> = | & || && < <= > >= == != + - * / ^ ** |> : :: ::: $ @ ! ... \`
+**`[` and `[[` are lexed greedily; `]` and `]]` are not.** `[[` is always a single
+token. `]]` is always two `]`, and the parser joins them with
+`p.re_lex(RReLexContext::JoinBrackets)` where the nesting says to. There is no
+scope stack in the lexer. This is the single most important design call in the
+lexer and the one most likely to be undone by accident.
 
-Maximal munch matters and is fiddly. Concretely: `<` → `<-` → `<<-` (note `<<-`
-is three chars and `<<` alone is not a token); `-` → `->` → `->>`; `:` → `::` →
-`:::` → `:=`; `*` → `**`; `|` → `||` → `|>`; `&` → `&&`; `=` → `==`; `!` → `!=`;
-`<` → `<=`; `>` → `>=`. Write a table-driven test for every prefix.
+The asymmetry is the point, and every reference implementation shares it. Openers
+stack left to right, so two adjacent ones never straddle a boundary and greedy is
+unambiguous; R's `gram.y` lexes `[[` as one `LBB` token. But closers stack right
+to left, so a run of them belongs to several constructs at once and only the
+parser knows where the boundaries fall — `gram.y`'s rule is literally
+`expr LBB sublist ']' ']'`, two tokens, never joined.
 
-**`[` and `[[`.** tree-sitter-r resolves these in the external scanner with a scope
-stack, because `x[[1]]` vs `x[ [1] ]` vs `x[[1], 2]` are genuinely ambiguous and
-issue #177 (`Unsupported Subset2 With ]] Over Multiple Lines`) is in the errors
-corpus. **Aether lexes the openers greedily and the closers one at a time: `[[` is
-always a single token, `]]` is always two `]`.** The *parser* joins the closers
-where the nesting says to, via `p.re_lex(RReLexContext::JoinBrackets)`. Do not
-carry a scope stack in the lexer. There is exactly **one** join site — the
-argument list's terminator check, `ArgumentListEnd::join_and_check` — and §11.3
-explains why it has to be there and nowhere else, with the `x[[a[b]]]` worked
-example. This is the single most important design call in the lexer and the one
-most likely to be got wrong.
+`biome_js_parser` draws the line in the same place, and the halves are easy to
+swap: `<` is lexed greedily into `<<` and `JsReLexContext::TypeArgumentLessThan`
+splits it back, while `>` is never lexed greedily at all and
+`JsReLexContext::BinaryOperator` joins `> >` at the one site that wants a shift.
+Nested generics need no re-lex whatsoever, which is exactly the property we want
+for nested subsets.
 
-The asymmetry is the point, and every reference implementation shares it.
-Openers stack left to right, so two adjacent ones never straddle a boundary and
-greedy is unambiguous; R's own `gram.y` lexes `[[` as one `LBB` token and
-tree-sitter-r's `scan_open_bracket_or_bracket2` says "greedily accept that". But
-closers stack right to left, so a run of them belongs to several constructs at
-once and only the parser knows where the boundaries fall. `gram.y`'s rule is
-literally `expr LBB sublist ']' ']'` — two tokens, never joined — and
-tree-sitter-r decides each `]` from `stack_peek(stack)`, i.e. from the construct
-that wants it.
+The concrete payoff: a token that appears unbidden has to be spelled out in every
+terminator check and every recovery set anywhere in the parser that mentions `]`,
+and missing one lets recovery swallow two closers, stripping an enclosing
+construct of its terminator. A `]]` that only ever exists because a subset2 asked
+for it cannot be swallowed by anything. §11.3 has the single join site and the
+`x[[a[b]]]` worked example.
 
-`biome_js_parser` draws the line in the same place, and it is worth being precise
-about which half is which, because the two are easy to swap. `<` is lexed greedily
-into `<<`, and `JsReLexContext::TypeArgumentLessThan` splits it back for
-`B<<A>()>` — an opener. `>` is never lexed greedily at all: the dispatch arm is
-`MOR => self.eat_byte(T![>])`, so `>>` does not exist in the token stream, and
-`JsReLexContext::BinaryOperator` joins `> >` at the one site that wants a shift
-operator. Nested generics need no re-lex whatsoever, which is exactly the
-property we want for nested subsets.
-
-The concrete reason to prefer the fine-grained closer over a greedy `]]` plus a
-split: a token that appears unbidden has to be spelled out in every terminator
-check and every recovery set anywhere in the parser that mentions `]`, and
-missing one lets recovery swallow *two* closers, stripping an enclosing construct
-of its terminator. A `]]` that only ever exists because a subset2 asked for it
-cannot be swallowed by anything.
-
-**Keywords.** `function for in while repeat if else next break TRUE FALSE NULL Inf
-NaN NA NA_integer_ NA_real_ NA_complex_ NA_character_`.
-Lex as `IDENT` first, then map the text to a keyword kind — the standard Biome
-approach, and it automatically gets the `else_idx` case right (tree-sitter-r
-issue #200: `elseμ <- 1` must not see an `else` keyword).
-
-**Do not reach for the generated `RSyntaxKind::from_keyword()` to do that
-mapping.** Checked against `aether_r_syntax/src/generated/kind.rs`: codegen
-derives it from the `keywords` array in `r_kinds_src.rs`, which spells the R
-constants in lowercase placeholder form, so `from_keyword` matches `"true"`,
-`"na_integer"`, `"na_double"` — none of which is R source text. `from_keyword("TRUE")`
-is `None`. The lexer needs its own literal table, and the two spellings do not
-line up one-for-one:
+**Keywords are lexed as `IDENT` first, then mapped by text.** That is what gets
+tree-sitter-r issue #200 right for free (`elseμ <- 1` must not see an `else`
+keyword). Two spellings do not line up one-for-one, and `NA_real_` is the one an
+implementer will get wrong by pattern-matching on the name:
 
 | R source | `RSyntaxKind` |
 |---|---|
@@ -1532,240 +592,87 @@ line up one-for-one:
 | `NA_character_` | `NA_CHARACTER_KW` |
 | `function` … `break` | `FUNCTION_KW` … `BREAK_KW`, lowercase and identical |
 
-`keywords.rs` (§8.6) pins every row of that table, `NA_real_ → NA_DOUBLE_KW`
-above all, since it is the one an implementer will get wrong by pattern-matching
-on the name.
-
-One more generated-code landmine while you are here: the `T!` macro has a
-`[#] => HASH` arm, but `RSyntaxKind` has no `HASH` variant — the arm only fails to
-compile if something invokes it. Comments are `COMMENT`; there is no `#` token.
-Do not write `T![#]`.
-
-**Literals.**
-```
-_hex_literal    = 0[xX](([0-9a-fA-F]+(\.[0-9a-fA-F]*)?)|(\.[0-9a-fA-F]*))([pP][+-]?[0-9]+)?
-_number_literal = (?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d*)?
-integer         = _float_literal "L"   → R_INTEGER_LITERAL
-complex         = _float_literal "i"   → R_COMPLEX_LITERAL
-float           = _float_literal       → R_DOUBLE_LITERAL
-```
-Note `[eE][+-]?\d*` permits a **trailing empty exponent** (`1e`). **Do not match
-that**, and do not match tree-sitter's handling of a hexadecimal that fails to
-finish either. A `0x` commits to a hexadecimal and an `e` or `p` commits to an
-exponent; when what the grammar requires next is absent, tree-sitter un-matches
-the longer token and re-splits the bytes into something shorter that happens to
-parse — `0x` becomes `0` and `x`, `0x1p` becomes `0x1` and `p` — or, for `1e`,
-simply accepts. R rejects all of them from the lexer.
-
-Aether follows R: the literal keeps every byte it consumed and carries
-`unterminated_hexadecimal` or `unterminated_exponent`. The token boundaries barely
-move, so this costs almost nothing in tree shape and buys the whole message.
-Without it the failure still surfaces — `0x` lexes as two expressions on one line
-and trips §11.7's separator rule — but as `expected a statement separator`, which
-is useless while half-typing `0xFF`. Logged as deviation 8 in
-`docs/deviations.md`; the corresponding `literals/numbers.md` cases are `[error]`.
-
-The line is what the grammar *requires*. A suffix is optional, so a literal that
-ends without one is finished rather than unterminated; `1L` and `1Li` belong to
-deviation 7 and carry no diagnostic.
-
-**Suffixes follow R too, and greedily.** `NumericValue` always takes a trailing
-`L` or `i` — the `L` enters its scan loop and breaks it, the `i` is picked up
-after it, and neither is ever pushed back — so `1Li` is `1L` and the name `i`, and
-`1iL` is `1i` and the name `L`. tree-sitter-r spells the suffixes as tokens of
-their own, which lets `identifier` beat them on length and makes `1Li` the float
-`1` and the name `Li`. Take the suffix unconditionally: R's rule cannot disagree
-with R about a program R accepts, since it never looks past the suffix, and the
-lookahead the other rule needs is the only byte of it anywhere in the lexer.
-Deviation 7.
-
-**Identifiers.**
-```
-unquoted            = [\p{XID_Start}_][\p{XID_Continue}.]*
-unquoted_leading_dot= \.(?:[\p{XID_Start}._][\p{XID_Continue}.]*)?
-quoted              = `((?:\\(.|\n))|[^`\\])*`
-```
-`_` alone is a valid identifier (the native-pipe placeholder). `_foo` lexes as a
-single identifier and is *not* rejected here — tree-sitter-r's comment says
-downstream consumers do that check. Match that.
+**Two generated-code landmines.** `RSyntaxKind::from_keyword()` is useless here —
+codegen derives it from the lowercase placeholder spellings in `r_kinds_src.rs`,
+so `from_keyword("TRUE")` is `None`. And the `T!` macro has a `[#] => HASH` arm
+while `RSyntaxKind` has no `HASH` variant, so `T![#]` fails to compile. Comments
+are `COMMENT`; there is no `#` token.
 
 **Backticks produce an identifier, not a string.** `` `my var` `` is one `IDENT`
-token covering the backticks and everything between them, because tree-sitter-r
-puts the quoted form inside the `identifier` rule (the `quoted` line above), and
-air's walker maps it straight to `R_IDENTIFIER`. It never becomes an
-`R_STRING_VALUE`, so there is no `STRING_OPEN`/`STRING_CONTENT`/`STRING_CLOSE`
-triple and no `Backtick` variant in `RStringDelimiter`.
+covering the delimiters, because tree-sitter-r puts the quoted form inside its
+`identifier` rule and air's walker maps it straight to `R_IDENTIFIER`. So there
+is no `Backtick` variant in `RStringDelimiter`, and an unterminated backtick is a
+lexer diagnostic (`unterminated_backtick_identifier`), where the three
+unclosed-quote cases surface through the parser's `expect(STRING_CLOSE)` in
+§11.1.
 
-The two places this matters:
-- **Escapes still apply inside backticks** (`` `a\`b` ``), per the `quoted` regex
-  above, so `consume_backtick_identifier` needs the same backslash handling as a
-  string body even though the result is one token.
-- **An unterminated backtick is an identifier error, not a string error.** The
-  `Unclosed Backtick` corpus test needs its own diagnostic
-  (`unterminated_backtick_identifier`), emitted by the *lexer*, whereas the three
-  unclosed-quote tests surface through the parser's `expect(STRING_CLOSE)`.
+Backticked names may span newlines, and so may strings — R's `token()` dispatches
+both to the same `StringValue()` function, which turns a newline into an escaped
+newline rather than an error. An unterminated one genuinely runs to EOF, which is
+what tree-sitter does too. The way to keep the error useful is where the
+diagnostic points, not where the scan stops: at the opening delimiter, with EOF
+as a secondary label. `enable_recovery_on_line_break()` will not help the parser
+resynchronise after one, and it should not be expected to.
 
-**Backticked names may span newlines**, so scan to the matching backtick, not to
-end of line:
+**Strings are three tokens**: `STRING_OPEN`, `STRING_CONTENT`, `STRING_CLOSE`.
+Content is one token spanning everything between the delimiters, escapes
+included — neither air's walker nor `r.ungram` models `escape_sequence`
+separately. `STRING_CONTENT` is **optional**: an empty body emits none, so a
+`StringContent` request on a body that closes immediately comes back as
+`STRING_CLOSE`, and `""` is two tokens where `"a"` is three. Both consumers of
+the lexer decide the next context from the kind that came back, never from the
+one they asked for. §11.1's `parse_string_value()` is where that matters.
 
-```r
-`my
-var` <- 1     # one identifier whose name contains a newline. Legal R.
-```
+**`ERROR_TOKEN`** is a character that starts no token at all: one character
+consumed, `unexpected_character` raised, `ERROR_TOKEN` returned. Deviation 6 in
+`docs/deviations.md` carries the argument for why it is not `IDENT`. The
+reachable cases are narrow — every printable ASCII character starts some R token,
+so this is only control characters and non-ASCII characters that are neither
+`XID_Start` nor `XID_Continue`. §11.1 is the parser's side.
 
-The `quoted` regex above permits this — its `[^`\\]` class includes `\n`, and the
-escape branch `\\(.|\n)` explicitly allows an escaped newline.
+**Four number and operator behaviours are deviations**, all landed and all
+documented in `docs/deviations.md` rather than here: the greedy `L`/`i` suffix
+(7), unterminated hexadecimals and exponents carrying a diagnostic instead of
+being re-split (8), and a backslash inside `%…%` being ordinary text (9). Note
+deviation 9 followed R rather than tree-sitter, so `%a\b%` is one `SPECIAL` and
+the implemented pattern is `/%[^%\n]*%/` — the `Specials` corpus test is
+`[deviation]` because of it.
 
-R agrees, and deliberately so. `token()` dispatches `` ` `` to
-`StringValue(c, forSymbol=true)` — the *same* function that lexes strings — and
-that function turns a newline into an escaped newline rather than an error, under
-a comment crediting Mark Bravington with the fix and showing the `return ERROR` it
-replaced (`src/main/gram.y`). Multiline support here was added on purpose.
-
-It also means
-**escapes and multiline behaviour are identical for backticks and strings**, since
-they share one implementation — which is the cleanest justification for
-`consume_backtick_identifier` and the string-body scanner sharing their escape
-handling. tree-sitter-r's `Strings` corpus test contains `"foo\nbar"` and
-`'foo\nbar'` as literal two-line strings, so this is covered from Phase 7 onward.
-
-So there is no line-based early stop available for any of these tokens, and an
-unterminated one genuinely does run to EOF. That is also what tree-sitter does — its
-`Unclosed Backtick` expectation is `(ERROR (UNEXPECTED '\0'))`, i.e. it consumed to
-the end. Do not try to be cleverer than the language here; the way to keep the
-error useful is **where you point the diagnostic**, not where you stop scanning:
-
-```rust
-// Point at the OPENING delimiter, which is the actionable location, and label
-// the end of input separately. Highlighting the whole rest of the file is useless.
-fn unterminated_backtick_identifier(open: TextRange, eof: TextRange) -> ParseDiagnostic {
-    ParseDiagnostic::new("Unterminated backtick-quoted name.", open)
-        .with_detail(eof, "reached end of file looking for a closing `` ` ``")
-}
-```
-
-Because these can span lines, `enable_recovery_on_line_break()` will not help the
-parser resynchronise after one, and it should not be expected to. One unterminated
-delimiter is a single unrecoverable error for the remainder of the file, in aether
-exactly as in R.
-
-Add an aether-authored test for the multi-line backtick to
-`literals/identifiers.md` — tree-sitter-r's corpus covers multi-line *strings* but
-never a multi-line backticked name, so nothing else would catch a regression here.
-
-**Dots.** `...` → `DOTS`; `/[.][.]\d+/` → `DOTDOTI`. tree-sitter-r gives each a
-rule of its own and lets tree-sitter arbitrate against `identifier` by match
-length. **Do not reproduce that arbitration.** Follow R instead, which is both
-simpler and lands on the same answers: one character decides between a number and
-a name (`typeofnext()` in `src/main/gram.y` — digit or not, nothing more), then
-one whole name is consumed and its *text* is classified. `...` and `..i` are not
-tokens at all in R; `"..."` is a row in the keyword table and `..1` is an ordinary
-symbol.
-
-The two rules agree because `...` and `..\d+` are built entirely from identifier
-characters, so the identifier match is never shorter than the dotted one — length
-arbitration can only ever come out equal, which is to say the whole name is
-exactly `...` or exactly `..` and digits. Classifying the finished text says that
-directly, and it is the same munch-then-map shape as the keyword table above.
-
-**Special.** `/%[^%\\\n]*%/` → `SPECIAL`. Covers `%%`, `%/%`, `%in%`, `%>%`.
-
-Unlike strings and backticks, **`%…%` may not span a newline**, confirmed in R's
-own lexer (`SpecialValue`, `src/main/gram.y`). Two details there are worth copying
-rather than inventing:
-
-- **R ungets the newline** before returning its error, so the error stays local:
-  the newline is still available to terminate the statement and the next line
-  parses normally. Aether does the same — on hitting a newline, stop *before*
-  consuming it and emit `unterminated_special`, keeping the partial `%foo` as a
-  `SPECIAL` token with the diagnostic attached (§8.6). Do not scan to EOF the way
-  an unterminated string must (§8.4); here the language gives us a
-  resynchronisation point, so use it.
-- **R accepts `%foo` at EOF.** Its loop exits on `R_EOF` without ever seeing the
-  closing `%` and still returns `SPECIAL`. tree-sitter-r's regex requires the
-  closing `%`, so it errors. **Follow tree-sitter**, since it is the oracle — but
-  record the divergence.
-
-There is one more R-vs-tree-sitter gap here: tree-sitter's character class excludes
-backslash (`[^%\\\n]`) while R's `SpecialValue` does not, so `%a\b%` is a valid
-`SPECIAL` in R but not in tree-sitter. Their own comment concedes the regex is
-approximate ("This could probably be fine tuned to disallow more things"). Follow
-tree-sitter for oracle agreement and log both gaps in `docs/deviations.md` under a
-separate **"tree-sitter-r vs. R"** heading — these are not aether's deviations, they
-are inherited, and conflating the two categories will confuse whoever reads that
-doc next.
-
-**Strings.** Three tokens: `STRING_OPEN`, `STRING_CONTENT` (optional),
-`STRING_CLOSE`. Content is one token spanning everything between delimiters,
-including escapes — air's tree walker does not model `escape_sequence` as a
-separate node, and neither does `r.ungram` (`RStringValue` has exactly
-`open`/`content?`/`close`).
-
-The last two are lexed in a context the caller supplies, naming the delimiter the
-open established (§8.2.1). `STRING_CONTENT` is optional because an empty body
-emits none: a `StringContent` request on a body that closes immediately comes
-back as `STRING_CLOSE`, so `""` is two tokens and `"a"` is three. Both consumers
-of the lexer — the §8.6 driver and §9.1's token source — therefore decide the
-next context from the kind that came back, never from the one they asked for.
-
-**Raw strings.** `r`/`R`, then `"` or `'`, then 0–255 `-`, then one of `([{`. The
-close is the matching `)]}` + the same hyphen count + the same quote. Port
-`scan_raw_string_open` and `scan_raw_string_content_or_close` from
-`tree-sitter-r/src/scanner.c` (lines ~527–700) more or less directly.
-
-**`ERROR_TOKEN`.** A character that starts no token at all. Consume exactly one
-character, raise `unexpected_character`, and return `ERROR_TOKEN` — the same
-shape `biome_js_parser` uses at both of its equivalent sites. The reachable cases
-are narrow: every printable ASCII character starts some R token, so this is only
-control characters and non-ASCII characters that are neither `XID_Start` nor
-`XID_Continue`.
-
-This kind is **added to `r_kinds_src.rs` in this phase**; air's kind list has no
-error token. Deviation 6 in `docs/deviations.md` carries the full argument, but
-the short version is that all eight other Biome grammars declare `ERROR_TOKEN`,
-and air is the outlier only because tree-sitter did its lexing. Adding it is one
-line in `r_kinds_src.rs`, one generated line in `kind.rs`, and one arm each in the
-hand-written `is_bogus()` and `to_bogus()` (not bogus itself; degrades to
-`R_BOGUS` like every other token).
-
-Do **not** use `IDENT` for this. It round-trips and it carries a diagnostic, so
-every invariant holds — but `IDENT` is accepted wherever a name is, so `x <- €`
-would build a clean `R_BINARY_EXPRESSION` whose right slot claims `€` is a name,
-and nothing in the harness would catch it. `ERROR_TOKEN` starts no production, so
-the parser's only move is a bogus node. See §11.1 for that side.
+A `%…%` may not span a newline. R ungets the newline before reporting so the
+error stays local, and aether does the same: stop before the newline, keep the
+partial `%foo` as a `SPECIAL`, attach `unterminated_special`. `%foo` at EOF
+errors, following tree-sitter rather than R — logged under "tree-sitter-r vs. R"
+in the ledger.
 
 ### 8.5 Newlines: the crucial decision
 
 **Newlines are lexed as `NEWLINE` tokens, then converted to trivia by the token
-source — but the parser can still ask whether one occurred.**
+source — but the parser can still ask whether one occurred.** This is the
+contract §9 and §11 are written against, and the division of labour is JS's: the
+lexer answers "was there a line break here", which is a lexical fact, and the
+parser decides whether that fact means anything, which in R is statement
+termination and `else` attachment.
 
-Do *not* replicate tree-sitter's scope-stack approach of conditionally swallowing
-newlines in the lexer. In a hand-written recursive-descent parser the equivalent
-information is available structurally: the parser knows whether it is inside
-`(`/`[`/`[[`, so it can simply ignore `has_preceding_line_break()` there. Carrying a
-scope stack in the lexer would duplicate that knowledge and is the classic source
-of desync bugs.
+- `RLexer` emits `NEWLINE` as its own kind and owns the preceding-line-break flag
+  (§8.2).
 
-So, with ownership stated once:
-- `RLexer` emits `NEWLINE` as its own kind, **and owns the preceding-line-break
-  flag**: it carries `after_line_break` across calls and stamps
-  `PRECEDING_LINE_BREAK` onto the first non-trivia token that follows (§8.2).
-  This is verbatim what `biome_js_parser`'s lexer does for ASI.
-- `RTokenSource` reports `NEWLINE` (and `WHITESPACE`, `COMMENT`) as trivia. It
-  keeps **no** line-break state of its own and delegates the question to the
-  lexer, exactly as `JsTokenSource` does (§9.1).
+- `RTokenSource` reports `NEWLINE`, `WHITESPACE`, and `COMMENT` as trivia. It
+  keeps no line-break state of its own and delegates the question to the lexer,
+  exactly as `JsTokenSource` does (§9.1).
+
 - `RParser` reads the flag only through `at_statement_break()` (§9.2), which
   gates it on `IGNORE_NEWLINES`. That predicate has three callers: the Pratt loop
-  (§11.2), `parse_postfix` (§11.3), and `parse_else_clause` (§11.6). Nothing else
-  reads the raw flag.
+  (§11.2), `parse_postfix()` (§11.3), and `parse_else_clause()` (§11.6). Nothing
+  else reads the raw flag.
 
-The division of labour is the same as JS's: the *lexer* answers "was there a line
-break here", which is a lexical fact, and the *parser* decides whether that fact
-means anything, which in JS is ASI and restricted productions and in R is
-statement termination and `else` attachment.
+Do not replicate tree-sitter's scope-stack approach of conditionally swallowing
+newlines in the lexer. In a recursive-descent parser the equivalent information
+is structural — the parser knows whether it is inside `(`/`[`/`[[` — so a lexer
+scope stack would duplicate that knowledge and is the classic source of desync
+bugs.
 
-`Trivia` kinds map as follows (matching air's current `parse.rs` behavior so the
-snapshots line up):
+`Trivia` kinds map as follows, matching air's current `parse.rs` so the snapshots
+line up:
 
 | Lexer kind | `TriviaPieceKind` |
 |---|---|
@@ -1774,315 +681,46 @@ snapshots line up):
 | `COMMENT` | `SingleLineComment` |
 
 **A `\r\n` is one `Newline` trivia piece, not two.** Air has CRLF tests
-(`tests/snapshots/ok/crlf/*`); port them.
+(`tests/snapshots/ok/crlf/*`); port them in Phase 6.
 
-### 8.6 Testing this phase
+### 8.6 Testing
 
-All of it is `#[cfg(test)]` inside `aether_r_parser`. The markdown corpus of §10.2
-is the *parser's* harness and the lexer does not use it: the lexer's entire output
-is a flat list of `(kind, range)`, and an exact assertion on that list is both more
-precise and more readable than a snapshot of it would be. Snapshots earn their keep
-when the expected value is too large to write by hand; a token stream is not.
+Seventeen `#[cfg(test)]` files under `src/lexer/tests/`, one per dispatch arm of
+`lex_token()` plus one per piece of cross-cutting machinery. `tests.rs` holds the
+driver and three macros: `assert_lex!` (exact token stream, and no diagnostics),
+`assert_lex_err!` (the same plus expected diagnostic substrings), and
+`assert_line_breaks!` (the sticky flag, on non-trivia tokens only).
 
-#### Module layout
+The markdown corpus of §10.2 is the parser's harness and the lexer does not use
+it. A token stream is small enough to assert exactly; snapshots earn their keep
+when the expected value is too large to write by hand.
 
-```rust
-// crates/aether_r_parser/src/lexer.rs — the last lines in the file
-#[cfg(test)]
-mod tests;
-```
+Two assertions in the shared `check_lex()` do more work than they look like, and
+both are free on every test because they live there rather than in each test:
 
-```rust
-// crates/aether_r_parser/src/lexer/tests.rs
-//
-// The driver and the assertion macros. Every assertion itself lives in a
-// submodule, one per dispatch arm of `lex_token` (§8.3) plus one per piece of
-// cross-cutting machinery.
+- **The ranges must tile the source** — start at 0, each adjacent to the last, the
+  final one ending at `source.len()`. Strictly stronger than summing lengths: it
+  also rejects a lexer that overlaps or rewinds, and it makes reconstructing the
+  input to compare it redundant.
 
-mod backticks;
-mod bom;
-mod brackets;
-mod checkpoint;
-mod comments;
-mod coverage;
-mod dots;
-mod identifiers;
-mod keywords;
-mod line_breaks;
-mod numbers;
-mod puncts;
-mod raw_strings;
-mod specials;
-mod strings;
-mod whitespace;
+- **Silence is half the assertion.** `assert_lex!` requires zero diagnostics. A
+  lexer that produces the right tokens and also complains about them is broken in
+  a way a kinds-and-lengths table alone will not catch, and `[error]` corpus tests
+  will not catch it either, because they only require some diagnostic.
 
-use super::*;
-```
+**`coverage.rs` is the anti-gap guard, and it keeps running.** "Every token kind
+has lexer coverage" is unfalsifiable as prose; this enumerates `RSyntaxKind` via
+`from_raw` up to `__LAST` and asserts that every lexable kind is produced by some
+source. `MANIFEST.toml` does the same job for the corpus (§10.3.3).
 
-Because `tests` is a *descendant* of `lexer`, these files read `after_line_break`
-and `diagnostics` directly, with no accessor and no `pub(crate)` widening. That is
-the whole reason the tests sit here instead of in a test crate, and it is worth
-not giving up: an accessor added only for tests is a permanent hole in the
-lexer's encapsulation, and there is no version of this file layout that needs one.
+The failure mode it is built for is not "someone forgot a test today" — it is a
+Phase 3-style grammar edit landing a new token kind in `r_kinds_src.rs` months
+from now with nothing lexing it. Adding a *node* kind does not fail it; adding a
+*token* kind does, until something lexes it. That failure is otherwise discovered
+by the parser, as a confusing missing-slot bug several phases downstream.
 
-One file per dispatch arm is not a filing convention, it is the coverage argument.
-`lex_token` is a `match`, `coverage.rs` proves every kind is reachable, and the
-file list makes an arm with no test file visible by inspection.
-
-#### The driver
-
-The lexer cannot be driven by `next_token(Regular)` alone: string bodies and
-closing delimiters are lexed in a context the *parser* supplies (§8.1). The tests
-supply it the same way `RTokenSource` will, derived from the previous token rather
-than hand-written per call, so the tests exercise the real contract — including
-reading the delimiter back off the `STRING_OPEN` token (§8.2.1):
-
-```rust
-/// Lex `source` to completion, driving `RLexContext` the way §9.1 will.
-pub(super) fn lex(source: &str) -> (Vec<(RSyntaxKind, TextRange)>, Vec<ParseDiagnostic>) {
-    let mut lexer = RLexer::from_str(source);
-    let mut tokens = Vec::new();
-    let mut context = RLexContext::Regular;
-
-    // The delimiter of the string being lexed, read off the `STRING_OPEN`
-    // token's text because the lexer keeps no memory of it
-    let mut delimiter = None;
-
-    loop {
-        let kind = lexer.next_token(context);
-        if kind == EOF {
-            break;
-        }
-        let range = lexer.current_range();
-        tokens.push((kind, range));
-
-        if kind == STRING_OPEN {
-            delimiter = Some(RStringDelimiter::from_open(&source[range]));
-        }
-
-        // Match on what came back, not on what was requested: a string with an
-        // empty body answers a `StringContent` request with `STRING_CLOSE`, and
-        // the next token after that is `Regular` again.
-        context = match (kind, delimiter) {
-            (STRING_OPEN, Some(delimiter)) => RLexContext::StringContent(delimiter),
-            (STRING_CONTENT, Some(delimiter)) => RLexContext::StringEnd(delimiter),
-            _ => RLexContext::Regular,
-        };
-    }
-
-    (tokens, lexer.finish())
-}
-```
-
-#### The macros
-
-Three, each with one job. They are thin wrappers over one `#[track_caller]`
-function so that the failure output is written once and is good.
-
-```rust
-/// Assert the exact token stream, and that the lexer emitted NO diagnostics.
-///
-/// The silence is half the assertion. A lexer that produces the right tokens and
-/// also complains about them is broken in a way that a kinds-and-lengths table
-/// alone will not catch, and `[error]` corpus tests will not catch it either
-/// because they only require *some* diagnostic.
-macro_rules! assert_lex {
-    ($source:expr, $($kind:ident : $length:expr),* $(,)?) => {
-        $crate::lexer::tests::check_lex($source, &[$(($kind, $length)),*], &[])
-    };
-}
-
-/// [`assert_lex!`] plus the diagnostics expected, in order.
-///
-/// Messages match as substrings, so a test pins the wording it cares about
-/// without re-encoding the full rendering.
-macro_rules! assert_lex_err {
-    ($source:expr, $($kind:ident : $length:expr),* $(,)? => $($message:literal),+ $(,)?) => {
-        $crate::lexer::tests::check_lex($source, &[$(($kind, $length)),*], &[$($message),+])
-    };
-}
-
-/// Assert `PRECEDING_LINE_BREAK` on each NON-TRIVIA token, in order.
-///
-/// Trivia is filtered out on purpose: the flag is sticky across it by design
-/// (§8.2), and "which real token reports a preceding break" is the only question
-/// the parser ever asks (§8.5).
-macro_rules! assert_line_breaks {
-    ($source:expr, $($kind:ident : $preceded:literal),* $(,)?) => {
-        $crate::lexer::tests::check_line_breaks($source, &[$(($kind, $preceded)),*])
-    };
-}
-```
-
-```rust
-#[track_caller]
-pub(super) fn check_lex(source: &str, expected: &[(RSyntaxKind, u32)], messages: &[&str]) {
-    let (tokens, diagnostics) = lex(source);
-
-    // Render the WHOLE stream on any failure. A message naming only the offending
-    // token sends you back to re-run with `--no-capture` and print it yourself.
-    let render = || -> String {
-        tokens
-            .iter()
-            .map(|(kind, range)| format!("  {kind:?}@{range:?} {:?}", &source[*range]))
-            .collect::<Vec<_>>()
-            .join("\n")
-    };
-
-    assert_eq!(
-        tokens.len(), expected.len(),
-        "expected {} tokens, lexed {}:\n{}", expected.len(), tokens.len(), render(),
-    );
-
-    // The ranges must TILE the source: start at 0, each adjacent to the last, the
-    // final one ending at `source.len()`. This is strictly stronger than summing
-    // lengths — it also rejects a lexer that overlaps or rewinds — and it makes
-    // reconstructing the input to compare it redundant.
-    let mut offset = TextSize::from(0);
-    for (index, ((kind, range), (want_kind, want_length))) in
-        tokens.iter().zip(expected).enumerate()
-    {
-        assert_eq!(*kind, *want_kind, "token {index}:\n{}", render());
-        assert_eq!(range.len(), TextSize::from(*want_length), "token {index}:\n{}", render());
-        assert_eq!(range.start(), offset, "token {index} leaves a gap:\n{}", render());
-        offset = range.end();
-    }
-    assert_eq!(
-        usize::from(offset), source.len(),
-        "tokens stop short of the end of the source:\n{}", render(),
-    );
-
-    let actual: Vec<String> = diagnostics.iter().map(render_message).collect();
-    assert_eq!(actual.len(), messages.len(), "diagnostics:\n{actual:#?}");
-    for (actual, expected) in actual.iter().zip(messages) {
-        assert!(actual.contains(expected), "expected {expected:?} in {actual:?}");
-    }
-}
-```
-
-That tiling check is the single highest-value assertion in the phase, and it is
-free on every test because it lives in the shared function rather than being
-something each test remembers to do.
-
-#### The files
-
-| File | Pins |
-|---|---|
-| `bom.rs` | `UNICODE_BOM:3` at offset 0 and nowhere else — a bare BOM file, a BOM before a token, and U+FEFF mid-file *not* becoming a second `UNICODE_BOM`. Plus the two short-source cases `consume_potential_bom` guards with its `get(0..3)` (§8.3.1): a one-byte and a two-byte file must not panic or mis-slice. The `RRoot::bom` slot is dead without this file. |
-| `whitespace.rs` | Runs of space/tab/`\x0B`/`\x0C` coalescing into one `WHITESPACE`; `\n` and lone `\r` as `NEWLINE:1`; `\r\n` as **one** `NEWLINE:2`; `\n\n` as two tokens; `\r\r\n` as two. |
-| `comments.rs` | `#` to end of line; a comment ending the file with no newline; `# x\r\n` leaving the `\r` **out** of the comment and inside the `NEWLINE`; the empty comment `#`; non-ASCII inside a comment. |
-| `line_breaks.rs` | The sticky flag of §8.2: false on the first token; true after a newline; surviving `WHITESPACE` **and** `COMMENT`; cleared by the first non-trivia token. `1\n  # c\n  + 2` reports the break on `+` and not on `2`. |
-| `puncts.rs` | Every punct kind at least once, and the whole maximal-munch table of §8.4 as a prefix sweep: `<`, `<-`, `<<-`, `<<` (**two** tokens), `<=`, `>`, `>=`, `-`, `->`, `->>`, `:`, `::`, `:::`, `::::`, `:=`, `*`, `**`, `\|`, `\|\|`, `\|>`, `&`, `&&`, `=`, `==`, `!`, `!=`. Adjacency cases too: `1<-2` vs `1 < -2`. Plus the ASCII half of `ERROR_TOKEN` (§8.4) — a control byte, which is where the dispatch's final `_` lands. |
-| `brackets.rs` | The asymmetry of §8.4: greedy `[[`, `]]` as two `R_BRACK`, `x[ [1] ]` staying four separate brackets, `[[[` as `L_BRACK2` + `L_BRACK`. Then `re_lex(JoinBrackets)` — joining `]]` into `R_BRACK2:2`, leaving the rest of a longer run for the next join (`]]]]`, the `x[[a[[b]]]]` ladder), being idempotent, being a no-op on any other token including `[[`, and being a no-op at EOF. Two cases carry the weight: adjacency, where `] ]` and `]\n]` must **not** join (issue #177), and the preceding-line-break flag surviving the rewind that a join performs. |
-| `keywords.rs` | Every row of the keyword table in §8.4, `NA_real_` → `NA_DOUBLE_KW` included. Case sensitivity in both directions: `If`/`Function` are `IDENT`, and so are `true`/`false`/`null`. The `else` prefixes: `elseif`, `else_idx`, `elseμ` (tree-sitter-r #200). |
-| `identifiers.rs` | `foo`, `foo.bar`, `a1`, `_` alone, `_foo` as one `IDENT` (not rejected here — §8.4), `.foo`, `.`, `..`, and unicode XID starts and continues. Plus the non-ASCII half of `ERROR_TOKEN`: a character such as `€` that is neither `XID_Start` nor punctuation. |
-| `backticks.rs` | One `IDENT` spanning the delimiters; `` `a\`b` `` with the escape; the empty `` `` ``; the multi-line name of §8.4; and an unterminated one running to EOF with `unterminated_backtick_identifier` pointing at the **opening** delimiter. |
-| `numbers.rs` | `1`, `1L`, `1i`, `1.`, `.5`, `1e-3`, `1e5L`, hex `0xFF`, `0x1p3`, `0x.8p1`, `0x.`, `0xFFL`. Then deviation 7, the greedy suffix: `1Li`, `1LL`, `1iL`, `1L_`, `1LForever`, `1e5iL`, `1L.`, `.1L.`, each split exactly where R splits it. Then deviation 8, which is the half of this file that can regress silently: `0x`, `0xg`, `0xp3` carry `Unterminated hexadecimal literal.`, `0x1p`, `0x1p+`, `0x1p-`, `0x.p`, `0x.8p` carry `Unterminated binary exponent.`, and `1e`, `1e+`, `1e-`, `1east`, `1e-a`, `1e + 2` carry `Unterminated exponent.` — each asserting the token stream *and* the diagnostic, since the split is nearly unchanged and only the diagnostic distinguishes the two designs. |
-| `dots.rs` | The §8.3 dispatch: `...` → `DOTS`, `..1`/`..12` → `DOTDOTI`, `.5` → `R_DOUBLE_LITERAL`, `.foo`/`.`/`..` → `IDENT`. Then the names that merely start dot-like and are therefore ordinary identifiers: `....`, `...a`, `...1`, `..1a`, `..1.`, `..1e5`. `.1L` and `.1i` are the regression for tree-sitter-r #190 and belong here rather than in `numbers.rs`, since the bug was in the dispatch. |
-| `specials.rs` | `%%`, `%/%`, `%in%`, `%>%`, `%o%`, and the empty `%%`. The newline case of §8.4: `%foo\n1` keeps `%foo` as `SPECIAL:4`, does **not** consume the newline, and carries `unterminated_special`. Plus the two inherited tree-sitter divergences — `%foo` at EOF errors, and `%a\b%` is not a `SPECIAL` — each with a comment pointing at `docs/deviations.md`. |
-| `strings.rs` | The `STRING_OPEN`/`STRING_CONTENT`/`STRING_CLOSE` triple for `'` and `"`; the empty string emitting **no** `STRING_CONTENT`; escapes staying inside one content token; the multi-line string; `#` and `%` inert inside a body; the other quote character inert inside; and an unterminated string running to EOF. |
-| `raw_strings.rs` | All three bracket pairs; hyphen counts 0, 1, and several; a close that matches the bracket but not the hyphen count *not* terminating; `R'...'` uppercase; `rnorm` and `r + 1` falling through to the identifier and punct arms; an unterminated raw string. |
-| `error_token.rs` | What holds of an `ERROR_TOKEN` however the dispatch reached it, the two arms themselves being covered by `puncts.rs` and `identifiers.rs`: the token spans the whole character at all four UTF-8 widths; a run produces one token *and one diagnostic naming that character* each, not one merged token; lexing continues afterwards; `a€b` is three tokens; and the token is non-trivia, so it takes the sticky break flag and clears it. |
-| `checkpoint.rs` | `checkpoint()`/`rewind()` restoring every field of `LexerCheckpoint` (§8.2): position, kind, `current_flags`, `after_line_break`, and `unicode_bom_length`. The §8.2 warning gets a test of its own: rewind to before a newline, lex forward again, and assert `has_preceding_line_break()` still reports it. That bug is invisible until Phase 12's `else` handling and silent even then. §8.2.1 gets two: a lookahead pass over `"x" r"(y)"` that rewinds and then lexes the first body correctly, and every open form reading back as its delimiter, with a name like `rnorm` answering `None`. |
-| `coverage.rs` | See below. |
-
-Diagnostics are asserted in the file that owns the construct — the unterminated
-backtick in `backticks.rs`, the unterminated special in `specials.rs` — rather
-than collected into a `diagnostics.rs`. A diagnostic is part of how a construct
-lexes, and splitting the two means changing one without noticing the other.
-
-Two of the original tests, relocated, to fix the shape:
-
-```rust
-// lexer/tests/dots.rs
-#[test]
-fn dispatch() {
-    assert_lex!("... ..1 .5 .foo . ..",
-        DOTS:3, WHITESPACE:1, DOTDOTI:3, WHITESPACE:1,
-        R_DOUBLE_LITERAL:2, WHITESPACE:1, IDENT:4, WHITESPACE:1,
-        IDENT:1, WHITESPACE:1, IDENT:2);
-}
-
-// lexer/tests/specials.rs
-#[test]
-fn stops_at_newline() {
-    // R's `SpecialValue` ungets the newline and errors, so the NEWLINE survives to
-    // terminate the statement. `%foo` is still a SPECIAL with a diagnostic
-    // attached, NOT an `ERROR_TOKEN`: the text is a well-formed operator that was
-    // cut short, so the parser can still use it, and `ERROR_TOKEN` is reserved for
-    // characters that start nothing at all (§8.4).
-    assert_lex_err!("%foo\n1",
-        SPECIAL:4, NEWLINE:1, R_DOUBLE_LITERAL:1
-        => "Unterminated");
-}
-```
-
-#### `coverage.rs` — the anti-gap guard
-
-"Every token kind has lexer coverage" is the acceptance criterion for this phase,
-and as prose it is unfalsifiable: nobody re-derives it by hand across sixteen
-files. `MANIFEST.toml` does this job for the corpus (§10.3.3); this does it for
-the token inventory.
-
-`RSyntaxKind` is `#[repr(u16)]` and ends in `__LAST`, and the `SyntaxKind` trait
-gives a safe `from_raw`, so the full inventory is enumerable:
-
-```rust
-/// Well-formed sources, which between them must produce every lexable kind but
-/// `ERROR_TOKEN` and `R_BRACK2`. The test names the gaps for you.
-const SOURCES: &[&str] = &[ /* one per construct */ ];
-
-/// Sources for the kinds no well-formed source can reach. `ERROR_TOKEN` is the
-/// only one, and it comes with a diagnostic by construction, so it needs a list
-/// of its own rather than a hole in `SOURCES`. Both lists feed `produced`, and
-/// each asserts its own diagnostic polarity — that is what stops a source from
-/// drifting between the two lists unnoticed.
-const ERROR_SOURCES: &[&str] = &["\u{1}"];
-
-/// The kinds only a re-lex can produce. `R_BRACK2` is the only one, and
-/// deliberately so (§8.4): `]]` lexes as two `]` and the parser joins them where
-/// the nesting says to. Driving that here rather than excusing the kind keeps
-/// the guard total.
-fn re_lexed_kinds() -> HashSet<RSyntaxKind> { /* lex `]]`, join, collect */ }
-
-/// Kinds the lexer legitimately never produces, each with a reason. Adding a
-/// node kind to `r.ungram` therefore does NOT fail this test, but adding a token
-/// kind does, until something lexes it.
-fn is_lexable(kind: RSyntaxKind) -> bool {
-    !matches!(kind, TOMBSTONE | EOF | __LAST) && !kind.is_list() && !is_node(kind)
-}
-
-#[test]
-fn every_lexable_kind_is_produced() {
-    let mut produced = HashSet::new();
-    for source in SOURCES {
-        // ... assert the source lexed cleanly ...
-        produced.extend(lex(source).0.into_iter().map(|(kind, _)| kind));
-    }
-    for source in ERROR_SOURCES {
-        // ... assert the source did NOT lex cleanly ...
-        produced.extend(lex(source).0.into_iter().map(|(kind, _)| kind));
-    }
-    produced.extend(re_lexed_kinds());
-
-    let missing: Vec<_> = (0..RSyntaxKind::__LAST as u16)
-        .map(|raw| RSyntaxKind::from_raw(RawSyntaxKind(raw)))
-        .filter(|kind| is_lexable(*kind) && !produced.contains(kind))
-        .collect();
-
-    assert!(missing.is_empty(), "no test lexes: {missing:#?}");
-}
-```
-
-The failure mode it is built for is not "someone forgot a test today" — it is
-Phase 3-style grammar edits landing a new token kind in `r_kinds_src.rs` months
-from now with nothing lexing it. That failure is otherwise discovered by the
-parser, as a confusing missing-slot bug several phases downstream.
-
-**Done when:** `coverage.rs` passes with an empty `missing` list; every file in
-the table above exists and is non-trivial; every `assert_lex!` in the suite tiles
-its source; and the R sources in the eventual `literals/*.md` corpus files all lex
-with **zero** diagnostics (they will not *parse* yet — there is no parser).
+`R_BRACK2` is reachable only through a re-lex, and `coverage.rs` drives the join
+rather than excusing the kind, which is what keeps the guard total.
 
 ---
 
@@ -2211,7 +849,7 @@ shows up in every snapshot. The rules, read off air's `derive_trivia` and
 **Note the polarity: air's default is leading, and `JsTokenSource`'s is trailing.**
 Copying JS here would put a diff in every snapshot that contains a space between
 two tokens, which is all of them. Air's choice is arguably the odd one — see the
-"Inherited from air" section of `docs/deviations.md` (§7.3) — but aether copies it
+"Inherited from air" section of `docs/deviations.md` — but aether copies it
 so the oracle stays useful, and revisits it after the swap if at all.
 
 Air ships eight `test_parse_trivia_*` unit tests covering exactly these cases;
@@ -2507,17 +1145,26 @@ pub(crate) fn expected_statement_separator(
     range: TextRange,
 ) -> ParseDiagnostic { ... }
 pub(crate) fn expected_condition(p: &RParser, range: TextRange) -> ParseDiagnostic { ... }
-// Backtick-quoted names are identifiers, not strings — separate wording.
-// Takes two ranges: the opening delimiter (primary) and EOF (detail). See §8.4.
-pub(crate) fn unterminated_backtick_identifier(open: TextRange, eof: TextRange) -> ParseDiagnostic { ... }
-pub(crate) fn unterminated_string(open: TextRange, eof: TextRange) -> ParseDiagnostic { ... }
-// `%…%` cannot span a newline; points at the `%` that opened it. See §8.4.
-pub(crate) fn unterminated_special(open: TextRange) -> ParseDiagnostic { ... }
 ```
+
+`diagnostics.rs` already exists — Phase 4 landed the six the lexer raises
+(`unterminated_backtick_identifier`, `unterminated_special`,
+`unterminated_hexadecimal`, `unterminated_hexadecimal_binary_exponent`,
+`unterminated_exponent`, `unexpected_character`). This phase adds the parser's
+`expected_*` family alongside them and drops the `#[allow(dead_code)]` that
+`lib.rs` carries until something drives them.
 
 Every diagnostic constructor should be a named function here, never an inline
 `err_builder` in a syntax module. It keeps wording consistent and makes it trivial
 to review the full diagnostic surface in one file.
+
+**An unterminated string gets no constructor of its own for now.** The three
+unclosed-quote corpus tests surface through `expect(STRING_CLOSE)` in §11.1,
+which is `ParseDiagnostic` enough to start. Add one only if Phase 7's snapshots
+read badly — and if so, give it the two-range shape
+`unterminated_backtick_identifier` already uses, pointing at the opening
+delimiter with EOF as a secondary label, since a string runs to EOF for the same
+reason a backticked name does (§8.4).
 
 **Done when:** `parse("")` produces `R_ROOT` containing an empty
 `R_STATEMENT_LIST` and an `EOF` token, `parse("   \n# hi\n")` attaches the
@@ -2953,7 +1600,7 @@ Three things to know about it:
   node and has no range to overlap, so it cannot participate in this check. Step 3
   rejects it on every clean test, and the designed error paths always emit a
   diagnostic alongside it — `a$` produces a missing `right` slot *and*
-  `expected_selector` (§7.2). Nothing is being let through here that step 3 or the
+  `expected_selector` (§11.4). Nothing is being let through here that step 3 or the
   `[error]` marker does not already cover.
 - **Only primary ranges count.** `with_detail` labels live in the diagnostic's
   advices, not in `location()`, so `expected_selector`'s secondary label on the
@@ -3087,7 +1734,7 @@ test often bundles a dozen related snippets and its value is in that grouping.
 | `expressions/unary.md` | Unary Operators | ts:e ×1 | 8 |
 | `expressions/binary.md` | Relational · Arithmetic Operator · Not An Arithmetic Operator | ts:e ×3 | 8 |
 | `expressions/colon.md` | Colon | ts:e ×1 | 8 |
-| `expressions/specials.md` | Specials · Pipe · Pipe Placeholder | ts:e ×3 | 8 |
+| `expressions/specials.md` | Specials `[deviation]` · Pipe · Pipe Placeholder | ts:e ×3 | 8 |
 | `expressions/formula.md` | Formulas | ts:e ×1 | 8 |
 | `expressions/help.md` | Help Operator | ts:e ×1 | 8 |
 | `expressions/assignment.md` | Assignment | ts:e ×1 | 8 |
@@ -3248,7 +1895,8 @@ So:
   are only a handful; name them by hand rather than auto-suffixing `_2`.
 
 The `undefined/*` ones become `[error]` in aether — that directory exists in air
-precisely because nobody was happy with the current silent behavior (§7.2).
+precisely because nobody was happy with the current silent behavior (deviation 2 in
+`docs/deviations.md`).
 
 ### 10.4 The oracle
 
@@ -3577,7 +2225,7 @@ not greedy.
 **Associativity of `$` `@` `::` `:::`.** tree-sitter-r forces these **right**
 associative and explains why in a long comment: it is a workaround for the
 `optional()` RHS, so that `foo::bar` prefers the longer match `[foo::bar]` over
-`[foo::][bar]`. Since aether makes the RHS **required** (§7.2), that workaround is
+`[foo::][bar]`. Since aether makes the RHS **required** (deviation 2), that workaround is
 unnecessary and we use **left** associativity, matching R's `gram.y`. The
 resulting trees should be identical — the RHS is restricted to a selector, so
 `a$b$c` can only nest one way — but say so in the PR and let the oracle confirm it.
@@ -3886,8 +2534,8 @@ So the list has to own its terminator, including the case where the lexer refuse
 to spell that terminator out:
 
 ```rust
-// `RReLexContext::JoinBrackets` is defined in §8.2 and lands in Phase 4; this is
-// its one and only call site.
+// `RReLexContext::JoinBrackets` landed with the lexer in Phase 4; this is its one
+// and only call site.
 
 // crates/aether_r_parser/src/syntax/call.rs
 //
@@ -4251,7 +2899,7 @@ round-trip invariant holds because the offending tokens are inside the tree rath
 than dropped.
 
 **The bogus kind is `R_BOGUS_SELECTOR`**, which exists only because Phase 3 added
-it and put `RBogusSelector` in the `AnyRSelector` union (§7.2.1). Without a bogus
+it and put `RBogusSelector` in the `AnyRSelector` union (§7). Without a bogus
 variant in that union the factory silently reshapes the whole `a$1` into one bogus
 node instead of an `R_EXTRACT_EXPRESSION` with a bogus RHS — no panic, no compile
 error, and round-trip still passes. So `«…»` in the table above reads
@@ -4278,7 +2926,7 @@ are absent from `MANIFEST.toml` and do not move the 89 count.
 
 ```rust
 fn parse_function_definition(p: &mut RParser) -> ParsedSyntax {
-    if !p.at(T![function]) && !p.at(BACKSLASH) { return Absent }
+    if !p.at(T![function]) && !p.at(T!["\\"]) { return Absent }
     let m = p.start();
     p.bump_any();                       // `function` or `\`
     // Newlines between `function` and `(` are insignificant. tree-sitter-r has
@@ -4484,7 +3132,7 @@ fn parse_statement_list(p: &mut RParser, end: StatementListEnd) {
             // Nothing here starts an expression. Recover INSIDE the statement,
             // so the bogus node fills the `expression` slot rather than becoming
             // a stray child of `R_STATEMENT_LIST` — that list is `RStatement*`
-            // and `slot_to_node` panics on anything else (§7.1).
+            // and `slot_to_node` panics on anything else (§7).
             //
             // `R_BOGUS_EXPRESSION` is the right kind because `AnyRExpression`
             // already carries an `RBogusExpression` variant, so it casts into the
@@ -4694,9 +3342,8 @@ aether, so the indirection is discoverable from the place someone hits it.
 | Risk | Why it bites | Mitigation |
 |---|---|---|
 | **Trivia attachment drift** | A one-piece difference in whitespace attachment changes every snapshot and silently changes formatter output. | Port air's rules literally; the oracle compares ranges, so it catches this. Do the token source before any grammar work. |
-| **`[[` / `]]` splitting** | Genuinely ambiguous; tree-sitter needs an external scanner and still has open bugs. | Greedy lex + re-lex split (§11.3). Six corpus tests exercise it. Do not invent a scope stack. |
-| **The statement wrapper** | Replaces `R_EXPRESSION_LIST` with `R_STATEMENT_LIST` of `R_STATEMENT`, so air's formatter must change. | Land in Phase 3, before any parser code. Get explicit sign-off on the ungram shape. |
-| **Codegen drift** | If aether's generated code diverges from air's, the swap-in fails in confusing ways. | Phase 2 asserts byte-identity, and CI asserts `just codegen` idempotence. |
+| **`[[` / `]]` joining** | Genuinely ambiguous; tree-sitter needs an external scanner and still has open bugs. The lexer half landed in Phase 4; the parser half is Phase 9. | One join site, in the argument list's terminator check (§11.3). Six corpus tests exercise it. Do not invent a scope stack, and do not make the lexer glue closers. |
+| **Codegen drift** | If aether's generated code diverges from air's, the swap-in fails in confusing ways. | Retired: Phase 2 asserted byte-identity, and CI asserts `just codegen` idempotence on every PR. |
 | **Oracle unavailable on error tests** | tree-sitter bails on any error, so ~25 tests get no oracle coverage. | Accept it; those are exactly the tests where we *intend* to differ. Rely on reviewed snapshots there. |
 | **Oracle skipped or rotted** | It is local-only and feature-gated (§10.4.1), so nothing forces anyone to run it, and nothing catches it breaking. | Named as an explicit step in every phase's checklist (§4). If it does break, fix cheaply or abandon it — it is deleted at swap-in regardless. Reviewed snapshots, not the oracle, are what carry forward. |
 | **`[pending]` rot** | A large batch of inert tests invites ignoring them. | Unexpected pass is a *hard failure*, so the count only moves deliberately. Report `N/89 enabled` in CI output. |
@@ -4706,58 +3353,17 @@ aether, so the indirection is discoverable from the place someone hits it.
 
 ## 14. `CLAUDE.md` for the aether repo
 
-Create this in Phase 1 so every subsequent session has the same context:
+`CLAUDE.md` exists at the repo root and is the context every session starts from.
+It carries the commands, the four invariants, the corpus conventions, and the
+reference implementations. It is short on purpose — do not grow it into a copy of
+this plan.
 
-```markdown
-# Aether
+Two things keep it honest as phases land:
 
-A hand-written Rust parser for R, built on Biome's parser infrastructure,
-producing the same Rowan tree as `posit-dev/air`'s tree-sitter-based parser.
+- **It describes the repo as it will be**, and says so, so a command or directory
+  belonging to an unlanded phase is not a bug in the file.
 
-## Commands
-Tests run under **cargo-nextest**, not `cargo test`.
-- `just codegen` — regenerate `aether_r_syntax` / `aether_r_factory` from `r.ungram`
-- `just test` — `cargo nextest run --workspace` (+ `cargo test --doc`)
-- `just accept` — regenerate markdown snapshots via `xtask accept`, then verify
-- `just quick` — run the `tests/quick_test.rs` scratchpad
-- `just oracle` — differential check against tree-sitter-r. Local only, never in
-  CI, and the whole crate goes away at swap-in. Run it at the end of a phase.
-- `cargo nextest run -E 'test(/Dollar/)'` — filter by name
-
-Tests are **read-only**. Only `xtask accept` writes corpus files; nextest runs
-tests in parallel processes and they would race otherwise.
-
-## Invariants — do not break these
-1. `parse(src).syntax().to_string() == src` for ALL inputs. Always.
-2. Bogus nodes always come with at least one diagnostic.
-3. The parser never panics and never loops forever.
-4. Tree shape matches tree-sitter-r except where `docs/deviations.md` says so.
-
-## Test corpus
-`crates/aether_r_parser_tests/tests/corpus/**/*.md`, one file per concept, one test per
-`##` heading.
-
-**Two files per concept.** `X.md` is human-authored: headings, markers, and ```r
-cells. `X.snap.md` is generated by `just accept` and must never be hand-edited —
-it echoes the heading and source, then adds ```cst and ```diagnostics. If you
-change a test, edit `X.md` and re-run `just accept`.
-
-`MANIFEST.toml` records where each of the 89 tree-sitter-r tests lives; a test
-enforces that none go missing. Moving or renaming a test means editing both the
-input `.md` and the manifest.
-The ` ```r ` cell is the input and is human-authored. Everything else is
-generated — never hand-edit a `cst` or `diagnostics` cell.
-
-Markers: `[pending]` (not yet supported; must NOT parse cleanly),
-`[error]` (must produce an error), `[deviation]` (skip oracle comparison).
-
-**Turning on a feature means deleting `[pending]` markers, not adding tests.**
-The 89 tree-sitter-r tests were imported wholesale in one commit.
-
-## Reference implementations
-- `tree-sitter-r` (r-lib) — especially `src/scanner.c` and the long comments in
-  `grammar.js`. Those comments record real bugs; read them before changing
-  lexer behavior.
-- Biome's JS/CSS parsers — for idiom. When in doubt, do what `biome_js_parser`
-  does.
-```
+- **The invariants are the part that must not drift.** Round-trip for all inputs,
+  a diagnostic for every bogus node, no panics and no infinite loops, and tree
+  shape matching tree-sitter-r except where `docs/deviations.md` says otherwise.
+  §10.2's `check()` enforces the first three mechanically once Phase 6 lands.
