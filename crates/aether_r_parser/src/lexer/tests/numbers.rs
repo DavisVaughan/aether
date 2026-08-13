@@ -40,9 +40,7 @@ fn exponents() {
     assert_lex!("1.e5", R_DOUBLE_LITERAL: 4);
 }
 
-/// An `e` commits to an exponent, so its digits are required. tree-sitter-r's
-/// regex ends `[eE][+-]?\d*` and takes `1e` as a whole literal; R rejects it, and
-/// so does aether — see `docs/deviations.md`.
+/// An `e` commits to an exponent, so its digits are required
 #[test]
 fn a_decimal_exponent_with_no_digits() {
     assert_lex_err!("1e", R_DOUBLE_LITERAL: 2 => "Unterminated exponent");
