@@ -529,8 +529,8 @@ answered `Some` on the same bytes.
 `checkpoint.rs` pins the lookahead-then-rewind sequence above, that each open
 form reads back as its delimiter, and that a name like `rnorm` answers `None`.
 
-§9.1.1 is the token source's side of this, and it calls the same `from_open()`
-the test driver does, so the two cannot drift.
+§9.1.1 is the parser's side of this, and it calls the same `from_open()` the test
+driver does, so the two cannot drift.
 
 ### 8.3 Dispatch
 
@@ -878,37 +878,47 @@ Implement `BumpWithContext` (for string lexing) and `TokenSourceWithBufferedLexe
 
 The lexer keeps no memory of the string it opened (§8.2.1), so the delimiter
 `RLexContext::StringContent` and `RLexContext::StringEnd` name has to come from
-the caller. The token source is where it is cheapest to get: it is sitting on the
-`STRING_OPEN` token, and that token's text *is* the delimiter.
+the caller. That caller is `parse_string_value` (§11.1), and it needs no help
+from either `RTokenSource` or `RParser` to get it:
 
 ```rust
-impl<'src> RTokenSource<'src> {
-    /// The delimiter of the `STRING_OPEN` the source is on
-    ///
-    /// The lexer's own state is unreachable from here — `BufferedLexer` keeps
-    /// its `inner` private, with no accessor and no `Deref` — and it would be
-    /// the wrong place to read from anyway (§8.2.1). The token's text is the
-    /// channel.
-    pub(crate) fn string_delimiter(&self) -> RStringDelimiter {
-        debug_assert_eq!(self.current(), STRING_OPEN);
+let delimiter = RStringDelimiter::from_open(p.cur_text());
+```
 
-        RStringDelimiter::from_open(&self.text()[self.current_range()])
-    }
+**Neither type gets a `string_delimiter()` method.** Verified at the pinned rev
+rather than assumed — `Parser::cur_text()` is *provided*, and its body is already
+the whole of what such a method would do:
+
+```rust
+// biome_parser/src/lib.rs
+fn cur_text(&self) -> &str {
+    &self.source().text()[self.cur_range()]
 }
 ```
 
-The reading itself belongs to `RStringDelimiter`, not here (§8.2.1) — the token
-source's job is to know *which* token to read, and the delimiter's job is to
-know what its own text looks like. The §8.6 test driver calls the same
-`from_open`, so the two stand-ins for this function cannot drift.
+So a `RTokenSource::string_delimiter()` would hand-roll `cur_text()` out of
+`TokenSource::text()` and `current_range()`, and `RParser` would then forward it
+— two methods and a hop to reach an accessor `RParser` already has for free from
+the trait it implements.
 
-`RParser` forwards it, the way it forwards `current()` and `nth()`, and §11.1's
-`parse_string_value` is the only caller. Three properties of this worth knowing
-before writing that function:
+The token source has no *internal* use for the delimiter either, which is what
+makes this clear-cut rather than a toss-up. `BumpWithContext::bump_with_context`
+takes the context as an argument, so the context always flows parser → token
+source; the token source never derives one. A method there would exist solely to
+be forwarded out again.
 
-- **It is total.** Call it behind `at(STRING_OPEN)` and there is no failure case
-  to handle: the raw fallback's `expect` is unreachable, because the lexer only
-  emitted the token by parsing the same bytes successfully.
+The reading itself belongs to `RStringDelimiter` (§8.2.1) — the caller's job is
+to know *which* token to read, and the delimiter's job is to know what its own
+text looks like. The §8.6 test driver calls the same `from_open`, so the two
+stand-ins for it cannot drift.
+
+Three properties worth knowing before writing `parse_string_value`:
+
+- **It is total.** Called behind `at(STRING_OPEN)` there is no failure case to
+  handle: `from_open`'s raw fallback `expect` is unreachable, because the lexer
+  only emitted the token by parsing the same bytes successfully. That guard is
+  already the function's first line, so no `debug_assert` is needed beside the
+  call.
 
 - **It is stateless.** Nothing is remembered between the three bumps, so a
   checkpoint taken anywhere in a string and rewound to is as good as any other
@@ -2115,8 +2125,9 @@ fn parse_string_value(p: &mut RParser) -> ParsedSyntax {
     if !p.at(STRING_OPEN) { return Absent }
 
     let m = p.start();
-    // Read once, off the open token's text (§9.1.1)
-    let delimiter = p.string_delimiter();
+    // Read once, off the open token's text. `cur_text()` is trait-provided and
+    // the guard above makes `from_open` total, so this needs no helper (§9.1.1).
+    let delimiter = RStringDelimiter::from_open(p.cur_text());
     p.bump_with_context(STRING_OPEN, RLexContext::StringContent(delimiter));
     if p.at(STRING_CONTENT) {
         p.bump_with_context(STRING_CONTENT, RLexContext::StringEnd(delimiter));
