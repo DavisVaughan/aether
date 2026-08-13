@@ -22,9 +22,6 @@ fn constants() {
     assert_lex!("NaN", NAN_KW: 3);
 }
 
-/// The `NA` family, whose kind names do not line up with the R spelling
-/// one-for-one. `NA_real_` is the row an implementer gets wrong by pattern
-/// matching on the name.
 #[test]
 fn missing_values() {
     assert_lex!("NA", NA_LOGICAL_KW: 2);
