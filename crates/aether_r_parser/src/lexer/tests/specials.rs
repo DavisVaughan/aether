@@ -39,9 +39,7 @@ fn unterminated_at_end_of_file() {
 }
 
 /// R's `SpecialValue` does not exclude backslash, so `%a\b%` is a valid operator
-/// in R. tree-sitter-r's character class `[^%\\\n]` excludes it, and their own
-/// comment concedes the regex is approximate. Aether follows R. See
-/// `docs/deviations.md`.
+/// in R
 #[test]
 fn a_backslash_is_ordinary_text() {
     assert_lex!(
