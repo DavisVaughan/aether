@@ -63,9 +63,7 @@ impl RStringDelimiter {
     /// The raw string delimiter opening at the start of `text`, or `None` when
     /// none does
     ///
-    /// Reads no further than the delimiter itself, so the lexer can ask about
-    /// the rest of the source and the parser about a `STRING_OPEN` token's
-    /// text, and the two get the same answer.
+    /// Reads no further than the delimiter itself
     fn try_from_raw_string_open(text: &str) -> Option<Self> {
         let bytes = text.as_bytes();
 
