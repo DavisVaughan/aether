@@ -1041,7 +1041,8 @@ use biome_rowan::{TextRange, TextSize};
 
 /// The two string contexts carry the delimiter because the lexer remembers
 /// nothing between calls. The caller derives it from the `STRING_OPEN` token's
-/// text with `RStringDelimiter::from_open()`.
+/// text, falling back to `RStringDelimiter::from_raw_string_open()` for
+/// anything that is not a plain quote.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) enum RLexContext {
     #[default]
@@ -1256,30 +1257,7 @@ fork, but it buys one enum payload at the cost of a permanent divergence from
 upstream `biome_parser`. Not worth it.
 
 **So the delimiter travels in the context, and the caller reads it back off the
-`STRING_OPEN` token's text:**
-
-```rust
-impl RStringDelimiter {
-    /// The delimiter that `text`, the text of a `STRING_OPEN` token, opens, or
-    /// `None` for any other text
-    pub(crate) fn from_open(text: &str) -> Option<Self> {
-        match text.as_bytes() {
-            [b'\''] => Some(Self::Single),
-            [b'"'] => Some(Self::Double),
-            [b'r' | b'R', quote @ (b'\'' | b'"'), hyphens @ .., bracket]
-                if hyphens.iter().all(|byte| *byte == b'-') =>
-            {
-                Some(Self::Raw {
-                    quote: *quote,
-                    hyphens: u8::try_from(hyphens.len()).ok()?,
-                    bracket: RawStringBracket::from_open(*bracket)?,
-                })
-            }
-            _ => None,
-        }
-    }
-}
-```
+`STRING_OPEN` token's text.**
 
 The text is the only channel available in any case. `BufferedLexer`'s `inner` is
 private with no accessor and no `Deref`, and `TokenSourceWithBufferedLexer::lexer()`
@@ -1287,13 +1265,41 @@ hands back the `BufferedLexer`, not the `RLexer`. Nothing above the lexer can
 read a lexer field, so "ask the lexer for the delimiter" is not implementable at
 any layer, however the lexer is written.
 
-Two guards keep the two readings of the same prefix honest:
+Reading it back must not mean parsing an opening delimiter twice — once in the
+lexer to find where it ends, once above to say what it was. One function does
+both, because it finds its own end:
 
-- `consume_raw_string_open` asserts `from_open` on the token it just lexed agrees
-  with the delimiter the scan built. Every raw string in the tests exercises it.
+```rust
+impl RStringDelimiter {
+    /// The raw string delimiter `text` opens with
+    pub(crate) fn from_raw_string_open(text: &str) -> Self {
+        Self::try_from_raw_string_open(text).expect("`text` opens a raw string")
+    }
 
-- `tests/checkpoint.rs` pins the lookahead-then-rewind sequence above, and
-  `from_open` round-trips each open form.
+    /// The raw string delimiter opening at the start of `text`, or `None` when
+    /// none does
+    ///
+    /// Reads no further than the delimiter itself, so the lexer can ask about
+    /// the rest of the source and the parser about a `STRING_OPEN` token's
+    /// text, and the two get the same answer.
+    fn try_from_raw_string_open(text: &str) -> Option<Self> { ... }
+}
+```
+
+Only the raw form needs it. `'` and `"` are one byte and both sides already
+match on that byte: the lexer to pick the arm, the caller to pick the variant.
+That leaves exactly one parser of the hyphen-and-bracket grammar, shared, and it
+is what makes `from_raw_string_open`'s `expect` safe — the lexer emits a
+`STRING_OPEN` starting with `r` only where `try_from_raw_string_open` answered
+`Some` on the same bytes.
+
+Two more methods fall out of the type and keep the lengths in one place:
+`open_length()` (`1`, or `3 + hyphens`) is what `consume_string_open` advances
+by, and `close_length()` (`1`, or `2 + hyphens`) is what `lex_string_end` does.
+
+`tests/checkpoint.rs` pins the lookahead-then-rewind sequence above, that each
+open form reads back as its delimiter, and that a name like `rnorm` answers
+`None`.
 
 Deriving from text is also what §9.1 does, so the test driver in §8.6 and
 `RTokenSource` share one recipe.
@@ -1844,8 +1850,9 @@ pub(super) fn lex(source: &str) -> (Vec<(RSyntaxKind, TextRange)>, Vec<ParseDiag
         let range = lexer.current_range();
         tokens.push((kind, range));
 
+        // The same three arms as §9.1.1's `string_delimiter()`
         if kind == STRING_OPEN {
-            delimiter = RStringDelimiter::from_open(&source[range]);
+            delimiter = Some(string_delimiter(&source[range]));
         }
 
         // Match on what came back, not on what was requested: a string with an
@@ -1971,7 +1978,7 @@ something each test remembers to do.
 | `strings.rs` | The `STRING_OPEN`/`STRING_CONTENT`/`STRING_CLOSE` triple for `'` and `"`; the empty string emitting **no** `STRING_CONTENT`; escapes staying inside one content token; the multi-line string; `#` and `%` inert inside a body; the other quote character inert inside; and an unterminated string running to EOF. |
 | `raw_strings.rs` | All three bracket pairs; hyphen counts 0, 1, and several; a close that matches the bracket but not the hyphen count *not* terminating; `R'...'` uppercase; `rnorm` and `r + 1` falling through to the identifier and punct arms; an unterminated raw string. |
 | `error_token.rs` | What holds of an `ERROR_TOKEN` however the dispatch reached it, the two arms themselves being covered by `puncts.rs` and `identifiers.rs`: the token spans the whole character at all four UTF-8 widths; a run produces one token *and one diagnostic naming that character* each, not one merged token; lexing continues afterwards; `a€b` is three tokens; and the token is non-trivia, so it takes the sticky break flag and clears it. |
-| `checkpoint.rs` | `checkpoint()`/`rewind()` restoring every field of `LexerCheckpoint` (§8.2): position, kind, `current_flags`, `after_line_break`, and `unicode_bom_length`. The §8.2 warning gets a test of its own: rewind to before a newline, lex forward again, and assert `has_preceding_line_break()` still reports it. That bug is invisible until Phase 12's `else` handling and silent even then. §8.2.1 gets two: a lookahead pass over `"x" r"(y)"` that rewinds and then lexes the first body correctly, and `RStringDelimiter::from_open` round-tripping every open form. |
+| `checkpoint.rs` | `checkpoint()`/`rewind()` restoring every field of `LexerCheckpoint` (§8.2): position, kind, `current_flags`, `after_line_break`, and `unicode_bom_length`. The §8.2 warning gets a test of its own: rewind to before a newline, lex forward again, and assert `has_preceding_line_break()` still reports it. That bug is invisible until Phase 12's `else` handling and silent even then. §8.2.1 gets two: a lookahead pass over `"x" r"(y)"` that rewinds and then lexes the first body correctly, and every open form reading back as its delimiter, with a name like `rnorm` answering `None`. |
 | `coverage.rs` | See below. |
 
 Diagnostics are asserted in the file that owns the construct — the unterminated
@@ -2233,39 +2240,47 @@ the caller. The token source is where it is cheapest to get: it is sitting on th
 
 ```rust
 impl<'src> RTokenSource<'src> {
-    /// The delimiter of the `STRING_OPEN` the source is on, or `None` on any
-    /// other token
+    /// The delimiter of the `STRING_OPEN` the source is on
     ///
     /// The lexer's own state is unreachable from here — `BufferedLexer` keeps
     /// its `inner` private, with no accessor and no `Deref` — and it would be
     /// the wrong place to read from anyway (§8.2.1). The token's text is the
     /// channel.
-    pub(crate) fn string_delimiter(&self) -> Option<RStringDelimiter> {
-        if self.current() != STRING_OPEN {
-            return None;
+    pub(crate) fn string_delimiter(&self) -> RStringDelimiter {
+        debug_assert_eq!(self.current(), STRING_OPEN);
+
+        let text = &self.text()[self.current_range()];
+        match text.as_bytes().first() {
+            Some(b'\'') => RStringDelimiter::Single,
+            Some(b'"') => RStringDelimiter::Double,
+            _ => RStringDelimiter::from_raw_string_open(text),
         }
-        RStringDelimiter::from_open(&self.text()[self.current_range()])
     }
 }
 ```
 
+The three arms mirror `lex_token`'s: two quote bytes, and everything else is a
+raw open by elimination, because those are the only three forms that produce a
+`STRING_OPEN`. The same dispatch on both sides is deliberate — what must not be
+written twice is the hyphen-and-bracket parse, and that lives once, in
+`RStringDelimiter` (§8.2.1).
+
 `RParser` forwards it, the way it forwards `current()` and `nth()`, and §11.1's
 `parse_string_value` is the only caller. Three properties of this worth knowing
 before writing that function:
+
+- **It is total.** Call it behind `at(STRING_OPEN)` and there is no failure case
+  to handle: the raw fallback's `expect` is unreachable, because the lexer only
+  emitted the token by parsing the same bytes successfully.
 
 - **It is stateless.** Nothing is remembered between the three bumps, so a
   checkpoint taken anywhere in a string and rewound to is as good as any other
   position — `RTokenSource` gains no field, and its checkpoint stays a delegation
   to `BufferedLexer`'s.
 
-- **It answers `None` on every token that is not a `STRING_OPEN`,** which is what
-  lets it replace the usual `at(STRING_OPEN)` guard rather than sit behind one.
-  `from_open` answers `None` for text that is not an open too, so the two `None`s
-  coincide and §11.1 handles one case, not two.
-
-- **It costs one text slice per string.** `from_open` re-reads a prefix the lexer
-  already parsed. That is the price of the lexer being a pure function of
-  position and context, and it is a few bytes on the open token, not on the body.
+- **It costs one text slice per string,** and re-reads a prefix the lexer already
+  walked. That is the price of the lexer being a pure function of position and
+  context, and it is a few bytes on the open token, not on the body.
 
 Do **not** thread the delimiter through `RParser` state, and do not look it up
 again at `STRING_CONTENT` — that token's text is the body, not a delimiter.
@@ -3450,15 +3465,11 @@ fn parse_error_token(p: &mut RParser) -> ParsedSyntax {
 
 /// `R_STRING_VALUE` is three tokens; the last two need a lex context.
 fn parse_string_value(p: &mut RParser) -> ParsedSyntax {
-    // Read once, off the open token's text (§9.1.1). `None` is unreachable for a
-    // `STRING_OPEN` — the same match that lexed the open is what reads it back —
-    // but `Absent` says so without a panic, and the caller's "expected an
-    // expression" is the right diagnostic if it ever does happen.
-    let Some(delimiter) = p.string_delimiter() else {
-        return Absent;
-    };
+    if !p.at(STRING_OPEN) { return Absent }
 
     let m = p.start();
+    // Read once, off the open token's text (§9.1.1)
+    let delimiter = p.string_delimiter();
     p.bump_with_context(STRING_OPEN, RLexContext::StringContent(delimiter));
     if p.at(STRING_CONTENT) {
         p.bump_with_context(STRING_CONTENT, RLexContext::StringEnd(delimiter));
@@ -3467,10 +3478,6 @@ fn parse_string_value(p: &mut RParser) -> ParsedSyntax {
     Present(m.complete(p, R_STRING_VALUE))
 }
 ```
-
-Note the shape of the guard: `string_delimiter()` answers `None` on any token
-that is not a `STRING_OPEN`, so it replaces the usual `if !p.at(STRING_OPEN)`
-rather than joining it.
 
 The empty-body case is why the `STRING_CONTENT` bump is conditional: `""` lexes as
 `STRING_OPEN` then `STRING_CLOSE`, because the lexer answers a `StringContent`

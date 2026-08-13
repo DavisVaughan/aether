@@ -108,8 +108,8 @@ fn a_lookahead_over_a_string_leaves_nothing_behind() {
     let mut lexer = RLexer::from_str(source);
 
     assert_eq!(lexer.next_token(RLexContext::Regular), STRING_OPEN);
-    let delimiter = RStringDelimiter::from_open(&source[lexer.current_range()]);
-    assert_eq!(delimiter, Some(RStringDelimiter::Double));
+    let delimiter = string_delimiter(&source[lexer.current_range()]);
+    assert_eq!(delimiter, RStringDelimiter::Double);
     let checkpoint = lexer.checkpoint();
 
     // The lookahead pass, every token of it in the regular context
@@ -130,36 +130,34 @@ fn a_lookahead_over_a_string_leaves_nothing_behind() {
 }
 
 /// Every form of `STRING_OPEN` the lexer emits reads back as the delimiter it
-/// was lexed with. `consume_raw_string_open` asserts the same thing from the
-/// other side, on every raw string in these tests.
+/// was lexed with
 #[test]
 fn a_string_open_reads_back_as_its_delimiter() {
+    assert_eq!(string_delimiter("'"), RStringDelimiter::Single);
+    assert_eq!(string_delimiter("\""), RStringDelimiter::Double);
     assert_eq!(
-        RStringDelimiter::from_open("'"),
-        Some(RStringDelimiter::Single)
-    );
-    assert_eq!(
-        RStringDelimiter::from_open("\""),
-        Some(RStringDelimiter::Double)
-    );
-    assert_eq!(
-        RStringDelimiter::from_open("r\"("),
-        Some(RStringDelimiter::Raw {
+        string_delimiter("r\"("),
+        RStringDelimiter::Raw {
             quote: b'"',
             hyphens: 0,
             bracket: RawStringBracket::Paren,
-        })
+        }
     );
     assert_eq!(
-        RStringDelimiter::from_open("R'---["),
-        Some(RStringDelimiter::Raw {
+        string_delimiter("R'---["),
+        RStringDelimiter::Raw {
             quote: b'\'',
             hyphens: 3,
             bracket: RawStringBracket::Bracket,
-        })
+        }
     );
+}
 
-    assert_eq!(RStringDelimiter::from_open(""), None);
-    assert_eq!(RStringDelimiter::from_open("r\"-x("), None);
-    assert_eq!(RStringDelimiter::from_open("`"), None);
+/// The `None` that sends an `r` down the identifier arm instead
+#[test]
+fn a_name_is_not_a_raw_string_open() {
+    assert_eq!(RStringDelimiter::try_from_raw_string_open(""), None);
+    assert_eq!(RStringDelimiter::try_from_raw_string_open("rnorm"), None);
+    assert_eq!(RStringDelimiter::try_from_raw_string_open("r\"-x("), None);
+    assert_eq!(RStringDelimiter::try_from_raw_string_open("\""), None);
 }

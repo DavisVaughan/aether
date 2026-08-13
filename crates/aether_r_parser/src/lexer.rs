@@ -17,8 +17,9 @@ use unicode_ident::{is_xid_continue, is_xid_start};
 /// The context the parser lexes the next token in
 ///
 /// The two string contexts carry the delimiter because the lexer remembers
-/// nothing between calls. The caller derives it from the `STRING_OPEN` token's
-/// text with [`RStringDelimiter::from_open()`].
+/// nothing between calls. The caller reads it off the `STRING_OPEN` token's
+/// text, falling back to [`RStringDelimiter::from_raw_string_open()`] for
+/// anything that is not a plain quote.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) enum RLexContext {
     #[default]
@@ -51,29 +52,43 @@ pub(crate) enum RStringDelimiter {
 }
 
 impl RStringDelimiter {
-    /// The delimiter that `text`, the text of a `STRING_OPEN` token, opens, or
-    /// `None` for any other text
+    /// The raw string delimiter `text` opens with
+    pub(crate) fn from_raw_string_open(text: &str) -> Self {
+        Self::try_from_raw_string_open(text).expect("`text` opens a raw string")
+    }
+
+    /// The raw string delimiter opening at the start of `text`, or `None` when
+    /// none does
     ///
-    /// The lexer keeps no memory of the string it opened, so this is how the
-    /// caller recovers the delimiter it has to name in [`RLexContext`]. Reading
-    /// it back off the token is what lets the whole of [`RLexer`]'s mutable
-    /// state fit in a [`LexerCheckpoint`], and a rewind is only total if it
-    /// does.
-    pub(crate) fn from_open(text: &str) -> Option<Self> {
-        match text.as_bytes() {
-            [b'\''] => Some(Self::Single),
-            [b'"'] => Some(Self::Double),
-            [b'r' | b'R', quote @ (b'\'' | b'"'), hyphens @ .., bracket]
-                if hyphens.iter().all(|byte| *byte == b'-') =>
-            {
-                Some(Self::Raw {
-                    quote: *quote,
-                    hyphens: u8::try_from(hyphens.len()).ok()?,
-                    bracket: RawStringBracket::from_open(*bracket)?,
-                })
-            }
-            _ => None,
+    /// Reads no further than the delimiter itself, so the lexer can ask about
+    /// the rest of the source and the parser about a `STRING_OPEN` token's
+    /// text, and the two get the same answer.
+    fn try_from_raw_string_open(text: &str) -> Option<Self> {
+        let bytes = text.as_bytes();
+
+        if !matches!(bytes.first()?, b'r' | b'R') {
+            return None;
         }
+
+        let quote = match bytes.get(1)? {
+            quote @ (b'\'' | b'"') => *quote,
+            _ => return None,
+        };
+
+        // Bail on pathological 256 hyphens
+        let hyphens = bytes[2..]
+            .iter()
+            .take(256)
+            .take_while(|byte| **byte == b'-')
+            .count();
+        let hyphens = u8::try_from(hyphens).ok()?;
+        let bracket = RawStringBracket::from_open(*bytes.get(2 + usize::from(hyphens))?)?;
+
+        Some(Self::Raw {
+            quote,
+            hyphens,
+            bracket,
+        })
     }
 
     /// The string quote character
@@ -82,6 +97,24 @@ impl RStringDelimiter {
             Self::Single => b'\'',
             Self::Double => b'"',
             Self::Raw { quote, .. } => quote,
+        }
+    }
+
+    /// The byte length of the opening delimiter
+    fn open_length(self) -> usize {
+        match self {
+            Self::Single | Self::Double => 1,
+            // `r`, the quote, the hyphens, and the bracket
+            Self::Raw { hyphens, .. } => 3 + usize::from(hyphens),
+        }
+    }
+
+    /// The byte length of the closing delimiter
+    fn close_length(self) -> usize {
+        match self {
+            Self::Single | Self::Double => 1,
+            // The bracket, the hyphens, and the quote
+            Self::Raw { hyphens, .. } => 2 + usize::from(hyphens),
         }
     }
 }
@@ -366,10 +399,12 @@ impl<'src> RLexer<'src> {
             // Raw strings share this arm with every other name
             // rather than taking one of their own, which would split the letter
             // range and cost the whole match its jump table for `s` onwards.
-            b'_' | b'a'..=b'z' | b'A'..=b'Z' => match self.as_raw_string_open() {
-                Some(open) => self.consume_raw_string_open(open),
-                None => self.consume_identifier_or_keyword(),
-            },
+            b'_' | b'a'..=b'z' | b'A'..=b'Z' => {
+                match RStringDelimiter::try_from_raw_string_open(&self.source[self.position..]) {
+                    Some(delimiter) => self.consume_string_open(delimiter),
+                    None => self.consume_identifier_or_keyword(),
+                }
+            }
 
             b';' => self.eat_byte(T![;]),
             b',' => self.eat_byte(T![,]),
@@ -737,54 +772,7 @@ impl<'src> RLexer<'src> {
     // Strings
 
     fn consume_string_open(&mut self, delimiter: RStringDelimiter) -> RSyntaxKind {
-        self.assert_byte(delimiter.quote());
-        self.advance(1);
-        STRING_OPEN
-    }
-
-    /// The `r"---[` prefix of a raw string, as a delimiter and its byte length,
-    /// or `None` when what follows is not one.
-    fn as_raw_string_open(&self) -> Option<(RStringDelimiter, usize)> {
-        if !matches!(self.current_byte(), Some(b'r' | b'R')) {
-            return None;
-        }
-
-        let quote = match self.byte_at(1) {
-            Some(quote @ (b'"' | b'\'')) => quote,
-            _ => return None,
-        };
-
-        let mut offset = 2;
-        let mut hyphens: u8 = 0;
-        while self.byte_at(offset) == Some(b'-') {
-            // Bail on pathological 256 hyphens
-            hyphens = hyphens.checked_add(1)?;
-            offset += 1;
-        }
-
-        // Bail if token after hyphen isn't recognized
-        let bracket = RawStringBracket::from_open(self.byte_at(offset)?)?;
-
-        let delimiter = RStringDelimiter::Raw {
-            quote,
-            hyphens,
-            bracket,
-        };
-        Some((delimiter, offset + 1))
-    }
-
-    fn consume_raw_string_open(&mut self, open: (RStringDelimiter, usize)) -> RSyntaxKind {
-        let (delimiter, length) = open;
-        let start = self.position;
-        self.advance(length);
-
-        // The caller reads the delimiter back off this token's text, so the two
-        // readings of the same prefix have to agree
-        debug_assert_eq!(
-            RStringDelimiter::from_open(&self.source[start..self.position]),
-            Some(delimiter),
-        );
-
+        self.advance(delimiter.open_length());
         STRING_OPEN
     }
 
@@ -860,7 +848,6 @@ impl<'src> RLexer<'src> {
         match delimiter {
             RStringDelimiter::Single | RStringDelimiter::Double => {
                 self.assert_byte(delimiter.quote());
-                self.advance(1);
             }
             RStringDelimiter::Raw {
                 quote,
@@ -868,12 +855,10 @@ impl<'src> RLexer<'src> {
                 bracket,
             } => {
                 debug_assert!(self.at_raw_string_close(quote, hyphens, bracket));
-
-                // The bracket, the hyphens, and the quote
-                self.advance(2 + usize::from(hyphens));
             }
         }
 
+        self.advance(delimiter.close_length());
         STRING_CLOSE
     }
 
