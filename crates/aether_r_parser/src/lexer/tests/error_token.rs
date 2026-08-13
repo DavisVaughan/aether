@@ -1,9 +1,3 @@
-//! A character that starts no token.
-//!
-//! Reaching the fallback is tested per dispatch arm — `puncts.rs` for the ASCII
-//! side, `identifiers.rs` for the unicode one. This file covers what holds of
-//! the token however it was reached.
-
 use super::*;
 
 /// The token spans the whole character, not its first byte. An off-by-one here
