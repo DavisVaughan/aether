@@ -1,14 +1,4 @@
-//! The anti-gap guard.
-//!
-//! "Every token kind has lexer coverage" is the acceptance criterion for this
-//! phase, and as prose it is unfalsifiable — nobody re-derives it by hand across
-//! sixteen files. `RSyntaxKind` is `#[repr(u16)]` and `SyntaxKind` gives a safe
-//! `from_raw`, so the inventory is enumerable and the claim is a test.
-//!
-//! The failure mode this is built for is not "somebody forgot a test today". It
-//! is a grammar edit landing a new token kind in `r_kinds_src.rs` months from
-//! now with nothing lexing it — otherwise discovered by the parser, as a
-//! confusing missing-slot bug several phases downstream.
+//! Coverage test to ensure every token has lexer coverage
 
 use super::*;
 use biome_rowan::RawSyntaxKind;
