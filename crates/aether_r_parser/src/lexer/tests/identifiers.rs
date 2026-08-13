@@ -11,7 +11,9 @@ fn plain_names() {
 /// `_` is not a valid way to start an R name, but tree-sitter-r is deliberately
 /// lax: a lone `_` is the native pipe placeholder, and lexing `_foo` as one name
 /// is what lets a downstream consumer report it as an invalid one. Splitting it
-/// into `_` and `foo` would make that check impossible (their #71).
+/// into `_` and `foo` would make that check impossible (r-lib/tree-sitter-r#71).
+///
+/// TODO: We may consider making this stricter now that we don't rely on tree sitter
 #[test]
 fn leading_underscore_is_one_name() {
     assert_lex!("_", IDENT: 1);
