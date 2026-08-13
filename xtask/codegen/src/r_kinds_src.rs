@@ -78,6 +78,7 @@ pub const R_KINDS_SRC: KindsSrc = KindsSrc {
         "STRING_OPEN",
         "STRING_CONTENT",
         "STRING_CLOSE",
+        "ERROR_TOKEN",
     ],
     nodes: &[
         "R_ROOT",

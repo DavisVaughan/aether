@@ -35,6 +35,10 @@ them, since the ledger runs ahead of the parser.
 | 3 | Namespace RHS | `optional()`, silent | required, diagnostic + bogus |
 | 4 | Error recovery | whole-file bogus node | localized bogus nodes, tree still walkable |
 | 5 | `AnyRSelector` | 4 variants, no bogus | new `RBogusSelector` kind added as a fifth variant, so a malformed RHS is contained in the `right` slot instead of collapsing the whole expression |
+| 6 | A character that starts no token | `ERROR` node | new `ERROR_TOKEN` kind added, reported by the lexer and wrapped in a bogus node by the parser |
+| 7 | `L` and `i` suffixes | tokens of their own, so `1 L` is one `integer` and `1Li` is `1` and `Li` | part of the literal, taken whatever follows, as R takes them |
+| 8 | Unterminated numbers | `0x`, `0x1p`, `1e` re-split or accepted, all silently | one literal token carrying `Unterminated hexadecimal literal.`, `Unterminated binary exponent.`, or `Unterminated exponent.` |
+| 9 | A backslash inside `%...%` | excluded by the `special` regex, so `%a\b%` errors | ordinary text, as R takes it, so `%a\b%` is one `SPECIAL` |
 
 ### 1. Semicolons are real tokens
 
@@ -276,6 +280,193 @@ impl FormatBogusNodeRule<RBogusSelector> for FormatRBogusSelector {}
 `FormatAnyRSelector` in `air_r_formatter/src/r/any/selector.rs` gains a fifth arm
 in the same generated pass.
 
+### 6. A character that starts no token becomes an `ERROR_TOKEN`
+
+Landed in Phase 4. `ERROR_TOKEN` is a new token kind, added to `r_kinds_src.rs`.
+
+Example:
+
+```r
+€
+```
+
+tree-sitter-r produces an `ERROR` node. Aether reports the character with an
+`Unexpected character` diagnostic and hands it on as an `ERROR_TOKEN`, which the
+parser can only wrap in a bogus node. The file never parses cleanly, so the
+oracle skips it, and the character survives into the tree where a reader can see
+it.
+
+Dropping the character is not an option — the tree has to round-trip, and folding
+it into trivia would make it silently disappear exactly the way semicolons used
+to.
+
+Why a new kind rather than reusing `IDENT`:
+
+- `IDENT` is accepted wherever a name is, so `x <- €` would build a well-formed
+  `R_BINARY_EXPRESSION` with an `R_IDENTIFIER` right-hand side. The diagnostic
+  would be there, but the tree would assert that `€` is a name, and nothing in
+  the harness would catch it — round-trip passes either way. `ERROR_TOKEN` starts
+  no production, so the damage is contained in a bogus node by construction.
+
+- Every other Biome grammar has this kind: js, css, json, graphql, grit, html,
+  markdown, and yaml all declare `ERROR_TOKEN` in their own `tokens` list. It is
+  a convention rather than a `SyntaxKind` requirement, which is how air managed
+  without it — air has no lexer, and any tree-sitter `ERROR` makes it discard the
+  tree for one whole-file `R_BOGUS_EXPRESSION`, so no producer ever existed.
+  Aether lexes, so it is in the same position as the other eight.
+
+The reachable cases are narrow. Every printable ASCII character starts some R
+token, so this is only control characters and non-ASCII characters that are
+neither `XID_Start` nor `XID_Continue`.
+
+Swap-in cost: `RSyntaxKind` is generated, so the kind follows from air's own
+codegen once `r_kinds_src.rs` carries it. The hand-written touch points are the
+`is_bogus()` and `to_bogus()` arms in `air_r_syntax/src/lib.rs` — `ERROR_TOKEN` is
+not bogus itself and degrades to `R_BOGUS` like every other token. The formatter
+needs nothing: `FormatBogusNodeRule` prints verbatim and never inspects the kinds
+of the tokens inside a bogus node.
+
+Unlike `R_BOGUS_SELECTOR` this one does renumber, since token kinds precede node
+kinds in the generated enum. Nothing depends on the numbering — no explicit
+discriminants are emitted, and `to_raw`/`from_raw` round-trip within a single
+build — so the generated diff is the one added line.
+
+### 7. `L` and `i` belong to the literal, not to the token stream
+
+Landed in Phase 4.
+
+Example:
+
+```r
+1 L
+1Li
+```
+
+tree-sitter-r spells `integer` as `seq($._float_literal, "L")` rather than as one
+regex, so the `L` is a token of its own. Two things follow from that, and aether
+disagrees with both.
+
+`extras` may fall between the two tokens, so `1 L` and `1 i` come out as a single
+`integer` and `complex` spanning the space. Aether cannot reproduce that even in
+principle — `R_INTEGER_LITERAL` is one token in air's kind list, and one token
+cannot span a gap.
+
+And the `L` competes with `identifier` on length, so a name that merely starts
+with a suffix wins outright: `1Li` is the float `1` followed by the name `Li`.
+
+R does neither. `NumericValue` in `src/main/gram.y` stops the literal at the digit
+when a space follows, and otherwise takes the suffix whatever comes next: the `L`
+enters the scan loop and breaks it, the `i` is picked up after it, and neither is
+ever pushed back. Aether follows R on both counts.
+
+| source | tree-sitter-r | R and aether |
+|---|---|---|
+| `1 L` | one `integer` spanning the space | `1`, then the name `L` |
+| `1Li` | `float 1`, `identifier Li` | `1L`, then the name `i` |
+| `1iL` | `float 1`, `identifier iL` | `1i`, then the name `L` |
+| `1LL` | `float 1`, `identifier LL` | `1L`, then the name `L` |
+| `1L.` | `float 1`, `identifier L.` | `1L`, then the name `.` |
+| `1e5iL` | `float 1e5`, `identifier iL` | `1e5i`, then the name `L` |
+
+Every row but the first is a syntax error in R and in aether, arriving as two
+expressions on one line (§11.7). tree-sitter-r parses all of them cleanly, since
+its `program` does not require a separator between expressions. So nothing is
+lost by disagreeing: the oracle only compares trees for inputs aether parses
+cleanly, and it skips every one of these either way.
+
+Why follow R rather than the oracle: R's rule cannot disagree with R about a
+program R accepts, because it never looks past the suffix. The lookahead rule can
+only differ on programs R rejects, and there it puts the error one token earlier
+than R does. It also cost a byte of lookahead that nothing else in the lexer
+needed.
+
+### 8. An unfinished number literal is diagnosed, not re-split
+
+Landed in Phase 4.
+
+Example:
+
+```r
+0x
+0x1p
+1e
+```
+
+A `0x` commits to a hexadecimal and an `e` or `p` commits to an exponent. When
+what the grammar requires next is not there, tree-sitter-r un-matches the longer
+token and re-splits the bytes into something shorter that happens to be valid:
+`0x` becomes the number `0` and the name `x`, `0x1p` becomes `0x1` and `p`. Where
+even that is unnecessary it simply accepts — its `_number_literal` regex ends
+`[eE][+-]?\d*`, so `1e` and `1e+` are whole floats.
+
+R rejects all of them, from the lexer, at the start of the literal:
+
+```
+> 1e
+Error: unexpected input in "1e"
+```
+
+Aether follows R on the verdict and keeps the token: the literal spans everything
+that was consumed and carries a diagnostic.
+
+| source | tree-sitter-r | aether |
+|---|---|---|
+| `0x` | `float 0`, `identifier x` | `R_DOUBLE_LITERAL@0..2`, `Unterminated hexadecimal literal.` |
+| `0xg` | `float 0`, `identifier xg` | `R_DOUBLE_LITERAL@0..2`, then `identifier g` |
+| `0xp3` | `float 0`, `identifier xp3` | `R_DOUBLE_LITERAL@0..2`, then `identifier p3` |
+| `0x1p` | `float 0x1`, `identifier p` | `R_DOUBLE_LITERAL@0..4`, `Unterminated binary exponent.` |
+| `0x1p+` | `float 0x1`, `identifier p`, `+` | `R_DOUBLE_LITERAL@0..5` |
+| `1e` | `float 1e` | `R_DOUBLE_LITERAL@0..2`, `Unterminated exponent.` |
+| `1e+` | `float 1e+` | `R_DOUBLE_LITERAL@0..3` |
+| `1east` | `float 1e`, `identifier ast` | `R_DOUBLE_LITERAL@0..2`, then `identifier ast` |
+
+Why: the token boundaries barely change — `1east` splits the same way either
+way — so this buys almost nothing in tree shape and everything in the message.
+Without it, `0x` is not silently accepted either: it lexes as two expressions on
+one line, and §11.7's statement separator rule reports `expected a statement
+separator between two expressions`, which is a bewildering thing to read while
+half-typing `0xFF`. The lexer is the only place that still knows a hexadecimal
+was started, so it is the only place that can say so.
+
+Keeping the token rather than emitting an `ERROR_TOKEN` follows the `%foo` rule
+in deviation 6: the text is a well-formed literal that was cut short, so the
+parser can still use it, and `ERROR_TOKEN` is reserved for characters that start
+nothing at all.
+
+The line is drawn at what the grammar *requires*. A suffix is optional, so a
+literal that ends without one is finished, not unterminated — `1L` and `1Li` are
+deviation 7's business and carry no diagnostic.
+
+Corpus tests: `literals/numbers.md`, the unterminated cases marked `[error]`.
+
+### 9. A backslash inside `%...%` is ordinary text
+
+Landed in Phase 4.
+
+Example:
+
+```r
+a %a\b% b
+```
+
+tree-sitter-r's `special` is `/%[^%\\\n]*%/`, a character class that excludes
+backslash, so this errors. Their own grammar comment concedes the regex is
+approximate: "This could probably be fine tuned to disallow more things."
+
+R's `SpecialValue` in `src/main/gram.y` excludes only the newline, so `%a\b%` is
+an ordinary `SPECIAL`. Aether follows R and takes the whole operator.
+
+| source | tree-sitter-r | R and aether |
+|---|---|---|
+| `a %a\b% b` | `%a`, `\`, `b`, `%` — an `ERROR` node | one `SPECIAL` spanning `%a\b%` |
+
+Why: nothing is gained by rejecting a program R accepts, and a backslash carries
+no meaning inside `%...%` for the lexer to act on — there are no escapes there,
+so it is one more character in the operator's name. The newline is different,
+since R stops at it too.
+
+Corpus tests: `expressions/specials.md`, marked `[deviation]`.
+
 ## tree-sitter-r vs. R
 
 Places where tree-sitter-r already disagrees with R's own parser. Aether follows
@@ -299,27 +490,12 @@ errors.
 
 Aether follows tree-sitter and errors.
 
-Note that aether does copy R for the neighbouring case, an unterminated `%…%` cut
+Note that aether does copy R for the neighbouring case, an unterminated `%...%` cut
 short by a newline: R ungets the newline before reporting, so the error stays
 local and the next line parses normally. Aether stops before the newline too,
 keeping the partial `%foo` as a `SPECIAL` token with the diagnostic attached.
 That is not a deviation from tree-sitter, just a recovery choice tree-sitter has
 no equivalent of.
-
-### Backslashes inside `%…%`
-
-Example:
-
-```r
-a %a\b% b
-```
-
-R's `SpecialValue` does not exclude backslash, so this is a valid `SPECIAL`.
-tree-sitter-r's character class `[^%\\\n]` does exclude it, so it errors. Their
-own grammar comment concedes the regex is approximate: "This could probably be
-fine tuned to disallow more things."
-
-Aether follows tree-sitter and errors.
 
 ## Inherited from air
 

@@ -79,6 +79,7 @@ impl biome_rowan::SyntaxKind for RSyntaxKind {
             | RSyntaxKind::STRING_OPEN
             | RSyntaxKind::STRING_CONTENT
             | RSyntaxKind::STRING_CLOSE
+            | RSyntaxKind::ERROR_TOKEN
             | RSyntaxKind::R_ROOT
             | RSyntaxKind::R_DOTS
             | RSyntaxKind::R_DOT_DOT_I
@@ -231,6 +232,7 @@ impl biome_rowan::SyntaxKind for RSyntaxKind {
             | RSyntaxKind::STRING_OPEN
             | RSyntaxKind::STRING_CONTENT
             | RSyntaxKind::STRING_CLOSE
+            | RSyntaxKind::ERROR_TOKEN
             | RSyntaxKind::R_ROOT
             | RSyntaxKind::R_IDENTIFIER
             | RSyntaxKind::R_DOTS
