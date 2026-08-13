@@ -65,7 +65,7 @@ fn an_incomplete_prefix_is_just_a_name() {
     assert_lex!("r\"-abc\"", IDENT: 1, STRING_OPEN: 1, STRING_CONTENT: 4, STRING_CLOSE: 1);
 }
 
-/// Escapes are not special inside a raw string; that is the point of one
+/// Escapes are not special inside a raw string
 #[test]
 fn backslashes_are_literal() {
     assert_lex!("r\"(a\\)\"", STRING_OPEN: 3, STRING_CONTENT: 2, STRING_CLOSE: 2);
