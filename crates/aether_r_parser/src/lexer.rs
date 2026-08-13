@@ -78,12 +78,9 @@ impl RStringDelimiter {
             _ => return None,
         };
 
+        let hyphens = bytes[2..].iter().take_while(|byte| **byte == b'-').count();
+
         // Bail on pathological 256 hyphens
-        let hyphens = bytes[2..]
-            .iter()
-            .take(256)
-            .take_while(|byte| **byte == b'-')
-            .count();
         let hyphens = u8::try_from(hyphens).ok()?;
         let bracket = RawStringBracket::from_open(*bytes.get(2 + usize::from(hyphens))?)?;
 
