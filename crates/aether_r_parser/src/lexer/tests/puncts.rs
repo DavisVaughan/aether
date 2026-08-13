@@ -101,9 +101,6 @@ fn adjacency_changes_the_meaning() {
     );
 }
 
-/// A byte that starts nothing is reported and handed on as an `ERROR_TOKEN` for
-/// the parser to wrap in a bogus node. Losing it is not an option — the tree has
-/// to round-trip.
 #[test]
 fn a_byte_that_starts_no_token() {
     assert_lex_err!(
