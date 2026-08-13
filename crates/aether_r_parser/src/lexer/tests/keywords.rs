@@ -53,7 +53,6 @@ fn a_keyword_prefix_is_not_a_keyword() {
     assert_lex!("NA_real__", IDENT: 9);
 }
 
-/// A backtick-quoted name is never a keyword, however it is spelled
 #[test]
 fn backticked_keywords_stay_identifiers() {
     assert_lex!("`if`", IDENT: 4);
