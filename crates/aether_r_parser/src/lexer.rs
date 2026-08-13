@@ -52,9 +52,6 @@ pub(crate) enum RStringDelimiter {
 
 impl RStringDelimiter {
     /// The delimiter a `STRING_OPEN` token's text opens
-    ///
-    /// The arms are `lex_token`'s: the two quotes, and a raw string by
-    /// elimination, those being the only three forms that open a string.
     pub(crate) fn from_open(text: &str) -> Self {
         match text.as_bytes().first() {
             Some(b'\'') => Self::Single,
