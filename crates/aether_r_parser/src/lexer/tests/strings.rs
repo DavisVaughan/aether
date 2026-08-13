@@ -1,10 +1,3 @@
-//! Strings are three tokens: `STRING_OPEN`, an optional `STRING_CONTENT`, and
-//! `STRING_CLOSE`.
-//!
-//! The content is one token spanning everything between the delimiters,
-//! including escapes. Neither `r.ungram` nor air's tree walker models an escape
-//! sequence as a node, so neither does the lexer.
-
 use super::*;
 
 #[test]
