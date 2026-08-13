@@ -29,7 +29,7 @@ fn an_empty_body_has_no_content_token() {
 /// A closing bracket that turns out not to start the closing sequence is
 /// content, and the scan resumes from where the attempt stopped rather than from
 /// the byte after the bracket. Getting that wrong makes both of these
-/// unterminated (tree-sitter-r's #162).
+/// unterminated (r-lib/tree-sitter-r#162).
 #[test]
 fn a_bracket_that_does_not_close() {
     assert_lex!("r\"(())\"", STRING_OPEN: 3, STRING_CONTENT: 2, STRING_CLOSE: 2);
