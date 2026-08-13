@@ -90,9 +90,7 @@ fn a_binary_exponent_with_no_digits() {
     assert_lex_err!("0x.8p", R_DOUBLE_LITERAL: 5 => "Unterminated binary exponent");
 }
 
-/// `0x` commits to a hexadecimal, so a missing body is diagnosed rather than
-/// re-split into the number `0` and the name `x`, which is what tree-sitter-r
-/// does — see `docs/deviations.md`
+/// `0x` commits to a hexadecimal
 #[test]
 fn a_hexadecimal_with_no_body() {
     assert_lex_err!("0x", R_DOUBLE_LITERAL: 2 => "Unterminated hexadecimal");
