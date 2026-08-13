@@ -1041,8 +1041,7 @@ use biome_rowan::{TextRange, TextSize};
 
 /// The two string contexts carry the delimiter because the lexer remembers
 /// nothing between calls. The caller derives it from the `STRING_OPEN` token's
-/// text, falling back to `RStringDelimiter::from_raw_string_open()` for
-/// anything that is not a plain quote.
+/// text with `RStringDelimiter::from_open()`.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) enum RLexContext {
     #[default]
@@ -1271,9 +1270,16 @@ both, because it finds its own end:
 
 ```rust
 impl RStringDelimiter {
-    /// The raw string delimiter `text` opens with
-    pub(crate) fn from_raw_string_open(text: &str) -> Self {
-        Self::try_from_raw_string_open(text).expect("`text` opens a raw string")
+    /// The delimiter a `STRING_OPEN` token's text opens
+    ///
+    /// The arms are `lex_token`'s: the two quotes, and a raw string by
+    /// elimination, those being the only three forms that open a string.
+    pub(crate) fn from_open(text: &str) -> Self {
+        match text.as_bytes().first() {
+            Some(b'\'') => Self::Single,
+            Some(b'"') => Self::Double,
+            _ => Self::try_from_raw_string_open(text).expect("`text` opens a raw string"),
+        }
     }
 
     /// The raw string delimiter opening at the start of `text`, or `None` when
@@ -1286,12 +1292,12 @@ impl RStringDelimiter {
 }
 ```
 
-Only the raw form needs it. `'` and `"` are one byte and both sides already
-match on that byte: the lexer to pick the arm, the caller to pick the variant.
-That leaves exactly one parser of the hyphen-and-bracket grammar, shared, and it
-is what makes `from_raw_string_open`'s `expect` safe — the lexer emits a
-`STRING_OPEN` starting with `r` only where `try_from_raw_string_open` answered
-`Some` on the same bytes.
+Only the raw form is shared. `'` and `"` are one byte, and both sides already
+match on that byte: the lexer to pick its arm, `from_open` to pick the variant.
+That leaves exactly one parser of the hyphen-and-bracket grammar, and the
+sharing is what makes the `expect` safe — the lexer emits a `STRING_OPEN`
+starting with `r` only where `try_from_raw_string_open` answered `Some` on the
+same bytes, so a caller holding a `STRING_OPEN` cannot reach it.
 
 Two more methods fall out of the type and keep the lengths in one place:
 `open_length()` (`1`, or `3 + hyphens`) is what `consume_string_open` advances
@@ -1850,9 +1856,8 @@ pub(super) fn lex(source: &str) -> (Vec<(RSyntaxKind, TextRange)>, Vec<ParseDiag
         let range = lexer.current_range();
         tokens.push((kind, range));
 
-        // The same three arms as §9.1.1's `string_delimiter()`
         if kind == STRING_OPEN {
-            delimiter = Some(string_delimiter(&source[range]));
+            delimiter = Some(RStringDelimiter::from_open(&source[range]));
         }
 
         // Match on what came back, not on what was requested: a string with an
@@ -2249,21 +2254,15 @@ impl<'src> RTokenSource<'src> {
     pub(crate) fn string_delimiter(&self) -> RStringDelimiter {
         debug_assert_eq!(self.current(), STRING_OPEN);
 
-        let text = &self.text()[self.current_range()];
-        match text.as_bytes().first() {
-            Some(b'\'') => RStringDelimiter::Single,
-            Some(b'"') => RStringDelimiter::Double,
-            _ => RStringDelimiter::from_raw_string_open(text),
-        }
+        RStringDelimiter::from_open(&self.text()[self.current_range()])
     }
 }
 ```
 
-The three arms mirror `lex_token`'s: two quote bytes, and everything else is a
-raw open by elimination, because those are the only three forms that produce a
-`STRING_OPEN`. The same dispatch on both sides is deliberate — what must not be
-written twice is the hyphen-and-bracket parse, and that lives once, in
-`RStringDelimiter` (§8.2.1).
+The reading itself belongs to `RStringDelimiter`, not here (§8.2.1) — the token
+source's job is to know *which* token to read, and the delimiter's job is to
+know what its own text looks like. The §8.6 test driver calls the same
+`from_open`, so the two stand-ins for this function cannot drift.
 
 `RParser` forwards it, the way it forwards `current()` and `nth()`, and §11.1's
 `parse_string_value` is the only caller. Three properties of this worth knowing

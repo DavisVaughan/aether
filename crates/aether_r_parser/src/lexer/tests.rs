@@ -58,7 +58,7 @@ pub(super) fn lex(source: &str) -> (Vec<LexedToken>, Vec<ParseDiagnostic>) {
         });
 
         if kind == STRING_OPEN {
-            delimiter = Some(string_delimiter(&source[range]));
+            delimiter = Some(RStringDelimiter::from_open(&source[range]));
         }
 
         // Match on what came back, not on what was requested: a string with an
@@ -72,16 +72,6 @@ pub(super) fn lex(source: &str) -> (Vec<LexedToken>, Vec<ParseDiagnostic>) {
     }
 
     (tokens, lexer.finish())
-}
-
-/// The delimiter of a `STRING_OPEN` token's text, dispatched the way
-/// `RTokenSource` will
-pub(super) fn string_delimiter(text: &str) -> RStringDelimiter {
-    match text.as_bytes().first() {
-        Some(b'\'') => RStringDelimiter::Single,
-        Some(b'"') => RStringDelimiter::Double,
-        _ => RStringDelimiter::from_raw_string_open(text),
-    }
 }
 
 /// Assert the exact token stream, and that the lexer emitted no diagnostics

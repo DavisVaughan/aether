@@ -108,7 +108,7 @@ fn a_lookahead_over_a_string_leaves_nothing_behind() {
     let mut lexer = RLexer::from_str(source);
 
     assert_eq!(lexer.next_token(RLexContext::Regular), STRING_OPEN);
-    let delimiter = string_delimiter(&source[lexer.current_range()]);
+    let delimiter = RStringDelimiter::from_open(&source[lexer.current_range()]);
     assert_eq!(delimiter, RStringDelimiter::Double);
     let checkpoint = lexer.checkpoint();
 
@@ -133,10 +133,10 @@ fn a_lookahead_over_a_string_leaves_nothing_behind() {
 /// was lexed with
 #[test]
 fn a_string_open_reads_back_as_its_delimiter() {
-    assert_eq!(string_delimiter("'"), RStringDelimiter::Single);
-    assert_eq!(string_delimiter("\""), RStringDelimiter::Double);
+    assert_eq!(RStringDelimiter::from_open("'"), RStringDelimiter::Single);
+    assert_eq!(RStringDelimiter::from_open("\""), RStringDelimiter::Double);
     assert_eq!(
-        string_delimiter("r\"("),
+        RStringDelimiter::from_open("r\"("),
         RStringDelimiter::Raw {
             quote: b'"',
             hyphens: 0,
@@ -144,7 +144,7 @@ fn a_string_open_reads_back_as_its_delimiter() {
         }
     );
     assert_eq!(
-        string_delimiter("R'---["),
+        RStringDelimiter::from_open("R'---["),
         RStringDelimiter::Raw {
             quote: b'\'',
             hyphens: 3,

@@ -18,8 +18,7 @@ use unicode_ident::{is_xid_continue, is_xid_start};
 ///
 /// The two string contexts carry the delimiter because the lexer remembers
 /// nothing between calls. The caller reads it off the `STRING_OPEN` token's
-/// text, falling back to [`RStringDelimiter::from_raw_string_open()`] for
-/// anything that is not a plain quote.
+/// text with [`RStringDelimiter::from_open()`].
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) enum RLexContext {
     #[default]
@@ -52,9 +51,16 @@ pub(crate) enum RStringDelimiter {
 }
 
 impl RStringDelimiter {
-    /// The raw string delimiter `text` opens with
-    pub(crate) fn from_raw_string_open(text: &str) -> Self {
-        Self::try_from_raw_string_open(text).expect("`text` opens a raw string")
+    /// The delimiter a `STRING_OPEN` token's text opens
+    ///
+    /// The arms are `lex_token`'s: the two quotes, and a raw string by
+    /// elimination, those being the only three forms that open a string.
+    pub(crate) fn from_open(text: &str) -> Self {
+        match text.as_bytes().first() {
+            Some(b'\'') => Self::Single,
+            Some(b'"') => Self::Double,
+            _ => Self::try_from_raw_string_open(text).expect("`text` opens a raw string"),
+        }
     }
 
     /// The raw string delimiter opening at the start of `text`, or `None` when
