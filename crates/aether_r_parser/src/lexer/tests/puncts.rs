@@ -28,8 +28,6 @@ fn less_than() {
     assert_lex!("<=", LESS_THAN_OR_EQUAL_TO: 2);
     assert_lex!("<-", ASSIGN: 2);
     assert_lex!("<<-", SUPER_ASSIGN: 3);
-    // `<<` is not a token in R. `<<-` is three bytes, and a bare `<<` is two
-    // comparisons that happen to be adjacent.
     assert_lex!("<<", LESS_THAN: 1, LESS_THAN: 1);
 }
 
