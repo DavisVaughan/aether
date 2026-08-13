@@ -18,12 +18,7 @@ fn suffixes() {
     assert_lex!("1L(", R_INTEGER_LITERAL: 2, L_PAREN: 1);
 }
 
-/// A suffix is taken whatever follows it, as `NumericValue` in `src/main/gram.y`
-/// takes it. Every split below is R's, down to the byte.
-///
-/// tree-sitter-r spells `L` and `i` as tokens of their own rather than as part of
-/// the literal's regex, so a name that merely starts with one wins on length and
-/// `1Li` comes out as `1` and `Li`. See `docs/deviations.md`.
+/// Suffix is taken greedily
 #[test]
 fn a_suffix_is_always_taken() {
     assert_lex!("1Li", R_INTEGER_LITERAL: 2, IDENT: 1);
