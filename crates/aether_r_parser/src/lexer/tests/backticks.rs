@@ -18,8 +18,6 @@ fn escapes_apply() {
     assert_lex!("`a\\\\`", IDENT: 5);
 }
 
-/// Legal R, and tree-sitter-r's `quoted` regex permits it: the `[^`\\]` class
-/// includes `\n`, and the escape branch allows an escaped newline outright
 #[test]
 fn names_may_span_newlines() {
     assert_lex!(
