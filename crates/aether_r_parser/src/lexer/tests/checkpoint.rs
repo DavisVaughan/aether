@@ -1,12 +1,3 @@
-//! `checkpoint()` and `rewind()` have to carry every field of
-//! [`LexerCheckpoint`], and the two line-break fields are not redundant:
-//! `current_flags` records what was stamped on the checkpointed token, while
-//! `after_line_break` is the sticky state lexing resumes from
-//!
-//! The lexer holds no mutable state outside that checkpoint, so a rewind is
-//! total. `RLexer` is a function of its position and the context it is called
-//! with, exactly as `JsLexer` is
-
 use super::*;
 
 #[test]
