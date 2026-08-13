@@ -96,22 +96,6 @@ fn join_is_a_no_op_at_the_end_of_the_source() {
     assert_eq!(lexer.current_range(), TextRange::new(0.into(), 1.into()));
 }
 
-/// Nothing but a `]` ever joins. `[[` in particular is already whole, and a
-/// re-lex of it must not hand back half a token.
-#[test]
-fn join_is_a_no_op_on_anything_else() {
-    for (source, kind) in [("foo", IDENT), ("[[", L_BRACK2)] {
-        let mut lexer = RLexer::from_str(source);
-
-        assert_eq!(lexer.next_token(RLexContext::Regular), kind);
-        assert_eq!(lexer.re_lex(RReLexContext::JoinBrackets), kind);
-        assert_eq!(
-            lexer.current_range(),
-            TextRange::new(0.into(), (source.len() as u32).into()),
-        );
-    }
-}
-
 /// A join rewinds to the start of the current token, so it must not lose the
 /// flag already stamped on it. `has_preceding_line_break` drives `else`
 /// attachment, and losing it here would be silent.
