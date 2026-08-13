@@ -1,8 +1,3 @@
-//! A backtick-quoted name is one `IDENT`, not a string.
-//!
-//! R lexes it with the same function it lexes strings with, so escapes apply and
-//! the name may span newlines — both on purpose.
-
 use super::*;
 
 #[test]
