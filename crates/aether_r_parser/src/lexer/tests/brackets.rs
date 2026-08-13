@@ -1,11 +1,4 @@
-//! `[[` is lexed greedily, `]]` is not.
-//!
-//! tree-sitter-r resolves the closers in its external scanner with a scope
-//! stack, because `x[[1]]`, `x[ [1] ]` and `x[[1], 2]` are genuinely ambiguous.
-//! Aether keeps the lexer ignorant: a run of closers is always single `]`
-//! tokens, and the parser asks for the `]]` it wants with
-//! [`RReLexContext::JoinBrackets`]. Openers need no such help, since two
-//! adjacent ones are always a subset2.
+//! `[[` is lexed greedily, `]]` is not
 
 use super::*;
 
