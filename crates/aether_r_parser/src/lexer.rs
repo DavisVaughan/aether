@@ -173,7 +173,7 @@ pub(crate) struct RLexer<'src> {
     /// and cleared only once a non-trivia token has been stamped with it. This
     /// is what lets the lexer report a preceding line break even though
     /// `NEWLINE` is a token in its own right, and it is exactly
-    /// `biome_js_parser`'s mechanism.
+    /// what `biome_js_parser` does.
     after_line_break: bool,
 
     /// Byte length of the BOM, if the source starts with one
