@@ -42,9 +42,6 @@ fn re_lexed_kinds() -> HashSet<RSyntaxKind> {
     HashSet::from([lexer.re_lex(RReLexContext::JoinBrackets)])
 }
 
-/// Every kind before `R_ROOT` in `RSyntaxKind` is a token; `R_ROOT` and
-/// everything after it is a node. So adding a node kind to `r.ungram` does not
-/// fail this test, but adding a token kind does, until something lexes it.
 fn is_lexable(kind: RSyntaxKind) -> bool {
     !matches!(kind, TOMBSTONE | EOF | __LAST) && (kind as u16) < (R_ROOT as u16)
 }
