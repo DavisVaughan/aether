@@ -33,9 +33,6 @@ fn stops_at_a_newline() {
     );
 }
 
-/// R accepts this — its loop exits on EOF without ever seeing the closing `%`
-/// and still returns a `SPECIAL`. tree-sitter-r's regex requires the `%`, so it
-/// errors, and aether follows tree-sitter. See `docs/deviations.md`.
 #[test]
 fn unterminated_at_end_of_file() {
     assert_lex_err!("x %in", IDENT: 1, WHITESPACE: 1, SPECIAL: 3 => "Unterminated");
