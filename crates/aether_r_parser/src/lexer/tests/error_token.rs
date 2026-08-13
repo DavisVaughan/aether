@@ -35,8 +35,6 @@ fn lexing_continues_afterwards() {
     );
 }
 
-/// `€` is neither `XID_Start` nor `XID_Continue`, so it neither joins the
-/// identifier before it nor starts the one after it
 #[test]
 fn breaks_an_identifier_in_two() {
     assert_lex_err!(
