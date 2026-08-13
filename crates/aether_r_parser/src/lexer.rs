@@ -364,9 +364,6 @@ impl<'src> RLexer<'src> {
         }
     }
 
-    /// The order of these arms is load-bearing, and several of the decisions
-    /// come straight from tree-sitter-r's `grammar.js` comments, where they
-    /// record real bugs
     fn lex_token(&mut self) -> RSyntaxKind {
         debug_assert!(!self.is_eof());
 
