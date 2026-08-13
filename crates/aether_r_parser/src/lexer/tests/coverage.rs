@@ -35,9 +35,7 @@ const ERROR_SOURCES: &[&str] = &["\u{1}"];
 
 /// The kinds only a re-lex can produce.
 ///
-/// `R_BRACK2` is the only one, and deliberately so: `]]` lexes as two `]` and
-/// the parser joins them where the nesting says to. Driving that here rather
-/// than excusing the kind keeps the guard total.
+/// `R_BRACK2` is the only one
 fn re_lexed_kinds() -> HashSet<RSyntaxKind> {
     let mut lexer = RLexer::from_str("]]");
     lexer.next_token(RLexContext::Regular);
