@@ -97,8 +97,7 @@ fn join_is_a_no_op_at_the_end_of_the_source() {
 }
 
 /// A join rewinds to the start of the current token, so it must not lose the
-/// flag already stamped on it. `has_preceding_line_break` drives `else`
-/// attachment, and losing it here would be silent.
+/// line break flag
 #[test]
 fn join_preserves_the_preceding_line_break() {
     let mut lexer = RLexer::from_str("1\n]]");
