@@ -21,10 +21,6 @@ fn in_context() {
     );
 }
 
-/// R's `SpecialValue` ungets the newline before reporting, so the newline
-/// survives to terminate the statement and the next line parses normally. Aether
-/// stops before it for the same reason.
-///
 /// `%foo` is still a `SPECIAL` carrying a diagnostic, not an `ERROR_TOKEN`: the
 /// text is a well-formed operator that was cut short, so the parser can still
 /// use it. `ERROR_TOKEN` is for characters that start nothing at all.
