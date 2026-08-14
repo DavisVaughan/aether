@@ -1258,7 +1258,7 @@ next eight phases are. Build it carefully.
 
 ### 10.1 The markdown format
 
-One **pair** of files per concept (§10.3.1), one test per `##` heading. Files are
+One **pair** of files per concept (§10.3.1), one named test per `##` heading. Files are
 fine-grained — one test in a file is fine.
 
 **Two files, never one.** The input file is human territory and no tool ever writes
@@ -1294,10 +1294,20 @@ function(arg1, arg2) {
 }
 ```
 
-## Function No Body With Assignment [error]
+## Dollar Boundary Cases [error]
+
+The bogus RHS consumes exactly one atom, so an infix operator after it still
+parses normally.
 
 ```r
-function() <- 1
+a$1 + 2
+```
+
+A closing delimiter starts no expression, so it must not be consumed — the
+enclosing call would lose its terminator and one error would become a cascade.
+
+```r
+f(a$)
 ```
 
 ## Dollar No RHS [pending]
@@ -1307,10 +1317,26 @@ foo$
 ```
 ````
 
-That is the whole input format: a flat sequence of `## Name [markers]` headings,
-each followed by exactly one ` ```r ` cell. No title, no prose, nothing before the
-first heading — the file path already says what the file is about, and provenance
-lives in `MANIFEST.toml` rather than in a paragraph that goes stale.
+The input format is a flat sequence of `## Name [markers]` headings. A heading's
+body is an ordered sequence of two kinds of element, in any combination:
+
+- **` ```r ` blocks.** One heading may hold several. **Each is parsed
+  independently** — they are separate programs that happen to be related, not one
+  program split across cells. Most headings have exactly one.
+
+- **Prose.** Anything that is not a fenced block. It is copied verbatim into the
+  snapshot and otherwise ignored — never parsed, never a test. Write it before
+  the block it explains.
+
+Nothing may precede the first heading. The file path already says what the file
+is about, and provenance lives in `MANIFEST.toml` rather than in a paragraph that
+goes stale — so a file-level preamble is an error, where prose under a heading is
+not.
+
+**Prose is for why a test exists**, which is exactly what an R comment cannot
+carry: a comment inside the ` ```r ` cell is *input*, so it changes the tree,
+lands in every `cst` cell as trivia, and has to round-trip. Prose costs the
+parser nothing.
 
 #### The snapshot file
 
@@ -1350,10 +1376,13 @@ RRoot {
 }
 ```
 
-## Function No Body With Assignment [error]
+## Dollar Boundary Cases [error]
+
+The bogus RHS consumes exactly one atom, so an infix operator after it still
+parses normally.
 
 ```r
-function() <- 1
+a$1 + 2
 ```
 
 ```cst
@@ -1361,25 +1390,50 @@ function() <- 1
 ```
 
 ```diagnostics
-× Expected an expression but instead found `<-`.
+× Expected an identifier, a string, `...` or `..i` but instead found `1`.
   ...
+```
+
+A closing delimiter starts no expression, so it must not be consumed — the
+enclosing call would lose its terminator and one error would become a cascade.
+
+```r
+f(a$)
+```
+
+```cst
+...
+```
+
+```diagnostics
+...
 ```
 
 ## Dollar No RHS [pending]
 
+```r
+foo$
+```
+
 *Not yet supported.*
 ````
 
-The snapshot **re-emits the heading and the ` ```r ` cell** rather than referring
-back to the input file. That redundancy is the feature: a `cst` block is
-unreadable without the source right above it, and a reviewer approving a snapshot
-diff should never have to open a second file to know what they are approving.
+The snapshot **re-emits the heading, the prose, and the ` ```r ` cells** rather
+than referring back to the input file. That redundancy is the feature: a `cst`
+block is unreadable without the source right above it, and a reviewer approving a
+snapshot diff should never have to open a second file to know what they are
+approving.
+
+Each block's generated cells follow **that block**, not the end of the heading, so
+source and tree stay adjacent however many blocks a heading holds. Prose keeps its
+position in the sequence.
 
 **Cell contract:**
 
 | Cell | File | Contents |
 |---|---|---|
-| ` ```r ` | input (authored), snapshot (echoed) | the R source |
+| prose | input (authored), snapshot (echoed) | ignored by the harness; never parsed |
+| ` ```r ` | input (authored), snapshot (echoed) | the R source; one parse per block |
 | ` ```cst ` | snapshot only | `format!("{:#?}", parse.tree())` — the *typed AST* view, which is what air's existing snapshots show and what makes tree shape reviewable |
 | ` ```diagnostics ` | snapshot only | rendered `ParseDiagnostic`s; the cell is omitted entirely when there are none |
 
@@ -1392,24 +1446,44 @@ support an opt-in ` ```cst-raw ` cell.
 file. They are echoed into the snapshot so it reads standalone, but the input file
 is the only place they are edited.
 
+**A marker applies to every block under its heading**, so `[error]` means all of
+them must error. The heading is the unit of intent: if two snippets need different
+markers they belong under different headings, which is already how §10.3.1 groups
+the accepted and rejected forms of a construct — side by side in one file, under
+names that say which is which. A per-block override would put two marker syntaxes
+in the format to save a heading.
+
 | Marker | Meaning |
 |---|---|
-| *(none)* | Must parse with **zero** diagnostics. Fails if any diagnostic is emitted. |
-| `[pending]` | Feature not implemented yet. Harness asserts it does **not** parse cleanly. **An unexpected clean parse is a hard failure.** The snapshot carries only `*Not yet supported.*` in place of the generated cells. Round-trip still applies (§10.2) — a pending test may fail to parse, but must never lose a token. |
-| `[error]` | Must produce at least one error diagnostic. Fails if it parses cleanly. |
+| *(none)* | Every block must parse with **zero** diagnostics. Fails if any diagnostic is emitted. |
+| `[pending]` | Feature not implemented yet. Harness asserts **no** block parses cleanly. **An unexpected clean parse is a hard failure.** Each block is echoed followed by `*Not yet supported.*` in place of its generated cells. Round-trip still applies (§10.2) — a pending test may fail to parse, but must never lose a token. |
+| `[error]` | Every block must produce at least one error diagnostic. Fails if any parses cleanly. |
 | `[deviation]` | Excluded from the tree-sitter oracle comparison. Orthogonal to the others — combine as `[error, deviation]`. |
 
 **The pairing invariant.** The snapshot's heading sequence must match the input's
-exactly — same names, same order, same markers. Check it explicitly rather than
-letting a mismatch surface as a confusing content diff:
+exactly — same names, same order, same markers, same number of blocks. Check it
+explicitly rather than letting a mismatch surface as a confusing content diff:
 
 ```rust
+fn shape(document: &Document) -> Vec<(&str, Markers, usize)> {
+    document
+        .tests
+        .iter()
+        .map(|test| (test.name.as_str(), test.markers, test.blocks().count()))
+        .collect()
+}
+
 assert_eq!(
-    input.tests.iter().map(|t| (&t.name, t.markers)).collect::<Vec<_>>(),
-    snapshot.tests.iter().map(|t| (&t.name, t.markers)).collect::<Vec<_>>(),
+    shape(&input), shape(&snapshot),
     "{} and its snapshot have drifted apart — run `just accept`", path.display(),
 );
 ```
+
+Block count is in there so that adding a block to an existing heading fails the
+same loud way adding a heading does. Prose is deliberately *not*: it is echoed
+rather than derived, so a prose edit shows up as an ordinary content diff that
+`just accept` fixes, and folding it into this assertion would only make the
+message worse.
 
 This is what makes the split safe: adding a test to the input file fails loudly
 until the snapshot is regenerated, rather than being silently untested.
@@ -1427,10 +1501,25 @@ pub struct Document {
 pub struct TestCase {
     pub name: String,
     pub markers: Markers,
+    /// The heading's body, in source order. Prose and blocks interleave, and
+    /// rendering walks this list start to finish — which is the whole mechanism
+    /// for keeping each block's cells beside it (§10.1).
+    pub elements: Vec<Element>,
+}
+
+#[derive(Debug)]
+pub enum Element {
+    /// Copied verbatim to the snapshot, never parsed
+    Prose(String),
+    Block(Block),
+}
+
+#[derive(Debug)]
+pub struct Block {
     /// The ```r cell. Authored in the input file, echoed into the snapshot.
     pub source: String,
-    /// ```cst / ```diagnostics. Empty in an input document, always populated
-    /// (or `Pending`) in a snapshot document.
+    /// ```cst / ```diagnostics for THIS block. Empty in an input document,
+    /// always populated (or `Pending`) in a snapshot document.
     pub generated: Vec<Cell>,
 }
 
@@ -1443,21 +1532,48 @@ bitflags::bitflags! {
     }
 }
 
+impl TestCase {
+    /// The parseable blocks, in order. The harness iterates this; rendering
+    /// walks `elements` instead, because prose has to keep its place.
+    pub fn blocks(&self) -> impl Iterator<Item = &Block> { /* … */ }
+    pub fn blocks_mut(&mut self) -> impl Iterator<Item = &mut Block> { /* … */ }
+}
+
 impl Document {
     /// Parses either flavour; `generated` is simply empty for input files.
     pub fn parse(text: &str) -> Result<Document, DocumentError> { /* … */ }
-    /// Renders the snapshot flavour: the banner, then per test its heading, its
-    /// ```r cell, and its generated cells.
+    /// Renders the snapshot flavour: the banner, then per test its heading and
+    /// its elements in order, each block followed by its generated cells.
     pub fn render_snapshot(&self, source_path: &str) -> String { /* … */ }
 }
 ```
 
-Write the markdown parser by hand — it is ~150 lines of line-oriented state machine
-(`## `, ` ```lang `, ` ``` `, and the snapshot banner). Anything before the first
-`## ` in an input file is an error, not prose to be preserved. Do **not** pull in a
-markdown crate; you need
-byte-exact round-tripping of headings and cells, which general markdown parsers do
-not give you.
+Write the markdown parser by hand — it is ~200 lines of line-oriented state
+machine (`## `, ` ```lang `, ` ``` `, the snapshot banner, and everything else
+accumulating as prose). Do **not** pull in a markdown crate; you need byte-exact
+round-tripping, which general markdown parsers do not give you.
+
+Four rules keep it honest, and the first two are what make `xtask accept`
+idempotent — CI asserts a clean tree after regenerating (§5.2), so a renderer
+that reformats its own output on the second pass is a build failure:
+
+- **Prose is stored verbatim, minus its boundary blank lines.** Capture the lines
+  between elements, trim leading and trailing blank ones, and re-emit with
+  exactly one blank line before and after. Internal blank lines survive, so a
+  multi-paragraph note round-trips, and input that was spaced loosely converges
+  after one `just accept` rather than oscillating.
+
+- **A block's generated cells belong to the block, not the test.** Rendering is a
+  single walk of `elements`, emitting prose as-is and each block as its ` ```r `
+  cell followed by its cells. There is no separate "generated" section to keep in
+  sync with anything.
+
+- **Anything before the first `## ` is an error**, and stays one (§10.1). This is
+  the one place prose is refused.
+
+- **A heading with no blocks is an error.** It parses fine and tests nothing,
+  which is exactly the failure the `[pending]` marker exists to make loud, so it
+  should not be reachable by simply forgetting a cell.
 
 `Document`, `check`, and `run_file` live in `crates/aether_r_parser_tests/src/`,
 together with the corpus itself in that crate's `tests/`. The crate depends on
@@ -1494,14 +1610,20 @@ pub fn run_file(input_path: &Path) {
         panic!("{} has no snapshot. Run `just accept`.", input_path.display())
     });
 
-    // 1. Run every test. Marker violations fail here, before any diffing, so a
-    //    genuine parser bug is not reported as a confusing snapshot mismatch.
+    // 1. Run every block of every test. Marker violations fail here, before any
+    //    diffing, so a genuine parser bug is not reported as a confusing
+    //    snapshot mismatch.
     let mut generated = input.clone();
     let mut failures = Vec::new();
     for test in &mut generated.tests {
-        match check(test) {
-            Ok(cells) => test.generated = cells,
-            Err(e) => failures.push((test.name.clone(), e)),
+        let markers = test.markers;
+        // Index the block so a failure names it: a heading may hold several,
+        // and "Dollar Boundary Cases" alone would not say which.
+        for (index, block) in test.blocks_mut().enumerate() {
+            match check(block, markers) {
+                Ok(cells) => block.generated = cells,
+                Err(e) => failures.push((test.name.clone(), index, e)),
+            }
         }
     }
     if !failures.is_empty() { panic!("{}", render_failures(&failures)); }
@@ -1528,9 +1650,12 @@ pub fn accept() -> Result<()> {
     for input_path in corpus_input_files()? {          // *.md, excluding *.snap.md
         let mut doc = Document::parse(&fs::read_to_string(&input_path)?)?;
         for test in &mut doc.tests {
-            // On failure, still write what we can and report at the end — a
-            // regeneration run should be maximally informative.
-            test.generated = check(test).unwrap_or_default();
+            let markers = test.markers;
+            for block in test.blocks_mut() {
+                // On failure, still write what we can and report at the end — a
+                // regeneration run should be maximally informative.
+                block.generated = check(block, markers).unwrap_or_default();
+            }
         }
         let snapshot_path = input_path.with_extension("snap.md");
         let rendered = doc.render_snapshot(&relative(&input_path));
@@ -1546,17 +1671,19 @@ pub fn accept() -> Result<()> {
 ```
 
 ```rust
-fn check(test: &TestCase) -> Result<Vec<Cell>, CheckError> {
-    let parsed = aether_r_parser::parse(&test.source, RParserOptions::default());
+// One block, one parse. Markers come from the enclosing heading and apply
+// identically to every block under it (§10.1).
+fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
+    let parsed = aether_r_parser::parse(&block.source, RParserOptions::default());
 
-    // 1. Round-trip. Non-negotiable, EVERY test — including `[error]` tests and
-    //    including `[pending]` ones. Pending inputs exercise the recovery paths
+    // 1. Round-trip. Non-negotiable, EVERY block — including `[error]` tests
+    //    and including `[pending]` ones. Pending inputs exercise the recovery paths
     //    hardest, so they are where dropped tokens are most likely; a parser that
     //    cannot yet parse a construct must still reproduce it verbatim. This is
     //    invariant 1 in `CLAUDE.md`, and "for ALL inputs" is meant literally.
     let round_tripped = parsed.syntax().to_string();
-    if round_tripped != test.source {
-        return Err(CheckError::RoundTrip { expected: test.source.clone(), got: round_tripped });
+    if round_tripped != block.source {
+        return Err(CheckError::RoundTrip { expected: block.source.clone(), got: round_tripped });
     }
 
     let has_error = parsed.has_error();
@@ -1564,21 +1691,21 @@ fn check(test: &TestCase) -> Result<Vec<Cell>, CheckError> {
     let clean = !has_error && !has_bogus;
 
     // 2. Marker contract
-    if test.markers.contains(Markers::PENDING) {
+    if markers.contains(Markers::PENDING) {
         if clean {
             return Err(CheckError::UnexpectedlyPasses);   // ← flip the marker off!
         }
         return Ok(vec![Cell::pending()]);   // renders as *Not yet supported.*
     }
-    if test.markers.contains(Markers::ERROR) && !has_error {
+    if markers.contains(Markers::ERROR) && !has_error {
         return Err(CheckError::ExpectedError);
     }
-    if !test.markers.contains(Markers::ERROR) && has_error {
-        return Err(CheckError::UnexpectedError(render_diagnostics(&parsed, &test.source)));
+    if !markers.contains(Markers::ERROR) && has_error {
+        return Err(CheckError::UnexpectedError(render_diagnostics(&parsed, &block.source)));
     }
 
     // 3. Structural sanity for clean tests
-    if !test.markers.contains(Markers::ERROR) {
+    if !markers.contains(Markers::ERROR) {
         let ast = format!("{:#?}", parsed.tree());
         if ast.contains("missing (required)") {
             return Err(CheckError::MissingRequired(ast));
@@ -1595,15 +1722,15 @@ fn check(test: &TestCase) -> Result<Vec<Cell>, CheckError> {
     //    is why the test has to be per-node overlap and not "are there any
     //    diagnostics at all". The whole-parse form would be satisfied by the
     //    very diagnostic that masks the problem, and is in fact unreachable:
-    //    step 3 has already rejected bogus nodes on every non-`[error]` test,
-    //    and an `[error]` test always has a non-empty diagnostic list.
+    //    step 3 has already rejected bogus nodes on every non-`[error]` block,
+    //    and an `[error]` block always has a non-empty diagnostic list.
     //
     //    So in practice this only bites on `[error]` tests, which is exactly
     //    where it is needed. It matters most in phases 7-13 while recovery is
     //    being written — not in phase 14, by which point the bad snapshots are
     //    already committed.
     //
-    //    Sits after the `[pending]` early return above: a pending test may
+    //    Sits after the `[pending]` early return above: a pending block may
     //    legitimately produce undiagnosed bogus nodes before its feature exists.
     let unexplained = undiagnosed_bogus_nodes(&parsed.syntax(), parsed.diagnostics());
     if !unexplained.is_empty() {
@@ -1616,8 +1743,8 @@ fn check(test: &TestCase) -> Result<Vec<Cell>, CheckError> {
     // 5. Oracle — compiled out unless the `oracle` feature is on, so a default
     //    `cargo nextest run` (including CI) never builds tree-sitter-r.
     #[cfg(feature = "oracle")]
-    if !test.markers.contains(Markers::DEVIATION) {
-        match aether_r_oracle::compare(&test.source, &parsed.syntax()) {
+    if !markers.contains(Markers::DEVIATION) {
+        match aether_r_oracle::compare(&block.source, &parsed.syntax()) {
             OracleResult::Match => {}
             // tree-sitter bails on any error input, so this is a skip, not a
             // failure — see §10.4.
@@ -1631,7 +1758,7 @@ fn check(test: &TestCase) -> Result<Vec<Cell>, CheckError> {
     // 6. Generate cells
     let mut cells = vec![Cell::new("cst", format!("{:#?}", parsed.tree()))];
     if !parsed.diagnostics().is_empty() {
-        cells.push(Cell::new("diagnostics", render_diagnostics(&parsed, &test.source)));
+        cells.push(Cell::new("diagnostics", render_diagnostics(&parsed, &block.source)));
     }
     Ok(cells)
 }
@@ -1738,7 +1865,8 @@ cargo nextest run -p aether_r_parser_tests --status-level all # pending count
 ```
 
 Per-file is the right granularity to start. Because the tests are read-only,
-upgrading to one `#[test]` per `##` heading later is safe — extend the macro to
+upgrading to one `#[test]` per `##` heading later is safe — a heading stays the
+unit either way, however many blocks it holds — by extending the macro to
 parse headings at expansion time.
 
 ### 10.3 Importing the tree-sitter corpus
@@ -1768,11 +1896,19 @@ The importer:
 2. Splits body on the `-{10,}` fence; keeps **only the R source** and discards the
    s-expression. We regenerate our own expectations; mechanically translating
    tree-sitter s-expressions into Rowan AST dumps would be both hard and pointless.
-3. Emits `## {name} [pending]` + an ` ```r ` cell into the **input** file given by
-   the mapping table below. It does not write snapshots — run
+3. Emits `## {name} [pending]` + **one** ` ```r ` cell into the **input** file
+   given by the mapping table below. It does not write snapshots — run
    `cargo run -p xtask -- accept` afterwards to generate every `.snap.md`.
 4. Adds `[error]` for anything that came from a `*-errors.txt` file.
 5. Writes `MANIFEST.toml` (§10.3.3).
+
+**The importer never splits a body into several blocks**, even though a
+tree-sitter test often bundles a dozen related snippets and §10.1 now allows it.
+The reason is semantic rather than stylistic: a bundled body is *one program*, so
+its snippets parse together and the tree records how they sit beside each other.
+Splitting them into blocks would parse each alone and quietly test something
+else. Multi-block headings are for tests aether writes itself, where the grouping
+was never a single program to begin with.
 
 #### 10.3.1 One file per concept
 
