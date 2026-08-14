@@ -661,7 +661,7 @@ termination and `else` attachment.
   exactly as `JsTokenSource` does (§9.1).
 
 - `RParser` reads the flag only through `at_statement_break()` (§9.2), which
-  gates it on `IGNORE_NEWLINES`. That predicate has three callers: the Pratt loop
+  gates it on the `Newlines` context. That predicate has three callers: the Pratt loop
   (§11.2), `parse_postfix()` (§11.3), and `parse_else_clause()` (§11.6). Nothing
   else reads the raw flag.
 
@@ -949,44 +949,44 @@ pub(crate) struct RParser<'src> {
     context: ParserContext<RSyntaxKind>,
     source: RTokenSource<'src>,
     options: RParserOptions,
-    /// Stack-discipline context flags, saved and restored by `with_flags`.
-    ///
-    /// A bare field rather than a `state` struct: `biome_js_parser` has a
-    /// `JsParserState` because it aggregates seven heterogeneous things (label
-    /// sets, strict mode, duplicate-binding tracking, speculative-parsing
-    /// memoization). R has exactly one, and no candidates to grow into it —
-    /// there is no strict mode, no labelled `break`, and no backtracking at all
-    /// (§12.2). Reintroduce a wrapper if a second kind of state ever appears.
-    flags: RContextFlags,
+    /// What a line break means here. Saved and restored by `with_newlines` and
+    /// `with_braces`.
+    newlines: Newlines,
+    /// Whether an `else` may follow a line break. Saved and restored by
+    /// `with_braces`, which is the only thing that sets it.
+    else_clause: ElseClause,
 }
 
-bitflags::bitflags! {
-    /// Context that changes how newlines are interpreted. Both flags answer the
-    /// same question — "what does a line break mean here?" — and nothing else
-    /// belongs in this struct.
-    ///
-    /// **Polarity is deliberate: empty means top-level behaviour.** A forgotten
-    /// flag then produces a spurious statement break, which is a loud parse
-    /// error at the first multi-line call in the corpus. The inverse spelling
-    /// (`NEWLINE_SENSITIVE`) fails silently instead — `1\n+2` would quietly
-    /// become one expression rather than two statements, a wrong tree with no
-    /// diagnostic that the round-trip assertion does not catch either.
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-    pub(crate) struct RContextFlags: u8 {
-        /// Set inside `(`, `[`, or `[[`, where newlines carry no meaning — R's
-        /// parser eats them, and so does tree-sitter-r's external scanner
-        /// (`consume_whitespace_and_ignored_newlines`).
-        const IGNORE_NEWLINES           = 1 << 0;
-        /// Set inside `{`. R permits `else` on a line after the consequence only
-        /// within braces; at top level the newline ends the `if` and the `else`
-        /// is a syntax error.
-        ///
-        /// Named for what it licenses rather than for the `{` that sets it,
-        /// because it has exactly one reader (`parse_else_clause`). If a second
-        /// brace-specific rule ever appears, rename it back — one setter and one
-        /// reader make that a two-line change.
-        const ALLOW_NEWLINE_BEFORE_ELSE = 1 << 1;
-    }
+/// What a line break means at the current position
+///
+/// **Polarity is deliberate, and `#[default]` is where it is enforced.** A
+/// forgotten `with_newlines` leaves `Significant`, which produces a spurious
+/// statement break — a loud parse error at the first multi-line call in the
+/// corpus. The inverse default fails silently instead: `1\n+2` would quietly
+/// become one expression rather than two statements, a wrong tree with no
+/// diagnostic that the round-trip assertion does not catch either.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum Newlines {
+    /// Top level and inside `{`. A line break ends the current expression.
+    #[default]
+    Significant,
+    /// Inside `(`, `[`, or `[[`, where newlines carry no meaning — R's parser
+    /// eats them, and so does tree-sitter-r's external scanner
+    /// (`consume_whitespace_and_ignored_newlines`).
+    Ignored,
+}
+
+/// Whether an `else` may follow a line break
+///
+/// R permits `else` on a line after the consequence only within braces; at top
+/// level the newline ends the `if` and the `else` is a syntax error. Named for
+/// what it licenses rather than for the `{` that sets it, because it has
+/// exactly one reader (`parse_else_clause`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum ElseClause {
+    #[default]
+    SameLineOnly,
+    MayFollowNewline,
 }
 
 impl<'src> Parser for RParser<'src> {
@@ -999,17 +999,34 @@ impl<'src> Parser for RParser<'src> {
 }
 
 impl<'src> RParser<'src> {
-    /// Run `f` with `set` inserted and `clear` removed, restoring the previous
-    /// flags afterwards. `clear` is `empty()` at every call site but
-    /// `parse_braced_statements`, which is the one construct that re-enters
-    /// newline-significant territory from inside a paren.
-    pub(crate) fn with_flags<F, R>(&mut self, set: RContextFlags, clear: RContextFlags, f: F) -> R
+    /// Run `f` with `newlines` in effect, restoring the previous value after.
+    ///
+    /// Eight callers, one per construct that eats newlines: `f(…)`, `x[…]`,
+    /// `x[[…]]`, `(…)`, the `if` and `while` conditions, the `for` header, and a
+    /// parameter list.
+    pub(crate) fn with_newlines<F, R>(&mut self, newlines: Newlines, f: F) -> R
     where F: FnOnce(&mut Self) -> R {
-        let saved = self.flags;
-        self.flags.insert(set);
-        self.flags.remove(clear);
+        let saved = std::mem::replace(&mut self.newlines, newlines);
         let result = f(self);
-        self.flags = saved;
+        self.newlines = saved;
+        result
+    }
+
+    /// Run `f` inside `{ … }`, restoring both fields after.
+    ///
+    /// Braces are the one construct that changes both, and they change them in
+    /// opposite directions: a line break inside braces is significant *again*,
+    /// even when the braces sit inside a paren (`f({\n  a\n  b\n})`), and an
+    /// `else` may follow one. Owning the pair here rather than at the call site
+    /// is what stops the two from being restated — or set inconsistently — by
+    /// whatever else learns to parse a block.
+    pub(crate) fn with_braces<F, R>(&mut self, f: F) -> R
+    where F: FnOnce(&mut Self) -> R {
+        let saved = (self.newlines, self.else_clause);
+        self.newlines = Newlines::Significant;
+        self.else_clause = ElseClause::MayFollowNewline;
+        let result = f(self);
+        (self.newlines, self.else_clause) = saved;
         result
     }
 
@@ -1018,7 +1035,7 @@ impl<'src> RParser<'src> {
     /// asks `at_statement_break()`. An accessor rather than a public field, so
     /// that "exactly one reader" is enforced by privacy rather than by hope.
     pub(crate) fn allows_newline_before_else(&self) -> bool {
-        self.flags.contains(RContextFlags::ALLOW_NEWLINE_BEFORE_ELSE)
+        self.else_clause == ElseClause::MayFollowNewline
     }
 
     /// True when a newline before the current token should end the current
@@ -1026,10 +1043,9 @@ impl<'src> RParser<'src> {
     ///
     /// The single predicate for newline significance. Both newline rules in the
     /// language — statement termination and `else` attachment — funnel through
-    /// it; nothing else should read `IGNORE_NEWLINES` directly.
+    /// it; nothing else should read `newlines` directly.
     pub(crate) fn at_statement_break(&self) -> bool {
-        !self.flags.contains(RContextFlags::IGNORE_NEWLINES)
-            && self.has_preceding_line_break()
+        self.newlines == Newlines::Significant && self.has_preceding_line_break()
     }
 
     pub(crate) fn finish(self) -> (Vec<Event<RSyntaxKind>>, Vec<Trivia>, Vec<ParseDiagnostic>) {
@@ -1040,6 +1056,56 @@ impl<'src> RParser<'src> {
     }
 }
 ```
+
+#### 9.2.1 Why two enums and not a bitflags set
+
+Checked against every Biome parser at the pinned rev, because the obvious
+reach here is `bitflags` and it is the wrong size of tool.
+
+`biome_js_parser` is the only parser that uses flags for context, and it
+documents why on `ParsingContextFlags`: bit masks let it say which state is
+inherited across a boundary, and a whole context snapshots into one word instead
+of field by field. Both reasons are about scale, and JS is at that scale — eight
+flags, plus `FUNCTION_RESET_MASK` and `PARAMETER_RESET_MASK` naming six and five
+of them at once.
+
+`biome_css_parser` is the parser at *aether's* scale, with two context fields
+(`speculative_parsing`, `is_nesting_block`), and it uses plain fields with
+`std::mem::replace`. No parser in between exists — graphql, html, yaml, json,
+and grit carry no parse context at all.
+
+At two, neither of JS's reasons survives: there is no mask worth naming, and a
+snapshot is two `Copy` fields instead of one. What the enums buy back is that
+the safe default is *named* rather than being "the empty set", which is the one
+property §9.2 above most wants to be obvious. It also keeps `bitflags` out of
+`aether_r_parser`, which does not otherwise depend on it — the plan's other
+bitflags use is `Markers` (§10.2), a genuine combining set, in the test crate.
+
+**A closure and not an RAII guard.** JS has both — `with_state(change, f)` and
+`with_scoped_state(change)` returning a `Drop` guard that derefs to the parser —
+and uses the closure seventeen times against the guard's one. The single guard
+site is `parse_class`, where strict mode applies to the remaining ninety lines
+of the function and a closure would mean wrapping the whole body. Aether has no
+site of that shape: all nine are one call bracketed by a `bump` and an `expect`,
+so the guard would be machinery with no caller.
+
+**Stored state and not a threaded parameter.** JS's other model is
+`ExpressionContext`, passed down rather than stored, which makes leaking
+impossible by construction. JS splits deliberately, and the split is the lesson:
+fine-grained context that changes within one expression is a parameter, while
+coarse context that changes at construct boundaries and is read at arbitrary
+depth lives on the state. R's two are unambiguously the second kind —
+`else_clause` is set by `{` and read by a `parse_else_clause` that may sit
+inside any number of nested `if`s, and `newlines` is read by the Pratt loop at
+every level — so threading either would touch every parse function in the crate
+rather than just the expression chain.
+
+That leaves the question of whether the helpers earn their place at all, given
+CSS ships without one. The answer is the call-site count, and a failure mode:
+`at_statement_break()` is consulted several frames below whatever set the field,
+so a leaked value does not crash — it silently changes how newlines are read for
+the rest of the parse and yields a wrong tree that still round-trips. That is
+the one class of bug neither invariant 1 nor the harness catches.
 
 ### 9.3 Public `parse()` — keep air's shape
 
@@ -2060,8 +2126,8 @@ off the tests the feature enables, regenerate, review the diff.
 pub(crate) fn parse_root(p: &mut RParser) {
     let m = p.start();
     p.eat(UNICODE_BOM);
-    // No `with_flags` here: empty flags *are* top-level behaviour — newlines are
-    // significant and `else` may not follow one. See §9.2 on polarity.
+    // No scoped helper here: the defaults *are* top-level behaviour — newlines
+    // are significant and `else` may not follow one. See §9.2 on polarity.
     parse_statement_list(p, StatementListEnd::Eof);
     p.expect(T![EOF]);
     m.complete(p, R_ROOT);
@@ -2470,7 +2536,7 @@ across trivia, so the line break still reaches `2` with a comment sitting betwee
 If that stickiness breaks, this test fails and the lexer bug is caught at its
 source rather than surfacing later as a mystery `expected_statement_separator`.
 The second confirms the rule survives `parse_braced_statements` clearing
-`IGNORE_NEWLINES` (§11.7). All three are aether-authored, so they are absent from
+newlines significant again (§11.7). All three are aether-authored, so they are absent from
 `MANIFEST.toml` and do not move the 89 count.
 
 **Verify when the Phase 9 tests come off `[pending]`:**
@@ -2610,9 +2676,10 @@ impl ArgumentListEnd {
 fn parse_subset2_arguments(p: &mut RParser) {
     let m = p.start();
     p.bump(T!["[["]);
-    // Nothing to clear: `ALLOW_NEWLINE_BEFORE_ELSE` may stay set from an
-    // enclosing `{`, and inside brackets it is harmless — see `parse_else_clause`.
-    p.with_flags(RContextFlags::IGNORE_NEWLINES, RContextFlags::empty(), |p| {
+    // `else_clause` is deliberately left alone: it may stay `MayFollowNewline`
+    // from an enclosing `{`, and inside brackets that is harmless, because
+    // `parse_else_clause` also tests `at_statement_break()`.
+    p.with_newlines(Newlines::Ignored, |p| {
         parse_argument_list(p, ArgumentListEnd::RBrack2);
     });
     // The list joined its `]]` on the way out, so this is a plain expect.
@@ -2958,7 +3025,7 @@ Since `parse_function_definition` calls `parse_expression` unconditionally for t
 body, newlines are naturally skipped. Verify against the `Functions` corpus test,
 which contains all four spacing variants.
 
-Parameters use `IGNORE_NEWLINES` (newlines eaten) and a comma-separated list where each
+Parameters use `Newlines::Ignored` (newlines eaten) and a comma-separated list where each
 `RParameter` is `name` + optional `RParameterDefault`. Names may be `IDENT`,
 `DOTS`, or `DOTDOTI` — note `return` is a plain identifier in R and is a valid
 parameter name (`Functions With return As Parameter Name`).
@@ -2979,7 +3046,7 @@ fn parse_if_statement(p: &mut RParser) -> ParsedSyntax {
     let m = p.start();
     p.bump(T![if]);
     p.expect(T!['(']);
-    p.with_flags(RContextFlags::IGNORE_NEWLINES, RContextFlags::empty(), |p| {
+    p.with_newlines(Newlines::Ignored, |p| {
         parse_expression(p).or_add_diagnostic(p, diagnostics::expected_condition);
     });
     p.expect(T![')']);
@@ -3041,10 +3108,11 @@ fn parse_else_clause(p: &mut RParser) -> ParsedSyntax {
 }
 ```
 
-Note that `ALLOW_NEWLINE_BEFORE_ELSE` is therefore *not* cleared on entering
-`(`/`[`/`[[` — leaving it set is harmless because `at_statement_break()` is already
-false there, and clearing it would mean re-deriving brace context on the way back
-out. Only `parse_braced_statements` sets it, and only `parse_else_clause` reads it.
+Note that `else_clause` is therefore *not* reset on entering `(`/`[`/`[[` —
+leaving it at `MayFollowNewline` is harmless because `at_statement_break()` is
+already false there, and resetting it would mean re-deriving brace context on the
+way back out. That is why `with_newlines` touches only the one field. Only
+`with_braces` sets `else_clause`, and only `parse_else_clause` reads it.
 
 Add all three cases to `control/if.md` as aether-authored tests. tree-sitter-r's
 corpus covers the braced and top-level forms; the parenthesised one is the case a
@@ -3087,13 +3155,11 @@ fn parse_braced_statements(p: &mut RParser) -> ParsedSyntax {
     if !p.at(T!['{']) { return Absent }
     let m = p.start();
     p.bump(T!['{']);
-    // The only site that still needs the `clear` argument: `f({\n  a\n  b\n})`
-    // re-enters newline-significant territory from inside a paren.
-    p.with_flags(
-        RContextFlags::ALLOW_NEWLINE_BEFORE_ELSE,
-        RContextFlags::IGNORE_NEWLINES,
-        |p| parse_statement_list(p, StatementListEnd::RCurly),
-    );
+    // The one construct that moves both fields, and in opposite directions:
+    // `f({\n  a\n  b\n})` re-enters newline-significant territory from inside a
+    // paren, and an `else` may now follow a line break. `with_braces` owns that
+    // pairing (§9.2).
+    p.with_braces(|p| parse_statement_list(p, StatementListEnd::RCurly));
     p.expect(T!['}']);
     Present(m.complete(p, R_BRACED_STATEMENTS))
 }
