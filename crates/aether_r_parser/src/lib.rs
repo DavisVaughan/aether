@@ -1,7 +1,18 @@
-// The lexer, and the diagnostics it raises, are the crate's only content until
-// `RTokenSource` and `RParser` land. Nothing outside `#[cfg(test)]` drives them
-// yet, so every item in both modules reads as dead.
-#[allow(dead_code, reason = "driven by `RTokenSource` in Phase 5")]
 mod diagnostics;
-#[allow(dead_code, reason = "driven by `RTokenSource` in Phase 5")]
+mod error;
 mod lexer;
+mod options;
+mod parse;
+mod parser;
+mod syntax;
+mod token_source;
+
+pub use crate::error::ParseError;
+pub use crate::options::RParserOptions;
+pub use crate::parse::{Parse, parse, parse_with_cache};
+
+use aether_r_factory::RSyntaxFactory;
+use aether_r_syntax::RLanguage;
+use biome_parser::tree_sink::LosslessTreeSink;
+
+pub(crate) type RLosslessTreeSink<'source> = LosslessTreeSink<'source, RLanguage, RSyntaxFactory>;

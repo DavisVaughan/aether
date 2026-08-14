@@ -466,7 +466,7 @@ Corpus tests: `expressions/specials.md`, marked `[deviation]`.
 
 ### 10. Whitespace attaches trailing, not leading
 
-Lands in Phase 5.
+Landed in Phase 5.
 
 The one entry in this section whose counterpart is air's walker rather than
 tree-sitter-r's grammar — tree-sitter-r has no notion of trivia attachment at
