@@ -4,7 +4,7 @@ Every intentional difference between aether's tree and the tree produced by
 `posit-dev/air`'s tree-sitter-based parser, with an example, both outputs, and
 the reason.
 
-Three categories, kept apart on purpose:
+Two categories, kept apart on purpose:
 
 - [Aether vs. tree-sitter-r](#aether-vs-tree-sitter-r) — choices aether made, and
   can revisit.
@@ -12,10 +12,6 @@ Three categories, kept apart on purpose:
 - [tree-sitter-r vs. R](#tree-sitter-r-vs-r) — places where tree-sitter-r already
   differs from R and aether follows tree-sitter anyway, so the oracle agrees.
   Upstream behaviour we are deliberately not fixing.
-
-- [Inherited from air](#inherited-from-air) — air conventions aether copies
-  without endorsing. A to-do list with a natural date: the swap into air, after
-  which snapshots can be regenerated in one deliberate pass.
 
 The differential oracle reads nothing from this file. Reviewers do, and so does
 whoever updates air's formatter.
@@ -39,6 +35,7 @@ them, since the ledger runs ahead of the parser.
 | 7 | `L` and `i` suffixes | tokens of their own, so `1 L` is one `integer` and `1Li` is `1` and `Li` | part of the literal, taken whatever follows, as R takes them |
 | 8 | Unterminated numbers | `0x`, `0x1p`, `1e` re-split or accepted, all silently | one literal token carrying `Unterminated hexadecimal literal.`, `Unterminated binary exponent.`, or `Unterminated exponent.` |
 | 9 | A backslash inside `%...%` | excluded by the `special` regex, so `%a\b%` errors | ordinary text, as R takes it, so `%a\b%` is one `SPECIAL` |
+| 10 | Whitespace attachment | air's walker: leading of the following token, with a second rule for whitespace before a newline | `JsTokenSource`'s rule — trailing of the preceding token until a newline, leading from the newline on. Comment and newline attachment are unchanged |
 
 ### 1. Semicolons are real tokens
 
@@ -467,6 +464,120 @@ since R stops at it too.
 
 Corpus tests: `expressions/specials.md`, marked `[deviation]`.
 
+### 10. Whitespace attaches trailing, not leading
+
+Lands in Phase 5.
+
+The one entry in this section whose counterpart is air's walker rather than
+tree-sitter-r's grammar — tree-sitter-r has no notion of trivia attachment at
+all. It belongs here anyway, because what this file compares is aether's tree
+against the tree air's parser produces, and attachment is part of that tree.
+
+Example:
+
+```r
+1 + 2
+```
+
+Air attaches each space as **leading** trivia of the token that follows it, so
+`1` carries nothing, `+` carries `" "`, and `2` carries `" "`. Aether attaches
+each space as **trailing** trivia of the token before it, so `1` carries `" "`,
+`+` carries `" "`, and `2` carries nothing.
+
+Air has a second rule on top of that one: whitespace immediately before a newline
+is trailing of the preceding token, but only if some token still follows later in
+the file. So the same two spaces are trailing in `1 + \n1` and leading in
+`1  \n `. Aether has no such rule; both are trailing.
+
+Round-trip holds either way — no bytes move, only which token owns them.
+
+#### What does not change
+
+Attachment for the other two trivia kinds is bit-identical under the two rules,
+and by inspection rather than by luck:
+
+- **Comments.** Air's rule is trailing iff no newline has been seen yet and this
+  is not the first token of the file, including its deliberate choice to ignore
+  the end-of-file case there so that `1 #` ends with a trailing comment.
+  `JsTokenSource`'s latching bool computes the same predicate.
+
+- **Newlines.** Leading under both. Air says so explicitly; JS latches the flag
+  before pushing the newline piece rather than after.
+
+So the deviation is confined to `Whitespace` pieces, and within those, to the
+ones that do not end their line.
+
+#### Why deviate at all
+
+Air's rule needs a one-piece lookahead — whether a space is trailing depends on
+what follows it — plus a decision that cannot be made until the gap's terminator
+is known. That is about sixty lines, a held-back piece, and a fixup after the
+loop. JS's rule is a latching bool and twelve lines, with nothing held back and
+nothing to allocate.
+
+Every other Biome parser uses the JS rule, so `CLAUDE.md`'s "when in doubt, do
+what `biome_js_parser` does" applies directly. Air is the outlier, and it is the
+outlier for no recorded reason: whitespace attachment has no user-visible
+consequence, because a formatter regenerates whitespace from its own IR rather
+than reading it off the source trivia.
+
+The uniformity is worth something on its own. Under air's rule the same
+whitespace-before-a-newline is trailing in `1 + \n1` and leading in `1  \n `,
+which is a distinction a reader of a `cst` cell has to reconstruct from the rest
+of the file. Under this one it is trailing in both.
+
+#### Why Phase 5 and not after the swap
+
+The plan originally deferred this, on the grounds that adopting the simpler rule
+would be cheap once air was on aether and expensive before, because re-tagging
+every whitespace piece would mask the drift the oracle exists to watch for.
+
+Both halves are backwards. The corpus does not exist until Phase 6, so
+"regenerate every snapshot" costs nothing today and grows monotonically from
+here; deferring past the swap would additionally mean regenerating air's
+formatter snapshots, on a rule change that then has to be argued invisible rather
+than simply never introduced. And the oracle keeps full coverage through
+normalization instead of losing it, because the drift worth watching for is in
+comment attachment, which this does not touch.
+
+#### Swap-in cost, and the audit behind that claim
+
+Nothing in air reads whitespace attachment polarity. Audited at the time this
+landed, rather than assumed:
+
+- `has_leading_newline()` has six call sites in `air_r_formatter`
+  (`if_statement.rs:200,217,223`, `function_definition.rs:154`,
+  `parameters.rs:121`, `binary_expression.rs:470,927`). These are user-visible —
+  they decide whether a binary expression breaks and whether `else` takes its own
+  line. All unaffected, because the newline piece is leading under both rules.
+
+- `lsp/src/handlers_format.rs:169` (`text_non_whitespace_range`, itself copied
+  from `biome_formatter`) walks both trivia lists but skips whitespace and
+  newline pieces explicitly. It is looking for comments.
+
+- Nothing else. `air_r_syntax/src/lib.rs:322` is the `RSyntaxKind` →
+  `TriviaPieceKind` mapping, and `air_r_formatter/src/comments.rs` reads no
+  trivia lists at all.
+
+The audit is an argument, not a proof, and air's formatter snapshot suite is the
+experiment that settles it at swap-in. Run it before the formatter changes, so a
+whitespace regression cannot hide inside the semicolon churn. If a non-semicolon
+file moves, this deviation has failed its premise — and the retreat is cheap,
+because restoring air's rule means rewriting one function.
+
+#### Oracle
+
+**No test carries `[deviation]` for this**, which makes it the first entry here
+handled entirely by normalization. Air's walker produces air's polarity, so
+without normalization every corpus file containing a space would mismatch — which
+is every file, and the oracle would be useless from Phase 5 onward.
+
+So the oracle re-tags `Whitespace` pieces on both trees by the same rule before
+comparing. **Whitespace only, never comments:** comment attachment is unchanged
+here, and it is the half that reaches air's formatter, so it is exactly the half
+the oracle has to keep checking. Normalizing over "trivia" rather than over
+whitespace would blind it to the one attachment drift that has consequences.
+
 ## tree-sitter-r vs. R
 
 Places where tree-sitter-r already disagrees with R's own parser. Aether follows
@@ -496,30 +607,3 @@ local and the next line parses normally. Aether stops before the newline too,
 keeping the partial `%foo` as a `SPECIAL` token with the diagnostic attached.
 That is not a deviation from tree-sitter, just a recovery choice tree-sitter has
 no equivalent of.
-
-## Inherited from air
-
-Air conventions aether copies without endorsing, findable in one place for the
-day the swap is done and the whole corpus can be regenerated deliberately.
-
-### Trivia attachment polarity
-
-Air attaches whitespace between two same-line tokens as leading of the following
-token; Biome's own parsers attach it as trailing of the preceding one. Air also
-makes the same whitespace-before-a-newline trailing or leading depending on
-whether any token follows later in the file (`1 + \n1` vs `1  \n `). Aether copies
-both, because deviating would change every snapshot and every oracle comparison
-for no user-visible gain — the formatter regenerates whitespace regardless, and
-round-trip holds either way.
-
-The JS-shaped simplification, if this is ever revisited, is `JsTokenSource`'s
-whole body: `let mut trailing = !first;` and, in a single streaming pass,
-`if kind.is_newline() { trailing = false; }` before pushing each piece. No gap
-buffer, no one-piece lookahead, no `between_two_tokens`, and the three special
-cases collapse — whitespace and comments are trailing of the preceding token until
-a newline is seen, then leading. That is roughly forty lines shorter than
-`RTokenSource::next_non_trivia_token()` and states in one sentence.
-
-The cost of adopting it is a whole-corpus snapshot regeneration, which is cheap
-after the swap and expensive before it, since it would mask exactly the drift the
-oracle is watching for.

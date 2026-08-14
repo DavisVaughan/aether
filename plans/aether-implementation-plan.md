@@ -671,8 +671,9 @@ is structural — the parser knows whether it is inside `(`/`[`/`[[` — so a le
 scope stack would duplicate that knowledge and is the classic source of desync
 bugs.
 
-`Trivia` kinds map as follows, matching air's current `parse.rs` so the snapshots
-line up:
+`Trivia` kinds map as follows, matching air's current `parse.rs`. The *kinds*
+match air; which token each piece attaches to does not, and deviation 10 in
+`docs/deviations.md` is why (§9.1):
 
 | Lexer kind | `TriviaPieceKind` |
 |---|---|
@@ -753,64 +754,30 @@ impl<'src> RTokenSource<'src> {
     }
 
     fn next_non_trivia_token(&mut self, context: RLexContext, first: bool) {
-        // Buffer the gap before assigning positions: whether a whitespace piece
-        // is trailing depends on what FOLLOWS it, so it cannot be decided as it
-        // is lexed. This is the one place aether cannot copy `JsTokenSource`,
-        // whose default is the opposite of air's — see the rules below.
-        let mut gap: Vec<(TriviaPieceKind, TextRange)> = Vec::new();
+        // Everything up to the first newline trails the preceding token; the
+        // newline and everything after it leads the next one. One latching
+        // bool, no lookahead, no buffering, no allocation.
+        //
+        // This is `JsTokenSource::next_non_trivia_token` with R's three trivia
+        // kinds substituted for its `TriviaPieceKind::try_from`. Air's rule is
+        // different and aether deliberately does not copy it — see below.
+        let mut trailing = !first;
 
-        let terminator = loop {
-            let kind = self.lexer.next_token(context);
-            let trivia_kind = match kind {
+        loop {
+            let trivia_kind = match self.lexer.next_token(context) {
                 WHITESPACE => TriviaPieceKind::Whitespace,
                 NEWLINE    => TriviaPieceKind::Newline,
                 COMMENT    => TriviaPieceKind::SingleLineComment,
-                _ => break kind,
-            };
-            gap.push((trivia_kind, self.lexer.current_range()));
-        };
-
-        // Air's `between_two_tokens`: a real token before AND after. Before the
-        // first token, and in the final gap to EOF, everything is leading.
-        let between_two_tokens = !first && terminator != EOF;
-        let mut seen_newline = false;
-
-        for i in 0..gap.len() {
-            let (kind, range) = gap[i];
-            let next = gap.get(i + 1).map(|(k, _)| *k);
-
-            let trailing = if seen_newline {
-                // Everything from the newline onward leads the next token.
-                false
-            } else {
-                match kind {
-                    // A comment on the same line as the preceding token is
-                    // trailing of it. Air handles this in `handle_comment_leave`,
-                    // which does not see `between_two_tokens`'s end-of-file
-                    // reset, so it applies in the final gap too: `1 #` ends with
-                    // a *trailing* comment.
-                    TriviaPieceKind::SingleLineComment => !first,
-
-                    // Whitespace is trailing only when it is the tail of the
-                    // line: immediately before a same-line comment, or before
-                    // the newline that ends the line. Whitespace with a real
-                    // token after it on the same line is LEADING of that token —
-                    // `1 + 2` attaches the spaces to `+` and `2`, not to `1`.
-                    TriviaPieceKind::Whitespace => match next {
-                        Some(TriviaPieceKind::SingleLineComment) => !first,
-                        Some(TriviaPieceKind::Newline) => between_two_tokens,
-                        _ => false,
-                    },
-
-                    TriviaPieceKind::Newline => false,
-                    _ => false,
-                }
+                _ => break,
             };
 
-            if kind.is_newline() {
-                seen_newline = true;
+            // Before the push, so the newline itself leads the next token.
+            if trivia_kind.is_newline() {
+                trailing = false;
             }
-            self.trivia.push(Trivia::new(kind, range, trailing));
+
+            self.trivia
+                .push(Trivia::new(trivia_kind, self.lexer.current_range(), trailing));
         }
     }
 }
@@ -831,45 +798,86 @@ impl<'src> TokenSource for RTokenSource<'src> {
 }
 ```
 
-**Trivia attachment must match air's existing rules exactly**, because a mismatch
-shows up in every snapshot. The rules, read off air's `derive_trivia` and
-`handle_comment_leave` rather than paraphrased:
+**The whole rule, in one sentence:** trivia is trailing of the token before it
+until a newline is seen, and leading of the token after it from the newline
+onward; before the first token of the file, everything is leading. `\r\n` is one
+piece. That is every Biome parser's rule, it needs no lookahead, and it is why
+the function above is twelve lines.
 
-- Before the first token, everything is **leading**. Same in the final gap
-  between the last token and EOF — except for comments, see below.
-- Between two real tokens, whitespace is **trailing only when it is the tail of
-  the line**: immediately before a same-line comment, or before the newline that
-  ends the line. Whitespace followed by a real token on the same line is
-  **leading** of that token.
-- A comment on the same line as the preceding token is **trailing** of it, along
-  with the whitespace before it. A comment after a newline is leading.
-- The newline itself, and everything after it, is **leading**. `\r\n` is one
-  piece.
+#### Why this deviates from air
 
-**Note the polarity: air's default is leading, and `JsTokenSource`'s is trailing.**
-Copying JS here would put a diff in every snapshot that contains a space between
-two tokens, which is all of them. Air's choice is arguably the odd one — see the
-"Inherited from air" section of `docs/deviations.md` — but aether copies it
-so the oracle stays useful, and revisits it after the swap if at all.
+Air's rule is different, and richer: whitespace between two same-line tokens is
+**leading** of the following token, and whitespace before a newline is trailing
+or leading depending on whether any token follows later in the file (`1 + \n1`
+vs. `1  \n `). Reproducing it costs a one-piece lookahead, a deferred decision
+patched after the terminator is known, and roughly sixty lines. **Aether does not
+reproduce it.** Deviation 10 in `docs/deviations.md` carries the full argument;
+what matters here is the scope, because it is much narrower than it sounds.
 
-Air ships eight `test_parse_trivia_*` unit tests covering exactly these cases;
-port them verbatim into aether. They are the cheapest possible guard against the
-highest-risk drift in the project. The four that pin the rules above:
+**Only whitespace ever moves.** Air's rule and JS's agree exactly on the other
+two kinds, and the agreement is by inspection rather than by luck:
+
+- **Comments.** Air is trailing iff `!seen_newline && !first`, including its
+  deliberate use of `!first` rather than `between_two_tokens` in the final gap so
+  that `1 #` ends with a trailing comment. The latching bool computes the same
+  predicate.
+- **Newlines.** Leading under both — air has an explicit `Newline => false`, and
+  JS latches before the push.
+
+So the delta is confined to `Whitespace` pieces, and within those, to the ones
+that do *not* tail the line:
+
+| Input | Air | Aether |
+|---|---|---|
+| `1 + 2` | `ws` leading of `+`, `ws` leading of `2` | `ws` trailing of `1`, `ws` trailing of `+` |
+| `1 + \n1` | `ws` **leading**, `ws` trailing, `nl` | `ws` trailing, `ws` trailing, `nl` |
+| `1  \n ` | `ws` **leading**, `nl`, `ws` leading | `ws` trailing, `nl`, `ws` leading |
+| `1 #` | `ws` trailing, `cmt` trailing | identical |
+| `1 # c\n2` | `ws` trailing, `cmt` trailing, `nl` | identical |
+
+**Nothing in air reads the difference.** Audited rather than assumed, and the
+audit is what makes this safe to land before the swap:
+
+- `has_leading_newline()` has six call sites in air's formatter
+  (`if_statement.rs:200,217,223`, `function_definition.rs:154`,
+  `parameters.rs:121`, `binary_expression.rs:470,927`) and they are genuinely
+  user-visible — they decide whether a binary expression breaks and whether
+  `else` gets its own line. All unaffected: the newline piece is leading under
+  both rules.
+- `lsp/src/handlers_format.rs:169` (`text_non_whitespace_range`) walks both
+  trivia lists but skips whitespace and newline pieces explicitly; it is looking
+  for comments.
+- Nothing else in air reads trivia polarity. `air_r_syntax/src/lib.rs:322` is
+  kind mapping, and `air_r_formatter/src/comments.rs` reads none of it.
+
+Re-run that audit at swap-in rather than trusting this list — §12.3 step 7 is
+where it gets settled for real, by air's formatter snapshot suite.
+
+#### The ported trivia tests
+
+Air ships eight `test_parse_trivia_*` unit tests. **Port all eight, and flip the
+expectations that the rule change moves** — they remain the cheapest guard
+against silent drift, they just now pin aether's rule instead of air's. The four
+that pin the sentence above:
 
 | Input | Expected |
 |---|---|
-| `1 + \n1` | `ws` leading, `ws` trailing, `nl` |
+| `1 + \n1` | `ws` trailing, `ws` trailing, `nl` |
 | `1 #` | `ws` trailing, `cmt` trailing |
-| `1  \n ` | `ws` leading, `nl`, `ws` leading |
-| `1 + \r\n1` | `ws` leading, `ws` trailing, `nl` spanning both bytes |
+| `1  \n ` | `ws` trailing, `nl`, `ws` leading |
+| `1 + \r\n1` | `ws` trailing, `ws` trailing, `nl` spanning both bytes |
 
-The first and third are worth staring at: the same whitespace-before-a-newline is
-trailing in one and leading in the other, purely because a token follows in the
-first. That asymmetry is `between_two_tokens` in the loop above.
+Only row 2 is unchanged from air. Rows 1, 3, and 4 move, and 1 and 3 are the pair
+worth staring at: under air's rule the same whitespace-before-a-newline is
+trailing in one and leading in the other, purely because a token follows later in
+the file. Under this rule both are trailing and the asymmetry stops existing —
+which is the readability argument for the change, independent of the line count.
+Row 4 is row 1's CRLF twin and moves with it.
 
-Expect to spend real time here — trivia attachment is the highest-risk area for
-silent snapshot churn, and it is exactly the kind of thing the differential oracle
-exists to catch.
+Note what the flip costs: these tests no longer assert agreement with an
+independent implementation, only that aether does not change its mind. The
+external check moves to the oracle (§10.4), which normalizes the polarity away
+and so keeps comparing everything else.
 
 Implement `BumpWithContext` (for string lexing) and `TokenSourceWithBufferedLexer`
 (which gives `NthToken` lookahead automatically).
@@ -1245,8 +1253,9 @@ reason a backticked name does (§8.4).
 **Done when:** `parse("")` produces `R_ROOT` containing an empty
 `R_STATEMENT_LIST` and an `EOF` token, `parse("   \n# hi\n")` attaches the
 whitespace and comment as trivia on `EOF` with no diagnostics, and air's eight
-`test_parse_trivia_*` unit tests are ported and passing against `RTokenSource`
-(§9.1). Do not defer that last one to a later phase — every snapshot in the
+`test_parse_trivia_*` unit tests are ported and passing against `RTokenSource`,
+with the expectations deviation 10 moves flipped and the flip called out in the
+PR (§9.1). Do not defer that last one to a later phase — every snapshot in the
 project is downstream of it.
 
 ---
@@ -2153,11 +2162,27 @@ differ. Two mechanisms:
 1. `[deviation]` marker on the test — skip entirely. Use for semicolon tests and
    extract/namespace-missing-RHS tests.
 2. A **normalization pass** applied to *both* trees before comparison, for
-   deviations that are mechanical. Specifically, for semicolons: unwrap
-   `R_STATEMENT` nodes, drop `SEMICOLON` tokens, and treat aether's
-   `R_STATEMENT_LIST` as equivalent to tree-sitter's `R_EXPRESSION_LIST` before
-   comparing. This is worth building — it lets ~85 of the 89 tests keep
-   oracle coverage instead of blanket-skipping everything containing a `;`.
+   deviations that are mechanical. Two of them are:
+
+   - **Semicolons.** Unwrap `R_STATEMENT` nodes, drop `SEMICOLON` tokens, and
+     treat aether's `R_STATEMENT_LIST` as equivalent to tree-sitter's
+     `R_EXPRESSION_LIST` before comparing. This is worth building — it lets ~85
+     of the 89 tests keep oracle coverage instead of blanket-skipping everything
+     containing a `;`.
+
+   - **Whitespace attachment polarity** (deviation 10). Aether attaches
+     whitespace by `JsTokenSource`'s rule and air's walker by air's (§9.1), so
+     without this every file containing a space between two tokens mismatches —
+     which is every file. Re-tag whitespace pieces on both trees by the same rule
+     before comparing; twenty-odd lines, in a crate that is deleted at swap-in
+     anyway.
+
+     **Normalize only `Whitespace` pieces, never comments.** Comment attachment
+     is bit-identical under the two rules (§9.1), so it needs no normalization —
+     and it is the half that reaches air's formatter, which makes it precisely
+     the half the oracle must keep checking. A normalization written over
+     "trivia" rather than over whitespace would blind the oracle to the one kind
+     of attachment drift that has user-visible consequences.
 
 **Where tree-sitter bails.** `parse_from_treesitter` returns a whole-file bogus
 node whenever `root_node().has_error()`. So for every `[error]` test the oracle is
@@ -2170,8 +2195,8 @@ skip rather than a failure. Error-recovery behavior is exactly where aether is
 
 **Settled with the owner: the oracle does not run in CI, and is deleted once the
 conversion is complete.** It is a development aid for catching drift while the
-parser is being written — most valuably trivia attachment (§13) — not a permanent
-correctness gate.
+parser is being written — most valuably comment attachment (§13) — not a
+permanent correctness gate.
 
 Two things follow.
 
@@ -3465,9 +3490,11 @@ Only measure once correctness is done. A hand-written parser should be
 comfortably faster than tree-sitter + tree walk + event replay, but confirm rather
 than assume. Add a Criterion benchmark over a few large real R files and record
 the number in the PR. If it is *slower*, the likeliest culprit is `Vec<Trivia>`
-reallocation — pre-size it. The parser itself is single-pass: §11.3's argument
-names are parsed optimistically and reshaped with `precede`, so no construct
-backtracks and no token is lexed twice.
+reallocation — pre-size it. That is the only allocation on the hot path:
+`next_non_trivia_token` buffers nothing per gap (§9.1), so trivia costs one push
+per piece into a vector that grows once. The parser itself is single-pass:
+§11.3's argument names are parsed optimistically and reshaped with `precede`, so
+no construct backtracks and no token is lexed twice.
 
 ### 12.3 The swap into air
 
@@ -3536,6 +3563,15 @@ becomes a consumer.
 7. **Final acceptance gate:** air's entire formatter snapshot suite is unchanged
    except for semicolon-related files.
 
+   **This is also where deviation 10 gets settled.** §9.1's audit says no
+   consumer in air reads whitespace attachment polarity, so the suite should not
+   move on its account — but that is an argument, and this is the experiment.
+   Run the suite before touching the formatter, so a whitespace-polarity
+   regression cannot hide inside the semicolon churn. Any file that moves and is
+   not semicolon-related is deviation 10 failing its premise, and the fix is to
+   restore air's rule in `RTokenSource` — a self-contained change to one
+   function, which is the other reason the audit was worth doing up front.
+
 **Deferred follow-up, separate PR.** The Cargo rename is settled for the swap
 itself ("fine for now"), which leaves open whether air's imports should eventually
 say `aether_r_syntax` outright. If the owner wants that, it is a mechanical
@@ -3554,7 +3590,7 @@ aether, so the indirection is discoverable from the place someone hits it.
 
 | Risk | Why it bites | Mitigation |
 |---|---|---|
-| **Trivia attachment drift** | A one-piece difference in whitespace attachment changes every snapshot and silently changes formatter output. | Port air's rules literally; the oracle compares ranges, so it catches this. Do the token source before any grammar work. |
+| **Trivia attachment drift** | A one-piece difference in *comment* attachment silently changes formatter output; a whitespace one changes every snapshot. | Largely retired by deviation 10: the rule is a latching bool with no lookahead, so there is little left to get subtly wrong. Comment attachment is unchanged from air and the oracle still compares it, since normalization touches whitespace only (§10.4). Do the token source before any grammar work. |
 | **`[[` / `]]` joining** | Genuinely ambiguous; tree-sitter needs an external scanner and still has open bugs. The lexer half landed in Phase 4; the parser half is Phase 9. | One join site, in the argument list's terminator check (§11.3). Six corpus tests exercise it. Do not invent a scope stack, and do not make the lexer glue closers. |
 | **Codegen drift** | If aether's generated code diverges from air's, the swap-in fails in confusing ways. | Retired: Phase 2 asserted byte-identity, and CI asserts `just codegen` idempotence on every PR. |
 | **Oracle unavailable on error tests** | tree-sitter bails on any error, so ~25 tests get no oracle coverage. | Accept it; those are exactly the tests where we *intend* to differ. Rely on reviewed snapshots there. |
