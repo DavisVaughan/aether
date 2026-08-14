@@ -1180,75 +1180,38 @@ Also add `parse_with_cache` — air's LSP will want it, and it costs nothing now
 
 ### 9.4 Diagnostics
 
-```rust
-// crates/aether_r_parser/src/diagnostics.rs
-use biome_parser::diagnostic::{expected_any, expected_node, ParseDiagnostic};
-use biome_rowan::TextRange;
+`diagnostics.rs` holds every diagnostic constructor in the crate, and after
+Phase 4 it holds the six the lexer raises (`unterminated_backtick_identifier`,
+`unterminated_special`, `unterminated_hexadecimal`,
+`unterminated_hexadecimal_binary_exponent`, `unterminated_exponent`,
+`unexpected_character`). **Phase 5 adds none of the parser's own.** It parses
+nothing, so it has nothing to complain about, and a constructor with no caller
+is dead code carrying an `#[allow]` for anywhere from two to eight phases.
 
-pub(crate) fn expected_expression(p: &RParser, range: TextRange) -> ParseDiagnostic {
-    expected_node("expression", range, p)
-}
+What Phase 5 does here is drop the blanket `#[allow(dead_code)]` from `lib.rs`,
+since the lexer's six are now driven through `RTokenSource`.
 
-/// The selector diagnostic names the operator it is complaining about, and points
-/// a secondary label at that operator. `$`, `@`, `::` and `:::` all funnel through
-/// here, and a message that lists all four tells the reader nothing about which one
-/// they wrote.
-///
-/// `operator_range` must be captured BEFORE the operator is bumped.
-pub(crate) fn expected_selector(
-    p: &RParser,
-    operator: RSyntaxKind,
-    operator_range: TextRange,
-    range: TextRange,
-) -> ParseDiagnostic {
-    // `RSyntaxKind::to_string()` yields the literal text for punctuation kinds,
-    // so this stays correct if the token set changes.
-    let operator = operator.to_string().unwrap_or("operator");
-    expected_any(&["identifier", "string", "`...`", "`..i`"], range, p)
-        .with_detail(operator_range, markup! {
-            "`"{operator}"` requires a name on the right"
-        })
-}
+**Each `expected_*` constructor lands in the phase that first calls it**, and is
+specified in that phase's section rather than here:
 
-/// The whole `(…)` group is missing — `function 1`.
-pub(crate) fn expected_parameters(p: &RParser, range: TextRange) -> ParseDiagnostic { ... }
-/// A hole in the parameter list — `function(a,,b)`, which R rejects even though
-/// the same shape is legal in an argument list (§11.3).
-pub(crate) fn expected_parameter(p: &RParser, range: TextRange) -> ParseDiagnostic { ... }
-pub(crate) fn expected_argument(p: &RParser, range: TextRange) -> ParseDiagnostic { ... }
-/// Two expressions with nothing between them: `1 2`. R separates statements by a
-/// newline or a `;` and accepts nothing else. `previous` labels the expression
-/// that already ended, so the message can say where the separator was expected.
-///
-/// The argument-list analogue (`f(a b)`) is a DIFFERENT rule enforced elsewhere,
-/// by `expect(T![,])` in `parse_argument_list` (§11.3) — same shape of mistake,
-/// different separator, different wording.
-pub(crate) fn expected_statement_separator(
-    p: &RParser,
-    previous: TextRange,
-    range: TextRange,
-) -> ParseDiagnostic { ... }
-pub(crate) fn expected_condition(p: &RParser, range: TextRange) -> ParseDiagnostic { ... }
-```
+| Constructor | Lands in | First caller |
+|---|---|---|
+| `expected_expression` | §11.2, Phase 8 | a binary or prefix operator with nothing to its right |
+| `expected_argument` | §11.3, Phase 9 | `parse_argument_list` |
+| `expected_selector` | §11.4, Phase 10 | the `$`, `@`, `::`, `:::` arm of the Pratt loop |
+| `expected_parameters`, `expected_parameter` | §11.5, Phase 11 | `parse_function_definition` |
+| `expected_condition` | §11.6, Phase 12 | the `if` and `while` headers |
+| `expected_statement_separator` | §11.7, Phase 13 | `parse_statement_list` |
 
-`diagnostics.rs` already exists — Phase 4 landed the six the lexer raises
-(`unterminated_backtick_identifier`, `unterminated_special`,
-`unterminated_hexadecimal`, `unterminated_hexadecimal_binary_exponent`,
-`unterminated_exponent`, `unexpected_character`). This phase adds the parser's
-`expected_*` family alongside them and drops the `#[allow(dead_code)]` that
-`lib.rs` carries until something drives them.
+Two rules hold across all of them, and the split above does not weaken either:
 
-Every diagnostic constructor should be a named function here, never an inline
-`err_builder` in a syntax module. It keeps wording consistent and makes it trivial
-to review the full diagnostic surface in one file.
+- **Every diagnostic is a named function in `diagnostics.rs`, never an inline
+  `err_builder` in a syntax module.** It keeps wording consistent and makes the
+  whole diagnostic surface reviewable in one sitting.
 
-**An unterminated string gets no constructor of its own for now.** The three
-unclosed-quote corpus tests surface through `expect(STRING_CLOSE)` in §11.1,
-which is `ParseDiagnostic` enough to start. Add one only if Phase 7's snapshots
-read badly — and if so, give it the two-range shape
-`unterminated_backtick_identifier` already uses, pointing at the opening
-delimiter with EOF as a secondary label, since a string runs to EOF for the same
-reason a backticked name does (§8.4).
+- **Only the *specification* moves to the feature's section; the *definition*
+  still goes in `diagnostics.rs`.** Splitting the file per phase would trade the
+  one-file review for nothing.
 
 **Done when:** `parse("")` produces `R_ROOT` containing an empty
 `R_STATEMENT_LIST` and an `EOF` token, `parse("   \n# hi\n")` attaches the
@@ -2397,6 +2360,14 @@ Unclosed Backtick takes a different path entirely and exercises the *lexer's*
 `unterminated_backtick_identifier` (§8.4), since a backtick-quoted name is an
 `IDENT`, not a string.
 
+**An unterminated string gets no constructor of its own for now.** The three
+unclosed-quote corpus tests surface through `expect(STRING_CLOSE)` above, which
+is `ParseDiagnostic` enough to start. Add one only if this phase's snapshots read
+badly — and if so, give it the two-range shape
+`unterminated_backtick_identifier` already uses, pointing at the opening
+delimiter with EOF as a secondary label, since a string runs to EOF for the same
+reason a backticked name does (§8.4).
+
 ### 11.2 Phase 8 — Binary and unary operators (the Pratt core)
 
 `src/syntax/expr.rs`. This is the heart of the parser. Take the time to get it
@@ -2714,6 +2685,24 @@ not aether's own list.
 `expressions/help.md`, `expressions/assignment.md`, `statements/newlines.md`, and
 all of `expressions/precedence.md` except `Subset and Subset2 Precedence`
 (which needs Phase 9). 13 tests.
+
+#### The diagnostic this phase adds
+
+`expected_expression` is the first of the `expected_*` family to land (§9.4).
+Both call sites in the loop above are its whole reason for existing: an infix
+operator whose right-hand side never arrives, and a prefix operator with nothing
+to apply to.
+
+```rust
+/// An expression is required and absent
+pub(crate) fn expected_expression(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("expression", range, p)
+}
+```
+
+Later phases reuse it rather than wording their own — the function body of a
+`function`, the branches of an `if`, and a statement that turns out to be only a
+`;` all mean the same thing to the reader.
 
 ### 11.3 Phase 9 — Calls, subset, subset2
 
@@ -3038,6 +3027,22 @@ bracket-mismatch tests in `recovery/unmatched-delimiters.md`
 The other six delimiter tests in that file stay `[pending]` until Phase 14 — they
 depend on brace and statement-list recovery that does not exist yet.
 
+#### The diagnostic this phase adds
+
+```rust
+/// An argument is required and absent
+pub(crate) fn expected_argument(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("argument", range, p)
+}
+```
+
+Note what this is *not* for. A hole is legal in an argument list, so `f(a,,b)`
+raises nothing at all; this fires only where an argument is required and the
+recovery has nothing to put there. The missing-comma case (`f(a b)`) is a
+separate rule, enforced by `expect(T![,])` in `parse_argument_list` above, and
+the parameter-list analogue (`function(a,,b)`, which R *does* reject) gets its
+own constructor in §11.5.
+
 ### 11.4 Phase 10 — Extract and namespace
 
 Small phase, but it is where aether's first user-visible deviation lands, so keep
@@ -3159,6 +3164,40 @@ Newline Before Operator cases). Air's `undefined/extract_expression_error.R` and
 become `[error]` tests. The two newline tests above are aether-authored, so they
 are absent from `MANIFEST.toml` and do not move the 89 count.
 
+#### The diagnostic this phase adds
+
+`$`, `@`, `::`, and `:::` all funnel through one constructor, so it names the
+operator that was actually written — a message listing all four tells the reader
+nothing about which one they typed. The secondary label points at the operator,
+which is why the Pratt loop captures `operator_range` **before** the bump
+(§11.2).
+
+```rust
+/// The name on the right of `$`, `@`, `::`, or `:::` is missing
+pub(crate) fn expected_selector(
+    p: &RParser,
+    operator: RSyntaxKind,
+    operator_range: TextRange,
+    range: TextRange,
+) -> ParseDiagnostic {
+    // Punctuation kinds render as their own text, so this stays correct if the
+    // token set changes
+    let operator = operator.to_string().unwrap_or("operator");
+
+    expected_any(&["identifier", "string", "`...`", "`..i`"], range, p).with_detail(
+        operator_range,
+        format!("`{operator}` requires a name on the right."),
+    )
+}
+```
+
+`format!` rather than `markup!`: `with_detail` takes a `biome_console::fmt::Display`,
+which `String` already satisfies, and `biome_parser` builds its own details the
+same way. It keeps `biome_console` out of the crate's dependency list.
+
+This is the constructor the deviation table above leans on — every row where air
+produces no error and aether produces one is a row where this fires.
+
 ### 11.5 Phase 11 — Function definitions
 
 `src/syntax/function.rs`.
@@ -3195,6 +3234,28 @@ parameter name (`Functions With return As Parameter Name`).
 `lambda.md`, `parameters.md` — two of them `[error]`. Air's merged
 `ok/function_definition.R` comes with them only if it stays within function
 syntax; check it rather than assuming (§10.3.4).
+
+#### The diagnostics this phase adds
+
+Two, and the pair is easy to conflate. One is the whole `(…)` group going
+missing; the other is a hole inside a group that is present.
+
+```rust
+/// The whole `(…)` group of a function definition is missing, as in `function 1`
+pub(crate) fn expected_parameters(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("parameter list", range, p)
+}
+
+/// A hole in a parameter list, as in `function(a,,b)`
+pub(crate) fn expected_parameter(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("parameter", range, p)
+}
+```
+
+`expected_parameter` is the asymmetry with §11.3 worth remembering: R accepts
+`f(a,,b)` and rejects `function(a,,b)`, so the identical shape is a hole in an
+argument list and an error in a parameter list. That is why the two lists do not
+share a constructor even though they share a separator.
 
 ### 11.6 Phase 12 — Control flow
 
@@ -3306,6 +3367,18 @@ for keyword-hood, so it needs no parser support. Two corpus tests cover it.
 `while.md`, `repeat.md`. Air's four merged `ok/*_statement.R` snapshots come with
 them where they stay within control-flow syntax (§10.3.4). Note the two `#200` `else`-prefix identifier tests live in
 `if.md` rather than `literals/identifiers.md`; see §10.3.2.
+
+#### The diagnostic this phase adds
+
+```rust
+/// The condition of an `if` or `while` is missing
+pub(crate) fn expected_condition(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("condition", range, p)
+}
+```
+
+Only the two headers that have a condition use it. `for` names its own parts, and
+`repeat` has no header at all, so neither reaches this.
 
 ### 11.7 Phase 13 — Blocks, statement lists, semicolons
 
@@ -3454,6 +3527,34 @@ All three are `[deviation]`, so they do not move the 89 count.
 does finish here: braces and statement lists are the last constructs any merged
 air snapshot in it can depend on. Every test in `semicolons.md` comes
 from air's snapshots rather than tree-sitter and carries `[deviation]`.
+
+#### The diagnostic this phase adds
+
+```rust
+/// Two expressions with nothing between them, as in `1 2`
+pub(crate) fn expected_statement_separator(
+    p: &RParser,
+    previous: TextRange,
+    range: TextRange,
+) -> ParseDiagnostic {
+    p.err_builder(
+        "Expected a newline or a `;` between two expressions.",
+        range,
+    )
+    .with_detail(previous, "This expression ends here.")
+}
+```
+
+R separates statements by a newline or a `;` and accepts nothing else. `previous`
+labels the expression that already ended, so the message can point at where the
+separator belonged rather than only at what followed it.
+
+The argument-list analogue (`f(a b)`) is a different rule, enforced by
+`expect(T![,])` in §11.3 — the same shape of mistake, a different separator, and
+different wording. Keep them apart: a reader who sees "expected a newline or a
+`;`" inside a call has been told something false.
+
+This is also the last of the family, so §9.4's table is complete once it lands.
 
 ---
 
