@@ -34,7 +34,6 @@ dependencies = [
  "biome_diagnostics",
  "biome_parser",
  "biome_rowan",
- "serde",
  "tracing",
  "unicode-ident",
 ]
