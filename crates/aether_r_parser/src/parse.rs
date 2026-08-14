@@ -90,17 +90,15 @@ pub fn parse(text: &str, options: RParserOptions) -> Parse {
 /// Parses `text`, structurally sharing what it can with the trees already in
 /// `cache`
 pub fn parse_with_cache(text: &str, options: RParserOptions, cache: &mut NodeCache) -> Parse {
-    tracing::debug_span!("parse").in_scope(move || {
-        let mut parser = RParser::new(text, options);
-        crate::syntax::parse_root(&mut parser);
-        let (events, trivia, diagnostics) = parser.finish();
+    let mut parser = RParser::new(text, options);
+    crate::syntax::parse_root(&mut parser);
+    let (events, trivia, diagnostics) = parser.finish();
 
-        let mut tree_sink = RLosslessTreeSink::with_cache(text, &trivia, cache);
-        biome_parser::event::process(&mut tree_sink, events, diagnostics);
-        let (green, diagnostics) = tree_sink.finish();
+    let mut tree_sink = RLosslessTreeSink::with_cache(text, &trivia, cache);
+    biome_parser::event::process(&mut tree_sink, events, diagnostics);
+    let (green, diagnostics) = tree_sink.finish();
 
-        Parse::new(green, diagnostics)
-    })
+    Parse::new(green, diagnostics)
 }
 
 #[cfg(test)]

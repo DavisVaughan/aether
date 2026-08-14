@@ -3502,6 +3502,20 @@ A single PR against `posit-dev/air`. Aether is now the source of truth for the
 parser, the syntax layer, the factory, and `r.ungram`; air deletes all four and
 becomes a consumer.
 
+**Restore the parse span in aether first, before the sha is pinned.** Phase 5
+dropped `tracing` from `aether_r_parser`: nothing in aether's workspace installs
+a subscriber, so the `debug_span!("parse")` that air ships produced no output
+here and cost four crates for it. Air installs one, so the span has to go back
+around `parse_with_cache` or `air format --log-level debug` and the LSP silently
+lose the only span the parser emits. Nothing in air's build fails if this is
+forgotten, which is the whole reason it is written down.
+
+Its placement moves with it. Air wrapped `build_tree` alone, so its `"parse"`
+span excluded the tree-sitter parse it was named for; around `parse_with_cache`
+it covers lexing, parsing, and tree building. Expect the number it reports to be
+larger than air's was, and say so in the PR — that is the span finally measuring
+what it claims, not a regression.
+
 1. **Delete** `crates/air_r_parser/`, `crates/air_r_syntax/`,
    `crates/air_r_factory/`, and `xtask/codegen/r.ungram` plus the grammar codegen
    that produced them. Air keeps its *formatter* codegen, which still needs
