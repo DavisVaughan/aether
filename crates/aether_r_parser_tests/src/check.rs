@@ -83,8 +83,6 @@ fn undiagnosed_bogus_nodes(
     root: &RSyntaxNode,
     diagnostics: &[ParseDiagnostic],
 ) -> Vec<RSyntaxNode> {
-    // Primary ranges only. A `with_detail` label lives in the advices, and a
-    // diagnostic that merely gestures at a bogus node does not explain it.
     let spans: Vec<TextRange> = diagnostics
         .iter()
         .filter_map(|diagnostic| diagnostic.location().span)
