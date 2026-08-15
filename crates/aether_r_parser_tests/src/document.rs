@@ -149,10 +149,8 @@ impl Document {
         out
     }
 
-    /// The heading sequence, for the pairing invariant
-    ///
-    /// Prose is deliberately absent: it is echoed rather than derived, so an
-    /// edit to it is an ordinary content diff that `just accept` fixes.
+    /// A comparable shape for this section, to ensure nothing is dropped when
+    /// writing the snapshot file
     pub fn shape(&self) -> Vec<(&str, Markers, usize)> {
         self.tests
             .iter()
