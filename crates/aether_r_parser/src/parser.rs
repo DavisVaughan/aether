@@ -23,13 +23,11 @@ pub(crate) struct RParser<'src> {
 /// Strategy for interpreting line breaks
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum Newlines {
-    /// Top level and inside `{`. A line break ends the current expression.
+    /// A line break ends the current expression at top level and inside `{`
     #[default]
     Significant,
 
-    /// Inside `(`, `[`, or `[[`, where newlines carry no meaning — R's parser
-    /// eats them, and so does tree-sitter-r's external scanner
-    /// (`consume_whitespace_and_ignored_newlines`).
+    /// Ignore line breaks inside `(`, `[`, or `[[`
     Ignored,
 }
 
