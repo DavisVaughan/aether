@@ -1,8 +1,3 @@
-//! Locating corpus files
-//!
-//! `xtask accept` and the manifest tests both walk the tree, and the walk has
-//! to agree with the one `gen_corpus_tests!` does at expansion time.
-
 use std::path::{Path, PathBuf};
 
 pub fn dir() -> PathBuf {
