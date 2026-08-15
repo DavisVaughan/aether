@@ -116,8 +116,6 @@ fn test_parse_trivia_comment_crlf_test() {
     assert_eq_trivia(trivia("# hi\r\n1"), vec![cmt(0, 4, Pos::Leading), nl(4, 6)]);
 }
 
-/// Air's `ok/crlf/trailing_comments.R`. Kept here rather than in the corpus,
-/// which is LF-only: a ```r cell cannot hold a CRLF that git will not rewrite.
 #[test]
 fn test_parse_trivia_crlf_leading_and_trailing_comments() {
     assert_eq_trivia(
