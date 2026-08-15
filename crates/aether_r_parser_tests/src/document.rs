@@ -193,7 +193,7 @@ fn render_fence(out: &mut String, language: &str, content: &str) {
 struct Parser<'src> {
     lines: Vec<&'src str>,
     index: usize,
-    tests: Vec<Section>,
+    sections: Vec<Section>,
     prose: Vec<&'src str>,
 }
 
@@ -206,7 +206,7 @@ impl<'src> Parser<'src> {
         Self {
             lines,
             index: 0,
-            tests: Vec::new(),
+            sections: Vec::new(),
             prose: Vec::new(),
         }
     }
@@ -224,7 +224,7 @@ impl<'src> Parser<'src> {
                 self.push_cell(language, content)?;
             } else if trimmed == PENDING_CELL {
                 self.push_generated(Cell::Pending)?;
-            } else if self.tests.is_empty() && trimmed.starts_with("<!--") {
+            } else if self.sections.is_empty() && trimmed.starts_with("<!--") {
                 self.skip_banner(trimmed);
             } else {
                 self.prose.push(line);
@@ -233,7 +233,7 @@ impl<'src> Parser<'src> {
 
         self.finish_prose()?;
 
-        for test in &self.tests {
+        for test in &self.sections {
             if test.blocks().next().is_none() {
                 return Err(DocumentError {
                     line: self.lines.len(),
@@ -242,7 +242,9 @@ impl<'src> Parser<'src> {
             }
         }
 
-        Ok(Document { tests: self.tests })
+        Ok(Document {
+            tests: self.sections,
+        })
     }
 
     fn next_line(&mut self) -> Option<&'src str> {
@@ -281,7 +283,7 @@ impl<'src> Parser<'src> {
     }
 
     fn push_test(&mut self, name: String, markers: Markers) -> Result<(), DocumentError> {
-        if self.tests.iter().any(|test| test.name == name) {
+        if self.sections.iter().any(|test| test.name == name) {
             return Err(DocumentError {
                 line: self.index,
                 message: format!(
@@ -290,7 +292,7 @@ impl<'src> Parser<'src> {
             });
         }
 
-        self.tests.push(Section {
+        self.sections.push(Section {
             name,
             markers,
             elements: Vec::new(),
@@ -331,7 +333,7 @@ impl<'src> Parser<'src> {
 
         let line = self.index;
         let block = self
-            .tests
+            .sections
             .last_mut()
             .and_then(|test| test.blocks_mut().next_back());
 
@@ -348,7 +350,7 @@ impl<'src> Parser<'src> {
     }
 
     fn push_element(&mut self, element: Element) -> Result<(), DocumentError> {
-        match self.tests.last_mut() {
+        match self.sections.last_mut() {
             Some(test) => {
                 test.elements.push(element);
                 Ok(())
