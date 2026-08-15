@@ -21,6 +21,7 @@ pub enum CheckError {
 /// Emits CST and diagnostic cells to write in the snapshot
 pub fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
     let parsed = parse(&block.source, RParserOptions::default());
+    let ast = format!("{:#?}", parsed.tree());
 
     let round_tripped = parsed.syntax().to_string();
     if round_tripped != block.source {
@@ -52,7 +53,6 @@ pub fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
             )));
         }
 
-        let ast = format!("{:#?}", parsed.tree());
         // `has_bogus_nodes_or_empty_slots` only inspects empty slots of *list*
         // nodes, so a missing required slot elsewhere needs the string
         if ast.contains("missing (required)") {
@@ -72,11 +72,11 @@ pub fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
                 .iter()
                 .map(SyntaxNode::text_trimmed_range)
                 .collect(),
-            ast: format!("{:#?}", parsed.tree()),
+            ast,
         });
     }
 
-    let mut cells = vec![Cell::Cst(format!("{:#?}", parsed.tree()))];
+    let mut cells = vec![Cell::Cst(ast)];
     if !parsed.diagnostics().is_empty() {
         cells.push(Cell::Diagnostics(render_diagnostics(
             &parsed,
