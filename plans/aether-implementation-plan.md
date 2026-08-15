@@ -245,7 +245,13 @@ the scaffolding.
 2. Regenerate snapshots, eyeball every changed cell.
 3. Run `just oracle` and confirm the diff is clean for all non-`[deviation]`
    tests. This is a deliberate local step — the oracle is feature-gated and CI
-   does not run it (§10.4.1).
+   does not run it (§10.4.1). Skip it until the oracle PR lands.
+
+**The oracle is its own PR, on top of Phase 6, and is not a numbered phase.** It
+is the one piece of §10 that needs a C toolchain and a vendored copy of air's
+walker, and nothing else in the project depends on it — so it ships separately
+rather than doubling the size of the phase that everything else is waiting on.
+§10.4 is written as that PR's spec.
 
 Phases 1–5 have landed. Their sections below are compressed to the decisions
 later phases depend on; the repo, `docs/deviations.md`, and the code's own
@@ -258,7 +264,7 @@ comments are the source of truth for everything else.
 | 3 | Grammar deviations | `.ungram` + kinds updated, regenerated, documented | ✅ |
 | 4 | Lexer | Standalone `RLexer`, plus seventeen `#[cfg(test)]` token-stream test files under `src/lexer/tests/` (§8.6) | ✅ |
 | 5 | Parser scaffolding | `RParser`, `RTokenSource`, diagnostics, `parse()` returns an empty `R_ROOT` | ✅ |
-| 6 | Test harness + corpus import | All 89 tree-sitter tests imported as `[pending]`; oracle wired up | |
+| 6 | Test harness + corpus import | The markdown harness, `xtask accept`, and all 89 tree-sitter tests plus air's snapshots imported as `[pending]` | |
 | 7 | Literals, identifiers, program | `1`, `"a"`, `foo`, `TRUE`, `NA_integer_`, `..1`, `...` | |
 | 8 | Binary & unary operators | The Pratt core, precedence table, newline sensitivity | |
 | 9 | Calls, subset, subset2 | `f(a, b=1)`, `x[i]`, `x[[i]]`, hole arguments | |
@@ -924,6 +930,15 @@ Two rules hold across all of them, and the split above does not weaken either:
 The largest infrastructure phase, and the one that determines how pleasant the
 next eight phases are. Build it carefully.
 
+**One thing in the parser has to move first.** `parse_root` as Phase 5 left it
+consumes no tokens, and the tree sink folds everything it does not consume into
+the `EOF` token's text — so `1 + foo` round-trips, raises nothing, and holds no
+bogus node. Every imported test would count as a *clean* parse and every
+`[pending]` marker would fail. So Phase 6 gives `parse_root` a placeholder that
+opens one `R_BOGUS_EXPRESSION`, raises `not_yet_implemented`, and bumps to `EOF`.
+Ten lines, and §11.1 deletes them along with the diagnostic when
+`parse_statement_list` lands.
+
 ### 10.1 The markdown format
 
 One **pair** of files per concept (§10.3.1), one named test per `##` heading. Files are
@@ -1408,8 +1423,9 @@ fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
         });
     }
 
-    // 5. Oracle — compiled out unless the `oracle` feature is on, so a default
-    //    `cargo nextest run` (including CI) never builds tree-sitter-r.
+    // 5. Oracle — added by the oracle PR, not by Phase 6. Compiled out unless
+    //    the `oracle` feature is on, so a default `cargo nextest run`
+    //    (including CI) never builds tree-sitter-r.
     #[cfg(feature = "oracle")]
     if !markers.contains(Markers::DEVIATION) {
         match aether_r_oracle::compare(&block.source, &parsed.syntax()) {
@@ -1433,11 +1449,11 @@ fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
 ```
 
 `has_bogus_nodes_or_empty_slots` is copied verbatim from air's
-`crates/air_r_parser/tests/spec_test.rs`. **Check what it actually covers before
-relying on the split above.** Step 3 greps the AST dump for `missing (required)`
-*in addition to* calling it, which suggests air's helper may not inspect empty
-slots the way its name implies. If it does, the string-grep is redundant and
-should go; if it does not, both checks stay and the name is misleading.
+`crates/air_r_parser/tests/spec_test.rs`. Its name is misleading, which is why
+step 3 greps the AST dump for `missing (required)` as well: the empty-slot half
+only looks at *list* nodes, so a missing required slot on an ordinary node —
+`a$`'s `right`, exactly the case §11.4 cares about — is invisible to it. Both
+checks stay.
 
 The step 4 helper:
 
@@ -1539,8 +1555,10 @@ parse headings at expansion time.
 
 ### 10.3 Importing the tree-sitter corpus
 
-Write `xtask/src/import_corpus.rs`, run it **once**, commit the output, then delete
-or ignore the tool. Do not keep a live dependency on tree-sitter-r's test files.
+Write `xtask/src/import_corpus.rs`, run it **once**, commit the output, then
+delete the tool — settled with the owner. The corpus is the artifact; a live
+dependency on two sibling checkouts is not, and `MANIFEST.toml` is what makes
+re-deriving the placements unnecessary.
 
 The tree-sitter corpus format is:
 
@@ -1555,20 +1573,28 @@ Test Name
   (function_definition ...))
 ```
 
-with an optional attribute line (`:error`, `:skip`) between the name and the second
-`===` fence. There are exactly **two** such attribute lines, both in
-`expressions-errors.txt`.
+tree-sitter's format allows an attribute line (`:error`, `:skip`) between the
+name and the second `===` fence. **tree-sitter-r uses none** — the two `::y` and
+`:::y` lines that look like attributes are R source inside a body.
 
 The importer:
-1. Splits on `={10,}` fences to get `(name, attributes, body)`.
+1. Splits on `={10,}` fences to get `(name, body)`.
 2. Splits body on the `-{10,}` fence; keeps **only the R source** and discards the
    s-expression. We regenerate our own expectations; mechanically translating
    tree-sitter s-expressions into Rowan AST dumps would be both hard and pointless.
 3. Emits `## {name} [pending]` + **one** ` ```r ` cell into the **input** file
    given by the mapping table below. It does not write snapshots — run
    `cargo run -p xtask -- accept` afterwards to generate every `.snap.md`.
-4. Adds `[error]` for anything that came from a `*-errors.txt` file.
+4. Adds `[error]` for anything that came from a `*-errors.txt` file, and the
+   `[deviation]`s §10.3.2 records.
 5. Writes `MANIFEST.toml` (§10.3.3).
+
+**A fenced cell cannot express a leading blank line or a missing final newline**,
+so the importer drops both: a body is trimmed of blank lines at either end and
+given exactly one trailing newline. Several tree-sitter bodies open with a blank
+line and several of air's `.R` files end without a newline; neither is a
+deliberate test of anything, and the lexer's own suite already covers EOF with no
+trailing newline (`1 #`, `#`).
 
 **The importer never splits a body into several blocks**, even though a
 tree-sitter test often bundles a dozen related snippets and §10.1 now allows it.
@@ -1637,7 +1663,11 @@ test often bundles a dozen related snippets and its value is in that grouping.
 | `statements/semicolons.md` | *(none from tree-sitter — air's semicolon snapshots, all `[deviation]`)* | — | 13 |
 | `recovery/unmatched-delimiters.md` | **Closing Brace** · **Closing Parenthesis** · **Closing Bracket** · **Opening Brace, Closing Parenthesis** · **Opening Parenthesis, Closing Brace** · **Opening Parenthesis, Closing Bracket** · **Opening Bracket2, Unmatched Closing Bracket** · **Opening Bracket and Bracket2, Unmatched Closing Bracket** · **Opening Bracket2 and Bracket, Matched Closing Bracket** · **Opening Bracket2 and Bracket, Unmatched Closing Bracket** `[error]` | ts:ee ×10 | 9, finalised 14 |
 
-Bold = imported from an `-errors.txt` file, so it carries `[error]`.
+Bold = carries `[error]`, which is usually because it came from an `-errors.txt`
+file. The three exceptions are `Dollar No RHS`, `Slot No RHS`, and `Namespace
+With Missing RHS`: they sit in `expressions.txt` because tree-sitter accepts
+them, and they are errors here because deviations 2 and 3 require the RHS. That
+is also why those three are the `[error, deviation]` ones.
 
 **Tally:** literals 19 (= 15 + 4), expressions 40, functions 7, control 11,
 statements 2, recovery 10. Expression-family total 70 (= 49 + 21). **Grand total
@@ -1722,10 +1752,10 @@ need no bookkeeping — they are new, so there is no prior version of them to lo
 
 #### 10.3.4 Air's own snapshots
 
-Air's `crates/air_r_parser/tests/snapshots/{ok,error,undefined}/**/*.R` (~35 files)
-merge into the **same concept files**, not a separate `air-regressions.md` — a
-regression test about calls belongs next to the other call tests. Suggested
-placements:
+Air's `crates/air_r_parser/tests/snapshots/{ok,error,undefined}/**/*.R` is 39
+files, of which **37 merge into the same concept files**, not a separate
+`air-regressions.md` — a regression test about calls belongs next to the other
+call tests. The placements:
 
 | Air snapshot | Destination |
 |---|---|
@@ -1739,9 +1769,20 @@ placements:
 | `ok/if_statement.R`, `ok/for_statement.R`, `ok/while_statement.R`, `ok/repeat_statement.R` | `control/*.md` |
 | `ok/braced_expressions.R` | `statements/braces.md` |
 | `ok/semicolons/*.R` | `statements/semicolons.md` |
-| `ok/comments.R`, `ok/crlf/*.R` | `literals/comments.md` |
+| `ok/comments.R` | `literals/comments.md` |
 | `ok/value/*.R` | `literals/numbers.md`, `literals/strings.md` |
 | `ok/dots.R`, `ok/dot_dot_i.R`, `ok/keyword.R` | `literals/identifiers.md`, `literals/constants.md` |
+| `ok/crlf/*.R` | **not the corpus** — see below |
+
+**The two `ok/crlf/*.R` files stay out of the corpus**, settled with the owner. A
+` ```r ` cell would have to hold literal CRLF bytes, and keeping those alive
+through git, an editor, and the renderer costs more than the two tests are worth.
+They are ported into `aether_r_parser`'s own `#[cfg(test)]` suite instead, where
+the source is a Rust string literal that nothing can rewrite:
+`trailing_comments.R` as a trivia test in `token_source/tests.rs`, and
+`multiline_string_value.R` as a lexer test in `lexer/tests/strings.rs`. They are
+absent from `MANIFEST.toml`, which addresses tests by corpus file, and this
+paragraph is the record that they were not dropped.
 
 **A merged snapshot may lag its file's nominal phase.** Air's files were written
 to exercise a feature, not to stay within one, so `ok/comments.R` is
@@ -1778,7 +1819,11 @@ The `undefined/*` ones become `[error]` in aether — that directory exists in a
 precisely because nobody was happy with the current silent behavior (deviation 2 in
 `docs/deviations.md`).
 
-### 10.4 The oracle
+### 10.4 The oracle — a follow-up PR, not part of Phase 6
+
+Everything in this subsection lands after Phase 6, in a PR of its own: the crate,
+the `oracle` feature, and step 5 of `check()`. Phase 6 imports `[deviation]`
+markers but nothing reads them until then.
 
 ```rust
 // crates/aether_r_oracle/src/lib.rs
@@ -1917,7 +1962,7 @@ fn quick_test() {
 }
 ```
 
-**Done when:** all 89 tree-sitter tests plus air's ~35 snapshots exist as
+**Done when:** all 89 tree-sitter tests plus 37 of air's snapshots exist as
 `[pending]`, distributed across the concept input files per §10.3.2, each with a
 generated `.snap.md` sibling;
 `MANIFEST.toml` lists every one of them, of which exactly 89 have a
@@ -1953,6 +1998,9 @@ pub(crate) fn parse_root(p: &mut RParser) {
     m.complete(p, R_ROOT);
 }
 ```
+
+That `parse_statement_list` call replaces Phase 6's placeholder, and
+`not_yet_implemented` goes with it (§10).
 
 **Phase 7 writes the first `parse_statement_list`, not Phase 13.** §11.7 shows the
 finished version, but `parse_root` calls it from this phase onward, so a working

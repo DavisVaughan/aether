@@ -3,6 +3,13 @@
 use biome_parser::diagnostic::ParseDiagnostic;
 use biome_rowan::TextRange;
 
+/// Anything at all, until Phase 7 teaches the parser a grammar
+///
+/// Delete this along with `parse_placeholder_statement()`
+pub(crate) fn not_yet_implemented(range: TextRange) -> ParseDiagnostic {
+    ParseDiagnostic::new("The parser does not support R syntax yet.", range)
+}
+
 /// A backtick-quoted name that runs to the end of the file
 pub(crate) fn unterminated_backtick_identifier(open: TextRange, eof: TextRange) -> ParseDiagnostic {
     ParseDiagnostic::new("Unterminated backtick-quoted name.", open).with_detail(

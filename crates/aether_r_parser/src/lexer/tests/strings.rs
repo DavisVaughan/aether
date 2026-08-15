@@ -30,6 +30,19 @@ fn strings_may_span_newlines() {
     assert_lex!("\"foo\nbar\"", STRING_OPEN: 1, STRING_CONTENT: 7, STRING_CLOSE: 1);
 }
 
+/// Air's `ok/crlf/multiline_string_value.R`. A CRLF inside a body is two bytes
+/// of content, not a trivia piece — only the token source ever pairs them.
+#[test]
+fn a_crlf_inside_a_string_is_content() {
+    assert_lex!(
+        "\"multiline\r\nstring\"\r\n",
+        STRING_OPEN: 1,
+        STRING_CONTENT: 17,
+        STRING_CLOSE: 1,
+        NEWLINE: 2
+    );
+}
+
 #[test]
 fn the_other_quote_is_inert() {
     assert_lex!("\"it's\"", STRING_OPEN: 1, STRING_CONTENT: 4, STRING_CLOSE: 1);

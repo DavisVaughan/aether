@@ -1,0 +1,634 @@
+# Every test imported from another project, and where it now lives.
+#
+# A test is addressed by `(file, name)`, so renaming one or moving it between
+# files means editing both the `.md` and this file. That is the point.
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals.txt"
+name   = "Identifiers"
+file   = "literals/identifiers.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals.txt"
+name   = "Unicode Identifiers"
+file   = "literals/identifiers.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals.txt"
+name   = "Invalid Identifiers"
+file   = "literals/identifiers.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals.txt"
+name   = "Dot Dot I"
+file   = "literals/identifiers.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals-errors.txt"
+name   = "Unclosed Backtick"
+file   = "literals/identifiers.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/dots.R"
+name   = "Dots"
+file   = "literals/identifiers.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/dot_dot_i.R"
+name   = "Dot Dot I In Functions And Calls"
+file   = "literals/identifiers.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals.txt"
+name   = "Integers"
+file   = "literals/numbers.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals.txt"
+name   = "Floats"
+file   = "literals/numbers.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals.txt"
+name   = "Hexadecimal"
+file   = "literals/numbers.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals.txt"
+name   = "Scientific Notation Floats"
+file   = "literals/numbers.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals.txt"
+name   = "Complex"
+file   = "literals/numbers.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/value/integer_value.R"
+name   = "Integer Values"
+file   = "literals/numbers.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/value/double_value.R"
+name   = "Double Values"
+file   = "literals/numbers.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/value/complex_value.R"
+name   = "Complex Values"
+file   = "literals/numbers.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals.txt"
+name   = "Strings"
+file   = "literals/strings.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals.txt"
+name   = "Strings Without Content"
+file   = "literals/strings.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals.txt"
+name   = "Strings With Escape Sequences"
+file   = "literals/strings.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals.txt"
+name   = "Raw Strings"
+file   = "literals/strings.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals-errors.txt"
+name   = "Unclosed Double Quote"
+file   = "literals/strings.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals-errors.txt"
+name   = "Unclosed Single Quote"
+file   = "literals/strings.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals-errors.txt"
+name   = "Unclosed Raw String"
+file   = "literals/strings.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/value/string_value.R"
+name   = "String Values"
+file   = "literals/strings.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals.txt"
+name   = "Comments"
+file   = "literals/comments.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/comments.R"
+name   = "Leading And Trailing Comments"
+file   = "literals/comments.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/literals.txt"
+name   = "Constants"
+file   = "literals/constants.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/keyword.R"
+name   = "Keywords"
+file   = "literals/constants.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Unary Operators"
+file   = "expressions/unary.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/unary_expressions.R"
+name   = "Unary Operators Across Lines"
+file   = "expressions/unary.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Relational"
+file   = "expressions/binary.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Arithmetic Operator"
+file   = "expressions/binary.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Not An Arithmetic Operator"
+file   = "expressions/binary.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/binary_expressions.R"
+name   = "Binary Operators"
+file   = "expressions/binary.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Colon"
+file   = "expressions/colon.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Specials"
+file   = "expressions/specials.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Pipe"
+file   = "expressions/specials.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Pipe Placeholder"
+file   = "expressions/specials.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Formulas"
+file   = "expressions/formula.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Help Operator"
+file   = "expressions/help.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Assignment"
+file   = "expressions/assignment.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Operator precedence"
+file   = "expressions/precedence.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Precedence Tests"
+file   = "expressions/precedence.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Complex Expressions"
+file   = "expressions/precedence.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Subset and Subset2 Precedence"
+file   = "expressions/precedence.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Calls"
+file   = "expressions/call.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Calls With NULL As Argument Name"
+file   = "expressions/call.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Calls With `return` As Argument Name"
+file   = "expressions/call.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "`return` Is Just An Identifier"
+file   = "expressions/call.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Switch"
+file   = "expressions/call.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Calls With NA As Argument Name"
+file   = "expressions/call.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Not A Call, Subset, Or Subset2"
+file   = "expressions/call.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Not A Call, Subset, Or Subset2 Due To Sequential Arguments"
+file   = "expressions/call.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/calls.R"
+name   = "Call Arguments"
+file   = "expressions/call.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/error/call/side_by_side_arguments.R"
+name   = "Side By Side Arguments"
+file   = "expressions/call.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Subset"
+file   = "expressions/subset.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/subset.R"
+name   = "Subset Arguments"
+file   = "expressions/subset.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Subset2"
+file   = "expressions/subset2.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Unsupported Subset2 With `]]` Over Multiple Lines (#177)"
+file   = "expressions/subset2.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/subset2.R"
+name   = "Subset2 Arguments"
+file   = "expressions/subset2.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Parenthesized Expression"
+file   = "expressions/parenthesized.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Not A Parenthesized Expression 1"
+file   = "expressions/parenthesized.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Not A Parenthesized Expression 2"
+file   = "expressions/parenthesized.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Not A Parenthesized Expression 3"
+file   = "expressions/parenthesized.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/parenthesized_expression.R"
+name   = "Parentheses With Comments"
+file   = "expressions/parenthesized.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/error/parenthesized_expression/empty.R"
+name   = "Empty Parentheses"
+file   = "expressions/parenthesized.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/error/parenthesized_expression/multiple.R"
+name   = "Multiple Expressions In Parentheses"
+file   = "expressions/parenthesized.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Dollar"
+file   = "expressions/extract.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Slot"
+file   = "expressions/extract.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Dollar, At, Namespace, Namespace Internal With Expression RHS"
+file   = "expressions/extract.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Dollar No RHS"
+file   = "expressions/extract.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Slot No RHS"
+file   = "expressions/extract.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Dollar, At, Namespace, Namespace Internal With `if` RHS"
+file   = "expressions/extract.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Dollar, At, Namespace, Namespace Internal With Newline Before Operator"
+file   = "expressions/extract.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/extract_expression.R"
+name   = "Extract Operators"
+file   = "expressions/extract.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/undefined/extract_expression_error.R"
+name   = "Extract With A Literal RHS"
+file   = "expressions/extract.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Namespace get"
+file   = "expressions/namespace.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Namespace get internal"
+file   = "expressions/namespace.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Namespace With Missing RHS"
+file   = "expressions/namespace.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/namespace_expression.R"
+name   = "Namespace Operators"
+file   = "expressions/namespace.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/undefined/namespace_expression_error.R"
+name   = "Namespace With A Literal RHS"
+file   = "expressions/namespace.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/error/namespace_expression/chained_double_colon.R"
+name   = "Chained `::`"
+file   = "expressions/namespace.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/error/namespace_expression/chained_triple_colon.R"
+name   = "Chained `:::`"
+file   = "expressions/namespace.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/error/namespace_expression/call_lhs_double_colon.R"
+name   = "Call On The Left Of `::`"
+file   = "expressions/namespace.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/error/namespace_expression/call_lhs_triple_colon.R"
+name   = "Call On The Left Of `:::`"
+file   = "expressions/namespace.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Functions"
+file   = "functions/definition.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Function No Body"
+file   = "functions/definition.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Function No Body With Assignment"
+file   = "functions/definition.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Function No Body Inside Another Function"
+file   = "functions/definition.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/function_definition.R"
+name   = "Function Definitions"
+file   = "functions/definition.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Lambda Function"
+file   = "functions/lambda.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Functions With `return` As Parameter Name"
+file   = "functions/parameters.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Function Dots And Dot Dot I"
+file   = "functions/parameters.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "If"
+file   = "control/if.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "If-else"
+file   = "control/if.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Complex If Expression"
+file   = "control/if.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Identifiers starting with `else` that are not the `else` keyword (#200)"
+file   = "control/if.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Identifiers starting with `else` that are not the `else` keyword - 2 (#200)"
+file   = "control/if.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/if_statement.R"
+name   = "If With Comments And `else`-Like Identifiers"
+file   = "control/if.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "For"
+file   = "control/for.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "For No Body"
+file   = "control/for.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/for_statement.R"
+name   = "For With Comments"
+file   = "control/for.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "While"
+file   = "control/while.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "While No Body"
+file   = "control/while.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/while_statement.R"
+name   = "While With Braces"
+file   = "control/while.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Repeat"
+file   = "control/repeat.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Repeat No Body"
+file   = "control/repeat.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/repeat_statement.R"
+name   = "Repeat With Braces"
+file   = "control/repeat.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Braced Expression"
+file   = "statements/braces.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/braced_expressions.R"
+name   = "Braced Expressions"
+file   = "statements/braces.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions.txt"
+name   = "Newlines"
+file   = "statements/newlines.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/semicolons/semicolons.R"
+name   = "Semicolons"
+file   = "statements/semicolons.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/semicolons/semicolon-start-of-file-01.R"
+name   = "Semicolon At Start Of File"
+file   = "statements/semicolons.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/semicolons/semicolon-start-of-file-02.R"
+name   = "Semicolon Before The First Expression"
+file   = "statements/semicolons.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/semicolons/semicolon-end-of-file-01.R"
+name   = "Semicolon At End Of File"
+file   = "statements/semicolons.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/semicolons/semicolon-end-of-file-02.R"
+name   = "Two Semicolons At End Of File"
+file   = "statements/semicolons.md"
+
+[[imported]]
+source = "air/crates/air_r_parser/tests/snapshots/ok/semicolons/semicolon-end-of-file-03.R"
+name   = "Semicolon On Its Own Line At End Of File"
+file   = "statements/semicolons.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Closing Brace"
+file   = "recovery/unmatched-delimiters.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Closing Parenthesis"
+file   = "recovery/unmatched-delimiters.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Closing Bracket"
+file   = "recovery/unmatched-delimiters.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Opening Brace, Closing Parenthesis"
+file   = "recovery/unmatched-delimiters.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Opening Parenthesis, Closing Brace"
+file   = "recovery/unmatched-delimiters.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Opening Parenthesis, Closing Bracket"
+file   = "recovery/unmatched-delimiters.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Opening Bracket2, Unmatched Closing Bracket"
+file   = "recovery/unmatched-delimiters.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Opening Bracket and Bracket2, Unmatched Closing Bracket"
+file   = "recovery/unmatched-delimiters.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Opening Bracket2 and Bracket, Matched Closing Bracket"
+file   = "recovery/unmatched-delimiters.md"
+
+[[imported]]
+source = "tree-sitter-r/test/corpus/expressions-errors.txt"
+name   = "Opening Bracket2 and Bracket, Unmatched Closing Bracket"
+file   = "recovery/unmatched-delimiters.md"

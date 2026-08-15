@@ -49,8 +49,6 @@ jobs:
       - name: Codegen is up to date
         run: just codegen && git diff --exit-code
 
-      # TODO!: One freshness gate joins this workflow later, once the code it
-      # checks exists. It must leave the tree clean:
-      #
-      # - snapshots, from Phase 6:
-      #     cargo run -p xtask -- accept && git diff --exit-code
+      # Nor with stale snapshot cells, for the same reason
+      - name: Snapshots are up to date
+        run: cargo run -p xtask -- accept && git diff --exit-code
