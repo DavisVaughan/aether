@@ -56,8 +56,6 @@ pub struct DocumentError {
     pub message: String,
 }
 
-const PENDING_CELL: &str = "*Not yet supported.*";
-
 impl std::fmt::Display for DocumentError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "line {}: {}", self.line, self.message)
@@ -166,6 +164,8 @@ impl Document {
             .collect()
     }
 }
+
+const PENDING_CELL: &str = "*Not yet supported.*";
 
 fn render_block(out: &mut String, block: &Block) {
     render_fence(out, "r", &block.source);
