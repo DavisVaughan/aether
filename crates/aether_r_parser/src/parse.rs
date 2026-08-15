@@ -13,7 +13,18 @@ use biome_rowan::{AstNode, NodeCache, SendNode};
 ///
 /// It can be dynamically downcast into a concrete [RSyntaxNode] or [RRoot].
 ///
-/// It can be sent or shared between threads.
+/// # Why the root is a [SendNode] and not an [RSyntaxNode]
+///
+/// Every other Biome parser stores its own language's node and converts to
+/// [SendNode] at the [AnyParse] boundary, which is the only place biome needs a
+/// tree to cross a thread. Air never reaches that boundary: its LSP keeps a
+/// [Parse] in every `Document` and clones the whole `WorldState` into
+/// `spawn_blocking`, whose handlers are `Send + 'static`. So [Parse] itself has
+/// to be [Send], and [RSyntaxNode] is not — it holds an `Rc`.
+///
+/// The price is that [`Parse::syntax()`] rebuilds a red root on every call
+/// instead of bumping a refcount. Cheap, but not free, so hold the result rather
+/// than calling it in a loop.
 #[derive(Clone, Debug)]
 pub struct Parse {
     root: SendNode,
@@ -87,6 +98,15 @@ mod tests {
     use aether_r_syntax::RSyntaxKind;
     use biome_diagnostics::PrintDescription;
     use biome_rowan::AstNodeList;
+
+    /// Air's LSP clones a `WorldState` full of `Parse`s into `spawn_blocking`,
+    /// so this is a real constraint on the root's type. Failing here beats
+    /// failing at swap-in.
+    #[test]
+    fn parse_is_send() {
+        fn assert_send<T: Send>() {}
+        assert_send::<Parse>();
+    }
 
     #[test]
     fn parse_empty() {
