@@ -37,8 +37,6 @@ pub struct Block {
 pub enum Cell {
     /// The CST view
     Cst(String),
-    /// The raw `SyntaxNode` view, opt-in per block
-    CstRaw(String),
     /// Rendered diagnostics, omitted entirely when there are none
     Diagnostics(String),
     /// The whole output for a `[pending]` block
@@ -178,7 +176,6 @@ fn render_block(out: &mut String, block: &Block) {
     for cell in &block.generated {
         match cell {
             Cell::Cst(content) => render_fence(out, "cst", content),
-            Cell::CstRaw(content) => render_fence(out, "cst-raw", content),
             Cell::Diagnostics(content) => render_fence(out, "diagnostics", content),
             Cell::Pending => {
                 out.push('\n');
@@ -324,13 +321,12 @@ impl<'src> Parser<'src> {
 
         let cell = match language {
             "cst" => Cell::Cst(content),
-            "cst-raw" => Cell::CstRaw(content),
             "diagnostics" => Cell::Diagnostics(content),
             other => {
                 return Err(DocumentError {
                     line: self.index,
                     message: format!(
-                        "unknown cell language `{other}`, expected `r`, `cst`, `cst-raw` or `diagnostics`"
+                        "unknown cell language `{other}`, expected `r`, `cst` or `diagnostics`"
                     ),
                 });
             }
