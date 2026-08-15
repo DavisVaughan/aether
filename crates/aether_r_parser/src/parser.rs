@@ -82,12 +82,6 @@ impl<'src> RParser<'src> {
         self.else_clause == ElseClause::MayFollowNewline
     }
 
-    /// True when a newline before the current token should end the current
-    /// expression. False inside `(`, `[`, and `[[`.
-    ///
-    /// The single predicate for newline significance. Both newline rules in the
-    /// language — statement termination and `else` attachment — funnel through
-    /// it; nothing else should read `newlines` directly.
     pub(crate) fn at_statement_break(&self) -> bool {
         self.newlines == Newlines::Significant && self.has_preceding_line_break()
     }
