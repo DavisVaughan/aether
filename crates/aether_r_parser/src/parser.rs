@@ -55,10 +55,6 @@ impl<'src> RParser<'src> {
     }
 
     /// Runs `f` with `newlines` in effect, restoring the previous value after
-    ///
-    /// One caller per construct that eats newlines: `f(…)`, `x[…]`, `x[[…]]`,
-    /// `(…)`, the `if` and `while` conditions, the `for` header, and a parameter
-    /// list.
     pub(crate) fn with_newlines<F, R>(&mut self, newlines: Newlines, f: F) -> R
     where
         F: FnOnce(&mut Self) -> R,
