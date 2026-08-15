@@ -13,6 +13,7 @@ categories.workspace = true
 publish = false
 
 [dependencies]
+aether_r_factory = { workspace = true }
 aether_r_syntax = { workspace = true }
 biome_parser = { workspace = true }
 biome_rowan = { workspace = true }

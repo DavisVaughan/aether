@@ -29,6 +29,7 @@ dependencies = [
 name = "aether_r_parser"
 version = "0.0.0"
 dependencies = [
+ "aether_r_factory",
  "aether_r_syntax",
  "biome_diagnostics",
  "biome_parser",

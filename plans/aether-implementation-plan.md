@@ -1042,7 +1042,7 @@ impl<'src> RParser<'src> {
     /// braces. The only reader is `parse_else_clause` (§11.6); everything else
     /// asks `at_statement_break()`. An accessor rather than a public field, so
     /// that "exactly one reader" is enforced by privacy rather than by hope.
-    pub(crate) fn allows_newline_before_else(&self) -> bool {
+    pub(crate) fn else_clause_may_follow_newline(&self) -> bool {
         self.else_clause == ElseClause::MayFollowNewline
     }
 
@@ -1115,140 +1115,133 @@ so a leaked value does not crash — it silently changes how newlines are read f
 the rest of the parse and yields a wrong tree that still round-trips. That is
 the one class of bug neither invariant 1 nor the harness catches.
 
-### 9.3 Public `parse()` — keep air's shape
+### 9.3 Public `parse()` — Biome's shape, not air's
 
-Air's `Parse` struct must keep working, since air's `workspace`, `lsp`, and
-`air_r_formatter` crates all consume it. But air's version holds
-`error: Option<ParseError>` (a single string), which is no longer enough.
+Air's `Parse` is consumed by its `workspace`, `lsp`, and `air_r_formatter`
+crates, so the type keeps its node accessors. It keeps neither its name nor its
+error API.
 
-**The shape:** `Parse` keeps its existing method names, and gains diagnostics.
-Preserving the names is what makes §12.3 step 3 true — air builds after the swap
-with no `.rs` change outside the formatter — so it is a constraint, not a
-preference.
+**The name becomes `RParse`,** matching `CssParse`, `JsonParse`, `GraphqlParse`,
+`HtmlParse`, `YamlParse`, `GritParse`, and `MarkdownParse`, and matching every
+other type this crate exports. `biome_js_parser`'s bare `Parse<T>` is Biome's
+only exception, and only because it is generic over its root node — `Parse<JsModule>`
+and `Parse<JsScript>` need the parameter to carry what the prefix carries
+elsewhere. `RRoot` is aether's only root, so that reason does not apply.
+
+**The error API goes entirely.** Air holds `error: Option<ParseError>` — one
+formatted string for the whole file — because a tree-sitter parse either
+succeeded or it failed and there was nothing finer to report. Aether has real
+`ParseDiagnostic`s, so `ParseError` and the methods that collapsed to it go, and
+the surface becomes the one every other Biome parser already exposes.
 
 ```rust
 // crates/aether_r_parser/src/parse.rs
-pub struct Parse {
+pub struct RParse {
     root: SendNode,
     diagnostics: Vec<ParseDiagnostic>,
 }
 
-impl Parse {
-    pub fn syntax(&self) -> RSyntaxNode { /* unchanged */ }
-    pub fn tree(&self) -> RRoot { /* unchanged */ }
-    pub fn has_error(&self) -> bool { self.diagnostics.iter().any(|d| d.is_error()) }
+impl RParse {
+    pub fn syntax(&self) -> RSyntaxNode { ... }
+    pub fn tree(&self) -> RRoot { ... }
     pub fn diagnostics(&self) -> &[ParseDiagnostic] { &self.diagnostics }
-
-    /// Back-compat with air's current API. Collapses diagnostics to one error.
-    pub fn error(&self) -> Option<ParseError> { /* first error, formatted */ }
-    /// Signature unchanged for air's callers; the body now formats the first
-    /// error diagnostic instead of reading a stored `ParseError`.
-    pub fn into_result(self) -> Result<RSyntaxNode, ParseError> { ... }
+    pub fn into_diagnostics(self) -> Vec<ParseDiagnostic> { self.diagnostics }
+    pub fn has_errors(&self) -> bool { self.diagnostics.iter().any(|d| d.is_error()) }
 }
 
 impl From<Parse> for AnyParse {
-    fn from(parse: Parse) -> Self {
+    fn from(parse: RParse) -> Self {
         AnyParse::new(parse.root, parse.diagnostics)  // now genuinely useful
     }
 }
 
-pub fn parse(text: &str, options: RParserOptions) -> Parse {
+pub fn parse(text: &str, options: RParserOptions) -> RParse {
     let mut cache = NodeCache::default();
     parse_with_cache(text, options, &mut cache)
 }
 
-pub fn parse_with_cache(text: &str, options: RParserOptions, cache: &mut NodeCache) -> Parse {
-    tracing::debug_span!("parse").in_scope(move || {
-        let mut parser = RParser::new(text, options);
-        crate::syntax::parse_root(&mut parser);
-        let (events, trivia, diagnostics) = parser.finish();
+fn parse_with_cache(text: &str, options: RParserOptions, cache: &mut NodeCache) -> RParse {
+    let mut parser = RParser::new(text, options);
+    crate::syntax::parse_root(&mut parser);
+    let (events, trivia, diagnostics) = parser.finish();
 
-        let mut tree_sink = RLosslessTreeSink::with_cache(text, &trivia, cache);
-        biome_parser::event::process(&mut tree_sink, events, diagnostics);
-        let (green, diagnostics) = tree_sink.finish();
-        Parse::new(green, diagnostics)
-    })
+    let mut tree_sink = RLosslessTreeSink::with_cache(text, &trivia, cache);
+    biome_parser::event::process(&mut tree_sink, events, diagnostics);
+    let (green, diagnostics) = tree_sink.finish();
+    RParse::new(green, diagnostics)
 }
 ```
+
+That method set is `CssParse`, `JsonParse`, `GraphqlParse`, `HtmlParse`,
+`YamlParse`, and `AnyParse` verbatim, which is also the argument for `has_errors`
+over air's `has_error`: the singular was air's alone, and no Biome parser uses
+it.
+
+**The cost is six mechanical call sites in air and one real one**, itemised in
+§12.3 step 3. This is the only deliberate API break in the swap. The real one,
+`workspace/src/format.rs`, is where per-diagnostic reporting starts paying, so
+the break is the point rather than a side effect.
+
+Two members of the family are deliberately absent until something wants them:
+
+- **`ok(self) -> Result<RRoot, Vec<ParseDiagnostic>>`**, which `biome_js_parser`
+  has and no other Biome parser does. It is the honest successor to air's
+  `into_result()` — the same shape, handing back every diagnostic instead of one
+  string — and it costs nothing to add later. Air has no caller for it today.
+
+- **Anything that collapses to a single error.** If a consumer genuinely needs
+  one string, it renders a `ParseDiagnostic` through
+  `biome_diagnostics::PrintDescription` at its own call site. The parser
+  pre-collapsing on everyone's behalf is what `ParseError` was, and it threw away
+  the ranges that make the diagnostics worth having.
 
 Note this now *uses* the diagnostics channel through `process()`, which air's
 current code deliberately discards with a comment saying they "go into the
 tree-sink but come right back out." That comment is correct for the tree-sitter
 path; for us they are real.
 
-Also add `parse_with_cache` — air's LSP will want it, and it costs nothing now.
+`parse_with_cache` stays private. Air has no `NodeCache` caller of its own and
+its LSP re-parses whole documents, so exporting it would be guessing at a
+consumer. Note it buys less than the name suggests in any case: `TreeBuilder`
+owns a `NodeCache` whether or not one is passed in, so interning within a single
+parse already happens, and an external cache adds only sharing *between* parses.
+Make it `pub` when something reuses one across files, which is a one-word change
+and a swap-in concern rather than a Phase 5 one.
 
 ### 9.4 Diagnostics
 
-```rust
-// crates/aether_r_parser/src/diagnostics.rs
-use biome_parser::diagnostic::{expected_any, expected_node, ParseDiagnostic};
-use biome_rowan::TextRange;
+`diagnostics.rs` holds every diagnostic constructor in the crate, and after
+Phase 4 it holds the six the lexer raises (`unterminated_backtick_identifier`,
+`unterminated_special`, `unterminated_hexadecimal`,
+`unterminated_hexadecimal_binary_exponent`, `unterminated_exponent`,
+`unexpected_character`). **Phase 5 adds none of the parser's own.** It parses
+nothing, so it has nothing to complain about, and a constructor with no caller
+is dead code carrying an `#[allow]` for anywhere from two to eight phases.
 
-pub(crate) fn expected_expression(p: &RParser, range: TextRange) -> ParseDiagnostic {
-    expected_node("expression", range, p)
-}
+What Phase 5 does here is drop the blanket `#[allow(dead_code)]` from `lib.rs`,
+since the lexer's six are now driven through `RTokenSource`.
 
-/// The selector diagnostic names the operator it is complaining about, and points
-/// a secondary label at that operator. `$`, `@`, `::` and `:::` all funnel through
-/// here, and a message that lists all four tells the reader nothing about which one
-/// they wrote.
-///
-/// `operator_range` must be captured BEFORE the operator is bumped.
-pub(crate) fn expected_selector(
-    p: &RParser,
-    operator: RSyntaxKind,
-    operator_range: TextRange,
-    range: TextRange,
-) -> ParseDiagnostic {
-    // `RSyntaxKind::to_string()` yields the literal text for punctuation kinds,
-    // so this stays correct if the token set changes.
-    let operator = operator.to_string().unwrap_or("operator");
-    expected_any(&["identifier", "string", "`...`", "`..i`"], range, p)
-        .with_detail(operator_range, markup! {
-            "`"{operator}"` requires a name on the right"
-        })
-}
+**Each `expected_*` constructor lands in the phase that first calls it**, and is
+specified in that phase's section rather than here:
 
-/// The whole `(…)` group is missing — `function 1`.
-pub(crate) fn expected_parameters(p: &RParser, range: TextRange) -> ParseDiagnostic { ... }
-/// A hole in the parameter list — `function(a,,b)`, which R rejects even though
-/// the same shape is legal in an argument list (§11.3).
-pub(crate) fn expected_parameter(p: &RParser, range: TextRange) -> ParseDiagnostic { ... }
-pub(crate) fn expected_argument(p: &RParser, range: TextRange) -> ParseDiagnostic { ... }
-/// Two expressions with nothing between them: `1 2`. R separates statements by a
-/// newline or a `;` and accepts nothing else. `previous` labels the expression
-/// that already ended, so the message can say where the separator was expected.
-///
-/// The argument-list analogue (`f(a b)`) is a DIFFERENT rule enforced elsewhere,
-/// by `expect(T![,])` in `parse_argument_list` (§11.3) — same shape of mistake,
-/// different separator, different wording.
-pub(crate) fn expected_statement_separator(
-    p: &RParser,
-    previous: TextRange,
-    range: TextRange,
-) -> ParseDiagnostic { ... }
-pub(crate) fn expected_condition(p: &RParser, range: TextRange) -> ParseDiagnostic { ... }
-```
+| Constructor | Lands in | First caller |
+|---|---|---|
+| `expected_expression` | §11.2, Phase 8 | a binary or prefix operator with nothing to its right |
+| `expected_argument` | §11.3, Phase 9 | `parse_argument_list` |
+| `expected_selector` | §11.4, Phase 10 | the `$`, `@`, `::`, `:::` arm of the Pratt loop |
+| `expected_parameters`, `expected_parameter` | §11.5, Phase 11 | `parse_function_definition` |
+| `expected_condition` | §11.6, Phase 12 | the `if` and `while` headers |
+| `expected_statement_separator` | §11.7, Phase 13 | `parse_statement_list` |
 
-`diagnostics.rs` already exists — Phase 4 landed the six the lexer raises
-(`unterminated_backtick_identifier`, `unterminated_special`,
-`unterminated_hexadecimal`, `unterminated_hexadecimal_binary_exponent`,
-`unterminated_exponent`, `unexpected_character`). This phase adds the parser's
-`expected_*` family alongside them and drops the `#[allow(dead_code)]` that
-`lib.rs` carries until something drives them.
+Two rules hold across all of them, and the split above does not weaken either:
 
-Every diagnostic constructor should be a named function here, never an inline
-`err_builder` in a syntax module. It keeps wording consistent and makes it trivial
-to review the full diagnostic surface in one file.
+- **Every diagnostic is a named function in `diagnostics.rs`, never an inline
+  `err_builder` in a syntax module.** It keeps wording consistent and makes the
+  whole diagnostic surface reviewable in one sitting.
 
-**An unterminated string gets no constructor of its own for now.** The three
-unclosed-quote corpus tests surface through `expect(STRING_CLOSE)` in §11.1,
-which is `ParseDiagnostic` enough to start. Add one only if Phase 7's snapshots
-read badly — and if so, give it the two-range shape
-`unterminated_backtick_identifier` already uses, pointing at the opening
-delimiter with EOF as a secondary label, since a string runs to EOF for the same
-reason a backticked name does (§8.4).
+- **Only the *specification* moves to the feature's section; the *definition*
+  still goes in `diagnostics.rs`.** Splitting the file per phase would trade the
+  one-file review for nothing.
 
 **Done when:** `parse("")` produces `R_ROOT` containing an empty
 `R_STATEMENT_LIST` and an `EOF` token, `parse("   \n# hi\n")` attaches the
@@ -1695,9 +1688,9 @@ fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
         return Err(CheckError::RoundTrip { expected: block.source.clone(), got: round_tripped });
     }
 
-    let has_error = parsed.has_error();
+    let has_errors = parsed.has_errors();
     let has_bogus = has_bogus_nodes_or_empty_slots(&parsed.syntax());
-    let clean = !has_error && !has_bogus;
+    let clean = !has_errors && !has_bogus;
 
     // 2. Marker contract
     if markers.contains(Markers::PENDING) {
@@ -1706,10 +1699,10 @@ fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
         }
         return Ok(vec![Cell::pending()]);   // renders as *Not yet supported.*
     }
-    if markers.contains(Markers::ERROR) && !has_error {
+    if markers.contains(Markers::ERROR) && !has_errors {
         return Err(CheckError::ExpectedError);
     }
-    if !markers.contains(Markers::ERROR) && has_error {
+    if !markers.contains(Markers::ERROR) && has_errors {
         return Err(CheckError::UnexpectedError(render_diagnostics(&parsed, &block.source)));
     }
 
@@ -1828,7 +1821,7 @@ Three things to know about it:
 Diagnostic rendering:
 
 ```rust
-fn render_diagnostics(parse: &Parse, source: &str) -> String {
+fn render_diagnostics(parse: &RParse, source: &str) -> String {
     use biome_console::{fmt::{Formatter, Termcolor}, markup};
     use biome_diagnostics::{termcolor::NoColor, DiagnosticExt, PrintDiagnostic};
     let mut out = Vec::new();
@@ -2397,6 +2390,14 @@ Unclosed Backtick takes a different path entirely and exercises the *lexer's*
 `unterminated_backtick_identifier` (§8.4), since a backtick-quoted name is an
 `IDENT`, not a string.
 
+**An unterminated string gets no constructor of its own for now.** The three
+unclosed-quote corpus tests surface through `expect(STRING_CLOSE)` above, which
+is `ParseDiagnostic` enough to start. Add one only if this phase's snapshots read
+badly — and if so, give it the two-range shape
+`unterminated_backtick_identifier` already uses, pointing at the opening
+delimiter with EOF as a secondary label, since a string runs to EOF for the same
+reason a backticked name does (§8.4).
+
 ### 11.2 Phase 8 — Binary and unary operators (the Pratt core)
 
 `src/syntax/expr.rs`. This is the heart of the parser. Take the time to get it
@@ -2714,6 +2715,24 @@ not aether's own list.
 `expressions/help.md`, `expressions/assignment.md`, `statements/newlines.md`, and
 all of `expressions/precedence.md` except `Subset and Subset2 Precedence`
 (which needs Phase 9). 13 tests.
+
+#### The diagnostic this phase adds
+
+`expected_expression` is the first of the `expected_*` family to land (§9.4).
+Both call sites in the loop above are its whole reason for existing: an infix
+operator whose right-hand side never arrives, and a prefix operator with nothing
+to apply to.
+
+```rust
+/// An expression is required and absent
+pub(crate) fn expected_expression(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("expression", range, p)
+}
+```
+
+Later phases reuse it rather than wording their own — the function body of a
+`function`, the branches of an `if`, and a statement that turns out to be only a
+`;` all mean the same thing to the reader.
 
 ### 11.3 Phase 9 — Calls, subset, subset2
 
@@ -3038,6 +3057,22 @@ bracket-mismatch tests in `recovery/unmatched-delimiters.md`
 The other six delimiter tests in that file stay `[pending]` until Phase 14 — they
 depend on brace and statement-list recovery that does not exist yet.
 
+#### The diagnostic this phase adds
+
+```rust
+/// An argument is required and absent
+pub(crate) fn expected_argument(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("argument", range, p)
+}
+```
+
+Note what this is *not* for. A hole is legal in an argument list, so `f(a,,b)`
+raises nothing at all; this fires only where an argument is required and the
+recovery has nothing to put there. The missing-comma case (`f(a b)`) is a
+separate rule, enforced by `expect(T![,])` in `parse_argument_list` above, and
+the parameter-list analogue (`function(a,,b)`, which R *does* reject) gets its
+own constructor in §11.5.
+
 ### 11.4 Phase 10 — Extract and namespace
 
 Small phase, but it is where aether's first user-visible deviation lands, so keep
@@ -3159,6 +3194,40 @@ Newline Before Operator cases). Air's `undefined/extract_expression_error.R` and
 become `[error]` tests. The two newline tests above are aether-authored, so they
 are absent from `MANIFEST.toml` and do not move the 89 count.
 
+#### The diagnostic this phase adds
+
+`$`, `@`, `::`, and `:::` all funnel through one constructor, so it names the
+operator that was actually written — a message listing all four tells the reader
+nothing about which one they typed. The secondary label points at the operator,
+which is why the Pratt loop captures `operator_range` **before** the bump
+(§11.2).
+
+```rust
+/// The name on the right of `$`, `@`, `::`, or `:::` is missing
+pub(crate) fn expected_selector(
+    p: &RParser,
+    operator: RSyntaxKind,
+    operator_range: TextRange,
+    range: TextRange,
+) -> ParseDiagnostic {
+    // Punctuation kinds render as their own text, so this stays correct if the
+    // token set changes
+    let operator = operator.to_string().unwrap_or("operator");
+
+    expected_any(&["identifier", "string", "`...`", "`..i`"], range, p).with_detail(
+        operator_range,
+        format!("`{operator}` requires a name on the right."),
+    )
+}
+```
+
+`format!` rather than `markup!`: `with_detail` takes a `biome_console::fmt::Display`,
+which `String` already satisfies, and `biome_parser` builds its own details the
+same way. It keeps `biome_console` out of the crate's dependency list.
+
+This is the constructor the deviation table above leans on — every row where air
+produces no error and aether produces one is a row where this fires.
+
 ### 11.5 Phase 11 — Function definitions
 
 `src/syntax/function.rs`.
@@ -3195,6 +3264,28 @@ parameter name (`Functions With return As Parameter Name`).
 `lambda.md`, `parameters.md` — two of them `[error]`. Air's merged
 `ok/function_definition.R` comes with them only if it stays within function
 syntax; check it rather than assuming (§10.3.4).
+
+#### The diagnostics this phase adds
+
+Two, and the pair is easy to conflate. One is the whole `(…)` group going
+missing; the other is a hole inside a group that is present.
+
+```rust
+/// The whole `(…)` group of a function definition is missing, as in `function 1`
+pub(crate) fn expected_parameters(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("parameter list", range, p)
+}
+
+/// A hole in a parameter list, as in `function(a,,b)`
+pub(crate) fn expected_parameter(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("parameter", range, p)
+}
+```
+
+`expected_parameter` is the asymmetry with §11.3 worth remembering: R accepts
+`f(a,,b)` and rejects `function(a,,b)`, so the identical shape is a hole in an
+argument list and an error in a parameter list. That is why the two lists do not
+share a constructor even though they share a separator.
 
 ### 11.6 Phase 12 — Control flow
 
@@ -3258,7 +3349,7 @@ fn parse_else_clause(p: &mut RParser) -> ParsedSyntax {
 
     // A newline before `else` is only tolerated inside `{}` — or anywhere
     // newlines are insignificant, i.e. inside `(`/`[`/`[[`.
-    if p.at_statement_break() && !p.allows_newline_before_else() {
+    if p.at_statement_break() && !p.else_clause_may_follow_newline() {
         return Absent;   // caller finishes the `if`; `else` becomes a bogus statement
     }
 
@@ -3306,6 +3397,18 @@ for keyword-hood, so it needs no parser support. Two corpus tests cover it.
 `while.md`, `repeat.md`. Air's four merged `ok/*_statement.R` snapshots come with
 them where they stay within control-flow syntax (§10.3.4). Note the two `#200` `else`-prefix identifier tests live in
 `if.md` rather than `literals/identifiers.md`; see §10.3.2.
+
+#### The diagnostic this phase adds
+
+```rust
+/// The condition of an `if` or `while` is missing
+pub(crate) fn expected_condition(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("condition", range, p)
+}
+```
+
+Only the two headers that have a condition use it. `for` names its own parts, and
+`repeat` has no header at all, so neither reaches this.
 
 ### 11.7 Phase 13 — Blocks, statement lists, semicolons
 
@@ -3455,6 +3558,34 @@ does finish here: braces and statement lists are the last constructs any merged
 air snapshot in it can depend on. Every test in `semicolons.md` comes
 from air's snapshots rather than tree-sitter and carries `[deviation]`.
 
+#### The diagnostic this phase adds
+
+```rust
+/// Two expressions with nothing between them, as in `1 2`
+pub(crate) fn expected_statement_separator(
+    p: &RParser,
+    previous: TextRange,
+    range: TextRange,
+) -> ParseDiagnostic {
+    p.err_builder(
+        "Expected a newline or a `;` between two expressions.",
+        range,
+    )
+    .with_detail(previous, "This expression ends here.")
+}
+```
+
+R separates statements by a newline or a `;` and accepts nothing else. `previous`
+labels the expression that already ended, so the message can point at where the
+separator belonged rather than only at what followed it.
+
+The argument-list analogue (`f(a b)`) is a different rule, enforced by
+`expect(T![,])` in §11.3 — the same shape of mistake, a different separator, and
+different wording. Keep them apart: a reader who sees "expected a newline or a
+`;`" inside a call has been told something false.
+
+This is also the last of the family, so §9.4's table is complete once it lands.
+
 ---
 
 ## 12. Phase 14 — Recovery polish and air integration
@@ -3502,6 +3633,20 @@ A single PR against `posit-dev/air`. Aether is now the source of truth for the
 parser, the syntax layer, the factory, and `r.ungram`; air deletes all four and
 becomes a consumer.
 
+**Restore the parse span in aether first, before the sha is pinned.** Phase 5
+dropped `tracing` from `aether_r_parser`: nothing in aether's workspace installs
+a subscriber, so the `debug_span!("parse")` that air ships produced no output
+here and cost four crates for it. Air installs one, so the span has to go back
+around `parse_with_cache` or `air format --log-level debug` and the LSP silently
+lose the only span the parser emits. Nothing in air's build fails if this is
+forgotten, which is the whole reason it is written down.
+
+Its placement moves with it. Air wrapped `build_tree` alone, so its `"parse"`
+span excluded the tree-sitter parse it was named for; around `parse_with_cache`
+it covers lexing, parsing, and tree building. Expect the number it reports to be
+larger than air's was, and say so in the PR — that is the span finally measuring
+what it claims, not a regression.
+
 1. **Delete** `crates/air_r_parser/`, `crates/air_r_syntax/`,
    `crates/air_r_factory/`, and `xtask/codegen/r.ungram` plus the grammar codegen
    that produced them. Air keeps its *formatter* codegen, which still needs
@@ -3516,9 +3661,42 @@ becomes a consumer.
    ```
    Remove `tree-sitter` and `tree-sitter-r` from the workspace entirely.
    `crates/biome_ungrammar/` also leaves air, since only the grammar codegen used it.
-3. **Verify the rename is invisible.** `cargo build --workspace` should pass with
-   zero changes to any `.rs` file outside the formatter. If it does not, something
-   in air was reaching into a crate-private path.
+3. **Verify the rename is invisible, then fix the one API that deliberately is
+   not.** The Cargo rename accounts for every `use` statement in air, so
+   `cargo build --workspace` should reduce to a known list of errors. Anything
+   *outside* that list means air was reaching into a crate-private path, and is
+   the thing this step exists to catch.
+
+   The known list, all of it `Parse`'s error API. `ParseError` was a
+   tree-sitter-era stand-in from when the parser could report one whole-file
+   error and nothing better; aether returns real `ParseDiagnostic`s, so the
+   struct and the methods that collapsed to it are gone:
+
+   - `into_error()` and `error()` no longer exist. One caller,
+     `workspace/src/format.rs:46`, which is the interesting one — rebuild
+     `FormatSourceError` from `into_diagnostics()` rather than from a single
+     collapsed string. That is step 5's win arriving one step early, and the
+     LSP inherits it.
+
+   - `has_error()` is now `has_errors()`, matching `AnyParse` and every other
+     Biome parser. Six call sites, all mechanical: `workspace/src/format.rs`
+     (two), `lsp/src/handlers_format.rs` (two), `lsp/src/handlers_ext.rs`
+     (two). Do not touch `handlers_ext.rs:37` — that is tree-sitter's
+     `Node::has_error` and it leaves with tree-sitter.
+
+   - `air_r_formatter/tests/quick_test.rs:37` also calls `has_error()`.
+
+   - `Parse` is now `RParse`. Three sites name the type rather than going
+     through inference: `workspace/src/format.rs:2` (the `use`),
+     `workspace/src/format.rs:66` (a `&Parse` parameter), and
+     `lsp/src/documents.rs:27` (the `Document` field). The Cargo package
+     rename cannot cover this one — it renames crates, not items — so either
+     rewrite the three, or add `use aether_r_parser::RParse as Parse;` if the
+     churn is unwelcome mid-swap. Prefer rewriting; the alias reintroduces the
+     name the rename exists to remove.
+
+   `into_result()` had no caller in air and needs nothing.
+
 4. **Update `air_r_formatter`** for the `R_STATEMENT` wrapper and real
    semicolon tokens. Expect churn in `r/expressions/expression_list.rs` and
    `r/expressions/braced_expressions.rs` (renamed to `braced_statements.rs`) and
