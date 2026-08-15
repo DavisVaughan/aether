@@ -1,9 +1,3 @@
-//! The corpus markdown format: parsing, and rendering the snapshot flavour
-//!
-//! Hand-written on purpose. A general markdown parser gives you an AST of the
-//! prose, where what this needs is byte-exact round-tripping of everything it
-//! does not understand.
-
 use std::fmt::Write as _;
 
 /// One corpus file, either flavour
