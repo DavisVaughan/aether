@@ -15,10 +15,6 @@ pub struct Section {
     pub name: String,
     pub markers: Markers,
 
-    /// The heading's body, in source order
-    ///
-    /// Rendering walks this start to finish, which is what keeps each block's
-    /// cells beside it rather than at the end of the heading.
     pub elements: Vec<Element>,
 }
 
