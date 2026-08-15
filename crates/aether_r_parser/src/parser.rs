@@ -78,13 +78,7 @@ impl<'src> RParser<'src> {
         result
     }
 
-    /// True when a newline before an `else` is tolerated because we are inside
-    /// braces
-    ///
-    /// The only reader is the `else` clause; everything else asks
-    /// [`RParser::at_statement_break`]. An accessor rather than a public field,
-    /// so that "exactly one reader" is enforced by privacy rather than by hope.
-    pub(crate) fn allows_newline_before_else(&self) -> bool {
+    pub(crate) fn else_clause_may_follow_newline(&self) -> bool {
         self.else_clause == ElseClause::MayFollowNewline
     }
 

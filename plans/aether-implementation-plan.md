@@ -1042,7 +1042,7 @@ impl<'src> RParser<'src> {
     /// braces. The only reader is `parse_else_clause` (§11.6); everything else
     /// asks `at_statement_break()`. An accessor rather than a public field, so
     /// that "exactly one reader" is enforced by privacy rather than by hope.
-    pub(crate) fn allows_newline_before_else(&self) -> bool {
+    pub(crate) fn else_clause_may_follow_newline(&self) -> bool {
         self.else_clause == ElseClause::MayFollowNewline
     }
 
@@ -3349,7 +3349,7 @@ fn parse_else_clause(p: &mut RParser) -> ParsedSyntax {
 
     // A newline before `else` is only tolerated inside `{}` — or anywhere
     // newlines are insignificant, i.e. inside `(`/`[`/`[[`.
-    if p.at_statement_break() && !p.allows_newline_before_else() {
+    if p.at_statement_break() && !p.else_clause_may_follow_newline() {
         return Absent;   // caller finishes the `if`; `else` becomes a bogus statement
     }
 
