@@ -2,7 +2,7 @@ use super::*;
 
 const CLEAN: &str = "# a comment\n";
 
-/// A lexer diagnostic, so this errors in every phase
+/// Causes a lexer diagnostic
 const ERRORS: &str = "`a\n";
 
 fn block(source: &str) -> Block {
