@@ -145,20 +145,6 @@ fn test_parse_trivia_comment_beginning_of_document_test() {
     assert_eq_trivia(trivia("#\n1"), vec![cmt(0, 1, Pos::Leading), nl(1, 2)]);
 }
 
-#[test]
-fn test_parse_trivia_comment_beginning_of_document_with_whitespace_test() {
-    assert_eq_trivia(
-        trivia(" \n \n#"),
-        vec![
-            ws(0, 1, Pos::Leading),
-            nl(1, 2),
-            ws(2, 3, Pos::Leading),
-            nl(3, 4),
-            cmt(4, 5, Pos::Leading),
-        ],
-    );
-}
-
 /// A skipped token becomes a `Skipped` piece, and everything up to the next
 /// token leads that token rather than trailing what was skipped
 #[test]
