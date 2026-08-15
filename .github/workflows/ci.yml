@@ -49,6 +49,5 @@ jobs:
       - name: Codegen is up to date
         run: just codegen && git diff --exit-code
 
-      # Nor with stale snapshot cells, for the same reason
       - name: Snapshots are up to date
         run: cargo run -p xtask -- accept && git diff --exit-code
