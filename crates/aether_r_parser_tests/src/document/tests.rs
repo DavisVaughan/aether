@@ -37,8 +37,16 @@ fn parses_headings_markers_and_blocks() {
     assert_eq!(
         document.shape(),
         vec![
-            ("Numbers", Markers::empty(), 1),
-            ("Dollar", Markers::PENDING | Markers::ERROR, 2),
+            ("Numbers", Markers::default(), 1),
+            (
+                "Dollar",
+                Markers {
+                    pending: true,
+                    error: true,
+                    ..Default::default()
+                },
+                2
+            ),
         ]
     );
 
@@ -114,7 +122,14 @@ fn markers_are_the_trailing_bracket_group() {
 
     assert_eq!(
         document.shape(),
-        vec![("Subset2 With `]]` (#177)", Markers::ERROR, 1)]
+        vec![(
+            "Subset2 With `]]` (#177)",
+            Markers {
+                error: true,
+                ..Default::default()
+            },
+            1
+        )]
     );
 }
 

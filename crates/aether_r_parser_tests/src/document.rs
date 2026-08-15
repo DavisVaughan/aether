@@ -43,13 +43,11 @@ pub enum Cell {
     Pending,
 }
 
-bitflags::bitflags! {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct Markers: u8 {
-        const PENDING = 1 << 0;
-        const ERROR = 1 << 1;
-        const DEVIATION = 1 << 2;
-    }
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Markers {
+    pub pending: bool,
+    pub error: bool,
+    pub deviation: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -70,13 +68,13 @@ impl std::error::Error for DocumentError {}
 
 impl Markers {
     fn parse(text: &str, line: usize) -> Result<Self, DocumentError> {
-        let mut markers = Markers::empty();
+        let mut markers = Markers::default();
 
         for name in text.split(',') {
-            let marker = match name.trim() {
-                "pending" => Markers::PENDING,
-                "error" => Markers::ERROR,
-                "deviation" => Markers::DEVIATION,
+            match name.trim() {
+                "pending" => markers.pending = true,
+                "error" => markers.error = true,
+                "deviation" => markers.deviation = true,
                 other => {
                     return Err(DocumentError {
                         line,
@@ -85,8 +83,7 @@ impl Markers {
                         ),
                     });
                 }
-            };
-            markers |= marker;
+            }
         }
 
         Ok(markers)
@@ -94,12 +91,12 @@ impl Markers {
 
     fn render(self) -> String {
         let mut names = Vec::new();
-        for (marker, name) in [
-            (Markers::PENDING, "pending"),
-            (Markers::ERROR, "error"),
-            (Markers::DEVIATION, "deviation"),
+        for (set, name) in [
+            (self.pending, "pending"),
+            (self.error, "error"),
+            (self.deviation, "deviation"),
         ] {
-            if self.contains(marker) {
+            if set {
                 names.push(name);
             }
         }
@@ -393,12 +390,12 @@ fn parse_heading(heading: &str, line: usize) -> Result<(String, Markers), Docume
     // Markers are the trailing bracketed group, so a name may itself contain
     // brackets — `Unsupported Subset2 With `]]` Over Multiple Lines` does
     let Some(open) = heading.strip_suffix(']').and_then(|rest| rest.rfind('[')) else {
-        return Ok((heading.to_string(), Markers::empty()));
+        return Ok((heading.to_string(), Markers::default()));
     };
 
     let inside = &heading[open + 1..heading.len() - 1];
     if inside.contains('[') || inside.contains(']') {
-        return Ok((heading.to_string(), Markers::empty()));
+        return Ok((heading.to_string(), Markers::default()));
     }
 
     let markers = Markers::parse(inside, line)?;

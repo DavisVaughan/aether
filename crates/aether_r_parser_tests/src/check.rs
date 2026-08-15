@@ -1,6 +1,3 @@
-#[cfg(test)]
-mod tests;
-
 use crate::document::{Block, Cell, Markers};
 use aether_r_parser::{RParse, RParserOptions, parse};
 use aether_r_syntax::{RSyntaxNode, TextRange};
@@ -38,14 +35,14 @@ pub fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
     let has_errors = parsed.has_errors();
     let has_bogus = has_bogus_nodes_or_missing_required_children(&ast, &parsed.syntax());
 
-    if markers.contains(Markers::PENDING) {
+    if markers.pending {
         if !has_errors && !has_bogus {
             return Err(CheckError::UnexpectedlyPasses);
         }
         return Ok(vec![Cell::Pending]);
     }
 
-    if markers.contains(Markers::ERROR) {
+    if markers.error {
         if !has_errors {
             return Err(CheckError::ExpectedError);
         }
@@ -106,7 +103,7 @@ fn has_bogus_nodes_or_missing_required_children(ast: &str, root: &RSyntaxNode) -
     ast.contains("missing (required)") || root.descendants().any(|node| node.kind().is_bogus())
 }
 
-pub fn render_diagnostics(parse: &RParse, source: &str) -> String {
+fn render_diagnostics(parse: &RParse, source: &str) -> String {
     let mut out = Vec::new();
 
     for diagnostic in parse.diagnostics() {
@@ -133,4 +130,109 @@ pub fn render_diagnostics(parse: &RParse, source: &str) -> String {
     trimmed.truncate(trimmed.trim_end().len());
     trimmed.push('\n');
     trimmed
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const CLEAN: &str = "# a comment\n";
+
+    /// Causes a lexer diagnostic
+    const ERRORS: &str = "`a\n";
+
+    fn block(source: &str) -> Block {
+        Block {
+            source: source.to_string(),
+            generated: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn a_clean_block_gets_a_cst_cell_and_no_diagnostics_cell() {
+        let cells = check(&block(CLEAN), Markers::default()).expect("parses cleanly");
+
+        assert!(matches!(cells.as_slice(), [Cell::Cst(_)]));
+    }
+
+    #[test]
+    fn an_error_block_gets_both_cells() {
+        let cells = check(
+            &block(ERRORS),
+            Markers {
+                error: true,
+                ..Default::default()
+            },
+        )
+        .expect("errors as marked");
+
+        let [Cell::Cst(_), Cell::Diagnostics(diagnostics)] = cells.as_slice() else {
+            panic!("expected a cst cell and a diagnostics cell, got {cells:?}");
+        };
+        assert!(diagnostics.contains("Unterminated backtick-quoted name."));
+    }
+
+    #[test]
+    fn a_pending_block_that_parses_is_a_failure() {
+        let error = check(
+            &block(CLEAN),
+            Markers {
+                pending: true,
+                ..Default::default()
+            },
+        )
+        .expect_err("parses cleanly");
+
+        assert!(matches!(error, CheckError::UnexpectedlyPasses));
+    }
+
+    #[test]
+    fn a_pending_block_that_fails_is_told_nothing_else() {
+        let cells = check(
+            &block(ERRORS),
+            Markers {
+                pending: true,
+                ..Default::default()
+            },
+        )
+        .expect("does not parse");
+
+        assert_eq!(cells, vec![Cell::Pending]);
+    }
+
+    #[test]
+    fn an_unmarked_block_may_not_error() {
+        let error = check(&block(ERRORS), Markers::default()).expect_err("errors");
+
+        assert!(matches!(error, CheckError::UnexpectedError(_)));
+    }
+
+    #[test]
+    fn an_error_block_must_error() {
+        let error = check(
+            &block(CLEAN),
+            Markers {
+                error: true,
+                ..Default::default()
+            },
+        )
+        .expect_err("parses cleanly");
+
+        assert!(matches!(error, CheckError::ExpectedError));
+    }
+
+    /// `[deviation]` changes nothing here
+    #[test]
+    fn deviation_changes_nothing() {
+        let cells = check(
+            &block(CLEAN),
+            Markers {
+                deviation: true,
+                ..Default::default()
+            },
+        )
+        .expect("parses cleanly");
+
+        assert!(matches!(cells.as_slice(), [Cell::Cst(_)]));
+    }
 }

@@ -19,7 +19,6 @@ biome_console = { workspace = true }
 biome_diagnostics = { workspace = true }
 biome_parser = { workspace = true }
 biome_rowan = { workspace = true }
-bitflags = { workspace = true }
 serde = { workspace = true }
 similar = { workspace = true }
 toml = { workspace = true }

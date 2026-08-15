@@ -48,7 +48,6 @@ dependencies = [
  "biome_diagnostics",
  "biome_parser",
  "biome_rowan",
- "bitflags",
  "serde",
  "similar",
  "toml",
