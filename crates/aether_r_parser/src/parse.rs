@@ -102,9 +102,7 @@ mod tests {
     use biome_diagnostics::PrintDescription;
     use biome_rowan::AstNodeList;
 
-    /// Air's LSP clones a `WorldState` full of `RParse`s into `spawn_blocking`,
-    /// so this is a real constraint on the root's type. Failing here beats
-    /// failing at swap-in.
+    /// Air's LSP currently needs this
     #[test]
     fn parse_is_send() {
         fn assert_send<T: Send>() {}
