@@ -47,7 +47,7 @@ pub(crate) enum Newlines {
 /// what it licenses rather than for the `{` that sets it, because it has exactly
 /// one reader.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub(crate) enum ElseClause {
+enum ElseClause {
     #[default]
     SameLineOnly,
     MayFollowNewline,
