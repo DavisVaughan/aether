@@ -25,6 +25,8 @@ use biome_rowan::{AstNode, NodeCache, SendNode};
 /// The price is that [`RParse::syntax()`] rebuilds a red root on every call
 /// instead of bumping a refcount. Cheap, but not free, so hold the result rather
 /// than calling it in a loop.
+///
+/// TODO: We should probably investigate if we really need this in Air and Ark so we can be more like Biome
 #[derive(Clone, Debug)]
 pub struct RParse {
     root: SendNode,
