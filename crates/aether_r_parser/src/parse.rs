@@ -13,7 +13,7 @@ use biome_rowan::{AstNode, NodeCache, SendNode};
 ///
 /// It can be dynamically downcast into a concrete [RSyntaxNode] or [RRoot].
 ///
-/// # Why the root is a [SendNode] and not an [RSyntaxNode]
+/// # Why a [SendNode] not an [RSyntaxNode]?
 ///
 /// Every other Biome parser stores its own language's node and converts to
 /// [SendNode] at the [AnyParse] boundary, which is the only place biome needs a
