@@ -16,17 +16,18 @@ use biome_rowan::{AstNode, NodeCache, SendNode};
 /// # Why a [SendNode] not an [RSyntaxNode]?
 ///
 /// Every other Biome parser stores its own language's node and converts to
-/// [SendNode] at the [AnyParse] boundary, which is the only place biome needs a
-/// tree to cross a thread. Air never reaches that boundary: its LSP keeps
+/// [SendNode] at the [AnyParse] boundary, which is the only place biome needs
+/// a tree to cross a thread. Air never reaches that boundary: its LSP keeps
 /// an [RParse] in every `Document` and clones the whole `WorldState` into
-/// `spawn_blocking`, whose handlers are `Send + 'static`. So [RParse] itself has
-/// to be [Send], and [RSyntaxNode] is not — it holds an `Rc`.
+/// `spawn_blocking`, whose handlers are `Send + 'static`. So [RParse] itself
+/// has to be [Send], and [RSyntaxNode] is not — it holds an `Rc`.
 ///
 /// The price is that [`RParse::syntax()`] rebuilds a red root on every call
-/// instead of bumping a refcount. Cheap, but not free, so hold the result rather
-/// than calling it in a loop.
+/// instead of bumping a refcount. Cheap, but not free, so hold the result
+/// rather than calling it in a loop.
 ///
-/// TODO: We should probably investigate if we really need this in Air and Ark so we can be more like Biome
+/// TODO: We should probably investigate if we really need this in Air and Ark
+/// so we can be more like Biome
 #[derive(Clone, Debug)]
 pub struct RParse {
     root: SendNode,

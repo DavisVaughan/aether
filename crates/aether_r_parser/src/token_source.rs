@@ -33,7 +33,9 @@ impl<'src> RTokenSource<'src> {
     ///
     /// Trivia trails the token before it until a newline is seen, and leads the
     /// token after it from the newline onward. Before the first token of the
-    /// file, everything leads. That aligns with Biome's parsers and is both very logical and very practical because it doesn't require any lookahead.
+    /// file, everything leads. That aligns with Biome's parsers and is both
+    /// very logical and very practical because it doesn't require any
+    /// lookahead.
     fn next_non_trivia_token(&mut self, context: RLexContext, first: bool) {
         let mut trailing = !first;
 
@@ -44,7 +46,8 @@ impl<'src> RTokenSource<'src> {
                 break;
             };
 
-            // We've now seen a newline, so this newline and everything after it is now considered leading trivia of the next token
+            // We've now seen a newline, so this newline and everything after it
+            // is now considered leading trivia of the next token
             if trivia_kind.is_newline() {
                 trailing = false;
             }

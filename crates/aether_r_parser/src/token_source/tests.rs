@@ -158,7 +158,9 @@ fn test_skip_as_trivia() {
     assert_eq_trivia(drain(source), vec![skipped(0, 1), ws(1, 2, Pos::Leading)]);
 }
 
-/// Lookahead drives the inner lexer past the current token, so using [`BufferedLexer`] is useful to allow us to still answer for the token the parser is actually on.
+/// Lookahead drives the inner lexer past the current token, so using
+/// [`BufferedLexer`] is useful to allow us to still answer for the token the
+/// parser is actually on.
 #[test]
 fn test_line_break_survives_lookahead() {
     let mut source = RTokenSource::from_str("1\n2");
