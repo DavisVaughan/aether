@@ -1,9 +1,9 @@
 use std::fmt::Write as _;
 
-/// One corpus file, either flavour
+/// One corpus test file
 ///
-/// An input document has empty `generated` cells throughout; a snapshot
-/// document has them populated. Nothing else distinguishes the two.
+/// Covers both human created input files and generated snapshot files. The
+/// only difference is that snapshot files have non empty `generated` cells.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Document {
     pub tests: Vec<TestCase>,
