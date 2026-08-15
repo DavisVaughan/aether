@@ -31,12 +31,7 @@ pub(crate) enum Newlines {
     Ignored,
 }
 
-/// Whether an `else` may follow a line break
-///
-/// R permits `else` on a line after the consequence only within braces; at top
-/// level the newline ends the `if` and the `else` is a syntax error. Named for
-/// what it licenses rather than for the `{` that sets it, because it has exactly
-/// one reader.
+/// R permits `else` on a line after the `consequence` only within braces
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 enum ElseClause {
     #[default]
