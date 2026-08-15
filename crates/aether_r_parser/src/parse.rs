@@ -17,28 +17,28 @@ use biome_rowan::{AstNode, NodeCache, SendNode};
 ///
 /// Every other Biome parser stores its own language's node and converts to
 /// [SendNode] at the [AnyParse] boundary, which is the only place biome needs a
-/// tree to cross a thread. Air never reaches that boundary: its LSP keeps a
-/// [Parse] in every `Document` and clones the whole `WorldState` into
-/// `spawn_blocking`, whose handlers are `Send + 'static`. So [Parse] itself has
+/// tree to cross a thread. Air never reaches that boundary: its LSP keeps
+/// an [RParse] in every `Document` and clones the whole `WorldState` into
+/// `spawn_blocking`, whose handlers are `Send + 'static`. So [RParse] itself has
 /// to be [Send], and [RSyntaxNode] is not — it holds an `Rc`.
 ///
-/// The price is that [`Parse::syntax()`] rebuilds a red root on every call
+/// The price is that [`RParse::syntax()`] rebuilds a red root on every call
 /// instead of bumping a refcount. Cheap, but not free, so hold the result rather
 /// than calling it in a loop.
 #[derive(Clone, Debug)]
-pub struct Parse {
+pub struct RParse {
     root: SendNode,
     diagnostics: Vec<ParseDiagnostic>,
 }
 
-impl Parse {
+impl RParse {
     fn new(root: RSyntaxNode, diagnostics: Vec<ParseDiagnostic>) -> Self {
         // Safety: This method is not exposed, we only use it internally
         let root = root.as_send().unwrap();
         Self { root, diagnostics }
     }
 
-    /// The syntax node represented by this Parse result
+    /// The syntax node represented by this parse result
     pub fn syntax(&self) -> RSyntaxNode {
         self.root
             .clone()
@@ -67,20 +67,20 @@ impl Parse {
     }
 }
 
-impl From<Parse> for AnyParse {
-    fn from(parse: Parse) -> Self {
+impl From<RParse> for AnyParse {
+    fn from(parse: RParse) -> Self {
         Self::new(parse.root, parse.diagnostics)
     }
 }
 
-pub fn parse(text: &str, options: RParserOptions) -> Parse {
+pub fn parse(text: &str, options: RParserOptions) -> RParse {
     let mut cache = NodeCache::default();
     parse_with_cache(text, options, &mut cache)
 }
 
 /// Parses `text`, structurally sharing what it can with the trees already in
 /// `cache`
-pub fn parse_with_cache(text: &str, options: RParserOptions, cache: &mut NodeCache) -> Parse {
+pub fn parse_with_cache(text: &str, options: RParserOptions, cache: &mut NodeCache) -> RParse {
     let mut parser = RParser::new(text, options);
     crate::syntax::parse_root(&mut parser);
     let (events, trivia, diagnostics) = parser.finish();
@@ -89,7 +89,7 @@ pub fn parse_with_cache(text: &str, options: RParserOptions, cache: &mut NodeCac
     biome_parser::event::process(&mut tree_sink, events, diagnostics);
     let (green, diagnostics) = tree_sink.finish();
 
-    Parse::new(green, diagnostics)
+    RParse::new(green, diagnostics)
 }
 
 #[cfg(test)]
@@ -99,13 +99,13 @@ mod tests {
     use biome_diagnostics::PrintDescription;
     use biome_rowan::AstNodeList;
 
-    /// Air's LSP clones a `WorldState` full of `Parse`s into `spawn_blocking`,
+    /// Air's LSP clones a `WorldState` full of `RParse`s into `spawn_blocking`,
     /// so this is a real constraint on the root's type. Failing here beats
     /// failing at swap-in.
     #[test]
     fn parse_is_send() {
         fn assert_send<T: Send>() {}
-        assert_send::<Parse>();
+        assert_send::<RParse>();
     }
 
     #[test]
@@ -145,7 +145,7 @@ mod tests {
         assert!(without_bom.tree().bom_token().is_none());
     }
 
-    /// The lexer's diagnostics reach `Parse` through the tree sink
+    /// The lexer's diagnostics reach `RParse` through the tree sink
     #[test]
     fn parse_reports_lexer_diagnostics() {
         let source = "`a";

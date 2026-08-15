@@ -1118,21 +1118,30 @@ the one class of bug neither invariant 1 nor the harness catches.
 ### 9.3 Public `parse()` — Biome's shape, not air's
 
 Air's `Parse` is consumed by its `workspace`, `lsp`, and `air_r_formatter`
-crates, so the type keeps its name and its node accessors. What it does not keep
-is its error API. Air holds `error: Option<ParseError>` — one formatted string
-for the whole file — because a tree-sitter parse either succeeded or it failed
-and there was nothing finer to report. Aether has real `ParseDiagnostic`s, so
-`ParseError` and the methods that collapsed to it go, and the surface becomes
-the one every other Biome parser already exposes.
+crates, so the type keeps its node accessors. It keeps neither its name nor its
+error API.
+
+**The name becomes `RParse`,** matching `CssParse`, `JsonParse`, `GraphqlParse`,
+`HtmlParse`, `YamlParse`, `GritParse`, and `MarkdownParse`, and matching every
+other type this crate exports. `biome_js_parser`'s bare `Parse<T>` is Biome's
+only exception, and only because it is generic over its root node — `Parse<JsModule>`
+and `Parse<JsScript>` need the parameter to carry what the prefix carries
+elsewhere. `RRoot` is aether's only root, so that reason does not apply.
+
+**The error API goes entirely.** Air holds `error: Option<ParseError>` — one
+formatted string for the whole file — because a tree-sitter parse either
+succeeded or it failed and there was nothing finer to report. Aether has real
+`ParseDiagnostic`s, so `ParseError` and the methods that collapsed to it go, and
+the surface becomes the one every other Biome parser already exposes.
 
 ```rust
 // crates/aether_r_parser/src/parse.rs
-pub struct Parse {
+pub struct RParse {
     root: SendNode,
     diagnostics: Vec<ParseDiagnostic>,
 }
 
-impl Parse {
+impl RParse {
     pub fn syntax(&self) -> RSyntaxNode { ... }
     pub fn tree(&self) -> RRoot { ... }
     pub fn diagnostics(&self) -> &[ParseDiagnostic] { &self.diagnostics }
@@ -1141,17 +1150,17 @@ impl Parse {
 }
 
 impl From<Parse> for AnyParse {
-    fn from(parse: Parse) -> Self {
+    fn from(parse: RParse) -> Self {
         AnyParse::new(parse.root, parse.diagnostics)  // now genuinely useful
     }
 }
 
-pub fn parse(text: &str, options: RParserOptions) -> Parse {
+pub fn parse(text: &str, options: RParserOptions) -> RParse {
     let mut cache = NodeCache::default();
     parse_with_cache(text, options, &mut cache)
 }
 
-pub fn parse_with_cache(text: &str, options: RParserOptions, cache: &mut NodeCache) -> Parse {
+pub fn parse_with_cache(text: &str, options: RParserOptions, cache: &mut NodeCache) -> RParse {
     let mut parser = RParser::new(text, options);
     crate::syntax::parse_root(&mut parser);
     let (events, trivia, diagnostics) = parser.finish();
@@ -1159,7 +1168,7 @@ pub fn parse_with_cache(text: &str, options: RParserOptions, cache: &mut NodeCac
     let mut tree_sink = RLosslessTreeSink::with_cache(text, &trivia, cache);
     biome_parser::event::process(&mut tree_sink, events, diagnostics);
     let (green, diagnostics) = tree_sink.finish();
-    Parse::new(green, diagnostics)
+    RParse::new(green, diagnostics)
 }
 ```
 
@@ -1806,7 +1815,7 @@ Three things to know about it:
 Diagnostic rendering:
 
 ```rust
-fn render_diagnostics(parse: &Parse, source: &str) -> String {
+fn render_diagnostics(parse: &RParse, source: &str) -> String {
     use biome_console::{fmt::{Formatter, Termcolor}, markup};
     use biome_diagnostics::{termcolor::NoColor, DiagnosticExt, PrintDiagnostic};
     let mut out = Vec::new();
@@ -3670,6 +3679,15 @@ what it claims, not a regression.
      `Node::has_error` and it leaves with tree-sitter.
 
    - `air_r_formatter/tests/quick_test.rs:37` also calls `has_error()`.
+
+   - `Parse` is now `RParse`. Three sites name the type rather than going
+     through inference: `workspace/src/format.rs:2` (the `use`),
+     `workspace/src/format.rs:66` (a `&Parse` parameter), and
+     `lsp/src/documents.rs:27` (the `Document` field). The Cargo package
+     rename cannot cover this one — it renames crates, not items — so either
+     rewrite the three, or add `use aether_r_parser::RParse as Parse;` if the
+     churn is unwelcome mid-swap. Prefer rewriting; the alias reintroduces the
+     name the rename exists to remove.
 
    `into_result()` had no caller in air and needs nothing.
 

@@ -7,7 +7,7 @@ mod syntax;
 mod token_source;
 
 pub use crate::options::RParserOptions;
-pub use crate::parse::{Parse, parse, parse_with_cache};
+pub use crate::parse::{RParse, parse, parse_with_cache};
 
 use aether_r_factory::RSyntaxFactory;
 use aether_r_syntax::RLanguage;
