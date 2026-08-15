@@ -37,7 +37,7 @@ pub struct Block {
 pub enum Cell {
     /// The CST view
     Cst(String),
-    /// Rendered diagnostics, omitted entirely when there are none
+    /// Rendered diagnostics
     Diagnostics(String),
     /// The whole output for a `[pending]` block
     Pending,
