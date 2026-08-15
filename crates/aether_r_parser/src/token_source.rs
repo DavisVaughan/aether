@@ -33,9 +33,7 @@ impl<'src> RTokenSource<'src> {
     ///
     /// Trivia trails the token before it until a newline is seen, and leads the
     /// token after it from the newline onward. Before the first token of the
-    /// file, everything leads. That is every Biome parser's rule, and it needs
-    /// no lookahead. Air's rule is different; deviation 10 says why aether does
-    /// not follow it.
+    /// file, everything leads. That aligns with Biome's parsers and is both very logical and very practical because it doesn't require any lookahead.
     fn next_non_trivia_token(&mut self, context: RLexContext, first: bool) {
         let mut trailing = !first;
 
