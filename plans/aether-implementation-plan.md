@@ -1115,16 +1115,15 @@ so a leaked value does not crash — it silently changes how newlines are read f
 the rest of the parse and yields a wrong tree that still round-trips. That is
 the one class of bug neither invariant 1 nor the harness catches.
 
-### 9.3 Public `parse()` — keep air's shape
+### 9.3 Public `parse()` — Biome's shape, not air's
 
-Air's `Parse` struct must keep working, since air's `workspace`, `lsp`, and
-`air_r_formatter` crates all consume it. But air's version holds
-`error: Option<ParseError>` (a single string), which is no longer enough.
-
-**The shape:** `Parse` keeps its existing method names, and gains diagnostics.
-Preserving the names is what makes §12.3 step 3 true — air builds after the swap
-with no `.rs` change outside the formatter — so it is a constraint, not a
-preference.
+Air's `Parse` is consumed by its `workspace`, `lsp`, and `air_r_formatter`
+crates, so the type keeps its name and its node accessors. What it does not keep
+is its error API. Air holds `error: Option<ParseError>` — one formatted string
+for the whole file — because a tree-sitter parse either succeeded or it failed
+and there was nothing finer to report. Aether has real `ParseDiagnostic`s, so
+`ParseError` and the methods that collapsed to it go, and the surface becomes
+the one every other Biome parser already exposes.
 
 ```rust
 // crates/aether_r_parser/src/parse.rs
@@ -1134,16 +1133,11 @@ pub struct Parse {
 }
 
 impl Parse {
-    pub fn syntax(&self) -> RSyntaxNode { /* unchanged */ }
-    pub fn tree(&self) -> RRoot { /* unchanged */ }
-    pub fn has_error(&self) -> bool { self.diagnostics.iter().any(|d| d.is_error()) }
+    pub fn syntax(&self) -> RSyntaxNode { ... }
+    pub fn tree(&self) -> RRoot { ... }
     pub fn diagnostics(&self) -> &[ParseDiagnostic] { &self.diagnostics }
-
-    /// Back-compat with air's current API. Collapses diagnostics to one error.
-    pub fn error(&self) -> Option<ParseError> { /* first error, formatted */ }
-    /// Signature unchanged for air's callers; the body now formats the first
-    /// error diagnostic instead of reading a stored `ParseError`.
-    pub fn into_result(self) -> Result<RSyntaxNode, ParseError> { ... }
+    pub fn into_diagnostics(self) -> Vec<ParseDiagnostic> { self.diagnostics }
+    pub fn has_errors(&self) -> bool { self.diagnostics.iter().any(|d| d.is_error()) }
 }
 
 impl From<Parse> for AnyParse {
@@ -1158,18 +1152,39 @@ pub fn parse(text: &str, options: RParserOptions) -> Parse {
 }
 
 pub fn parse_with_cache(text: &str, options: RParserOptions, cache: &mut NodeCache) -> Parse {
-    tracing::debug_span!("parse").in_scope(move || {
-        let mut parser = RParser::new(text, options);
-        crate::syntax::parse_root(&mut parser);
-        let (events, trivia, diagnostics) = parser.finish();
+    let mut parser = RParser::new(text, options);
+    crate::syntax::parse_root(&mut parser);
+    let (events, trivia, diagnostics) = parser.finish();
 
-        let mut tree_sink = RLosslessTreeSink::with_cache(text, &trivia, cache);
-        biome_parser::event::process(&mut tree_sink, events, diagnostics);
-        let (green, diagnostics) = tree_sink.finish();
-        Parse::new(green, diagnostics)
-    })
+    let mut tree_sink = RLosslessTreeSink::with_cache(text, &trivia, cache);
+    biome_parser::event::process(&mut tree_sink, events, diagnostics);
+    let (green, diagnostics) = tree_sink.finish();
+    Parse::new(green, diagnostics)
 }
 ```
+
+That method set is `CssParse`, `JsonParse`, `GraphqlParse`, `HtmlParse`,
+`YamlParse`, and `AnyParse` verbatim, which is also the argument for `has_errors`
+over air's `has_error`: the singular was air's alone, and no Biome parser uses
+it.
+
+**The cost is six mechanical call sites in air and one real one**, itemised in
+§12.3 step 3. This is the only deliberate API break in the swap. The real one,
+`workspace/src/format.rs`, is where per-diagnostic reporting starts paying, so
+the break is the point rather than a side effect.
+
+Two members of the family are deliberately absent until something wants them:
+
+- **`ok(self) -> Result<RRoot, Vec<ParseDiagnostic>>`**, which `biome_js_parser`
+  has and no other Biome parser does. It is the honest successor to air's
+  `into_result()` — the same shape, handing back every diagnostic instead of one
+  string — and it costs nothing to add later. Air has no caller for it today.
+
+- **Anything that collapses to a single error.** If a consumer genuinely needs
+  one string, it renders a `ParseDiagnostic` through
+  `biome_diagnostics::PrintDescription` at its own call site. The parser
+  pre-collapsing on everyone's behalf is what `ParseError` was, and it threw away
+  the ranges that make the diagnostics worth having.
 
 Note this now *uses* the diagnostics channel through `process()`, which air's
 current code deliberately discards with a comment saying they "go into the
@@ -1658,9 +1673,9 @@ fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
         return Err(CheckError::RoundTrip { expected: block.source.clone(), got: round_tripped });
     }
 
-    let has_error = parsed.has_error();
+    let has_errors = parsed.has_errors();
     let has_bogus = has_bogus_nodes_or_empty_slots(&parsed.syntax());
-    let clean = !has_error && !has_bogus;
+    let clean = !has_errors && !has_bogus;
 
     // 2. Marker contract
     if markers.contains(Markers::PENDING) {
@@ -1669,10 +1684,10 @@ fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
         }
         return Ok(vec![Cell::pending()]);   // renders as *Not yet supported.*
     }
-    if markers.contains(Markers::ERROR) && !has_error {
+    if markers.contains(Markers::ERROR) && !has_errors {
         return Err(CheckError::ExpectedError);
     }
-    if !markers.contains(Markers::ERROR) && has_error {
+    if !markers.contains(Markers::ERROR) && has_errors {
         return Err(CheckError::UnexpectedError(render_diagnostics(&parsed, &block.source)));
     }
 
@@ -3631,9 +3646,33 @@ what it claims, not a regression.
    ```
    Remove `tree-sitter` and `tree-sitter-r` from the workspace entirely.
    `crates/biome_ungrammar/` also leaves air, since only the grammar codegen used it.
-3. **Verify the rename is invisible.** `cargo build --workspace` should pass with
-   zero changes to any `.rs` file outside the formatter. If it does not, something
-   in air was reaching into a crate-private path.
+3. **Verify the rename is invisible, then fix the one API that deliberately is
+   not.** The Cargo rename accounts for every `use` statement in air, so
+   `cargo build --workspace` should reduce to a known list of errors. Anything
+   *outside* that list means air was reaching into a crate-private path, and is
+   the thing this step exists to catch.
+
+   The known list, all of it `Parse`'s error API. `ParseError` was a
+   tree-sitter-era stand-in from when the parser could report one whole-file
+   error and nothing better; aether returns real `ParseDiagnostic`s, so the
+   struct and the methods that collapsed to it are gone:
+
+   - `into_error()` and `error()` no longer exist. One caller,
+     `workspace/src/format.rs:46`, which is the interesting one — rebuild
+     `FormatSourceError` from `into_diagnostics()` rather than from a single
+     collapsed string. That is step 5's win arriving one step early, and the
+     LSP inherits it.
+
+   - `has_error()` is now `has_errors()`, matching `AnyParse` and every other
+     Biome parser. Six call sites, all mechanical: `workspace/src/format.rs`
+     (two), `lsp/src/handlers_format.rs` (two), `lsp/src/handlers_ext.rs`
+     (two). Do not touch `handlers_ext.rs:37` — that is tree-sitter's
+     `Node::has_error` and it leaves with tree-sitter.
+
+   - `air_r_formatter/tests/quick_test.rs:37` also calls `has_error()`.
+
+   `into_result()` had no caller in air and needs nothing.
+
 4. **Update `air_r_formatter`** for the `R_STATEMENT` wrapper and real
    semicolon tokens. Expect churn in `r/expressions/expression_list.rs` and
    `r/expressions/braced_expressions.rs` (renamed to `braced_statements.rs`) and

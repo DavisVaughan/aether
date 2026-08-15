@@ -1,5 +1,4 @@
 mod diagnostics;
-mod error;
 mod lexer;
 mod options;
 mod parse;
@@ -7,7 +6,6 @@ mod parser;
 mod syntax;
 mod token_source;
 
-pub use crate::error::ParseError;
 pub use crate::options::RParserOptions;
 pub use crate::parse::{Parse, parse, parse_with_cache};
 

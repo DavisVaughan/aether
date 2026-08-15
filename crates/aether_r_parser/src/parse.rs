@@ -1,5 +1,4 @@
 use crate::RLosslessTreeSink;
-use crate::error::ParseError;
 use crate::options::RParserOptions;
 use crate::parser::RParser;
 use aether_r_syntax::{RRoot, RSyntaxNode};
@@ -46,33 +45,14 @@ impl Parse {
         &self.diagnostics
     }
 
-    /// Returns [true] if the parser encountered some errors during the parsing.
-    pub fn has_error(&self) -> bool {
-        self.diagnostics.iter().any(ParseDiagnostic::is_error)
-    }
-
-    /// Get the error which occurred when parsing
-    ///
-    /// Collapses the diagnostics to the first error. Reach for
-    /// [`Parse::diagnostics()`] instead when all of them matter.
-    pub fn error(&self) -> Option<ParseError> {
+    /// Every diagnostic the parser emitted, consuming the result
+    pub fn into_diagnostics(self) -> Vec<ParseDiagnostic> {
         self.diagnostics
-            .iter()
-            .find(|diagnostic| diagnostic.is_error())
-            .map(ParseError::from_diagnostic)
     }
 
-    /// Get the error which occurred when parsing
-    pub fn into_error(self) -> Option<ParseError> {
-        self.error()
-    }
-
-    /// Convert this parse result into a [Result]
-    pub fn into_result(self) -> Result<RSyntaxNode, ParseError> {
-        match self.error() {
-            Some(error) => Err(error),
-            None => Ok(self.syntax()),
-        }
+    /// Returns [true] if the parser encountered some errors during the parsing.
+    pub fn has_errors(&self) -> bool {
+        self.diagnostics.iter().any(ParseDiagnostic::is_error)
     }
 }
 
@@ -105,6 +85,7 @@ pub fn parse_with_cache(text: &str, options: RParserOptions, cache: &mut NodeCac
 mod tests {
     use super::*;
     use aether_r_syntax::RSyntaxKind;
+    use biome_diagnostics::PrintDescription;
     use biome_rowan::AstNodeList;
 
     #[test]
@@ -151,12 +132,11 @@ mod tests {
         let parse = parse(source, RParserOptions::default());
         assert_eq!(parse.syntax().to_string(), source);
 
+        assert!(parse.has_errors());
         assert_eq!(parse.diagnostics().len(), 1);
-        assert!(parse.has_error());
         assert_eq!(
-            parse.error().unwrap().to_string(),
+            PrintDescription(&parse.diagnostics()[0]).to_string(),
             "Unterminated backtick-quoted name."
         );
-        assert!(parse.into_result().is_err());
     }
 }

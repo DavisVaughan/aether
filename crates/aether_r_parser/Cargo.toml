@@ -15,10 +15,12 @@ publish = false
 [dependencies]
 aether_r_factory = { workspace = true }
 aether_r_syntax = { workspace = true }
-biome_diagnostics = { workspace = true }
 biome_parser = { workspace = true }
 biome_rowan = { workspace = true }
 unicode-ident = { workspace = true }
+
+[dev-dependencies]
+biome_diagnostics = { workspace = true }
 
 [lints]
 workspace = true
