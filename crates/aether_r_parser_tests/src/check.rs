@@ -22,8 +22,6 @@ pub enum CheckError {
 pub fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
     let parsed = parse(&block.source, RParserOptions::default());
 
-    // Invariant 1, and "for ALL inputs" is meant literally: a `[pending]`
-    // block exercises recovery hardest, so it is where a token goes missing
     let round_tripped = parsed.syntax().to_string();
     if round_tripped != block.source {
         return Err(CheckError::RoundTrip {
