@@ -15,7 +15,6 @@ pub(crate) struct RParser<'src> {
     context: ParserContext<RSyntaxKind>,
     source: RTokenSource<'src>,
     options: RParserOptions,
-
     newlines: Newlines,
     else_clause: ElseClause,
 }
