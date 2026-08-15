@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use crate::document::{Block, Cell, Markers};
 use aether_r_parser::{RParse, RParserOptions, parse};
 use aether_r_syntax::{RSyntaxNode, TextRange};
@@ -131,6 +134,3 @@ pub fn render_diagnostics(parse: &RParse, source: &str) -> String {
     trimmed.push('\n');
     trimmed
 }
-
-#[cfg(test)]
-mod tests;
