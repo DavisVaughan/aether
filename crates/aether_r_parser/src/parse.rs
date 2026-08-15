@@ -82,12 +82,6 @@ pub fn parse(text: &str, options: RParserOptions) -> RParse {
 
 /// Parses `text`, structurally sharing what it can with the trees already in
 /// `cache`
-///
-/// Private until something wants to reuse a cache across files. [`TreeBuilder`]
-/// owns one either way, so the only thing an external cache buys is sharing
-/// *between* parses.
-///
-/// [`TreeBuilder`]: biome_rowan::TreeBuilder
 fn parse_with_cache(text: &str, options: RParserOptions, cache: &mut NodeCache) -> RParse {
     let mut parser = RParser::new(text, options);
     crate::syntax::parse_root(&mut parser);
