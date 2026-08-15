@@ -75,6 +75,7 @@ impl From<RParse> for AnyParse {
     }
 }
 
+/// Parses `text`
 pub fn parse(text: &str, options: RParserOptions) -> RParse {
     let mut cache = NodeCache::default();
     parse_with_cache(text, options, &mut cache)
