@@ -1160,7 +1160,7 @@ pub fn parse(text: &str, options: RParserOptions) -> RParse {
     parse_with_cache(text, options, &mut cache)
 }
 
-pub fn parse_with_cache(text: &str, options: RParserOptions, cache: &mut NodeCache) -> RParse {
+fn parse_with_cache(text: &str, options: RParserOptions, cache: &mut NodeCache) -> RParse {
     let mut parser = RParser::new(text, options);
     crate::syntax::parse_root(&mut parser);
     let (events, trivia, diagnostics) = parser.finish();
@@ -1200,7 +1200,13 @@ current code deliberately discards with a comment saying they "go into the
 tree-sink but come right back out." That comment is correct for the tree-sitter
 path; for us they are real.
 
-Also add `parse_with_cache` — air's LSP will want it, and it costs nothing now.
+`parse_with_cache` stays private. Air has no `NodeCache` caller of its own and
+its LSP re-parses whole documents, so exporting it would be guessing at a
+consumer. Note it buys less than the name suggests in any case: `TreeBuilder`
+owns a `NodeCache` whether or not one is passed in, so interning within a single
+parse already happens, and an external cache adds only sharing *between* parses.
+Make it `pub` when something reuses one across files, which is a one-word change
+and a swap-in concern rather than a Phase 5 one.
 
 ### 9.4 Diagnostics
 
