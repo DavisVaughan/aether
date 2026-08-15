@@ -16,10 +16,9 @@ pub enum CheckError {
     UndiagnosedBogusNode { ranges: Vec<TextRange>, ast: String },
 }
 
-/// One block, one parse
+/// One code block to check
 ///
-/// `markers` come from the enclosing heading and apply identically to every
-/// block under it.
+/// Emits CST and diagnostic cells to write in the snapshot
 pub fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
     let parsed = parse(&block.source, RParserOptions::default());
 
