@@ -35,7 +35,7 @@ pub struct Block {
 /// A cell the harness produces, in snapshot files only
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Cell {
-    /// The typed AST view, which is the one worth reviewing
+    /// The CST view
     Cst(String),
     /// The raw `SyntaxNode` view, opt-in per block
     CstRaw(String),
