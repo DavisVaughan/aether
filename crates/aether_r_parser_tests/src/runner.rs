@@ -95,9 +95,6 @@ fn render_failure(error: &CheckError) -> String {
         CheckError::UnexpectedError(diagnostics) => {
             format!("Expected a clean parse, but:\n\n{diagnostics}")
         }
-        CheckError::MissingRequired(ast) => {
-            format!("A required slot is missing in a clean test:\n\n{ast}\n")
-        }
         CheckError::BogusNodes(ast) => {
             format!("Bogus nodes in a clean test:\n\n{ast}\n")
         }

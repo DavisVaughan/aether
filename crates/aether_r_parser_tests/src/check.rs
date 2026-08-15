@@ -3,7 +3,7 @@ use aether_r_parser::{RParse, RParserOptions, parse};
 use aether_r_syntax::{RSyntaxNode, TextRange};
 use biome_diagnostics::Diagnostic;
 use biome_parser::diagnostic::ParseDiagnostic;
-use biome_rowan::{Language, SyntaxKind, SyntaxNode, SyntaxSlot};
+use biome_rowan::{SyntaxKind, SyntaxNode};
 
 #[derive(Debug)]
 pub enum CheckError {
@@ -11,7 +11,6 @@ pub enum CheckError {
     UnexpectedlyPasses,
     ExpectedError,
     UnexpectedError(String),
-    MissingRequired(String),
     BogusNodes(String),
     UndiagnosedBogusNode { ranges: Vec<TextRange>, ast: String },
 }
@@ -32,7 +31,7 @@ pub fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
     }
 
     let has_errors = parsed.has_errors();
-    let has_bogus = has_bogus_nodes_or_empty_slots(&parsed.syntax());
+    let has_bogus = has_bogus_nodes_or_missing_required_children(&ast, &parsed.syntax());
 
     if markers.contains(Markers::PENDING) {
         if !has_errors && !has_bogus {
@@ -53,11 +52,6 @@ pub fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
             )));
         }
 
-        // `has_bogus_nodes_or_empty_slots` only inspects empty slots of *list*
-        // nodes, so a missing required slot elsewhere needs the string
-        if ast.contains("missing (required)") {
-            return Err(CheckError::MissingRequired(ast));
-        }
         if has_bogus {
             return Err(CheckError::BogusNodes(ast));
         }
@@ -111,25 +105,8 @@ fn undiagnosed_bogus_nodes(
         .collect()
 }
 
-/// Copied from air's `crates/air_r_parser/tests/spec_test.rs`
-///
-/// The empty-slot half only covers list nodes, which is why [`check()`] greps
-/// for `missing (required)` as well
-fn has_bogus_nodes_or_empty_slots<L: Language>(node: &SyntaxNode<L>) -> bool {
-    node.descendants().any(|descendant| {
-        let kind = descendant.kind();
-        if kind.is_bogus() {
-            return true;
-        }
-
-        if kind.is_list() {
-            return descendant
-                .slots()
-                .any(|slot| matches!(slot, SyntaxSlot::Empty { .. }));
-        }
-
-        false
-    })
+fn has_bogus_nodes_or_missing_required_children(ast: &str, root: &RSyntaxNode) -> bool {
+    ast.contains("missing (required)") || root.descendants().any(|node| node.kind().is_bogus())
 }
 
 pub fn render_diagnostics(parse: &RParse, source: &str) -> String {
