@@ -57,9 +57,9 @@ fn an_error_block_must_error() {
     assert!(matches!(error, CheckError::ExpectedError));
 }
 
-/// `[deviation]` only speaks to the oracle, so it changes nothing here
+/// `[deviation]` changes nothing here
 #[test]
-fn deviation_is_orthogonal() {
+fn deviation_changes_nothing() {
     let cells = check(&block(CLEAN), Markers::DEVIATION).expect("parses cleanly");
 
     assert!(matches!(cells.as_slice(), [Cell::Cst(_)]));
