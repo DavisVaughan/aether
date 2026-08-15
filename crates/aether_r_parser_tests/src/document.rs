@@ -39,7 +39,7 @@ pub enum Cell {
     Cst(String),
     /// Rendered diagnostics
     Diagnostics(String),
-    /// The whole output for a `[pending]` block
+    /// Output for a `[pending]` section's block
     Pending,
 }
 
