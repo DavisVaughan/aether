@@ -79,21 +79,12 @@ fn test_parse_trivia_trailing_test() {
         trivia("1 + \n1"),
         vec![ws(1, 2, Pos::Trailing), ws(3, 4, Pos::Trailing), nl(4, 5)],
     );
-}
 
-/// The twin of [`test_parse_trivia_trailing_test`]: the same
-/// whitespace-before-a-newline, and the asymmetry of whether a token follows
-/// later in the file does not reach it
-#[test]
-fn test_parse_trivia_trailing_trivia_test() {
     assert_eq_trivia(
         trivia("1  \n "),
         vec![ws(1, 3, Pos::Trailing), nl(3, 4), ws(4, 5, Pos::Leading)],
     );
-}
 
-#[test]
-fn test_parse_trivia_trailing_crlf_test() {
     assert_eq_trivia(
         trivia("1 + \r\n1"),
         vec![ws(1, 2, Pos::Trailing), ws(3, 4, Pos::Trailing), nl(4, 6)],
