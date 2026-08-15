@@ -25,7 +25,7 @@ pub enum Element {
     Block(Block),
 }
 
-/// One ```` ```r ```` cell and the cells generated from it
+/// One R code cell and the CST and diagnostic cells generated from it
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Block {
     pub source: String,
