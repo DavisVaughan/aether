@@ -16,12 +16,7 @@ pub(crate) struct RParser<'src> {
     source: RTokenSource<'src>,
     options: RParserOptions,
 
-    /// What a line break means here. Saved and restored by
-    /// [`RParser::with_newlines`] and [`RParser::with_braces`].
     newlines: Newlines,
-
-    /// Whether an `else` may follow a line break. Saved and restored by
-    /// [`RParser::with_braces`], which is the only thing that sets it.
     else_clause: ElseClause,
 }
 
