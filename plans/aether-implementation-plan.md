@@ -190,11 +190,10 @@ aether/
     │       ├── lexer/
     │       │   ├── tests.rs       # the assert_lex! family + `mod` declarations
     │       │   └── tests/         # one file per dispatch arm — see §8.6
-    │       │
-    │       ├── parse.rs           # ← Phase 5: public `parse()` entry point
-    │       ├── options.rs         # ← Phase 5
-    │       ├── token_source.rs    # ← Phase 5: RTokenSource
-    │       ├── parser.rs          # ← Phase 5: RParser + context flags
+    │       ├── parse.rs           # public `parse()` entry point, `RParse`
+    │       ├── options.rs
+    │       ├── token_source.rs    # RTokenSource; `#[cfg(test)] mod tests;`
+    │       ├── parser.rs          # RParser + the two context enums
     │       ├── syntax.rs          # ← Phase 7 onward
     │       └── syntax/
     │           ├── expr.rs        # Pratt loop, primary exprs
@@ -229,9 +228,9 @@ aether/
             └── treesitter.rs      # vendored air parse.rs walker
 ```
 
-Everything above the `← Phase N` markers exists. The parser crate currently holds
-the lexer and its diagnostics and nothing else; `lib.rs` carries an
-`#[allow(dead_code)]` on both modules until `RTokenSource` drives them in Phase 5.
+Everything without a `← Phase N` marker exists. `syntax.rs` holds only
+`parse_root` and an empty statement list, and the modules under it arrive with
+the features they parse.
 
 ---
 
@@ -248,7 +247,7 @@ the scaffolding.
    tests. This is a deliberate local step — the oracle is feature-gated and CI
    does not run it (§10.4.1).
 
-Phases 1–4 have landed. Their sections below are compressed to the decisions
+Phases 1–5 have landed. Their sections below are compressed to the decisions
 later phases depend on; the repo, `docs/deviations.md`, and the code's own
 comments are the source of truth for everything else.
 
@@ -258,7 +257,7 @@ comments are the source of truth for everything else.
 | 2 | Vendor + rename syntax layer | `just codegen` reproduces `aether_r_syntax` + `aether_r_factory`, identical to air's modulo the rename | ✅ |
 | 3 | Grammar deviations | `.ungram` + kinds updated, regenerated, documented | ✅ |
 | 4 | Lexer | Standalone `RLexer`, plus seventeen `#[cfg(test)]` token-stream test files under `src/lexer/tests/` (§8.6) | ✅ |
-| 5 | Parser scaffolding | `RParser`, `RTokenSource`, diagnostics, `parse()` returns an empty `R_ROOT` | |
+| 5 | Parser scaffolding | `RParser`, `RTokenSource`, diagnostics, `parse()` returns an empty `R_ROOT` | ✅ |
 | 6 | Test harness + corpus import | All 89 tree-sitter tests imported as `[pending]`; oracle wired up | |
 | 7 | Literals, identifiers, program | `1`, `"a"`, `foo`, `TRUE`, `NA_integer_`, `..1`, `...` | |
 | 8 | Binary & unary operators | The Pratt core, precedence table, newline sensitivity | |
@@ -725,501 +724,176 @@ rather than excusing the kind, which is what keeps the guard total.
 
 ---
 
-## 9. Phase 5 — Parser scaffolding
+## 9. Phase 5 — Parser scaffolding — LANDED
 
-No R grammar yet. Just the machinery, ending with `parse("")` returning a valid
-empty `R_ROOT`.
+`RTokenSource`, `RParser`, the public `RParse` / `parse()`, and a `parse_root`
+that eats an optional `UNICODE_BOM`, opens and closes an empty
+`R_STATEMENT_LIST`, and completes `R_ROOT`. No R grammar yet — Phase 7 fills the
+list. The code is the source of truth; what follows is the contract the parser
+phases are written against.
 
 ### 9.1 `RTokenSource`
 
-```rust
-// crates/aether_r_parser/src/token_source.rs
-use crate::lexer::{RLexContext, RLexer, RReLexContext};
-use aether_r_syntax::RSyntaxKind::{self, *};
-use biome_parser::lexer::{BufferedLexer, LexerCheckpoint};
-use biome_parser::prelude::{TokenSource, Trivia, BumpWithContext, TokenSourceWithBufferedLexer};
-use biome_rowan::{TextRange, TriviaPieceKind};
+**The trivia rule, in one sentence:** trivia trails the token before it until a
+newline is seen, and leads the token after it from the newline onward; before the
+first token of the file, everything leads. `\r\n` is one piece. That is
+`JsTokenSource`'s rule — one latching bool, no lookahead, nothing buffered — and
+it is where aether's tree diverges from air's, which attaches whitespace leading.
+**Deviation 10 carries the whole argument**: the exact scope (whitespace only,
+never comments or newlines), the audit of air's consumers, and the oracle
+normalization that keeps coverage despite it. Do not restate it here.
 
-pub(crate) struct RTokenSource<'src> {
-    lexer: BufferedLexer<RSyntaxKind, RLexer<'src>>,
-    trivia: Vec<Trivia>,
-}
-
-impl<'src> RTokenSource<'src> {
-    pub fn from_str(source: &'src str) -> Self {
-        let lexer = BufferedLexer::new(RLexer::from_str(source));
-        let mut source = Self { lexer, trivia: Vec::new() };
-        source.next_non_trivia_token(RLexContext::default(), true);
-        source
-    }
-
-    fn next_non_trivia_token(&mut self, context: RLexContext, first: bool) {
-        // Everything up to the first newline trails the preceding token; the
-        // newline and everything after it leads the next one. One latching
-        // bool, no lookahead, no buffering, no allocation.
-        //
-        // This is `JsTokenSource::next_non_trivia_token` with R's three trivia
-        // kinds substituted for its `TriviaPieceKind::try_from`. Air's rule is
-        // different and aether deliberately does not copy it — see below.
-        let mut trailing = !first;
-
-        loop {
-            let trivia_kind = match self.lexer.next_token(context) {
-                WHITESPACE => TriviaPieceKind::Whitespace,
-                NEWLINE    => TriviaPieceKind::Newline,
-                COMMENT    => TriviaPieceKind::SingleLineComment,
-                _ => break,
-            };
-
-            // Before the push, so the newline itself leads the next token.
-            if trivia_kind.is_newline() {
-                trailing = false;
-            }
-
-            self.trivia
-                .push(Trivia::new(trivia_kind, self.lexer.current_range(), trailing));
-        }
-    }
-}
-
-impl<'src> TokenSource for RTokenSource<'src> {
-    /// Delegate; keep no copy. `BufferedLexer` stores a `LexerCheckpoint` per
-    /// cached lookahead token and reads the flag off *that* when lookahead is
-    /// live, so delegation stays correct under `nth()`. A field maintained here
-    /// in `next_non_trivia_token` would not — it would describe whichever token
-    /// was last pulled through this function, not the current one.
-    ///
-    /// `JsTokenSource` is one line, and so is this.
-    fn has_preceding_line_break(&self) -> bool {
-        self.lexer.has_preceding_line_break()
-    }
-
-    // ... cur, cur_range, bump, skip_as_trivia, finish
-}
-```
-
-**The whole rule, in one sentence:** trivia is trailing of the token before it
-until a newline is seen, and leading of the token after it from the newline
-onward; before the first token of the file, everything is leading. `\r\n` is one
-piece. That is every Biome parser's rule, it needs no lookahead, and it is why
-the function above is twelve lines.
-
-#### Why this deviates from air
-
-Air's rule is different, and richer: whitespace between two same-line tokens is
-**leading** of the following token, and whitespace before a newline is trailing
-or leading depending on whether any token follows later in the file (`1 + \n1`
-vs. `1  \n `). Reproducing it costs a one-piece lookahead, a deferred decision
-patched after the terminator is known, and roughly sixty lines. **Aether does not
-reproduce it.** Deviation 10 in `docs/deviations.md` carries the full argument;
-what matters here is the scope, because it is much narrower than it sounds.
-
-**Only whitespace ever moves.** Air's rule and JS's agree exactly on the other
-two kinds, and the agreement is by inspection rather than by luck:
-
-- **Comments.** Air is trailing iff `!seen_newline && !first`, including its
-  deliberate use of `!first` rather than `between_two_tokens` in the final gap so
-  that `1 #` ends with a trailing comment. The latching bool computes the same
-  predicate.
-- **Newlines.** Leading under both — air has an explicit `Newline => false`, and
-  JS latches before the push.
-
-So the delta is confined to `Whitespace` pieces, and within those, to the ones
-that do *not* tail the line:
-
-| Input | Air | Aether |
-|---|---|---|
-| `1 + 2` | `ws` leading of `+`, `ws` leading of `2` | `ws` trailing of `1`, `ws` trailing of `+` |
-| `1 + \n1` | `ws` **leading**, `ws` trailing, `nl` | `ws` trailing, `ws` trailing, `nl` |
-| `1  \n ` | `ws` **leading**, `nl`, `ws` leading | `ws` trailing, `nl`, `ws` leading |
-| `1 #` | `ws` trailing, `cmt` trailing | identical |
-| `1 # c\n2` | `ws` trailing, `cmt` trailing, `nl` | identical |
-
-**Nothing in air reads the difference.** Audited rather than assumed, and the
-audit is what makes this safe to land before the swap:
-
-- `has_leading_newline()` has six call sites in air's formatter
-  (`if_statement.rs:200,217,223`, `function_definition.rs:154`,
-  `parameters.rs:121`, `binary_expression.rs:470,927`) and they are genuinely
-  user-visible — they decide whether a binary expression breaks and whether
-  `else` gets its own line. All unaffected: the newline piece is leading under
-  both rules.
-- `lsp/src/handlers_format.rs:169` (`text_non_whitespace_range`) walks both
-  trivia lists but skips whitespace and newline pieces explicitly; it is looking
-  for comments.
-- Nothing else in air reads trivia polarity. `air_r_syntax/src/lib.rs:322` is
-  kind mapping, and `air_r_formatter/src/comments.rs` reads none of it.
-
-Re-run that audit at swap-in rather than trusting this list — §12.3 step 7 is
-where it gets settled for real, by air's formatter snapshot suite.
-
-#### The ported trivia tests
-
-Air ships eight `test_parse_trivia_*` unit tests. **Port all eight, and flip the
-expectations that the rule change moves** — they remain the cheapest guard
-against silent drift, they just now pin aether's rule instead of air's. The four
-that pin the sentence above:
-
-| Input | Expected |
-|---|---|
-| `1 + \n1` | `ws` trailing, `ws` trailing, `nl` |
-| `1 #` | `ws` trailing, `cmt` trailing |
-| `1  \n ` | `ws` trailing, `nl`, `ws` leading |
-| `1 + \r\n1` | `ws` trailing, `ws` trailing, `nl` spanning both bytes |
-
-Only row 2 is unchanged from air. Rows 1, 3, and 4 move, and 1 and 3 are the pair
-worth staring at: under air's rule the same whitespace-before-a-newline is
-trailing in one and leading in the other, purely because a token follows later in
-the file. Under this rule both are trailing and the asymmetry stops existing —
-which is the readability argument for the change, independent of the line count.
-Row 4 is row 1's CRLF twin and moves with it.
-
-Note what the flip costs: these tests no longer assert agreement with an
+Air's `test_parse_trivia_*` tests are ported into `token_source/tests.rs`, with
+the three expectations the deviation moves flipped (`1 + \n1`, `1  \n `, and the
+CRLF twin). Note what the flip costs: they no longer assert agreement with an
 independent implementation, only that aether does not change its mind. The
-external check moves to the oracle (§10.4), which normalizes the polarity away
-and so keeps comparing everything else.
+external check is the oracle (§10.4).
 
-Implement `BumpWithContext` (for string lexing) and `TokenSourceWithBufferedLexer`
-(which gives `NthToken` lookahead automatically).
+**`has_preceding_line_break()` delegates to the lexer and keeps no copy.**
+`BufferedLexer` stores a `LexerCheckpoint` per cached lookahead token and reads
+the flag off *that* one, so delegation stays correct under `nth()`. A field
+maintained here in `next_non_trivia_token()` would not — it would describe
+whichever token was last pulled through that function rather than the current one.
+A lookahead-then-bump test pins it.
 
-#### 9.1.1 Handing the string delimiter to the parser
+`skip_as_trivia_with_context()` resumes as if at the start of the file, so trivia
+after a skipped token leads the next token instead of trailing what was skipped.
+Phase 14's recovery is what produces those pieces.
 
-The lexer keeps no memory of the string it opened (§8.2.1), so the delimiter
-`RLexContext::StringContent` and `RLexContext::StringEnd` name has to come from
-the caller. That caller is `parse_string_value` (§11.1), and it needs no help
-from either `RTokenSource` or `RParser` to get it:
+`BumpWithContext` is what carries `RLexContext` down for string bodies, and
+`TokenSourceWithBufferedLexer` supplies `NthToken` lookahead for free.
+
+#### 9.1.1 The string delimiter comes from the token text
+
+The lexer keeps no memory of the string it opened (§8.2.1), so the delimiter is
+named by the caller, which is `parse_string_value` (§11.1):
 
 ```rust
 let delimiter = RStringDelimiter::from_open(p.cur_text());
 ```
 
-**Neither type gets a `string_delimiter()` method.** Verified at the pinned rev
-rather than assumed — `Parser::cur_text()` is *provided*, and its body is already
-the whole of what such a method would do:
-
-```rust
-// biome_parser/src/lib.rs
-fn cur_text(&self) -> &str {
-    &self.source().text()[self.cur_range()]
-}
-```
-
-So a `RTokenSource::string_delimiter()` would hand-roll `cur_text()` out of
-`TokenSource::text()` and `current_range()`, and `RParser` would then forward it
-— two methods and a hop to reach an accessor `RParser` already has for free from
-the trait it implements.
-
-The token source has no *internal* use for the delimiter either, which is what
-makes this clear-cut rather than a toss-up. `BumpWithContext::bump_with_context`
-takes the context as an argument, so the context always flows parser → token
-source; the token source never derives one. A method there would exist solely to
+**Neither `RTokenSource` nor `RParser` has a `string_delimiter()` method**, and
+neither should grow one. `Parser::cur_text()` is provided, and its body is already
+the whole of what such a method would do. The token source has no internal use for
+a delimiter either: `bump_with_context` takes the context as an argument, so
+context only ever flows parser → source, and a method there would exist solely to
 be forwarded out again.
 
-The reading itself belongs to `RStringDelimiter` (§8.2.1) — the caller's job is
-to know *which* token to read, and the delimiter's job is to know what its own
-text looks like. The §8.6 test driver calls the same `from_open`, so the two
-stand-ins for it cannot drift.
-
-Three properties worth knowing before writing `parse_string_value`:
-
-- **It is total.** Called behind `at(STRING_OPEN)` there is no failure case to
-  handle: `from_open`'s raw fallback `expect` is unreachable, because the lexer
-  only emitted the token by parsing the same bytes successfully. That guard is
-  already the function's first line, so no `debug_assert` is needed beside the
-  call.
-
-- **It is stateless.** Nothing is remembered between the three bumps, so a
-  checkpoint taken anywhere in a string and rewound to is as good as any other
-  position — `RTokenSource` gains no field, and its checkpoint stays a delegation
-  to `BufferedLexer`'s.
-
-- **It costs one text slice per string,** and re-reads a prefix the lexer already
-  walked. That is the price of the lexer being a pure function of position and
-  context, and it is a few bytes on the open token, not on the body.
-
-Do **not** thread the delimiter through `RParser` state, and do not look it up
-again at `STRING_CONTENT` — that token's text is the body, not a delimiter.
-`parse_string_value` reads it once, at the open, and passes the same value to
-both bumps.
+Behind `at(STRING_OPEN)` the call is total — the lexer emitted that token by
+parsing the same bytes successfully — so it needs no guard beside it, and it is
+stateless, so a checkpoint taken anywhere inside a string is as good as any other.
+Read the delimiter once at the open and pass it to both bumps. Do not thread it
+through `RParser` state, and do not look it up again at `STRING_CONTENT`, whose
+text is the body rather than a delimiter.
 
 ### 9.2 `RParser`
 
-```rust
-// crates/aether_r_parser/src/parser.rs
-use crate::token_source::RTokenSource;
-use aether_r_syntax::RSyntaxKind;
-use biome_parser::diagnostic::merge_diagnostics;
-use biome_parser::event::Event;
-use biome_parser::prelude::*;
-use biome_parser::ParserContext;
+Two `Copy` context fields — `newlines: Newlines` and `else_clause: ElseClause` —
+plus the helpers that scope them.
 
-pub(crate) struct RParser<'src> {
-    context: ParserContext<RSyntaxKind>,
-    source: RTokenSource<'src>,
-    options: RParserOptions,
-    /// What a line break means here. Saved and restored by `with_newlines` and
-    /// `with_braces`.
-    newlines: Newlines,
-    /// Whether an `else` may follow a line break. Saved and restored by
-    /// `with_braces`, which is the only thing that sets it.
-    else_clause: ElseClause,
-}
+**The polarity of `Newlines`'s `#[default]` is deliberate, and the code does not
+say why.** A forgotten `with_newlines` leaves `Significant`, which produces a
+spurious statement break: a loud parse error at the first multi-line call in the
+corpus. The inverse default fails silently instead — `1\n+2` would quietly become
+one expression rather than two statements, a wrong tree with no diagnostic, which
+the round-trip assertion does not catch either.
 
-/// What a line break means at the current position
-///
-/// **Polarity is deliberate, and `#[default]` is where it is enforced.** A
-/// forgotten `with_newlines` leaves `Significant`, which produces a spurious
-/// statement break — a loud parse error at the first multi-line call in the
-/// corpus. The inverse default fails silently instead: `1\n+2` would quietly
-/// become one expression rather than two statements, a wrong tree with no
-/// diagnostic that the round-trip assertion does not catch either.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub(crate) enum Newlines {
-    /// Top level and inside `{`. A line break ends the current expression.
-    #[default]
-    Significant,
-    /// Inside `(`, `[`, or `[[`, where newlines carry no meaning — R's parser
-    /// eats them, and so does tree-sitter-r's external scanner
-    /// (`consume_whitespace_and_ignored_newlines`).
-    Ignored,
-}
+- **`with_newlines(newlines, f)`** saves and restores `newlines`. Eight callers,
+  one per construct that eats newlines: `f(…)`, `x[…]`, `x[[…]]`, `(…)`, the `if`
+  and `while` conditions, the `for` header, and a parameter list.
 
-/// Whether an `else` may follow a line break
-///
-/// R permits `else` on a line after the consequence only within braces; at top
-/// level the newline ends the `if` and the `else` is a syntax error. Named for
-/// what it licenses rather than for the `{` that sets it, because it has
-/// exactly one reader (`parse_else_clause`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub(crate) enum ElseClause {
-    #[default]
-    SameLineOnly,
-    MayFollowNewline,
-}
+- **`with_braces(f)`** owns both fields, because braces are the one construct that
+  changes both and changes them in opposite directions: a line break inside braces
+  is significant *again* even when the braces sit inside a paren
+  (`f({\n  a\n  b\n})`), and an `else` may follow one. Owning the pair here rather
+  than at the call site is what stops the two from being restated — or set
+  inconsistently — by whatever else learns to parse a block.
 
-impl<'src> Parser for RParser<'src> {
-    type Kind = RSyntaxKind;
-    type Source = RTokenSource<'src>;
-    fn context(&self) -> &ParserContext<Self::Kind> { &self.context }
-    fn context_mut(&mut self) -> &mut ParserContext<Self::Kind> { &mut self.context }
-    fn source(&self) -> &Self::Source { &self.source }
-    fn source_mut(&mut self) -> &mut Self::Source { &mut self.source }
-}
+- **`at_statement_break()`** is the single predicate for newline significance.
+  Both of the language's newline rules, statement termination and `else`
+  attachment, funnel through it; nothing else reads `newlines`. Three callers: the
+  Pratt loop (§11.2), `parse_postfix` (§11.3), and `parse_else_clause` (§11.6).
 
-impl<'src> RParser<'src> {
-    /// Run `f` with `newlines` in effect, restoring the previous value after.
-    ///
-    /// Eight callers, one per construct that eats newlines: `f(…)`, `x[…]`,
-    /// `x[[…]]`, `(…)`, the `if` and `while` conditions, the `for` header, and a
-    /// parameter list.
-    pub(crate) fn with_newlines<F, R>(&mut self, newlines: Newlines, f: F) -> R
-    where F: FnOnce(&mut Self) -> R {
-        let saved = std::mem::replace(&mut self.newlines, newlines);
-        let result = f(self);
-        self.newlines = saved;
-        result
-    }
-
-    /// Run `f` inside `{ … }`, restoring both fields after.
-    ///
-    /// Braces are the one construct that changes both, and they change them in
-    /// opposite directions: a line break inside braces is significant *again*,
-    /// even when the braces sit inside a paren (`f({\n  a\n  b\n})`), and an
-    /// `else` may follow one. Owning the pair here rather than at the call site
-    /// is what stops the two from being restated — or set inconsistently — by
-    /// whatever else learns to parse a block.
-    pub(crate) fn with_braces<F, R>(&mut self, f: F) -> R
-    where F: FnOnce(&mut Self) -> R {
-        let saved = (self.newlines, self.else_clause);
-        self.newlines = Newlines::Significant;
-        self.else_clause = ElseClause::MayFollowNewline;
-        let result = f(self);
-        (self.newlines, self.else_clause) = saved;
-        result
-    }
-
-    /// True when a newline before an `else` is tolerated because we are inside
-    /// braces. The only reader is `parse_else_clause` (§11.6); everything else
-    /// asks `at_statement_break()`. An accessor rather than a public field, so
-    /// that "exactly one reader" is enforced by privacy rather than by hope.
-    pub(crate) fn else_clause_may_follow_newline(&self) -> bool {
-        self.else_clause == ElseClause::MayFollowNewline
-    }
-
-    /// True when a newline before the current token should end the current
-    /// expression. False inside `(`/`[`/`[[`.
-    ///
-    /// The single predicate for newline significance. Both newline rules in the
-    /// language — statement termination and `else` attachment — funnel through
-    /// it; nothing else should read `newlines` directly.
-    pub(crate) fn at_statement_break(&self) -> bool {
-        self.newlines == Newlines::Significant && self.has_preceding_line_break()
-    }
-
-    pub(crate) fn finish(self) -> (Vec<Event<RSyntaxKind>>, Vec<Trivia>, Vec<ParseDiagnostic>) {
-        let (trivia, lexer_diagnostics) = self.source.finish();
-        let (events, parse_diagnostics) = self.context.finish();
-        let diagnostics = merge_diagnostics(lexer_diagnostics, parse_diagnostics);
-        (events, trivia, diagnostics)
-    }
-}
-```
+- **`else_clause_may_follow_newline()`** has exactly one reader,
+  `parse_else_clause` (§11.6). `ElseClause` is private to `parser.rs`, so that
+  stays enforced by privacy rather than by hope.
 
 #### 9.2.1 Why two enums and not a bitflags set
 
-Checked against every Biome parser at the pinned rev, because the obvious
-reach here is `bitflags` and it is the wrong size of tool.
+Checked against every Biome parser at the pinned rev, because the obvious reach
+here is `bitflags` and it is the wrong size of tool. `biome_js_parser` is the only
+parser that uses flags for context, and the reasons it documents on
+`ParsingContextFlags` are both about scale: masks that name several flags at once
+(`FUNCTION_RESET_MASK`), and a whole context snapshotting into one word.
+`biome_css_parser` is the parser at *aether's* scale, with two context fields, and
+it uses plain fields with `std::mem::replace`. Nothing exists in between — graphql,
+html, yaml, json, and grit carry no parse context at all. At two fields neither of
+JS's reasons survives, and what the enums buy back is that the safe default is
+*named* rather than being "the empty set".
 
-`biome_js_parser` is the only parser that uses flags for context, and it
-documents why on `ParsingContextFlags`: bit masks let it say which state is
-inherited across a boundary, and a whole context snapshots into one word instead
-of field by field. Both reasons are about scale, and JS is at that scale — eight
-flags, plus `FUNCTION_RESET_MASK` and `PARAMETER_RESET_MASK` naming six and five
-of them at once.
+**A closure and not an RAII guard.** JS has both and uses the closure seventeen
+times against the guard's one; its single guard site is `parse_class`, where the
+state applies to the remaining ninety lines of the function. Aether has no site of
+that shape — all nine are one call bracketed by a `bump` and an `expect`.
 
-`biome_css_parser` is the parser at *aether's* scale, with two context fields
-(`speculative_parsing`, `is_nesting_block`), and it uses plain fields with
-`std::mem::replace`. No parser in between exists — graphql, html, yaml, json,
-and grit carry no parse context at all.
+**Stored state and not a threaded parameter.** JS splits deliberately between
+`ExpressionContext`, passed down, and `ParsingContextFlags`, stored, and the split
+is the lesson: fine-grained context that changes within one expression is a
+parameter, while coarse context that changes at construct boundaries and is read
+at arbitrary depth lives on the state. R's two are unambiguously the second kind,
+so threading either would touch every parse function in the crate.
 
-At two, neither of JS's reasons survives: there is no mask worth naming, and a
-snapshot is two `Copy` fields instead of one. What the enums buy back is that
-the safe default is *named* rather than being "the empty set", which is the one
-property §9.2 above most wants to be obvious. It also keeps `bitflags` out of
-`aether_r_parser`, which does not otherwise depend on it — the plan's other
-bitflags use is `Markers` (§10.2), a genuine combining set, in the test crate.
+That the helpers earn their place at all, where CSS ships without one, comes down
+to the call-site count and a failure mode: `at_statement_break()` is consulted
+several frames below whatever set the field, so a leaked value does not crash — it
+silently changes how newlines are read for the rest of the parse and yields a
+wrong tree that still round-trips. That is the one class of bug neither invariant
+1 nor the harness catches.
 
-**A closure and not an RAII guard.** JS has both — `with_state(change, f)` and
-`with_scoped_state(change)` returning a `Drop` guard that derefs to the parser —
-and uses the closure seventeen times against the guard's one. The single guard
-site is `parse_class`, where strict mode applies to the remaining ninety lines
-of the function and a closure would mean wrapping the whole body. Aether has no
-site of that shape: all nine are one call bracketed by a `bump` and an `expect`,
-so the guard would be machinery with no caller.
+### 9.3 `RParse` — Biome's shape, not air's
 
-**Stored state and not a threaded parameter.** JS's other model is
-`ExpressionContext`, passed down rather than stored, which makes leaking
-impossible by construction. JS splits deliberately, and the split is the lesson:
-fine-grained context that changes within one expression is a parameter, while
-coarse context that changes at construct boundaries and is read at arbitrary
-depth lives on the state. R's two are unambiguously the second kind —
-`else_clause` is set by `{` and read by a `parse_else_clause` that may sit
-inside any number of nested `if`s, and `newlines` is read by the Pratt loop at
-every level — so threading either would touch every parse function in the crate
-rather than just the expression chain.
+The name matches `CssParse`, `JsonParse`, and the rest of the family;
+`biome_js_parser`'s bare `Parse<T>` is Biome's only exception, and only because it
+is generic over its root node, which `RRoot` makes moot. The method set —
+`syntax`, `tree`, `diagnostics`, `into_diagnostics`, `has_errors` — is `CssParse`
+and `AnyParse` verbatim, which is also the argument for `has_errors` over air's
+singular `has_error`.
 
-That leaves the question of whether the helpers earn their place at all, given
-CSS ships without one. The answer is the call-site count, and a failure mode:
-`at_statement_break()` is consulted several frames below whatever set the field,
-so a leaked value does not crash — it silently changes how newlines are read for
-the rest of the parse and yields a wrong tree that still round-trips. That is
-the one class of bug neither invariant 1 nor the harness catches.
-
-### 9.3 Public `parse()` — Biome's shape, not air's
-
-Air's `Parse` is consumed by its `workspace`, `lsp`, and `air_r_formatter`
-crates, so the type keeps its node accessors. It keeps neither its name nor its
-error API.
-
-**The name becomes `RParse`,** matching `CssParse`, `JsonParse`, `GraphqlParse`,
-`HtmlParse`, `YamlParse`, `GritParse`, and `MarkdownParse`, and matching every
-other type this crate exports. `biome_js_parser`'s bare `Parse<T>` is Biome's
-only exception, and only because it is generic over its root node — `Parse<JsModule>`
-and `Parse<JsScript>` need the parameter to carry what the prefix carries
-elsewhere. `RRoot` is aether's only root, so that reason does not apply.
-
-**The error API goes entirely.** Air holds `error: Option<ParseError>` — one
-formatted string for the whole file — because a tree-sitter parse either
-succeeded or it failed and there was nothing finer to report. Aether has real
-`ParseDiagnostic`s, so `ParseError` and the methods that collapsed to it go, and
-the surface becomes the one every other Biome parser already exposes.
-
-```rust
-// crates/aether_r_parser/src/parse.rs
-pub struct RParse {
-    root: SendNode,
-    diagnostics: Vec<ParseDiagnostic>,
-}
-
-impl RParse {
-    pub fn syntax(&self) -> RSyntaxNode { ... }
-    pub fn tree(&self) -> RRoot { ... }
-    pub fn diagnostics(&self) -> &[ParseDiagnostic] { &self.diagnostics }
-    pub fn into_diagnostics(self) -> Vec<ParseDiagnostic> { self.diagnostics }
-    pub fn has_errors(&self) -> bool { self.diagnostics.iter().any(|d| d.is_error()) }
-}
-
-impl From<Parse> for AnyParse {
-    fn from(parse: RParse) -> Self {
-        AnyParse::new(parse.root, parse.diagnostics)  // now genuinely useful
-    }
-}
-
-pub fn parse(text: &str, options: RParserOptions) -> RParse {
-    let mut cache = NodeCache::default();
-    parse_with_cache(text, options, &mut cache)
-}
-
-fn parse_with_cache(text: &str, options: RParserOptions, cache: &mut NodeCache) -> RParse {
-    let mut parser = RParser::new(text, options);
-    crate::syntax::parse_root(&mut parser);
-    let (events, trivia, diagnostics) = parser.finish();
-
-    let mut tree_sink = RLosslessTreeSink::with_cache(text, &trivia, cache);
-    biome_parser::event::process(&mut tree_sink, events, diagnostics);
-    let (green, diagnostics) = tree_sink.finish();
-    RParse::new(green, diagnostics)
-}
-```
-
-That method set is `CssParse`, `JsonParse`, `GraphqlParse`, `HtmlParse`,
-`YamlParse`, and `AnyParse` verbatim, which is also the argument for `has_errors`
-over air's `has_error`: the singular was air's alone, and no Biome parser uses
-it.
-
-**The cost is six mechanical call sites in air and one real one**, itemised in
-§12.3 step 3. This is the only deliberate API break in the swap. The real one,
-`workspace/src/format.rs`, is where per-diagnostic reporting starts paying, so
-the break is the point rather than a side effect.
+**Air's error API is gone entirely.** `ParseError` collapsed a whole file to one
+formatted string because a tree-sitter parse either succeeded or it failed and
+there was nothing finer to report. Aether has real `ParseDiagnostic`s, and
+`process()` now genuinely carries them through the tree sink, where air's code
+discards them with a comment saying they "go into the tree-sink but come right
+back out". **The cost is six mechanical call sites in air and one real one**,
+itemised in §12.3 step 3. This is the only deliberate API break in the swap, and
+the real site, `workspace/src/format.rs`, is where per-diagnostic reporting starts
+paying — so the break is the point rather than a side effect.
 
 Two members of the family are deliberately absent until something wants them:
+`ok(self) -> Result<RRoot, Vec<ParseDiagnostic>>`, which `biome_js_parser` has and
+no other Biome parser does and air has no caller for; and anything that collapses
+to a single error, since a consumer that genuinely needs one string can render a
+`ParseDiagnostic` through `biome_diagnostics::PrintDescription` at its own call
+site.
 
-- **`ok(self) -> Result<RRoot, Vec<ParseDiagnostic>>`**, which `biome_js_parser`
-  has and no other Biome parser does. It is the honest successor to air's
-  `into_result()` — the same shape, handing back every diagnostic instead of one
-  string — and it costs nothing to add later. Air has no caller for it today.
+`parse_with_cache` stays private. Air has no `NodeCache` caller of its own and its
+LSP re-parses whole documents, and the cache buys less than the name suggests in
+any case: `TreeBuilder` owns one whether or not one is passed in, so interning
+within a single parse already happens and an external cache adds only sharing
+*between* parses. Make it `pub` when something reuses one across files — a
+one-word change, and a swap-in concern.
 
-- **Anything that collapses to a single error.** If a consumer genuinely needs
-  one string, it renders a `ParseDiagnostic` through
-  `biome_diagnostics::PrintDescription` at its own call site. The parser
-  pre-collapsing on everyone's behalf is what `ParseError` was, and it threw away
-  the ranges that make the diagnostics worth having.
-
-Note this now *uses* the diagnostics channel through `process()`, which air's
-current code deliberately discards with a comment saying they "go into the
-tree-sink but come right back out." That comment is correct for the tree-sitter
-path; for us they are real.
-
-`parse_with_cache` stays private. Air has no `NodeCache` caller of its own and
-its LSP re-parses whole documents, so exporting it would be guessing at a
-consumer. Note it buys less than the name suggests in any case: `TreeBuilder`
-owns a `NodeCache` whether or not one is passed in, so interning within a single
-parse already happens, and an external cache adds only sharing *between* parses.
-Make it `pub` when something reuses one across files, which is a one-word change
-and a swap-in concern rather than a Phase 5 one.
+`RParse` stores a `SendNode` rather than an `RSyntaxNode`, which is the one place
+it departs from every other Biome parser. `parse.rs`'s doc-comment carries the
+reason and the `parse_is_send` test pins it.
 
 ### 9.4 Diagnostics
 
-`diagnostics.rs` holds every diagnostic constructor in the crate, and after
-Phase 4 it holds the six the lexer raises (`unterminated_backtick_identifier`,
-`unterminated_special`, `unterminated_hexadecimal`,
-`unterminated_hexadecimal_binary_exponent`, `unterminated_exponent`,
-`unexpected_character`). **Phase 5 adds none of the parser's own.** It parses
-nothing, so it has nothing to complain about, and a constructor with no caller
-is dead code carrying an `#[allow]` for anywhere from two to eight phases.
-
-What Phase 5 does here is drop the blanket `#[allow(dead_code)]` from `lib.rs`,
-since the lexer's six are now driven through `RTokenSource`.
+`diagnostics.rs` holds every diagnostic constructor in the crate, and still holds
+only the six the lexer raises — Phase 5 parses nothing, so it added none of its
+own. What it did drop is the blanket `#[allow(dead_code)]` that `lib.rs` carried
+while the lexer had no consumer; `parser.rs` carries a scoped one with a reason
+until the syntax modules drive the context helpers in Phase 7.
 
 **Each `expected_*` constructor lands in the phase that first calls it**, and is
 specified in that phase's section rather than here:
@@ -1242,14 +916,6 @@ Two rules hold across all of them, and the split above does not weaken either:
 - **Only the *specification* moves to the feature's section; the *definition*
   still goes in `diagnostics.rs`.** Splitting the file per phase would trade the
   one-file review for nothing.
-
-**Done when:** `parse("")` produces `R_ROOT` containing an empty
-`R_STATEMENT_LIST` and an `EOF` token, `parse("   \n# hi\n")` attaches the
-whitespace and comment as trivia on `EOF` with no diagnostics, and air's eight
-`test_parse_trivia_*` unit tests are ported and passing against `RTokenSource`,
-with the expectations deviation 10 moves flipped and the flip called out in the
-PR (§9.1). Do not defer that last one to a later phase — every snapshot in the
-project is downstream of it.
 
 ---
 
@@ -2164,14 +1830,14 @@ differ. Two mechanisms:
      containing a `;`.
 
    - **Whitespace attachment polarity** (deviation 10). Aether attaches
-     whitespace by `JsTokenSource`'s rule and air's walker by air's (§9.1), so
+     whitespace by `JsTokenSource`'s rule and air's walker by air's, so
      without this every file containing a space between two tokens mismatches —
      which is every file. Re-tag whitespace pieces on both trees by the same rule
      before comparing; twenty-odd lines, in a crate that is deleted at swap-in
      anyway.
 
      **Normalize only `Whitespace` pieces, never comments.** Comment attachment
-     is bit-identical under the two rules (§9.1), so it needs no normalization —
+     is bit-identical under the two rules, so it needs no normalization —
      and it is the half that reaches air's formatter, which makes it precisely
      the half the oracle must keep checking. A normalization written over
      "trivia" rather than over whitespace would blind the oracle to the one kind
@@ -3741,7 +3407,7 @@ what it claims, not a regression.
 7. **Final acceptance gate:** air's entire formatter snapshot suite is unchanged
    except for semicolon-related files.
 
-   **This is also where deviation 10 gets settled.** §9.1's audit says no
+   **This is also where deviation 10 gets settled.** Its audit says no
    consumer in air reads whitespace attachment polarity, so the suite should not
    move on its account — but that is an argument, and this is the experiment.
    Run the suite before touching the formatter, so a whitespace-polarity
@@ -3768,7 +3434,7 @@ aether, so the indirection is discoverable from the place someone hits it.
 
 | Risk | Why it bites | Mitigation |
 |---|---|---|
-| **Trivia attachment drift** | A one-piece difference in *comment* attachment silently changes formatter output; a whitespace one changes every snapshot. | Largely retired by deviation 10: the rule is a latching bool with no lookahead, so there is little left to get subtly wrong. Comment attachment is unchanged from air and the oracle still compares it, since normalization touches whitespace only (§10.4). Do the token source before any grammar work. |
+| **Trivia attachment drift** | A one-piece difference in *comment* attachment silently changes formatter output; a whitespace one changes every snapshot. | Largely retired by deviation 10: the rule is a latching bool with no lookahead, so there is little left to get subtly wrong. Comment attachment is unchanged from air and the oracle still compares it, since normalization touches whitespace only (§10.4). Landed in Phase 5, ahead of any grammar work; what exposure remains is settled by air's formatter snapshots at swap-in (§12.3 step 7). |
 | **`[[` / `]]` joining** | Genuinely ambiguous; tree-sitter needs an external scanner and still has open bugs. The lexer half landed in Phase 4; the parser half is Phase 9. | One join site, in the argument list's terminator check (§11.3). Six corpus tests exercise it. Do not invent a scope stack, and do not make the lexer glue closers. |
 | **Codegen drift** | If aether's generated code diverges from air's, the swap-in fails in confusing ways. | Retired: Phase 2 asserted byte-identity, and CI asserts `just codegen` idempotence on every PR. |
 | **Oracle unavailable on error tests** | tree-sitter bails on any error, so ~25 tests get no oracle coverage. | Accept it; those are exactly the tests where we *intend* to differ. Rely on reviewed snapshots there. |
