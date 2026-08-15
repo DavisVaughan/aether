@@ -65,14 +65,7 @@ impl<'src> RParser<'src> {
         result
     }
 
-    /// Runs `f` inside `{ … }`, restoring both fields after
-    ///
-    /// Braces are the one construct that changes both, and they change them in
-    /// opposite directions: a line break inside braces is significant again,
-    /// even when the braces sit inside a paren (`f({\n  a\n  b\n})`), and an
-    /// `else` may follow one. Owning the pair here rather than at the call site
-    /// is what stops the two from being restated, or set inconsistently, by
-    /// whatever else learns to parse a block.
+    /// Runs `f` inside `{`
     pub(crate) fn with_braces<F, R>(&mut self, f: F) -> R
     where
         F: FnOnce(&mut Self) -> R,
