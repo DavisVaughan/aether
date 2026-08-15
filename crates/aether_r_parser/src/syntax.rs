@@ -1,9 +1,9 @@
-use crate::diagnostics::not_yet_implemented;
 use crate::parser::RParser;
 use aether_r_syntax::RSyntaxKind::{
     EOF, R_BOGUS_EXPRESSION, R_ROOT, R_STATEMENT, R_STATEMENT_LIST, UNICODE_BOM,
 };
 use biome_parser::Parser;
+use biome_parser::diagnostic::ParseDiagnostic;
 
 pub(crate) fn parse_root(p: &mut RParser) {
     let root = p.start();
@@ -30,7 +30,10 @@ fn parse_placeholder_statement(p: &mut RParser) {
     let statement = p.start();
     let bogus = p.start();
 
-    p.error(not_yet_implemented(p.cur_range()));
+    p.error(ParseDiagnostic::new(
+        "The parser does not support R syntax yet.",
+        p.cur_range(),
+    ));
     while !p.at(EOF) {
         p.bump_any();
     }
