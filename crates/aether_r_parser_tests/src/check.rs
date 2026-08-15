@@ -1,5 +1,3 @@
-//! Runs one block and produces its generated cells
-
 use crate::document::{Block, Cell, Markers};
 use aether_r_parser::{RParse, RParserOptions, parse};
 use aether_r_syntax::{RSyntaxNode, TextRange};
