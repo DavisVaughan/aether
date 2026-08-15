@@ -65,6 +65,17 @@ Markers: `[pending]` (not yet supported; must NOT parse cleanly), `[error]`
 Turning on a feature means deleting `[pending]` markers, not adding tests. The
 89 tree-sitter-r tests were imported wholesale in one commit.
 
+## Comments
+
+Extremely minimal. Far fewer than you think, and far shorter. Explain what is
+not obvious from the code; never restate it, and never write a paragraph of
+rationale. If a comment is going to end up being long, do not write it — long
+comments should be written by a human.
+
+Rationale that is genuinely worth keeping belongs in
+`plans/aether-implementation-plan.md` or `docs/deviations.md`, not in a
+doc-comment.
+
 ## Reference implementations
 
 - `tree-sitter-r` (r-lib) — especially `src/scanner.c` and the long comments in
