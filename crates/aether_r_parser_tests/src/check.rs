@@ -81,10 +81,6 @@ pub fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
     Ok(cells)
 }
 
-/// Bogus nodes that no diagnostic points at
-///
-/// Overlap, not equality: a recovery that consumes three tokens may
-/// legitimately be explained by a diagnostic anchored on only the first.
 fn undiagnosed_bogus_nodes(
     root: &RSyntaxNode,
     diagnostics: &[ParseDiagnostic],
