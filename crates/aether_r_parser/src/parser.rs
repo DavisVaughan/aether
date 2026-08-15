@@ -20,14 +20,7 @@ pub(crate) struct RParser<'src> {
     else_clause: ElseClause,
 }
 
-/// What a line break means at the current position
-///
-/// The polarity of [`Newlines::default()`] is deliberate. A forgotten
-/// [`RParser::with_newlines`] leaves [`Newlines::Significant`] in place, which
-/// breaks a statement where none should break — a loud parse error at the first
-/// multi-line call in the corpus. The inverse default fails silently instead:
-/// `1\n+2` would quietly become one expression rather than two statements, a
-/// wrong tree with no diagnostic that round-trips perfectly.
+/// Strategy for interpreting line breaks
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum Newlines {
     /// Top level and inside `{`. A line break ends the current expression.
