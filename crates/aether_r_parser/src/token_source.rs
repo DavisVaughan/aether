@@ -44,7 +44,7 @@ impl<'src> RTokenSource<'src> {
                 break;
             };
 
-            // Before the push, so the newline itself leads the next token
+            // We've now seen a newline, so this newline and everything after it is now considered leading trivia of the next token
             if trivia_kind.is_newline() {
                 trailing = false;
             }
