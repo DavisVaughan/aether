@@ -1,7 +1,5 @@
 use super::*;
 
-/// Comments and whitespace are all the parser can handle cleanly until Phase 7,
-/// and they will still parse cleanly after it
 const CLEAN: &str = "# a comment\n";
 
 /// A lexer diagnostic, so this errors in every phase
