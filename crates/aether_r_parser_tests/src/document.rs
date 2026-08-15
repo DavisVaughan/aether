@@ -6,12 +6,12 @@ use std::fmt::Write as _;
 /// only difference is that snapshot files have non empty `generated` cells.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Document {
-    pub tests: Vec<TestCase>,
+    pub tests: Vec<Section>,
 }
 
 /// One `##` heading and everything under it
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TestCase {
+pub struct Section {
     pub name: String,
     pub markers: Markers,
 
@@ -118,7 +118,7 @@ impl Markers {
     }
 }
 
-impl TestCase {
+impl Section {
     pub fn blocks(&self) -> impl DoubleEndedIterator<Item = &Block> {
         self.elements.iter().filter_map(|element| match element {
             Element::Block(block) => Some(block),
@@ -209,7 +209,7 @@ fn render_fence(out: &mut String, language: &str, content: &str) {
 struct Parser<'src> {
     lines: Vec<&'src str>,
     index: usize,
-    tests: Vec<TestCase>,
+    tests: Vec<Section>,
     prose: Vec<&'src str>,
 }
 
@@ -306,7 +306,7 @@ impl<'src> Parser<'src> {
             });
         }
 
-        self.tests.push(TestCase {
+        self.tests.push(Section {
             name,
             markers,
             elements: Vec::new(),
