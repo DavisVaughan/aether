@@ -63,7 +63,7 @@ impl RParse {
         self.diagnostics
     }
 
-    /// Returns [true] if the parser encountered some errors during the parsing.
+    /// Returns [true] if the parser encountered some errors during parsing
     pub fn has_errors(&self) -> bool {
         self.diagnostics.iter().any(ParseDiagnostic::is_error)
     }
