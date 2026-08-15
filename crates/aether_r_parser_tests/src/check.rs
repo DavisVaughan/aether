@@ -57,8 +57,6 @@ pub fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
         }
     }
 
-    // Invariant 2, per-node rather than "are there any diagnostics at all" —
-    // the whole-parse form is satisfied by the diagnostic that masks the problem
     let unexplained = undiagnosed_bogus_nodes(&parsed.syntax(), parsed.diagnostics());
     if !unexplained.is_empty() {
         return Err(CheckError::UndiagnosedBogusNode {
