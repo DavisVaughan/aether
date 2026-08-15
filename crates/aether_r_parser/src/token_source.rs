@@ -70,13 +70,6 @@ impl TokenSource for RTokenSource<'_> {
         self.lexer.source()
     }
 
-    /// Delegated, and deliberately not mirrored in a field here
-    ///
-    /// Lookahead drives the inner lexer past the current token.
-    /// [`BufferedLexer`] holds a checkpoint of the token the parser is actually
-    /// on and answers from that one while lookahead is live, which is what makes
-    /// plain delegation correct under
-    /// [`NthToken::nth`](biome_parser::prelude::NthToken::nth).
     fn has_preceding_line_break(&self) -> bool {
         self.lexer.has_preceding_line_break()
     }
