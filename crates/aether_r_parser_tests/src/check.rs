@@ -1,7 +1,9 @@
 use crate::document::{Block, Cell, Markers};
 use aether_r_parser::{RParse, RParserOptions, parse};
 use aether_r_syntax::{RSyntaxNode, TextRange};
-use biome_diagnostics::Diagnostic;
+use biome_console::fmt::{Formatter, Termcolor};
+use biome_console::markup;
+use biome_diagnostics::{Diagnostic, DiagnosticExt, PrintDiagnostic, termcolor::NoColor};
 use biome_parser::diagnostic::ParseDiagnostic;
 use biome_rowan::{SyntaxKind, SyntaxNode};
 
@@ -102,10 +104,6 @@ fn has_bogus_nodes_or_missing_required_children(ast: &str, root: &RSyntaxNode) -
 }
 
 pub fn render_diagnostics(parse: &RParse, source: &str) -> String {
-    use biome_console::fmt::{Formatter, Termcolor};
-    use biome_console::markup;
-    use biome_diagnostics::{DiagnosticExt, PrintDiagnostic, termcolor::NoColor};
-
     let mut out = Vec::new();
 
     for diagnostic in parse.diagnostics() {
