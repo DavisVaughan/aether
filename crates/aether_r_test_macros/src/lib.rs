@@ -1,9 +1,3 @@
-//! Generates one `#[test]` per corpus input file
-//!
-//! Modelled on air's `tests_macros::gen_tests!`, minus the globbing crate — the
-//! corpus is one directory tree of `*.md`, which `std::fs` walks in a dozen
-//! lines.
-
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2, TokenTree};
 use quote::quote;
