@@ -18,7 +18,6 @@ pub(crate) struct RParser<'src> {
     scope: Scope,
 }
 
-/// Where the parser is, in the sense R's `gram.y` means by `*contextp`
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum Scope {
     #[default]

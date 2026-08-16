@@ -801,7 +801,6 @@ text is the body rather than a delimiter.
 One `Copy` context field — `scope: Scope` — plus the helper that scopes it.
 
 ```rust
-/// Where the parser is, in the sense R's `gram.y` means by `*contextp`
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum Scope {
     #[default]
