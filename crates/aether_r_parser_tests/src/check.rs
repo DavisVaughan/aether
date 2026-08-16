@@ -81,7 +81,8 @@ pub fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
         });
     }
 
-    if !markers.deviation
+    if !has_errors
+        && !markers.deviation
         && let aether_r_oracle::OracleResult::Mismatch {
             path,
             expected,
@@ -247,33 +248,15 @@ mod tests {
     }
 
     #[test]
-    fn the_oracle_reports_a_disagreement_through_check() {
-        let error = check(
-            &block("1\n"),
-            Markers {
-                error: true,
-                ..Default::default()
-            },
-        )
-        .expect_err("the placeholder parser cannot agree with air on `1`");
-
-        assert!(
-            matches!(error, CheckError::OracleMismatch { .. }),
-            "{error:?}"
-        );
-    }
-
-    #[test]
-    fn deviation_skips_the_oracle() {
+    fn a_block_that_does_not_parse_cleanly_is_not_compared_to_the_oracle() {
         check(
             &block("1\n"),
             Markers {
                 error: true,
-                deviation: true,
                 ..Default::default()
             },
         )
-        .expect("`[deviation]` skips the comparison the previous test fails");
+        .expect("tree-sitter accepts `1`, so a comparison here would report the placeholder");
     }
 
     /// `[deviation]` changes nothing here
