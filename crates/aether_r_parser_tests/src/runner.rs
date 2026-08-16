@@ -5,7 +5,6 @@ use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 
-/// Panics rather than returning an error: a `#[test]` reports a panic
 pub fn run_file(input_path: &Path) {
     let display = corpus::relative(input_path);
     let snapshot_path = corpus::snapshot_of(input_path);
