@@ -1382,7 +1382,7 @@ off the tests the feature enables, regenerate, review the diff.
 
 ### 11.1 Phase 7 — Literals, identifiers, program
 
-`src/syntax/value.rs`, `src/syntax.rs`.
+`src/syntax/value.rs`, `src/syntax/expr.rs`, `src/syntax.rs`.
 
 ```rust
 pub(crate) fn parse_root(p: &mut RParser) {
@@ -1408,6 +1408,21 @@ separates statements by a newline or a `;` and by nothing else. Deferring that t
 Phase 13 would let `1 2` parse clean for six phases, including Phase 8, where
 `statements/newlines.md` is supposed to go green. Write it here against
 §11.7's body with the semicolon lines omitted.
+
+**What `parse_expression` is in this phase.** `parse_statement_list` calls it and
+Phase 8 owns it, so what Phase 7 writes is the stub it grows from — the atom
+dispatch, with nothing above it:
+
+```rust
+// crates/aether_r_parser/src/syntax/expr.rs
+pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
+    parse_primary_expression(p)
+}
+```
+
+Phase 8 puts the Pratt loop behind that name (§11.2).
+`parse_primary_expression` stays where it is and gains an arm per phase, which is
+how each later phase's construct becomes reachable at all.
 
 ```rust
 /// Anything that can start an expression and consists of exactly one token.
@@ -1746,7 +1761,38 @@ fn parse_prefix_expression(p: &mut RParser) -> ParsedSyntax {
     }
     parse_primary_expression(p)
 }
+
+/// One operand: no operators, nothing to its left.
+///
+/// The fan-out point of the expression grammar — every phase from here to 13
+/// makes its construct reachable by adding an arm. Shown finished; Phase 8 has
+/// the two §11.1 arms and `_ => Absent`, and nothing else.
+fn parse_primary_expression(p: &mut RParser) -> ParsedSyntax {
+    let literal = parse_literal_expression(p);                        // §11.1
+    if literal.is_present() {
+        return literal;
+    }
+
+    match p.cur() {
+        T!['(']                 => parse_parenthesized_expression(p), // §11.3
+        T!['{']                 => parse_braced_statements(p),        // §11.7
+        T![function] | T!["\\"] => parse_function_definition(p),      // §11.5
+        T![if]                  => parse_if_statement(p),             // §11.6
+        T![for]                 => parse_for_statement(p),
+        T![while]               => parse_while_statement(p),
+        T![repeat]              => parse_repeat_statement(p),
+        ERROR_TOKEN             => parse_error_token(p),              // §11.1
+        _ => Absent,
+    }
+}
 ```
+
+**`Absent` here is a result, not a failure.** It is how `f(,,)` gets its empty
+arguments, how `f(a = )` gets its empty value, and how `parse_statement_list`
+knows to recover. Only the caller knows whether an operand was required, so this
+function raises no diagnostic of its own — `parse_error_token` is the one arm
+that could and deliberately does not, because the lexer has already pointed at
+the character (§11.1).
 
 **Precedence facts worth writing explicit tests for**, all of which the
 `Operator precedence` and `Precedence Tests` corpus tests cover:
@@ -1863,7 +1909,34 @@ fn parse_postfix(p: &mut RParser, lhs: CompletedMarker) -> Option<CompletedMarke
         _ => None,
     }
 }
+
+/// `(a)` — a node of its own, not a formatting hint, so air can round-trip it.
+fn parse_parenthesized_expression(p: &mut RParser) -> ParsedSyntax {
+    if !p.at(T!['(']) { return Absent }
+    let m = p.start();
+    p.bump(T!['(']);
+    p.with_newlines(Newlines::Ignored, |p| {
+        parse_expression(p).or_add_diagnostic(p, diagnostics::expected_expression);
+    });
+    p.expect(T![')']);
+    Present(m.complete(p, R_PARENTHESIZED_EXPRESSION))
+}
 ```
+
+**`(` is the one token in this phase with two jobs**, and the Pratt structure
+separates them with no lookahead at all. `parse_postfix` meets it with an operand
+already to its left and builds an `R_CALL`; `parse_primary_expression` (§11.2)
+meets it where an operand is due and builds a group. `f(x)` and `f (x)` are both
+calls; `f\n(x)` is not, because the statement break ends the loop before
+`parse_postfix` is reached. What it is *instead* — two statements, as in R, or an
+error, as in tree-sitter — is the question §11.2 leaves open under "Verify when
+the Phase 9 tests come off `[pending]`", and `Not A Call, Subset, Or Subset2` is
+where it gets settled.
+
+The body is a full `parse_expression`, not one restricted to §11.2's table: R's
+`'(' expr_or_assign_or_help ')'` admits `=` and `?`, so `(a = 1)` is an
+assignment and must parse clean. `()` has no such excuse and takes the
+`expected_expression` diagnostic, then the `expect` closes the node.
 
 #### `[[` and `]]` — the one genuinely hard tokenization problem
 
