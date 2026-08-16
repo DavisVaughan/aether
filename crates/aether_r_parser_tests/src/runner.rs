@@ -1,8 +1,3 @@
-//! Runs one corpus file against its committed snapshot
-//!
-//! READ-ONLY. Never writes; regeneration lives in `xtask accept`. Nextest runs
-//! tests in parallel processes, so a test that wrote files would race.
-
 use crate::check::{CheckError, check};
 use crate::corpus;
 use crate::document::Document;
