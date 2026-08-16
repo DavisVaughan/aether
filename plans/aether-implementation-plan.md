@@ -202,18 +202,21 @@ aether/
     │           ├── control.rs     # if/else, for, while, repeat
     │           ├── block.rs       # braced exprs, statement lists, semicolons
     │           └── value.rs       # literals, strings, keywords-as-values
-    ├── aether_r_test_macros/      # ← Phase 6. proc-macro: `gen_corpus_tests!`
+    ├── aether_r_test_macros/      # proc-macro: `gen_corpus_tests!`
     │   └── src/lib.rs             #   modelled on air's `tests_macros`
-    ├── aether_r_parser_tests/     # ← Phase 6. Every corpus test, plus the
-    │   ├── src/                   #   harness that runs them. Depends on the
-    │   │   ├── document.rs        #   parser; nothing depends on it but `xtask`.
-    │   │   ├── check.rs           # run one test, produce its cells (§10.2)
+    ├── aether_r_parser_tests/     # Every corpus test, plus the harness that
+    │   ├── src/                   #   runs them. Depends on the parser;
+    │   │   ├── document.rs        #   nothing depends on it but `xtask`.
+    │   │   ├── check.rs           # run one block, produce its cells (§10.2)
+    │   │   ├── corpus.rs          # locating input and snapshot files
+    │   │   ├── manifest.rs        # `MANIFEST.toml` (§10.3.3)
     │   │   └── runner.rs          # `run_file`: read-only compare; panics on
     │   │                          #   mismatch, for use from a `#[test]`
     │   └── tests/
     │       ├── main.rs            # globs corpus/**/*.md → crate::run_file
+    │       ├── manifest.rs        # the two anti-drop guards
     │       ├── quick_test.rs      # scratchpad, #[ignore]d
-    │       └── corpus/            # THE TESTS — §10.3.2 has the full mapping
+    │       └── corpus/            # THE TESTS — MANIFEST.toml maps every one
     │           ├── MANIFEST.toml  # every imported test name → its home file
     │           ├── literals/      # each X.md has a sibling X.snap.md
     │           ├── expressions/
@@ -221,7 +224,7 @@ aether/
     │           ├── control/
     │           ├── statements/
     │           └── recovery/
-    └── aether_r_oracle/           # ← Phase 6. Dev-only differential oracle
+    └── aether_r_oracle/           # ← oracle PR. Dev-only differential oracle
         ├── Cargo.toml             # depends on tree-sitter, tree-sitter-r
         └── src/
             ├── lib.rs
@@ -253,7 +256,7 @@ walker, and nothing else in the project depends on it — so it ships separately
 rather than doubling the size of the phase that everything else is waiting on.
 §10.4 is written as that PR's spec.
 
-Phases 1–5 have landed. Their sections below are compressed to the decisions
+Phases 1–6 have landed. Their sections below are compressed to the decisions
 later phases depend on; the repo, `docs/deviations.md`, and the code's own
 comments are the source of truth for everything else.
 
@@ -264,7 +267,7 @@ comments are the source of truth for everything else.
 | 3 | Grammar deviations | `.ungram` + kinds updated, regenerated, documented | ✅ |
 | 4 | Lexer | Standalone `RLexer`, plus seventeen `#[cfg(test)]` token-stream test files under `src/lexer/tests/` (§8.6) | ✅ |
 | 5 | Parser scaffolding | `RParser`, `RTokenSource`, diagnostics, `parse()` returns an empty `R_ROOT` | ✅ |
-| 6 | Test harness + corpus import | The markdown harness, `xtask accept`, and all 89 tree-sitter tests plus air's snapshots imported as `[pending]` | |
+| 6 | Test harness + corpus import | The markdown harness, `xtask accept`, and all 89 tree-sitter tests plus air's snapshots imported as `[pending]` | ✅ |
 | 7 | Literals, identifiers, program | `1`, `"a"`, `foo`, `TRUE`, `NA_integer_`, `..1`, `...` | |
 | 8 | Binary & unary operators | The Pratt core, precedence table, newline sensitivity | |
 | 9 | Calls, subset, subset2 | `f(a, b=1)`, `x[i]`, `x[[i]]`, hole arguments | |
@@ -424,8 +427,9 @@ into one bogus node. Round-trip still passes, so nothing in the harness would
 catch it. Phase 10 (§11.4) is what finally uses the kind.
 
 `R_STATEMENT_LIST` is recognised as a list kind, so `SyntaxKind::is_list()`
-returns true for it. The harness's `has_bogus_nodes_or_empty_slots` check
-(§10.2) depends on that.
+returns true for it. This was decided so that air's `has_bogus_nodes_or_empty_slots`
+would cover it; the harness as landed does not use that helper, and §10.2 records
+the gap.
 
 ---
 
@@ -925,347 +929,117 @@ Two rules hold across all of them, and the split above does not weaken either:
 
 ---
 
-## 10. Phase 6 — Test harness and corpus import
+## 10. Phase 6 — Test harness and corpus import — LANDED
 
-The largest infrastructure phase, and the one that determines how pleasant the
-next eight phases are. Build it carefully.
+`aether_r_parser_tests` (the `Document` format, `check`, `run_file`), the
+`gen_corpus_tests!` proc-macro, `xtask accept`, and 126 imported tests — 89 from
+tree-sitter-r and 37 of air's snapshots — every one `[pending]`. The oracle is
+**not** part of this phase and has not landed; §10.4 is still that PR's spec.
 
-**One thing in the parser has to move first.** `parse_root` as Phase 5 left it
-consumes no tokens, and the tree sink folds everything it does not consume into
-the `EOF` token's text — so `1 + foo` round-trips, raises nothing, and holds no
-bogus node. Every imported test would count as a *clean* parse and every
-`[pending]` marker would fail. So Phase 6 gives `parse_root` a placeholder that
-opens one `R_BOGUS_EXPRESSION`, raises `not_yet_implemented`, and bumps to `EOF`.
-Ten lines, and §11.1 deletes them along with the diagnostic when
+`parse_root` gained a placeholder that wraps the whole file in one `R_STATEMENT`
+holding one `R_BOGUS_EXPRESSION`, and raises one diagnostic. Phase 5 left it
+consuming nothing, and the tree sink folds whatever it does not consume into the
+`EOF` token's text — so every corpus input would have round-tripped, raised
+nothing, held no bogus node, and counted as a *clean* parse, failing every
+`[pending]` marker. §11.1 deletes the placeholder and its diagnostic when
 `parse_statement_list` lands.
 
 ### 10.1 The markdown format
 
-One **pair** of files per concept (§10.3.1), one named test per `##` heading. Files are
-fine-grained — one test in a file is fine.
+One **pair** of files per concept (§10.3.1), one named test per `##` heading.
+Files are fine-grained — one test in a file is fine.
 
-**Two files, never one.** The input file is human territory and no tool ever writes
-to it; the snapshot file is entirely machine-generated and no human ever edits it.
-Keeping them separate means a reviewer can see at a glance which half of a diff was
-authored and which half was derived, and it removes the awkwardness of a test
-runner rewriting the file that defines the tests.
-
-```
-tests/corpus/functions/definition.md         ← human writes this
-tests/corpus/functions/definition.snap.md    ← `xtask accept` writes this
-```
+**Two files, never one.** `X.md` is human territory and no tool writes to it;
+`X.snap.md` is machine-generated and no human edits it. A reviewer can then see at
+a glance which half of a diff was authored and which half was derived, and no test
+runner rewrites the file that defines the tests.
 
 The `.snap.md` double extension (rather than air's `calls.R.snap` convention) is
 deliberate: GitHub still renders it as markdown, which is most of the point of
-using markdown for snapshots at all. Mark them as derived so they collapse in
-diffs and stay out of language stats:
+using markdown for snapshots at all. They are deliberately **not** marked
+`linguist-generated` — that collapses them behind "load diff", and a snapshot
+diff is exactly what a parser change should be reviewed through. `.gitattributes`
+pins `*.md` to `eol=lf` instead, since the renderer emits `\n` while fence
+contents and prose keep the file's own line endings.
 
-```gitattributes
-# .gitattributes
-*.snap.md linguist-generated=true
-```
-
-#### The input file
-
-````markdown
-## Functions
-
-```r
-function() 1
-function(arg1, arg2) {
-  arg2
-}
-```
-
-## Dollar Boundary Cases [error]
-
-The bogus RHS consumes exactly one atom, so an infix operator after it still
-parses normally.
-
-```r
-a$1 + 2
-```
-
-A closing delimiter starts no expression, so it must not be consumed — the
-enclosing call would lose its terminator and one error would become a cascade.
-
-```r
-f(a$)
-```
-
-## Dollar No RHS [pending]
-
-```r
-foo$
-```
-````
-
-The input format is a flat sequence of `## Name [markers]` headings. A heading's
-body is an ordered sequence of two kinds of element, in any combination:
+A heading's body is an ordered sequence of two kinds of element, in any
+combination:
 
 - **` ```r ` blocks.** One heading may hold several. **Each is parsed
-  independently** — they are separate programs that happen to be related, not one
-  program split across cells. Most headings have exactly one.
+  independently** — separate programs that happen to be related, not one program
+  split across cells. Most headings have exactly one.
 
-- **Prose.** Anything that is not a fenced block. It is copied verbatim into the
-  snapshot and otherwise ignored — never parsed, never a test. Write it before
-  the block it explains.
+- **Prose.** Anything that is not a fenced block. Copied verbatim into the
+  snapshot and otherwise ignored — never parsed, never a test. Write it before the
+  block it explains.
 
-Nothing may precede the first heading. The file path already says what the file
-is about, and provenance lives in `MANIFEST.toml` rather than in a paragraph that
-goes stale — so a file-level preamble is an error, where prose under a heading is
-not.
+Nothing may precede the first heading. The path already says what the file is
+about and provenance lives in `MANIFEST.toml`, so a file-level preamble is an
+error where prose under a heading is not.
 
 **Prose is for why a test exists**, which is exactly what an R comment cannot
 carry: a comment inside the ` ```r ` cell is *input*, so it changes the tree,
-lands in every `cst` cell as trivia, and has to round-trip. Prose costs the
-parser nothing.
-
-#### The snapshot file
-
-````markdown
-<!-- Generated by `xtask accept`. Do not edit.
-     Source: functions/definition.md -->
-
-## Functions
-
-```r
-function() 1
-function(arg1, arg2) {
-  arg2
-}
-```
-
-```cst
-RRoot {
-    bom_token: missing (optional),
-    statements: RStatementList [
-        RStatement {
-            expression: RFunctionDefinition {
-                name_token: FUNCTION_KW@0..8 "function" [] [],
-                parameters: RParameters {
-                    l_paren_token: L_PAREN@8..9 "(" [] [],
-                    items: RParameterList [],
-                    r_paren_token: R_PAREN@9..10 ")" [] [],
-                },
-                body: RDoubleValue {
-                    value_token: R_DOUBLE_LITERAL@10..12 "1" [Whitespace(" ")] [],
-                },
-            },
-            semicolon_token: missing (optional),
-        },
-    ],
-    eof_token: EOF@...,
-}
-```
-
-## Dollar Boundary Cases [error]
-
-The bogus RHS consumes exactly one atom, so an infix operator after it still
-parses normally.
-
-```r
-a$1 + 2
-```
-
-```cst
-...
-```
-
-```diagnostics
-× Expected an identifier, a string, `...` or `..i` but instead found `1`.
-  ...
-```
-
-A closing delimiter starts no expression, so it must not be consumed — the
-enclosing call would lose its terminator and one error would become a cascade.
-
-```r
-f(a$)
-```
-
-```cst
-...
-```
-
-```diagnostics
-...
-```
-
-## Dollar No RHS [pending]
-
-```r
-foo$
-```
-
-*Not yet supported.*
-````
+lands in the `cst` cell as trivia, and has to round-trip. Prose costs the parser
+nothing.
 
 The snapshot **re-emits the heading, the prose, and the ` ```r ` cells** rather
 than referring back to the input file. That redundancy is the feature: a `cst`
 block is unreadable without the source right above it, and a reviewer approving a
 snapshot diff should never have to open a second file to know what they are
-approving.
-
-Each block's generated cells follow **that block**, not the end of the heading, so
-source and tree stay adjacent however many blocks a heading holds. Prose keeps its
-position in the sequence.
-
-**Cell contract:**
+approving. Each block's generated cells follow **that block**, not the end of the
+heading, so source and tree stay adjacent however many blocks a heading holds.
 
 | Cell | File | Contents |
 |---|---|---|
 | prose | input (authored), snapshot (echoed) | ignored by the harness; never parsed |
 | ` ```r ` | input (authored), snapshot (echoed) | the R source; one parse per block |
 | ` ```cst ` | snapshot only | `format!("{:#?}", parse.tree())` — the *typed AST* view, which is what air's existing snapshots show and what makes tree shape reviewable |
-| ` ```diagnostics ` | snapshot only | rendered `ParseDiagnostic`s; the cell is omitted entirely when there are none |
+| ` ```diagnostics ` | snapshot only | rendered `ParseDiagnostic`s, trailing whitespace stripped so an editor cannot rewrite a committed snapshot; the cell is omitted entirely when there are none |
 
-Emit the AST view (`parse.tree()`), not the raw `SyntaxNode` view. Air's current
-snapshots show both; the AST view is far more readable and the raw view adds little
-once the round-trip assertion is in place. If a specific test needs the raw view,
-support an opt-in ` ```cst-raw ` cell.
+The AST view, not the raw `SyntaxNode` view. Air's snapshots show both; the AST
+view is far more readable and the raw view adds little once the round-trip
+assertion is in place. There is no opt-in raw cell until something needs one.
 
 **Markers** go in the heading, in `[brackets]` after the name, in the **input**
 file. They are echoed into the snapshot so it reads standalone, but the input file
-is the only place they are edited.
+is the only place they are edited. A name may itself end in brackets, so only a
+trailing bracket group whose contents hold no further brackets is read as markers.
 
-**A marker applies to every block under its heading**, so `[error]` means all of
-them must error. The heading is the unit of intent: if two snippets need different
-markers they belong under different headings, which is already how §10.3.1 groups
-the accepted and rejected forms of a construct — side by side in one file, under
-names that say which is which. A per-block override would put two marker syntaxes
-in the format to save a heading.
+**A marker applies to every block under its heading.** The heading is the unit of
+intent: if two snippets need different markers they belong under different
+headings, which is already how §10.3.1 groups the accepted and rejected forms of a
+construct — side by side in one file, under names that say which is which. A
+per-block override would put two marker syntaxes in the format to save a heading.
 
 | Marker | Meaning |
 |---|---|
-| *(none)* | Every block must parse with **zero** diagnostics. Fails if any diagnostic is emitted. |
+| *(none)* | Every block must parse with **zero** diagnostics and no bogus nodes. |
 | `[pending]` | Feature not implemented yet. Harness asserts **no** block parses cleanly. **An unexpected clean parse is a hard failure.** Each block is echoed followed by `*Not yet supported.*` in place of its generated cells. Round-trip still applies (§10.2) — a pending test may fail to parse, but must never lose a token. |
 | `[error]` | Every block must produce at least one error diagnostic. Fails if any parses cleanly. |
-| `[deviation]` | Excluded from the tree-sitter oracle comparison. Orthogonal to the others — combine as `[error, deviation]`. |
+| `[deviation]` | Excluded from the tree-sitter oracle comparison. Orthogonal to the others — combine as `[error, deviation]`. Inert until the oracle PR lands (§10.4). |
 
 **The pairing invariant.** The snapshot's heading sequence must match the input's
-exactly — same names, same order, same markers, same number of blocks. Check it
-explicitly rather than letting a mismatch surface as a confusing content diff:
+exactly — same names, same order, same markers, same number of blocks. It is
+asserted as a `shape()` comparison *before* any content diffing, so a drifted pair
+is not reported as a confusing content diff. Block count is in there so that
+adding a block to an existing heading fails the same loud way adding a heading
+does. Prose is deliberately *not*: it is echoed rather than derived, so a prose
+edit shows up as an ordinary content diff that `just accept` fixes, and folding it
+into the assertion would only make the message worse.
 
-```rust
-fn shape(document: &Document) -> Vec<(&str, Markers, usize)> {
-    document
-        .tests
-        .iter()
-        .map(|test| (test.name.as_str(), test.markers, test.blocks().count()))
-        .collect()
-}
+Names must be **unique within a file**, and `Document::parse` rejects a duplicate
+outright with the offending name in the message. The harness and both manifest
+checks address tests by `(file, name)`, so a collision is not cosmetic — it makes
+`every_imported_test_still_exists` satisfiable by the wrong test.
 
-assert_eq!(
-    shape(&input), shape(&snapshot),
-    "{} and its snapshot have drifted apart — run `just accept`", path.display(),
-);
-```
+### 10.2 The harness
 
-Block count is in there so that adding a block to an existing heading fails the
-same loud way adding a heading does. Prose is deliberately *not*: it is echoed
-rather than derived, so a prose edit shows up as an ordinary content diff that
-`just accept` fixes, and folding it into this assertion would only make the
-message worse.
-
-This is what makes the split safe: adding a test to the input file fails loudly
-until the snapshot is regenerated, rather than being silently untested.
-
-### 10.2 Harness implementation
-
-```rust
-// crates/aether_r_parser_tests/src/document.rs
-#[derive(Debug)]
-pub struct Document {
-    pub tests: Vec<TestCase>,
-}
-
-#[derive(Debug)]
-pub struct TestCase {
-    pub name: String,
-    pub markers: Markers,
-    /// The heading's body, in source order. Prose and blocks interleave, and
-    /// rendering walks this list start to finish — which is the whole mechanism
-    /// for keeping each block's cells beside it (§10.1).
-    pub elements: Vec<Element>,
-}
-
-#[derive(Debug)]
-pub enum Element {
-    /// Copied verbatim to the snapshot, never parsed
-    Prose(String),
-    Block(Block),
-}
-
-#[derive(Debug)]
-pub struct Block {
-    /// The ```r cell. Authored in the input file, echoed into the snapshot.
-    pub source: String,
-    /// ```cst / ```diagnostics for THIS block. Empty in an input document,
-    /// always populated (or `Pending`) in a snapshot document.
-    pub generated: Vec<Cell>,
-}
-
-bitflags::bitflags! {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct Markers: u8 {
-        const PENDING   = 1 << 0;
-        const ERROR     = 1 << 1;
-        const DEVIATION = 1 << 2;
-    }
-}
-
-impl TestCase {
-    /// The parseable blocks, in order. The harness iterates this; rendering
-    /// walks `elements` instead, because prose has to keep its place.
-    pub fn blocks(&self) -> impl Iterator<Item = &Block> { /* … */ }
-    pub fn blocks_mut(&mut self) -> impl Iterator<Item = &mut Block> { /* … */ }
-}
-
-impl Document {
-    /// Parses either flavour; `generated` is simply empty for input files.
-    pub fn parse(text: &str) -> Result<Document, DocumentError> { /* … */ }
-    /// Renders the snapshot flavour: the banner, then per test its heading and
-    /// its elements in order, each block followed by its generated cells.
-    pub fn render_snapshot(&self, source_path: &str) -> String { /* … */ }
-}
-```
-
-Write the markdown parser by hand — it is ~200 lines of line-oriented state
-machine (`## `, ` ```lang `, ` ``` `, the snapshot banner, and everything else
-accumulating as prose). Do **not** pull in a markdown crate; you need byte-exact
-round-tripping, which general markdown parsers do not give you.
-
-Four rules keep it honest, and the first two are what make `xtask accept`
-idempotent — CI asserts a clean tree after regenerating (§5.2), so a renderer
-that reformats its own output on the second pass is a build failure:
-
-- **Prose is stored verbatim, minus its boundary blank lines.** Capture the lines
-  between elements, trim leading and trailing blank ones, and re-emit with
-  exactly one blank line before and after. Internal blank lines survive, so a
-  multi-paragraph note round-trips, and input that was spaced loosely converges
-  after one `just accept` rather than oscillating.
-
-- **A block's generated cells belong to the block, not the test.** Rendering is a
-  single walk of `elements`, emitting prose as-is and each block as its ` ```r `
-  cell followed by its cells. There is no separate "generated" section to keep in
-  sync with anything.
-
-- **Anything before the first `## ` is an error**, and stays one (§10.1). This is
-  the one place prose is refused.
-
-- **A heading with no blocks is an error.** It parses fine and tests nothing,
-  which is exactly the failure the `[pending]` marker exists to make loud, so it
-  should not be reachable by simply forgetting a cell.
-
-`Document`, `check`, and `run_file` live in `crates/aether_r_parser_tests/src/`,
-together with the corpus itself in that crate's `tests/`. The crate depends on
+`Document`, `check`, `corpus`, `manifest`, and `run_file` are library code in
+`crates/aether_r_parser_tests/src/`, with the corpus in that crate's `tests/`.
+Library rather than `tests/`, because `xtask accept` needs `Document` and `check`
+too and cannot reach into another crate's `tests/` directory. The crate depends on
 `aether_r_parser`; nothing depends on it except `xtask`, so the graph stays
 acyclic and `aether_r_parser` ships to air with no test-only dependencies.
-
-The harness is library code rather than living in `tests/`, because `xtask
-accept` needs `Document` and `check` too and cannot reach into another crate's
-`tests/` directory.
 
 **This harness is for the parser only.** The lexer keeps its own `#[cfg(test)]`
 suite inside `aether_r_parser` (§8.6): those tests read private fields, and a
@@ -1275,334 +1049,118 @@ lexer corpus and `xtask accept` never looks at `src/`.
 **Tests never write to disk.** nextest runs each test in its own process, in
 parallel, so anything in the test path that writes files is a latent race. The
 input/snapshot split makes this natural rather than a rule to remember: tests
-*compare*, `xtask accept` *writes*, and the two never touch the same file. There is
-no `AETHER_UPDATE_SNAPSHOTS` env var.
+*compare*, `xtask accept` *writes*, and the two never touch the same file. There
+is no `AETHER_UPDATE_SNAPSHOTS` env var.
 
-```rust
-// crates/aether_r_parser_tests/src/runner.rs
-//
-// READ-ONLY. Never writes. Regeneration lives in `xtask accept`.
-//
-// Panics on mismatch rather than returning an error: it is called from a
-// `#[test]`, and a panic is what nextest reports.
-pub fn run_file(input_path: &Path) {
-    let snapshot_path = input_path.with_extension("snap.md");
+The markdown parser is hand-written and line-oriented — no markdown crate, since
+what is needed is byte-exact round-tripping and general markdown parsers do not
+give that. Two rules are what make `xtask accept` idempotent, which CI depends on
+(§5.2), since it regenerates and then asserts a clean tree:
 
-    let input = Document::parse(&fs::read_to_string(input_path).unwrap()).unwrap();
-    let committed = fs::read_to_string(&snapshot_path).unwrap_or_else(|_| {
-        panic!("{} has no snapshot. Run `just accept`.", input_path.display())
-    });
+- **Prose is stored verbatim, minus its boundary blank lines**, and re-emitted
+  with exactly one blank line before and after. Internal blank lines survive, so a
+  multi-paragraph note round-trips, and loosely spaced input converges after one
+  `just accept` rather than gaining a blank line on every pass.
 
-    // 1. Run every block of every test. Marker violations fail here, before any
-    //    diffing, so a genuine parser bug is not reported as a confusing
-    //    snapshot mismatch.
-    let mut generated = input.clone();
-    let mut failures = Vec::new();
-    for test in &mut generated.tests {
-        let markers = test.markers;
-        // Index the block so a failure names it: a heading may hold several,
-        // and "Dollar Boundary Cases" alone would not say which.
-        for (index, block) in test.blocks_mut().enumerate() {
-            match check(block, markers) {
-                Ok(cells) => block.generated = cells,
-                Err(e) => failures.push((test.name.clone(), index, e)),
-            }
-        }
-    }
-    if !failures.is_empty() { panic!("{}", render_failures(&failures)); }
+- **A block's generated cells belong to the block, not the heading.** Rendering is
+  a single walk of `elements`, emitting prose as-is and each block as its ` ```r `
+  cell followed by its cells. There is no separate generated section to keep in
+  sync with anything.
 
-    // 2. Compare against the committed snapshot.
-    let rendered = generated.render_snapshot(&relative(input_path));
-    if rendered != committed {
-        panic!(
-            "{}\n\n{} is out of date. Run `just accept`.",
-            similar::TextDiff::from_lines(&committed, &rendered)
-                .unified_diff().header("committed", "generated"),
-            snapshot_path.display(),
-        );
-    }
-}
-```
+Two shapes are rejected outright: anything before the first `## `, and a heading
+with no ` ```r ` block. The second parses fine and tests nothing, which is exactly
+the failure the `[pending]` marker exists to make loud, so it must not be reachable
+by forgetting a cell.
 
-```rust
-// xtask/src/accept.rs
-//
-// Single process, sequential. The ONLY thing that writes snapshot files, and it
-// never writes an input file.
-pub fn accept() -> Result<()> {
-    for input_path in corpus_input_files()? {          // *.md, excluding *.snap.md
-        let mut doc = Document::parse(&fs::read_to_string(&input_path)?)?;
-        for test in &mut doc.tests {
-            let markers = test.markers;
-            for block in test.blocks_mut() {
-                // On failure, still write what we can and report at the end — a
-                // regeneration run should be maximally informative.
-                block.generated = check(block, markers).unwrap_or_default();
-            }
-        }
-        let snapshot_path = input_path.with_extension("snap.md");
-        let rendered = doc.render_snapshot(&relative(&input_path));
-        if fs::read_to_string(&snapshot_path).ok().as_deref() != Some(&rendered) {
-            fs::write(&snapshot_path, rendered)?;
-            println!("updated {}", snapshot_path.display());
-        }
-    }
-    // An input file that was deleted leaves an orphan snapshot behind.
-    remove_orphan_snapshots()?;
-    Ok(())
-}
-```
+#### 10.2.1 What `check()` enforces, in order
 
-```rust
-// One block, one parse. Markers come from the enclosing heading and apply
-// identically to every block under it (§10.1).
-fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
-    let parsed = aether_r_parser::parse(&block.source, RParserOptions::default());
+1. **Round-trip**, on EVERY block — including `[error]` and `[pending]` ones.
+   Pending inputs exercise the recovery paths hardest, so they are where dropped
+   tokens are most likely; a parser that cannot yet parse a construct must still
+   reproduce it verbatim. This is invariant 1 in `CLAUDE.md`, and "for ALL inputs"
+   is meant literally.
 
-    // 1. Round-trip. Non-negotiable, EVERY block — including `[error]` tests
-    //    and including `[pending]` ones. Pending inputs exercise the recovery paths
-    //    hardest, so they are where dropped tokens are most likely; a parser that
-    //    cannot yet parse a construct must still reproduce it verbatim. This is
-    //    invariant 1 in `CLAUDE.md`, and "for ALL inputs" is meant literally.
-    let round_tripped = parsed.syntax().to_string();
-    if round_tripped != block.source {
-        return Err(CheckError::RoundTrip { expected: block.source.clone(), got: round_tripped });
-    }
+2. **The marker contract** of §10.1's table. `[pending]` returns early here, so
+   nothing below applies to it: a pending block may legitimately produce
+   undiagnosed bogus nodes before its feature exists.
 
-    let has_errors = parsed.has_errors();
-    let has_bogus = has_bogus_nodes_or_empty_slots(&parsed.syntax());
-    let clean = !has_errors && !has_bogus;
+3. **No bogus node and no missing required slot**, on any block not marked
+   `[error]`.
 
-    // 2. Marker contract
-    if markers.contains(Markers::PENDING) {
-        if clean {
-            return Err(CheckError::UnexpectedlyPasses);   // ← flip the marker off!
-        }
-        return Ok(vec![Cell::pending()]);   // renders as *Not yet supported.*
-    }
-    if markers.contains(Markers::ERROR) && !has_errors {
-        return Err(CheckError::ExpectedError);
-    }
-    if !markers.contains(Markers::ERROR) && has_errors {
-        return Err(CheckError::UnexpectedError(render_diagnostics(&parsed, &block.source)));
-    }
+4. **Every bogus node is overlapped by a diagnostic that points at it** —
+   invariant 2. This has to be per-node overlap rather than "are there any
+   diagnostics at all": a recovery path that produces a bogus node without calling
+   `p.error(...)` yields a tree that round-trips and satisfies its `[error]` marker
+   via some *unrelated* diagnostic, and the whole-parse form would be satisfied by
+   the very diagnostic that masks the problem. In practice it only bites on
+   `[error]` tests, since step 3 has already rejected bogus nodes everywhere else —
+   which is exactly where it is needed. It matters most in phases 7–13 while
+   recovery is being written, not in Phase 14, by which point the bad snapshots are
+   already committed.
 
-    // 3. Structural sanity for clean tests
-    if !markers.contains(Markers::ERROR) {
-        let ast = format!("{:#?}", parsed.tree());
-        if ast.contains("missing (required)") {
-            return Err(CheckError::MissingRequired(ast));
-        }
-        if has_bogus {
-            return Err(CheckError::BogusNodes(ast));
-        }
-    }
+Three things about step 4 that the code states without explaining:
 
-    // 4. Every bogus node is explained by a diagnostic that POINTS AT IT.
-    //    Invariant 2 in `CLAUDE.md`. A recovery path that produces a bogus node
-    //    without calling `p.error(...)` yields a tree that round-trips and
-    //    satisfies its `[error]` marker via some *unrelated* diagnostic — which
-    //    is why the test has to be per-node overlap and not "are there any
-    //    diagnostics at all". The whole-parse form would be satisfied by the
-    //    very diagnostic that masks the problem, and is in fact unreachable:
-    //    step 3 has already rejected bogus nodes on every non-`[error]` block,
-    //    and an `[error]` block always has a non-empty diagnostic list.
-    //
-    //    So in practice this only bites on `[error]` tests, which is exactly
-    //    where it is needed. It matters most in phases 7-13 while recovery is
-    //    being written — not in phase 14, by which point the bad snapshots are
-    //    already committed.
-    //
-    //    Sits after the `[pending]` early return above: a pending block may
-    //    legitimately produce undiagnosed bogus nodes before its feature exists.
-    let unexplained = undiagnosed_bogus_nodes(&parsed.syntax(), parsed.diagnostics());
-    if !unexplained.is_empty() {
-        return Err(CheckError::UndiagnosedBogusNode {
-            ranges: unexplained.iter().map(|n| n.text_range()).collect(),
-            ast: format!("{:#?}", parsed.tree()),
-        });
-    }
+- **Overlap, not equality.** A recovery that consumes three tokens may legitimately
+  be explained by a diagnostic anchored on only the first of them.
 
-    // 5. Oracle — added by the oracle PR, not by Phase 6. Compiled out unless
-    //    the `oracle` feature is on, so a default `cargo nextest run`
-    //    (including CI) never builds tree-sitter-r.
-    #[cfg(feature = "oracle")]
-    if !markers.contains(Markers::DEVIATION) {
-        match aether_r_oracle::compare(&block.source, &parsed.syntax()) {
-            OracleResult::Match => {}
-            // tree-sitter bails on any error input, so this is a skip, not a
-            // failure — see §10.4.
-            OracleResult::OracleUnavailable(_) => {}
-            OracleResult::Mismatch { path, expected, actual } => {
-                return Err(CheckError::OracleMismatch { path, expected, actual });
-            }
-        }
-    }
-
-    // 6. Generate cells
-    let mut cells = vec![Cell::new("cst", format!("{:#?}", parsed.tree()))];
-    if !parsed.diagnostics().is_empty() {
-        cells.push(Cell::new("diagnostics", render_diagnostics(&parsed, &block.source)));
-    }
-    Ok(cells)
-}
-```
-
-`has_bogus_nodes_or_empty_slots` is copied verbatim from air's
-`crates/air_r_parser/tests/spec_test.rs`. Its name is misleading, which is why
-step 3 greps the AST dump for `missing (required)` as well: the empty-slot half
-only looks at *list* nodes, so a missing required slot on an ordinary node —
-`a$`'s `right`, exactly the case §11.4 cares about — is invisible to it. Both
-checks stay.
-
-The step 4 helper:
-
-```rust
-/// Bogus nodes that no diagnostic points at.
-///
-/// Overlap, not equality: a recovery that consumes three tokens may legitimately
-/// be explained by a diagnostic anchored on only the first of them.
-fn undiagnosed_bogus_nodes(
-    root: &RSyntaxNode,
-    diagnostics: &[ParseDiagnostic],
-) -> Vec<RSyntaxNode> {
-    let spans: Vec<TextRange> = diagnostics
-        .iter()
-        .filter_map(|d| d.location().span)
-        .collect();
-
-    root.descendants()
-        .filter(|node| node.kind().is_bogus())
-        .filter(|node| {
-            let range = node.text_range();
-            !spans.iter().any(|span| span.intersect(range).is_some())
-        })
-        .collect()
-}
-```
-
-Three things to know about it:
-
-- **Empty slots are deliberately out of scope.** A missing required slot is not a
-  node and has no range to overlap, so it cannot participate in this check. Step 3
-  rejects it on every clean test, and the designed error paths always emit a
-  diagnostic alongside it — `a$` produces a missing `right` slot *and*
-  `expected_selector` (§11.4). Nothing is being let through here that step 3 or the
-  `[error]` marker does not already cover.
 - **Only primary ranges count.** `with_detail` labels live in the diagnostic's
   advices, not in `location()`, so `expected_selector`'s secondary label on the
-  operator does not contribute to overlap — only its primary range does. That is
-  the conservative reading and it is intentional; do not "fix" it by walking
-  advices, or a diagnostic that merely gestures at a bogus node will start counting
-  as an explanation of it.
-- **`d.location().span` is the one API call here to verify at the pinned Biome
-  rev** rather than trust. `ParseDiagnostic` implements `Diagnostic`, so
-  `location()` should yield a `Location` carrying `span: Option<TextRange>`, but
-  confirm the shape before writing the rest.
+  operator does not contribute to overlap. That is the conservative reading and it
+  is intentional; do not "fix" it by walking advices, or a diagnostic that merely
+  gestures at a bogus node will start counting as an explanation of it.
 
-Diagnostic rendering:
+- **Empty slots are out of scope.** A missing required slot is not a node and has
+  no range to overlap, so it cannot participate. Step 3 rejects it on every clean
+  block, and the designed error paths emit a diagnostic alongside it — `a$`
+  produces a missing `right` slot *and* `expected_selector` (§11.4).
 
-```rust
-fn render_diagnostics(parse: &RParse, source: &str) -> String {
-    use biome_console::{fmt::{Formatter, Termcolor}, markup};
-    use biome_diagnostics::{termcolor::NoColor, DiagnosticExt, PrintDiagnostic};
-    let mut out = Vec::new();
-    for diagnostic in parse.diagnostics() {
-        let d = diagnostic.clone().with_file_path("test.R").with_file_source_code(source);
-        Formatter::new(&mut Termcolor(NoColor::new(&mut out)))
-            .write_markup(markup! { {PrintDiagnostic::verbose(&d)} })
-            .unwrap();
-    }
-    String::from_utf8(out).unwrap()
-}
-```
+Step 3's detection is one predicate: the AST dump contains `missing (required)`,
+or some descendant node's kind `is_bogus()`. Air's `has_bogus_nodes_or_empty_slots`
+(from `crates/air_r_parser/tests/spec_test.rs`) is deliberately not used — its
+empty-slot half only inspects *list* nodes, so a missing required slot on an
+ordinary node, which is the `a$` case §11.4 cares about, is invisible to it.
+**One gap is open here**, raised in review and not yet settled: air's helper did
+cover empty slots in list nodes and the dump grep does not, which is the coverage
+§7 assumed when it made `R_STATEMENT_LIST` a list kind.
 
-Test registration — one `#[test]` per corpus **input** file, generated by globbing
-the tree, so adding a file needs no registration edit. This needs a small
-proc-macro crate, `crates/aether_r_test_macros/` (`proc-macro = true`,
-`proc-macro2` + `quote`), built as part of Phase 6. Model it on air's
-`tests_macros::gen_tests!`, which already does this for `.R` files. Note the glob
-must exclude `*.snap.md`, or every snapshot gets its own bogus test:
+#### 10.2.2 Test registration
 
-```rust
-// crates/aether_r_parser_tests/tests/main.rs
-//
-// The whole test target: no harness module, since `run_file` is library code in
-// this same crate (§3).
-mod corpus {
-    // Expands to one `#[test] fn` per matched file, with the module path
-    // mirroring the directory, e.g. `corpus::expressions::extract`.
-    // The macro skips any path ending in `.snap.md`.
-    aether_r_test_macros::gen_corpus_tests! {
-        "tests/corpus/**/*.md",
-        crate::run_file
-    }
-}
-```
-
-That naming makes nextest filters read naturally:
+One `#[test]` per corpus **input** file, generated by `gen_corpus_tests!` globbing
+the tree, so adding a file needs no registration edit. It is a small proc-macro
+crate, `crates/aether_r_test_macros/`, modelled on air's `tests_macros::gen_tests!`;
+the glob skips `*.snap.md`, or every snapshot would get its own bogus test. Module
+paths mirror directories, which makes nextest filters read naturally:
 
 ```bash
 cargo nextest run -E 'test(corpus::expressions::extract)'
 cargo nextest run -E 'test(/corpus::control/)'          # all control-flow files
-cargo nextest run -p aether_r_parser_tests --status-level all # pending count
 ```
 
 Per-file is the right granularity to start. Because the tests are read-only,
 upgrading to one `#[test]` per `##` heading later is safe — a heading stays the
-unit either way, however many blocks it holds — by extending the macro to
-parse headings at expansion time.
+unit either way, however many blocks it holds — by parsing headings at expansion
+time.
 
-### 10.3 Importing the tree-sitter corpus
+### 10.3 The corpus
 
-Write `xtask/src/import_corpus.rs`, run it **once**, commit the output, then
-delete the tool — settled with the owner. The corpus is the artifact; a live
-dependency on two sibling checkouts is not, and `MANIFEST.toml` is what makes
-re-deriving the placements unnecessary.
+The importer was a throwaway `xtask` subcommand: written, run once, and never
+committed — settled with the owner. The corpus is the artifact; a live dependency
+on two sibling checkouts is not, and `MANIFEST.toml` is what makes re-deriving the
+placements unnecessary. Two rules it followed still govern hand-written tests:
 
-The tree-sitter corpus format is:
+- **A fenced cell cannot express a leading blank line or a missing final
+  newline**, so bodies are trimmed of blank lines at either end and given exactly
+  one trailing newline. Several tree-sitter bodies opened with a blank line and
+  several of air's `.R` files ended without a newline; neither is a deliberate test
+  of anything, and the lexer's own suite already covers EOF with no trailing
+  newline (`1 #`, `#`).
 
-```
-================================================================================
-Test Name
-================================================================================
-<R source>
---------------------------------------------------------------------------------
-
-(program
-  (function_definition ...))
-```
-
-tree-sitter's format allows an attribute line (`:error`, `:skip`) between the
-name and the second `===` fence. **tree-sitter-r uses none** — the two `::y` and
-`:::y` lines that look like attributes are R source inside a body.
-
-The importer:
-1. Splits on `={10,}` fences to get `(name, body)`.
-2. Splits body on the `-{10,}` fence; keeps **only the R source** and discards the
-   s-expression. We regenerate our own expectations; mechanically translating
-   tree-sitter s-expressions into Rowan AST dumps would be both hard and pointless.
-3. Emits `## {name} [pending]` + **one** ` ```r ` cell into the **input** file
-   given by the mapping table below. It does not write snapshots — run
-   `cargo run -p xtask -- accept` afterwards to generate every `.snap.md`.
-4. Adds `[error]` for anything that came from a `*-errors.txt` file, and the
-   `[deviation]`s §10.3.2 records.
-5. Writes `MANIFEST.toml` (§10.3.3).
-
-**A fenced cell cannot express a leading blank line or a missing final newline**,
-so the importer drops both: a body is trimmed of blank lines at either end and
-given exactly one trailing newline. Several tree-sitter bodies open with a blank
-line and several of air's `.R` files end without a newline; neither is a
-deliberate test of anything, and the lexer's own suite already covers EOF with no
-trailing newline (`1 #`, `#`).
-
-**The importer never splits a body into several blocks**, even though a
-tree-sitter test often bundles a dozen related snippets and §10.1 now allows it.
-The reason is semantic rather than stylistic: a bundled body is *one program*, so
-its snippets parse together and the tree records how they sit beside each other.
-Splitting them into blocks would parse each alone and quietly test something
-else. Multi-block headings are for tests aether writes itself, where the grouping
-was never a single program to begin with.
+- **A tree-sitter body is never split into several blocks**, even though §10.1
+  allows several. The reason is semantic rather than stylistic: a bundled body is
+  *one program*, so its snippets parse together and the tree records how they sit
+  beside each other. Splitting them would parse each alone and quietly test
+  something else. Multi-block headings are for tests aether writes itself, where
+  the grouping was never a single program to begin with.
 
 #### 10.3.1 One file per concept
 
@@ -1611,138 +1169,67 @@ way. That is an artifact of its infrastructure, not a meaningful grouping, and i
 is the reason `expressions.txt` is a 49-test grab bag. **Aether splits by concept
 instead**, roughly mirroring `src/syntax/`, and files may be as small as one test.
 
-Two consequences worth stating plainly:
-
 - **The `-errors` split disappears.** Error expectations are carried by the
-  `[error]` marker on each test, not by which file it lives in, so
-  `Not A Parenthesized Expression 1` sits directly beside `Parenthesized Expression`
-  in `expressions/parenthesized.md`. That is strictly better for review: you see the
-  accepted and rejected forms of a construct together.
-- **Turning on a feature becomes one file, usually.** Phase 11 (functions) flips
-  the markers in `functions/*.md` and nothing else. The phase-to-file correspondence
-  in the mapping below is deliberate.
+  `[error]` marker on each test, not by which file it lives in, so `Not A
+  Parenthesized Expression 1` sits directly beside `Parenthesized Expression`. That
+  is strictly better for review: you see the accepted and rejected forms of a
+  construct together.
 
-#### 10.3.2 The complete mapping — all 89 tests
+- **Turning on a feature is usually one directory.** Phase 11 flips the markers in
+  `functions/*.md` and nothing else. The phase-to-directory correspondence below is
+  deliberate.
 
-`ts:e` = `expressions.txt`, `ts:ee` = `expressions-errors.txt`,
-`ts:l` = `literals.txt`, `ts:le` = `literals-errors.txt`.
-Every one of the 89 appears exactly once. **Do not drop or merge any of them, and
-do not split a single tree-sitter test's body across two files** — an individual
-test often bundles a dozen related snippets and its value is in that grouping.
+#### 10.3.2 Where the imported tests landed
 
-| Destination | Tests | Source | Phase |
-|---|---|---|---|
-| `literals/identifiers.md` | Identifiers · Unicode Identifiers · Invalid Identifiers · Dot Dot I · **Unclosed Backtick** `[error]` | ts:l ×4, ts:le ×1 | 7 |
-| `literals/numbers.md` | Integers · Floats · Hexadecimal · Scientific Notation Floats · Complex | ts:l ×5 | 7 |
-| `literals/strings.md` | Strings · Strings Without Content · Strings With Escape Sequences · Raw Strings · **Unclosed Double Quote** · **Unclosed Single Quote** · **Unclosed Raw String** `[error]` | ts:l ×4, ts:le ×3 | 7 |
-| `literals/comments.md` | Comments | ts:l ×1 | 7 |
-| `literals/constants.md` | Constants | ts:l ×1 | 7 |
-| `expressions/unary.md` | Unary Operators | ts:e ×1 | 8 |
-| `expressions/binary.md` | Relational · Arithmetic Operator · Not An Arithmetic Operator | ts:e ×3 | 8 |
-| `expressions/colon.md` | Colon | ts:e ×1 | 8 |
-| `expressions/specials.md` | Specials `[deviation]` · Pipe · Pipe Placeholder | ts:e ×3 | 8 |
-| `expressions/formula.md` | Formulas | ts:e ×1 | 8 |
-| `expressions/help.md` | Help Operator | ts:e ×1 | 8 |
-| `expressions/assignment.md` | Assignment | ts:e ×1 | 8 |
-| `expressions/precedence.md` | Operator precedence · Precedence Tests · Complex Expressions · Subset and Subset2 Precedence | ts:e ×4 | 8, last one 9 |
-| `expressions/call.md` | Calls · Calls With NULL As Argument Name · Calls With `return` As Argument Name · `return` Is Just An Identifier · Switch · **Calls With NA As Argument Name** · **Not A Call, Subset, Or Subset2** · **… Due To Sequential Arguments** `[error]` | ts:e ×5, ts:ee ×3 | 9 |
-| `expressions/subset.md` | Subset | ts:e ×1 | 9 |
-| `expressions/subset2.md` | Subset2 · **Unsupported Subset2 With `]]` Over Multiple Lines (#177)** `[error]` | ts:e ×1, ts:ee ×1 | 9 |
-| `expressions/parenthesized.md` | Parenthesized Expression · **Not A Parenthesized Expression 1** · **2** · **3** `[error]` | ts:e ×1, ts:ee ×3 | 9 |
-| `expressions/extract.md` | Dollar · Slot · Dollar, At, Namespace, Namespace Internal With Expression RHS · **Dollar No RHS** · **Slot No RHS** `[error, deviation]` · **… With `if` RHS** · **… With Newline Before Operator** `[error]` | ts:e ×5, ts:ee ×2 | 10 |
-| `expressions/namespace.md` | Namespace get · Namespace get internal · **Namespace With Missing RHS** `[error, deviation]` | ts:e ×3 | 10 |
-| `functions/definition.md` | Functions · Function No Body · **Function No Body With Assignment** · **Function No Body Inside Another Function** `[error]` | ts:e ×2, ts:ee ×2 | 11 |
-| `functions/lambda.md` | Lambda Function | ts:e ×1 | 11 |
-| `functions/parameters.md` | Functions With `return` As Parameter Name · Function Dots And Dot Dot I | ts:e ×2 | 11 |
-| `control/if.md` | If · If-else · Complex If Expression · Identifiers starting with `else` that are not the `else` keyword (#200) · … - 2 (#200) | ts:e ×5 | 12 |
-| `control/for.md` | For · For No Body | ts:e ×2 | 12 |
-| `control/while.md` | While · While No Body | ts:e ×2 | 12 |
-| `control/repeat.md` | Repeat · Repeat No Body | ts:e ×2 | 12 |
-| `statements/braces.md` | Braced Expression | ts:e ×1 | 13 |
-| `statements/newlines.md` | Newlines | ts:e ×1 | 8 |
-| `statements/semicolons.md` | *(none from tree-sitter — air's semicolon snapshots, all `[deviation]`)* | — | 13 |
-| `recovery/unmatched-delimiters.md` | **Closing Brace** · **Closing Parenthesis** · **Closing Bracket** · **Opening Brace, Closing Parenthesis** · **Opening Parenthesis, Closing Brace** · **Opening Parenthesis, Closing Bracket** · **Opening Bracket2, Unmatched Closing Bracket** · **Opening Bracket and Bracket2, Unmatched Closing Bracket** · **Opening Bracket2 and Bracket, Matched Closing Bracket** · **Opening Bracket2 and Bracket, Unmatched Closing Bracket** `[error]` | ts:ee ×10 | 9, finalised 14 |
+`MANIFEST.toml` records every placement and a test enforces it (§10.3.3), so it is
+the answer to "where did test X go" — not a table here, which would only rot. What
+the manifest does not carry is which phase owns which directory:
 
-Bold = carries `[error]`, which is usually because it came from an `-errors.txt`
-file. The three exceptions are `Dollar No RHS`, `Slot No RHS`, and `Namespace
-With Missing RHS`: they sit in `expressions.txt` because tree-sitter accepts
-them, and they are errors here because deviations 2 and 3 require the RHS. That
-is also why those three are the `[error, deviation]` ones.
+| Phase | Files |
+|---|---|
+| 7 | `literals/*.md` |
+| 8 | `expressions/{unary,binary,colon,specials,formula,help,assignment,precedence}.md`, `statements/newlines.md` |
+| 9 | `expressions/{call,subset,subset2,parenthesized}.md`, `recovery/unmatched-delimiters.md` (finalised in 14) |
+| 10 | `expressions/{extract,namespace}.md` |
+| 11 | `functions/*.md` |
+| 12 | `control/*.md` |
+| 13 | `statements/{braces,semicolons}.md` |
 
-**Tally:** literals 19 (= 15 + 4), expressions 40, functions 7, control 11,
-statements 2, recovery 10. Expression-family total 70 (= 49 + 21). **Grand total
-89.** Reproduce this arithmetic after importing; if it does not come out to 89 you
-have dropped something.
+**Counts:** literals 19, expressions 40, functions 7, control 11, statements 2,
+recovery 10 — 89 from tree-sitter-r, plus 37 of air's (§10.3.4), for the 126
+entries in `MANIFEST.toml`.
 
 Three placements are judgement calls, noted so a reviewer is not surprised:
-- **`Subset and Subset2 Precedence`** goes in `precedence.md` rather than
-  `subset2.md`, since it is about binding order.
-- **The two `#200` `else`-prefix identifier tests** go in `control/if.md`, not
+
+- **`Subset and Subset2 Precedence`** is in `precedence.md` rather than
+  `subset2.md`, since it is about binding order. It is the one Phase 9 test in a
+  Phase 8 file.
+
+- **The two `#200` `else`-prefix identifier tests** are in `control/if.md`, not
   `literals/identifiers.md`. They are lexer tests in substance, but their R source
   is an `if`/`else` block and they only fail in that context.
-- **`Dollar, At, Namespace, Namespace Internal With …`** (three tests) exercise all
-  four operators at once. They live in `extract.md`, so `namespace.md` looks thinner
-  than it is. `MANIFEST.toml` records where every test landed, which is where to
-  look rather than guessing from file names.
+
+- **`Dollar, At, Namespace, Namespace Internal With Expression RHS`** (three tests)
+  exercise all four operators at once and live in `extract.md`, so `namespace.md`
+  looks thinner than it is.
+
+`[error]` is carried by everything that came from an `-errors.txt` file, plus three
+that sit in `expressions.txt` because tree-sitter accepts them and deviations 2 and
+3 require the RHS: `Dollar No RHS`, `Slot No RHS`, and `Namespace With Missing
+RHS`. Those three are also the `[error, deviation]` ones.
 
 #### 10.3.3 `MANIFEST.toml` — the anti-drop guard
 
-The importer also writes a manifest, and a test asserts against it. This is what
-makes "do not drop tests" mechanical rather than aspirational.
+Every imported test is listed with the `source` it came from, whatever project
+that was, so no naming convention inside the `.md` files has to carry provenance.
+Two tests guard it:
 
-Every imported test is listed, whatever it was imported *from* — the 89 from
-tree-sitter-r and air's ~35 snapshots (§10.3.4) alike. `source` carries the
-provenance, so no naming convention inside the `.md` files has to.
+- `every_imported_test_still_exists` — each entry's name is still a heading in the
+  file the manifest names, and exactly 89 entries have a `tree-sitter-r/` source.
 
-```toml
-# crates/aether_r_parser_tests/tests/corpus/MANIFEST.toml
-# Generated once by `xtask import-corpus`. Every test imported from another
-# project, and where it now lives. Do not hand-edit.
-[[imported]]
-source = "tree-sitter-r/test/corpus/expressions.txt"
-name   = "Dollar No RHS"
-file   = "expressions/extract.md"
-
-[[imported]]
-source = "tree-sitter-r/test/corpus/expressions-errors.txt"
-name   = "Closing Brace"
-file   = "recovery/unmatched-delimiters.md"
-
-[[imported]]
-source = "air/crates/air_r_parser/tests/snapshots/ok/calls.R"
-name   = "Calls"
-file   = "expressions/call.md"
-# … 89 tree-sitter entries + air's snapshots
-```
-
-```rust
-const TREE_SITTER: &str = "tree-sitter-r/";
-
-#[test]
-fn every_imported_test_still_exists() {
-    let manifest = Manifest::load();
-    let from_tree_sitter =
-        manifest.imported.iter().filter(|e| e.source.starts_with(TREE_SITTER)).count();
-    assert_eq!(from_tree_sitter, 89, "manifest lost tree-sitter entries");
-
-    for entry in &manifest.imported {
-        let doc = Document::parse(&fs::read_to_string(corpus_dir().join(&entry.file))?)?;
-        assert!(
-            doc.tests.iter().any(|t| t.name == entry.name),
-            "test {:?} was imported from {} into {} but is no longer there",
-            entry.name, entry.source, entry.file,
-        );
-    }
-}
-
-#[test]
-fn no_imported_test_is_duplicated() {
-    // Each imported name appears in exactly one corpus file, and it is the file the
-    // manifest records. Copying a test into a second file forks it silently
-    // otherwise — one copy then drifts while the manifest check stays green.
-    // …
-}
-```
+- `no_imported_test_is_duplicated` — each imported name appears in exactly one
+  corpus file. Copying a test into a second file forks it silently otherwise: one
+  copy drifts while the first check stays green.
 
 Renaming an imported test or moving it between files is then a deliberate two-file
 change: the `.md` and the manifest. That is the point.
@@ -1753,71 +1240,34 @@ need no bookkeeping — they are new, so there is no prior version of them to lo
 #### 10.3.4 Air's own snapshots
 
 Air's `crates/air_r_parser/tests/snapshots/{ok,error,undefined}/**/*.R` is 39
-files, of which **37 merge into the same concept files**, not a separate
-`air-regressions.md` — a regression test about calls belongs next to the other
-call tests. The placements:
+files, of which **37 merged into the same concept files**, not a separate
+`air-regressions.md` — a regression test about calls belongs next to the other call
+tests. They carry no marker of where they came from: a test's name should describe
+the R it exercises, and a reader scanning `expressions/call.md` has no reason to
+care which upstream project a case arrived from. Where a name was already taken,
+the importer disambiguated by what the test covers — `Calls With Trailing Comma`,
+not `Calls (air)`. The `undefined/*` ones became `[error]`, since that directory
+exists in air precisely because nobody was happy with the current silent behavior
+(deviation 2).
 
-| Air snapshot | Destination |
-|---|---|
-| `ok/binary_expressions.R`, `ok/unary_expressions.R` | `expressions/binary.md`, `expressions/unary.md` |
-| `ok/calls.R`, `error/call/side_by_side_arguments.R` | `expressions/call.md` |
-| `ok/subset.R`, `ok/subset2.R` | `expressions/subset.md`, `expressions/subset2.md` |
-| `ok/extract_expression.R`, `undefined/extract_expression_error.R` | `expressions/extract.md` |
-| `ok/namespace_expression.R`, `undefined/namespace_expression_error.R`, `error/namespace_expression/*.R` | `expressions/namespace.md` |
-| `ok/parenthesized_expression.R`, `error/parenthesized_expression/*.R` | `expressions/parenthesized.md` |
-| `ok/function_definition.R` | `functions/definition.md` |
-| `ok/if_statement.R`, `ok/for_statement.R`, `ok/while_statement.R`, `ok/repeat_statement.R` | `control/*.md` |
-| `ok/braced_expressions.R` | `statements/braces.md` |
-| `ok/semicolons/*.R` | `statements/semicolons.md` |
-| `ok/comments.R` | `literals/comments.md` |
-| `ok/value/*.R` | `literals/numbers.md`, `literals/strings.md` |
-| `ok/dots.R`, `ok/dot_dot_i.R`, `ok/keyword.R` | `literals/identifiers.md`, `literals/constants.md` |
-| `ok/crlf/*.R` | **not the corpus** — see below |
-
-**The two `ok/crlf/*.R` files stay out of the corpus**, settled with the owner. A
+**The two `ok/crlf/*.R` files stayed out of the corpus**, settled with the owner. A
 ` ```r ` cell would have to hold literal CRLF bytes, and keeping those alive
 through git, an editor, and the renderer costs more than the two tests are worth.
 They are ported into `aether_r_parser`'s own `#[cfg(test)]` suite instead, where
-the source is a Rust string literal that nothing can rewrite:
-`trailing_comments.R` as a trivia test in `token_source/tests.rs`, and
-`multiline_string_value.R` as a lexer test in `lexer/tests/strings.rs`. They are
-absent from `MANIFEST.toml`, which addresses tests by corpus file, and this
-paragraph is the record that they were not dropped.
+the source is a Rust string literal that nothing can rewrite: `trailing_comments.R`
+as a trivia test in `token_source/tests.rs`, and `multiline_string_value.R` as a
+lexer test in `lexer/tests/strings.rs`. They are absent from `MANIFEST.toml`, which
+addresses tests by corpus file, and this paragraph is the record that they were not
+dropped.
 
-**A merged snapshot may lag its file's nominal phase.** Air's files were written
-to exercise a feature, not to stay within one, so `ok/comments.R` is
-`1 + 1 # Trailing` and `ok/dots.R` contains `{ ... }` and `...()`. Landing them in
-`literals/` is still right — a comment test belongs with the other comment tests —
-but it means the phase that owns a *directory* does not necessarily turn every
-heading in it green. Leave the stragglers `[pending]` and let the phase that
-implements what they need flip them. The per-phase counts in §11 are of imported
-tree-sitter tests for this reason.
-
-These headings get no marker of where they came from — no `air:` prefix, nothing.
-A test's name should describe the R it exercises, and a reader scanning
-`expressions/call.md` has no reason to care which upstream project a given case
-arrived from. Provenance is recorded once, in `MANIFEST.toml` (§10.3.3), where it
-is queryable and cannot rot. The importer writes these entries too, with an
-`air/`-rooted `source`.
-
-**Names must be unique within a file, and dropping the prefix is what makes that
-bite.** Air's `ok/calls.R` lands in `expressions/call.md` next to tree-sitter's
-`Calls`, and the obvious name for it is also `Calls`. Since the harness and both
-manifest checks address tests by `(file, name)`, a collision is not a cosmetic
-problem — it makes `every_imported_test_still_exists` satisfiable by the wrong test.
-So:
-
-- `Document::parse` rejects a duplicate heading within a file outright, with the
-  offending name in the message. Cheap, and it turns the whole class of problem into
-  a parse error at the point of authoring.
-
-- Where a name is taken, the importer disambiguates by what the test actually
-  covers, not by its origin — `Calls With Trailing Comma`, not `Calls (air)`. There
-  are only a handful; name them by hand rather than auto-suffixing `_2`.
-
-The `undefined/*` ones become `[error]` in aether — that directory exists in air
-precisely because nobody was happy with the current silent behavior (deviation 2 in
-`docs/deviations.md`).
+**A merged snapshot may lag its file's nominal phase.** Air's files were written to
+exercise a feature, not to stay within one, so `ok/comments.R` is `1 + 1 # Trailing`
+and `ok/dots.R` contains `{ ... }` and `...()`. Landing them in `literals/` is still
+right — a comment test belongs with the other comment tests — but it means the
+phase that owns a *directory* does not necessarily turn every heading in it green.
+Leave the stragglers `[pending]` and let the phase that implements what they need
+flip them. The per-phase counts in §11 are of imported tree-sitter tests for this
+reason.
 
 ### 10.4 The oracle — a follow-up PR, not part of Phase 6
 
@@ -1933,8 +1383,9 @@ checklist (§4) calls for that at the end of every parser phase.
 earn much maintenance. If a Biome rev bump or a tree-sitter-r change breaks it,
 the reasonable responses are to fix it cheaply or to stop using it — not to spend
 a day restoring a tool whose remaining life is a handful of phases. What must
-survive its removal is the *reviewed snapshots*, which is why §10.1 requires
-eyeballing every changed cell rather than trusting the oracle to catch everything.
+survive its removal is the *reviewed snapshots*, which is why the phase checklist
+(§4) calls for eyeballing every changed cell rather than trusting the oracle to
+catch everything.
 
 The counterpart risk — that a local-only tool quietly stops being run — is real
 and is why the phase checklist names it as an explicit step rather than leaving it
@@ -1942,38 +1393,10 @@ to habit.
 
 ### 10.5 `quick_test.rs`
 
-Keep air's scratchpad, since the owner uses it:
-
-Run it with `just quick` (nextest needs `--run-ignored all` and `--no-capture`
-to show `println!` output):
-
-```rust
-// crates/aether_r_parser_tests/tests/quick_test.rs
-#[ignore]
-#[test]
-fn quick_test() {
-    let code = r#"
-    1$foo
-    1$2
-    "#;
-    let parsed = aether_r_parser::parse(code, RParserOptions::default());
-    println!("{:#?}", parsed.tree());
-    for d in parsed.diagnostics() { println!("{d:?}"); }
-}
-```
-
-**Done when:** all 89 tree-sitter tests plus 37 of air's snapshots exist as
-`[pending]`, distributed across the concept input files per §10.3.2, each with a
-generated `.snap.md` sibling;
-`MANIFEST.toml` lists every one of them, of which exactly 89 have a
-`tree-sitter-r/` source, and `every_imported_test_still_exists` passes;
-`cargo nextest run --workspace` is green — pending tests assert only that the
-parse is *not* clean, which everything satisfies at this point, **and** that the
-source round-trips, which requires the lexer to already tokenise every corpus
-input losslessly (§8). That second half is the real bar for closing this phase;
-if a corpus file does not round-trip, the lexer is dropping bytes and no amount
-of later parser work will fix it. Finally, `cargo run -p xtask -- accept`
-produces no diff.
+Air's scratchpad, kept because the owner uses it: an `#[ignore]`d test in
+`crates/aether_r_parser_tests/tests/` that parses a string literal and prints the
+tree and diagnostics. `just quick` runs it — nextest needs `--run-ignored all` and
+`--no-capture` to show `println!` output.
 
 ---
 
@@ -2000,7 +1423,7 @@ pub(crate) fn parse_root(p: &mut RParser) {
 ```
 
 That `parse_statement_list` call replaces Phase 6's placeholder, and
-`not_yet_implemented` goes with it (§10).
+`parse_placeholder_statement` with its inline diagnostic goes with it (§10).
 
 **Phase 7 writes the first `parse_statement_list`, not Phase 13.** §11.7 shows the
 finished version, but `parse_root` calls it from this phase onward, so a working
@@ -3507,4 +2930,4 @@ Two things keep it honest as phases land:
 - **The invariants are the part that must not drift.** Round-trip for all inputs,
   a diagnostic for every bogus node, no panics and no infinite loops, and tree
   shape matching tree-sitter-r except where `docs/deviations.md` says otherwise.
-  §10.2's `check()` enforces the first three mechanically once Phase 6 lands.
+  §10.2's `check()` enforces the first three mechanically.
