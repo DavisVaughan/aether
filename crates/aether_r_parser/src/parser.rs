@@ -31,10 +31,6 @@ pub(crate) enum Scope {
 impl Scope {
     /// A line break ends a statement at top level and inside `{`, and means
     /// nothing inside `(`, `[`, or `[[`
-    ///
-    /// Exhaustive rather than a `matches!`, so a new scope has to answer this
-    /// one way or the other. Answering it wrongly by default would ignore line
-    /// breaks, which is a wrong tree that still round-trips
     pub(crate) fn newlines_are_significant(self) -> bool {
         match self {
             Self::TopLevel | Self::Brace => true,
