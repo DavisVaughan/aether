@@ -40,7 +40,7 @@ rustc-hash = "2.1.0"
 serde = { version = "1.0.215", features = ["derive"] }
 similar = "2.6"
 toml = "0.8"
-tracing ={ version = "0.1.40", default-features = false, features = ["std"] }
+tracing = { version = "0.1.40", default-features = false, features = ["std"] }
 unicode-ident = "1.0"
 tree-sitter = "0.24.7"
 tree-sitter-r = { git = "https://github.com/r-lib/tree-sitter-r", rev = "d459b97a9a11dd81643ab674938bede2874663b0" }
