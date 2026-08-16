@@ -33,7 +33,10 @@ fn every_imported_test_still_exists() {
         let document = Document::parse(&text).unwrap_or_else(|err| panic!("{}: {err}", entry.file));
 
         assert!(
-            document.tests.iter().any(|test| test.name == entry.name),
+            document
+                .sections
+                .iter()
+                .any(|section| section.name == entry.name),
             "test {:?} was imported from {} into {} but is no longer there",
             entry.name,
             entry.source,
@@ -64,12 +67,12 @@ fn no_imported_test_is_duplicated() {
             .unwrap_or_else(|err| panic!("cannot read {}: {err}", path.display()));
         let document = Document::parse(&text).unwrap_or_else(|err| panic!("{file}: {err}"));
 
-        for test in &document.tests {
-            if let Some(home) = homes.get(test.name.as_str()) {
+        for section in &document.sections {
+            if let Some(home) = homes.get(section.name.as_str()) {
                 assert_eq!(
                     *home, file,
                     "imported test {:?} also appears in {file}",
-                    test.name
+                    section.name
                 );
             }
         }

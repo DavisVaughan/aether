@@ -8,9 +8,9 @@ pub fn accept() -> Result<()> {
         let mut document = Document::parse(&fs::read_to_string(&input_path)?)
             .map_err(|err| crate::anyhow!("{display}: {err}"))?;
 
-        for test in &mut document.tests {
-            let markers = test.markers;
-            for block in test.blocks_mut() {
+        for section in &mut document.sections {
+            let markers = section.markers;
+            for block in section.blocks_mut() {
                 // On failure write what we can and let the test run report it:
                 // a regeneration should be maximally informative
                 block.generated = check(block, markers).unwrap_or_default();

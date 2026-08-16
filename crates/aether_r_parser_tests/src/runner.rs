@@ -21,13 +21,13 @@ pub fn run_file(input_path: &Path) {
     let mut generated = input.clone();
     let mut failures = Vec::new();
 
-    for test in &mut generated.tests {
-        let markers = test.markers;
-        let name = test.name.clone();
+    for section in &mut generated.sections {
+        let markers = section.markers;
+        let name = section.name.clone();
 
         // A heading may hold several blocks, so the name alone would not say
         // which one failed
-        for (index, block) in test.blocks_mut().enumerate() {
+        for (index, block) in section.blocks_mut().enumerate() {
             match check(block, markers) {
                 Ok(cells) => block.generated = cells,
                 Err(error) => failures.push((name.clone(), index, error)),
