@@ -1516,61 +1516,50 @@ right; everything else hangs off it.
 
 #### The precedence table
 
-Transcribed from `tree-sitter-r/grammar.js`'s `PREC`, which is itself transcribed
-from R's `src/main/gram.y`. Higher binds tighter.
+Taken from R's `src/main/gram.y`. Higher binds tighter.
 
 | Rank | Name | Operators | Assoc |
 |---|---|---|---|
 | 1 | HELP | `?` (binary) | left |
-| 2 | FUNCTION_OR_LOOP | `function`, `while`, `for`, `repeat` bodies | (not an operator — see below) |
-| 3 | IF | `if` | (not an operator — see below) |
-| 4 | LEFT_ASSIGN | `<-` `<<-` `:=` | **right** |
-| 5 | EQUALS_ASSIGN | `=` | **right** |
-| 6 | RIGHT_ASSIGN | `->` `->>` | left |
-| 7 | TILDE | `~` | left |
-| 8 | OR | `\|` `\|\|` | left |
-| 9 | AND | `&` `&&` | left |
-| 10 | UNARY_NOT | `!` (unary) | left |
-| 11 | COMPARISON | `<` `<=` `>` `>=` `==` `!=` | left (nonassoc in R) |
-| 12 | PLUS_MINUS | `+` `-` (binary) | left |
-| 13 | MULTIPLY_DIVIDE | `*` `/` | left |
-| 14 | SPECIAL_OR_PIPE | `%...%` `\|>` | left |
-| 15 | COLON | `:` | left |
-| 16 | UNARY_PLUS_MINUS | `+` `-` (unary) | left |
-| 17 | EXPONENTIATE | `^` `**` | **right** |
-| 18 | EXTRACT | `$` `@` | left (see below) |
-| 19 | NAMESPACE | `::` `:::` | left (see below) |
-| 20 | CALL | `f(…)` `x[…]` `x[[…]]` | — (postfix) |
+| 2 | LEFT_ASSIGN | `<-` `<<-` `:=` | **right** |
+| 3 | EQUALS_ASSIGN | `=` | **right** |
+| 4 | RIGHT_ASSIGN | `->` `->>` | left |
+| 5 | TILDE | `~` | left |
+| 6 | OR | `\|` `\|\|` | left |
+| 7 | AND | `&` `&&` | left |
+| 8 | UNARY_NOT | `!` (unary) | left |
+| 9 | COMPARISON | `<` `<=` `>` `>=` `==` `!=` | left (nonassoc in R) |
+| 10 | PLUS_MINUS | `+` `-` (binary) | left |
+| 11 | MULTIPLY_DIVIDE | `*` `/` | left |
+| 12 | SPECIAL_OR_PIPE | `%...%` `\|>` | left |
+| 13 | COLON | `:` | left |
+| 14 | UNARY_PLUS_MINUS | `+` `-` (unary) | left |
+| 15 | EXPONENTIATE | `^` `**` | **right** |
+| 16 | EXTRACT | `$` `@` | left (see below) |
+| 17 | NAMESPACE | `::` `:::` | left (see below) |
+| 18 | CALL | `f(…)` `x[…]` `x[[…]]` | — (postfix) |
 
-**Ranks 2, 3, and 20 are deliberately absent from the binding-power functions
-below.** Ranks 2 and 3 are not operator precedences: in tree-sitter-r they wrap
-entire productions —
-
-```js
-function_definition: $ => withPrec(PREC.FUNCTION_OR_LOOP, seq(
-if_statement:        $ => withPrec(PREC.IF, seq(
-```
-
-— and their only job is to make a body greedy, i.e. to say how far right
+**`function`, `while`, `for`, `repeat`, and `if` get no rank.** R's grammar gives
+them one, and it does one job there: make the body greedy, i.e. say how far right
 `function(x) …` or `if (c) …` extends. A recursive-descent parser answers that by
-construction: the body is a plain `parse_expression` call that runs to its natural
-terminator (§11.5, §11.6). The two ranks are kept in the table so the numbering
-lines up with tree-sitter-r's `PREC` when comparing, and for nothing else.
+construction — the body is a plain `parse_expression` call that runs to its
+natural terminator (§11.5, §11.6).
 
-Rank 20 is absent for a different reason: postfix is handled structurally in the
-Pratt loop and applies unconditionally, so it is never compared against a
-`min_bp`. The number survives in code only as `POSTFIX_BINDING_POWER`, which
-exists purely to give the `debug_assert!` in `parse_expression_with_lhs` something
-to assert *against* — that 20 really is the ceiling. Adding an infix operator at
-rank 20 or above would break that and is what the assertion catches; the fix in
-that case is to renumber so postfix stays tightest, not to relax the assertion.
+**Rank 18 is absent from the binding-power functions below.** Postfix is handled
+structurally in the Pratt loop and applies unconditionally, so it is never
+compared against a `min_bp`. The number survives in code only as
+`POSTFIX_BINDING_POWER`, which exists purely to give the `debug_assert!` in
+`parse_expression_with_lhs` something to assert *against* — that 18 really is the
+ceiling. Adding an infix operator at rank 18 or above would break that and is what
+the assertion catches; the fix in that case is to renumber so postfix stays
+tightest, not to relax the assertion.
 
-The one case where a greedy body and a body parsed at `min_bp = 2` would differ is
-the binary `?` at rank 1 — `function() a ? b` could group either way. R's grammar
-makes a function body `expr_or_assign_or_help`, which includes help and so points
-at greedy, but do not take that on faith: let the oracle settle it the first time
-it runs against `functions/definition.md`, and record the answer here if it is
-not greedy.
+The one case where a greedy body and a body parsed at `min_bp = 2` — everything
+but `?` — would differ is the binary `?` at rank 1: `function() a ? b` could
+group either way. R's grammar makes a function body `expr_or_assign_or_help`,
+which includes help and so points at greedy, but do not take that on faith: let
+the oracle settle it the first time it runs against `functions/definition.md`,
+and record the answer here if it is not greedy.
 
 **Associativity of `$` `@` `::` `:::`.** tree-sitter-r forces these **right**
 associative and explains why in a long comment: it is a workaround for the
@@ -1587,31 +1576,31 @@ pub(crate) struct BindingPower(u8);
 #[derive(Debug, Clone, Copy)]
 enum Assoc { Left, Right }
 
-/// Rank 20 — `f(…)`, `x[…]`, `x[[…]]`. Appears in no lookup table because
+/// Rank 18 — `f(…)`, `x[…]`, `x[[…]]`. Appears in no lookup table because
 /// postfix is handled structurally in the Pratt loop, but it is named so the
 /// `debug_assert!` guarding "postfix is the tightest-binding construct" reads as
-/// a claim about the precedence table rather than a bare `20`.
-const POSTFIX_BINDING_POWER: BindingPower = BindingPower(20);
+/// a claim about the precedence table rather than a bare `18`.
+const POSTFIX_BINDING_POWER: BindingPower = BindingPower(18);
 
 fn infix_binding_power(kind: RSyntaxKind) -> Option<(BindingPower, Assoc)> {
     use RSyntaxKind::*;
     Some(match kind {
         T![?]                                    => (BindingPower(1),  Assoc::Left),
-        T![<-] | T![<<-] | T![:=]                => (BindingPower(4),  Assoc::Right),
-        T![=]                                    => (BindingPower(5),  Assoc::Right),
-        T![->] | T![->>]                         => (BindingPower(6),  Assoc::Left),
-        T![~]                                    => (BindingPower(7),  Assoc::Left),
-        T![|] | T![||]                           => (BindingPower(8),  Assoc::Left),
-        T![&] | T![&&]                           => (BindingPower(9),  Assoc::Left),
+        T![<-] | T![<<-] | T![:=]                => (BindingPower(2),  Assoc::Right),
+        T![=]                                    => (BindingPower(3),  Assoc::Right),
+        T![->] | T![->>]                         => (BindingPower(4),  Assoc::Left),
+        T![~]                                    => (BindingPower(5),  Assoc::Left),
+        T![|] | T![||]                           => (BindingPower(6),  Assoc::Left),
+        T![&] | T![&&]                           => (BindingPower(7),  Assoc::Left),
         T![<] | T![<=] | T![>] | T![>=]
-        | T![==] | T![!=]                        => (BindingPower(11), Assoc::Left),
-        T![+] | T![-]                            => (BindingPower(12), Assoc::Left),
-        T![*] | T![/]                            => (BindingPower(13), Assoc::Left),
-        SPECIAL | T![|>]                         => (BindingPower(14), Assoc::Left),
-        T![:]                                    => (BindingPower(15), Assoc::Left),
-        T![^] | T![**]                           => (BindingPower(17), Assoc::Right),
-        T![$] | T![@]                            => (BindingPower(18), Assoc::Left),
-        T![::] | T![:::]                         => (BindingPower(19), Assoc::Left),
+        | T![==] | T![!=]                        => (BindingPower(9),  Assoc::Left),
+        T![+] | T![-]                            => (BindingPower(10), Assoc::Left),
+        T![*] | T![/]                            => (BindingPower(11), Assoc::Left),
+        SPECIAL | T![|>]                         => (BindingPower(12), Assoc::Left),
+        T![:]                                    => (BindingPower(13), Assoc::Left),
+        T![^] | T![**]                           => (BindingPower(15), Assoc::Right),
+        T![$] | T![@]                            => (BindingPower(16), Assoc::Left),
+        T![::] | T![:::]                         => (BindingPower(17), Assoc::Left),
         _ => return None,
     })
 }
@@ -1619,9 +1608,9 @@ fn infix_binding_power(kind: RSyntaxKind) -> Option<(BindingPower, Assoc)> {
 fn prefix_binding_power(kind: RSyntaxKind) -> Option<BindingPower> {
     Some(match kind {
         T![?]         => BindingPower(1),
-        T![~]         => BindingPower(7),
-        T![!]         => BindingPower(10),
-        T![+] | T![-] => BindingPower(16),
+        T![~]         => BindingPower(5),
+        T![!]         => BindingPower(8),
+        T![+] | T![-] => BindingPower(14),
         _ => return None,
     })
 }
@@ -1650,16 +1639,16 @@ fn parse_expression_with_lhs(
     mut lhs: CompletedMarker,
     min_bp: BindingPower,
 ) -> CompletedMarker {
-    // Postfix is rank 20 and applies unconditionally, so there is no `min_bp`
-    // guard around it below. That is only sound while 20 is genuinely the
+    // Postfix is rank 18 and applies unconditionally, so there is no `min_bp`
+    // guard around it below. That is only sound while 18 is genuinely the
     // ceiling: `min_bp` arrives as 0 from `parse_expression` and
-    // `parse_argument`, as a prefix bp (max 16) from `parse_prefix_expression`,
+    // `parse_argument`, as a prefix bp (max 14) from `parse_prefix_expression`,
     // and otherwise as this loop's own `right_bp` — which is `bp + 1` for
-    // left-assoc, topping out at 20 because the highest infix rank is `:::` at
-    // 19.
+    // left-assoc, topping out at 18 because the highest infix rank is `:::` at
+    // 17.
     //
     // Asserted rather than branched on. A branch here would be dead code that
-    // silently starts mattering if someone adds an infix operator at rank 20 or
+    // silently starts mattering if someone adds an infix operator at rank 18 or
     // above; the assertion instead fails loudly and points at the real problem,
     // which is that the precedence table needs renumbering to keep postfix
     // tightest. Placed at entry so it fires on any input, not only ones that
@@ -1762,15 +1751,15 @@ fn parse_prefix_expression(p: &mut RParser) -> ParsedSyntax {
 **Precedence facts worth writing explicit tests for**, all of which the
 `Operator precedence` and `Precedence Tests` corpus tests cover:
 
-- `-1^2` → `-(1^2)` — unary minus (16) binds looser than `^` (17).
-- `!a & b` → `(!a) & b` — `!` (10) binds tighter than `&` (9).
-- `-2:3` → `-(2:3)`? **No** — unary `-` is 16 and `:` is 15, so it is `(-2):3`,
-  the sequence from -2 to 3. Contrast `-1^2` above: `^` (17) outranks unary `-`,
+- `-1^2` → `-(1^2)` — unary minus (14) binds looser than `^` (15).
+- `!a & b` → `(!a) & b` — `!` (8) binds tighter than `&` (7).
+- `-2:3` → `-(2:3)`? **No** — unary `-` is 14 and `:` is 13, so it is `(-2):3`,
+  the sequence from -2 to 3. Contrast `-1^2` above: `^` (15) outranks unary `-`,
   `:` does not.
 - `a <- b <- c` → `a <- (b <- c)` — right assoc.
 - `a -> b -> c` → `(a -> b) -> c` — left assoc.
 - `2^3^2` → `2^(3^2)` — right assoc.
-- `a %in% b + c` → `a %in% (b + c)`? **No** — `%in%` is 14, `+` is 12, so
+- `a %in% b + c` → `a %in% (b + c)`? **No** — `%in%` is 12, `+` is 10, so
   `(a %in% b) + c`. This one trips people up; test it.
 
 The newline behaviour of the operator table is a separate axis and is settled
@@ -2270,7 +2259,7 @@ error:
 | Source | Tree | Why |
 |---|---|---|
 | `a$1 + 2` | `(a$«1») + 2` | `+` is left for the Pratt loop, as in valid code |
-| `a$1(x)` | `(a$«1»)(x)` | mirrors `a$f(x)`, which is `(a$f)(x)` in R — call is rank 20, `$` is 18 |
+| `a$1(x)` | `(a$«1»)(x)` | mirrors `a$f(x)`, which is `(a$f)(x)` in R — call is rank 18, `$` is 16 |
 | `a$(b)` | `a$«(b)»` | the parenthesized expression is one atom |
 | `a$-1` | `a$«-1»` | prefix operators are part of the atom |
 | `a$)` | `a$` + missing slot | `)` starts no expression; **do not consume it**, or the enclosing call loses its terminator and one error becomes a cascade |
