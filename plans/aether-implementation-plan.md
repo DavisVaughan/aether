@@ -196,12 +196,12 @@ aether/
     │       ├── parser.rs          # RParser + the two context enums
     │       ├── syntax.rs          # ← Phase 7 onward
     │       └── syntax/
-    │           ├── expr.rs        # Pratt loop, primary exprs
+    │           ├── expr.rs        # Pratt loop, primary exprs, literals
     │           ├── call.rs        # call / subset / subset2 / arg lists
     │           ├── function.rs    # function defs, lambdas, parameters
     │           ├── control.rs     # if/else, for, while, repeat
     │           ├── block.rs       # braced exprs, statement lists, semicolons
-    │           └── value.rs       # literals, strings, keywords-as-values
+    │           └── value.rs       # strings, and the selector/name subsets
     ├── aether_r_test_macros/      # proc-macro: `gen_corpus_tests!`
     │   └── src/lib.rs             #   modelled on air's `tests_macros`
     ├── aether_r_parser_tests/     # Every corpus test, plus the harness that
@@ -1441,47 +1441,6 @@ Phase 8 puts the Pratt loop behind that name (§11.2).
 how each later phase's construct becomes reachable at all.
 
 ```rust
-/// Anything that can start an expression and consists of exactly one token.
-fn parse_literal_expression(p: &mut RParser) -> ParsedSyntax {
-    let kind = match p.cur() {
-        R_INTEGER_LITERAL => R_INTEGER_VALUE,
-        R_DOUBLE_LITERAL  => R_DOUBLE_VALUE,
-        R_COMPLEX_LITERAL => R_COMPLEX_VALUE,
-        IDENT             => R_IDENTIFIER,
-        DOTS              => R_DOTS,
-        DOTDOTI           => R_DOT_DOT_I,
-        T![next]          => R_NEXT_EXPRESSION,
-        T![break]         => R_BREAK_EXPRESSION,
-        T![true]          => R_TRUE_EXPRESSION,
-        T![false]         => R_FALSE_EXPRESSION,
-        T![null]          => R_NULL_EXPRESSION,
-        T![inf]           => R_INF_EXPRESSION,
-        T![nan]           => R_NAN_EXPRESSION,
-        T![na_logical] | T![na_integer] | T![na_double]
-        | T![na_complex] | T![na_character] => R_NA_EXPRESSION,
-        STRING_OPEN       => return parse_string_value(p),
-        _ => return Absent,
-    };
-    let m = p.start();
-    p.bump_any();
-    Present(m.complete(p, kind))
-}
-
-/// A character the lexer could not make a token of. Copy `biome_js_parser`'s
-/// `parse_primary_expression` arm exactly: start a marker, bump the token, and
-/// complete it as a bogus node.
-///
-/// No diagnostic here — the lexer already raised `unexpected_character` and
-/// pointed at the character. A second one at the same range is noise, and
-/// invariant 2 (bogus nodes always come with at least one diagnostic) is already
-/// satisfied by the lexer's.
-fn parse_error_token(p: &mut RParser) -> ParsedSyntax {
-    if !p.at(ERROR_TOKEN) { return Absent }
-    let m = p.start();
-    p.bump_any();
-    Present(m.complete(p, R_BOGUS_EXPRESSION))
-}
-
 /// `R_STRING_VALUE` is three tokens; the last two need a lex context.
 fn parse_string_value(p: &mut RParser) -> ParsedSyntax {
     if !p.at(STRING_OPEN) { return Absent }
@@ -1504,16 +1463,17 @@ The empty-body case is why the `STRING_CONTENT` bump is conditional: `""` lexes 
 request on an empty body with the close (§8.4). The same `delimiter` value serves
 both bumps — do not re-read it at `STRING_CONTENT`, whose text is the body.
 
-`parse_error_token` hangs off `parse_primary_expression`, alongside
-`parse_literal_expression` — not off `parse_literal_expression` itself, which
-answers "one token, one value node" and would be lying. Placing it in the atom
-dispatch rather than leaving it to statement-list recovery is what keeps the
-damage to one token: recovery would skip to the next statement boundary and
-swallow whatever followed the stray character on the same line.
+**Everything else this phase parses is one token, and all of it is an arm of
+`parse_primary_expression` (§11.2)** — the literals, the identifiers, `next` and
+`break`, and `ERROR_TOKEN`. Phase 7 writes that function with those arms,
+`STRING_OPEN`, and `_ => Absent`; every later phase adds one more.
 
-`ERROR_TOKEN` needs no entry in any recovery set. It starts no production, so
-every `at(...)` test in the parser is already false for it, and the token can
-only be reached by the arm above.
+`ERROR_TOKEN` earns its arm rather than being left to statement-list recovery,
+and that is what keeps the damage to one token: recovery would skip to the next
+statement boundary and swallow whatever followed the stray character on the same
+line. It needs no entry in any recovery set, though — it starts no production, so
+every `at(...)` test in the parser is already false for it, and the token can only
+be reached from that arm.
 
 **Enable: the 19 imported tree-sitter tests across all five `corpus/literals/`
 files.** That is **19 of 89 green** at the end of the very first parser phase,
@@ -1784,15 +1744,90 @@ fn parse_prefix_expression(p: &mut RParser) -> ParsedSyntax {
 /// One operand: no operators, nothing to its left.
 ///
 /// The fan-out point of the expression grammar — every phase from here to 13
-/// makes its construct reachable by adding an arm. Shown finished; Phase 8 has
-/// the two §11.1 arms and `_ => Absent`, and nothing else.
+/// makes its construct reachable by adding an arm. Shown finished; Phase 7 writes
+/// the one-token arms, `STRING_OPEN`, and `_ => Absent`, and nothing else.
 fn parse_primary_expression(p: &mut RParser) -> ParsedSyntax {
-    let literal = parse_literal_expression(p);                        // §11.1
-    if literal.is_present() {
-        return literal;
-    }
-
     match p.cur() {
+        R_INTEGER_LITERAL => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_INTEGER_VALUE))
+        }
+        R_DOUBLE_LITERAL => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_DOUBLE_VALUE))
+        }
+        R_COMPLEX_LITERAL => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_COMPLEX_VALUE))
+        }
+        IDENT => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_IDENTIFIER))
+        }
+        DOTS => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_DOTS))
+        }
+        DOTDOTI => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_DOT_DOT_I))
+        }
+        T![next] => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_NEXT_EXPRESSION))
+        }
+        T![break] => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_BREAK_EXPRESSION))
+        }
+        T![true] => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_TRUE_EXPRESSION))
+        }
+        T![false] => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_FALSE_EXPRESSION))
+        }
+        T![null] => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_NULL_EXPRESSION))
+        }
+        T![inf] => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_INF_EXPRESSION))
+        }
+        T![nan] => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_NAN_EXPRESSION))
+        }
+        T![na_logical] | T![na_integer] | T![na_double] | T![na_complex]
+        | T![na_character] => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_NA_EXPRESSION))
+        }
+        // No diagnostic: the lexer already raised `unexpected_character` and
+        // pointed at it, which is what satisfies invariant 2
+        ERROR_TOKEN => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_BOGUS_EXPRESSION))
+        }
+
+        STRING_OPEN             => parse_string_value(p),             // §11.1
         T!['(']                 => parse_parenthesized_expression(p), // §11.3
         T!['{']                 => parse_braced_statements(p),        // §11.7
         T![function] | T!["\\"] => parse_function_definition(p),      // §11.5
@@ -1800,18 +1835,25 @@ fn parse_primary_expression(p: &mut RParser) -> ParsedSyntax {
         T![for]                 => parse_for_statement(p),
         T![while]               => parse_while_statement(p),
         T![repeat]              => parse_repeat_statement(p),
-        ERROR_TOKEN             => parse_error_token(p),              // §11.1
+
         _ => Absent,
     }
 }
 ```
 
+**Every arm returns, and none falls through to a shared tail.** The fifteen
+one-token arms repeat `start`/`bump_any`/`complete` rather than naming a kind for
+a tail below the `match`, and that is the point: an arm can be read on its own,
+and the `match` is uniform — token in, `ParsedSyntax` out, once per arm. Hoisting
+the tail would save about fifty lines and buy back a two-tier read where some arms
+produce a value and others produce a node.
+
 **`Absent` here is a result, not a failure.** It is how `f(,,)` gets its empty
 arguments, how `f(a = )` gets its empty value, and how `parse_statement_list`
 knows to recover. Only the caller knows whether an operand was required, so this
-function raises no diagnostic of its own — `parse_error_token` is the one arm
-that could and deliberately does not, because the lexer has already pointed at
-the character (§11.1).
+function raises no diagnostic of its own — `ERROR_TOKEN` is the one arm that could
+and deliberately does not, because the lexer has already pointed at the character
+(§11.1).
 
 **Precedence facts worth writing explicit tests for**, all of which the
 `Operator precedence` and `Precedence Tests` corpus tests cover:
