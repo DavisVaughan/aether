@@ -73,7 +73,7 @@ fn collect(directory: &Path, module: &mut Module) {
         .map(|entry| entry.expect("cannot read directory entry").path())
         .collect();
 
-    // Readdir order is not stable across filesystems; the expansion must be
+    // read_dir() order is not stable across filesystems
     entries.sort();
 
     for path in entries {
