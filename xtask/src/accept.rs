@@ -1,8 +1,3 @@
-//! Regenerates every `.snap.md`
-//!
-//! Single process, sequential. The only thing in the project that writes a
-//! snapshot, and it never writes an input file.
-
 use crate::Result;
 use aether_r_parser_tests::{check, corpus, Document};
 use std::fs;
