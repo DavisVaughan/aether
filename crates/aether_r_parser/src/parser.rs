@@ -64,7 +64,6 @@ impl<'src> RParser<'src> {
         result
     }
 
-    /// Ask about line breaks through [`Scope::newlines_are_significant()`]
     pub(crate) fn scope(&self) -> Scope {
         self.scope
     }
