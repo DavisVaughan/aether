@@ -75,7 +75,6 @@ fn render_failure(error: &CheckError) -> String {
     match error {
         CheckError::RoundTrip { expected, got } => format!(
             "The parse did not round-trip, so a token was dropped or invented.\n\
-             This is invariant 1 and it holds for every input, pending ones included.\n\n\
              input:  {expected:?}\n\
              output: {got:?}\n"
         ),
