@@ -94,5 +94,14 @@ fn render_failure(error: &CheckError) -> String {
             "Bogus nodes that no diagnostic points at, at {ranges:?}.\n\
              {ast}\n"
         ),
+        CheckError::OracleMismatch {
+            path,
+            expected,
+            actual,
+        } => format!(
+            "The oracle disagrees with tree-sitter-r at {path}.\n\
+             expected: {expected}\n\
+             actual:   {actual}\n"
+        ),
     }
 }

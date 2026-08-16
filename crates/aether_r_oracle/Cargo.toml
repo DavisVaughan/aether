@@ -1,0 +1,25 @@
+[package]
+name = "aether_r_oracle"
+version = "0.0.0"
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Differential oracle: compares aether's tree against the one air builds from tree-sitter-r. Reference implementation is posit-dev/air at rev 3c25bc68e88df84c2e8f13c6efbb29ffd920aa7e, depended on rather than vendored so it stays unmodified. Local development aid, deleted at swap-in."
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish = false
+
+[dependencies]
+aether_r_syntax = { workspace = true }
+air_r_parser = { workspace = true }
+air_r_syntax = { workspace = true }
+biome_rowan = { workspace = true }
+
+[dev-dependencies]
+aether_r_parser = { workspace = true }
+
+[lints]
+workspace = true

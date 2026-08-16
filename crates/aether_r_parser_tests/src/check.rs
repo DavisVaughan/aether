@@ -9,12 +9,23 @@ use biome_rowan::{SyntaxKind, SyntaxNode};
 
 #[derive(Debug)]
 pub enum CheckError {
-    RoundTrip { expected: String, got: String },
+    RoundTrip {
+        expected: String,
+        got: String,
+    },
     UnexpectedlyPasses,
     ExpectedError,
     UnexpectedError(String),
     BogusNodes(String),
-    UndiagnosedBogusNode { ranges: Vec<TextRange>, ast: String },
+    UndiagnosedBogusNode {
+        ranges: Vec<TextRange>,
+        ast: String,
+    },
+    OracleMismatch {
+        path: String,
+        expected: String,
+        actual: String,
+    },
 }
 
 /// One code block to check
@@ -67,6 +78,20 @@ pub fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
                 .map(SyntaxNode::text_trimmed_range)
                 .collect(),
             ast,
+        });
+    }
+
+    if !markers.deviation
+        && let aether_r_oracle::OracleResult::Mismatch {
+            path,
+            expected,
+            actual,
+        } = aether_r_oracle::compare(&block.source, &parsed.syntax())
+    {
+        return Err(CheckError::OracleMismatch {
+            path,
+            expected,
+            actual,
         });
     }
 
@@ -219,6 +244,36 @@ mod tests {
         .expect_err("parses cleanly");
 
         assert!(matches!(error, CheckError::ExpectedError));
+    }
+
+    #[test]
+    fn the_oracle_reports_a_disagreement_through_check() {
+        let error = check(
+            &block("1\n"),
+            Markers {
+                error: true,
+                ..Default::default()
+            },
+        )
+        .expect_err("the placeholder parser cannot agree with air on `1`");
+
+        assert!(
+            matches!(error, CheckError::OracleMismatch { .. }),
+            "{error:?}"
+        );
+    }
+
+    #[test]
+    fn deviation_skips_the_oracle() {
+        check(
+            &block("1\n"),
+            Markers {
+                error: true,
+                deviation: true,
+                ..Default::default()
+            },
+        )
+        .expect("`[deviation]` skips the comparison the previous test fails");
     }
 
     /// `[deviation]` changes nothing here
