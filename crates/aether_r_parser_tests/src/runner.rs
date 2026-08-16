@@ -39,8 +39,7 @@ pub fn run_file(input_path: &Path) {
         panic!("{}", render_failures(&display, &failures));
     }
 
-    // The pairing invariant, checked before the text diff so that a new heading
-    // says so instead of surfacing as a wall of content
+    // Check that the input and the snapshot are structurally the same
     let snapshot = Document::parse(&committed)
         .unwrap_or_else(|err| panic!("{}: {err}", corpus::relative(&snapshot_path)));
 
