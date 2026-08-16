@@ -92,7 +92,6 @@ fn render_failure(error: &CheckError) -> String {
         }
         CheckError::UndiagnosedBogusNode { ranges, ast } => format!(
             "Bogus nodes that no diagnostic points at, at {ranges:?}.\n\
-             This is invariant 2: the recovery path that produced them must call `p.error(...)`.\n\n\
              {ast}\n"
         ),
     }
