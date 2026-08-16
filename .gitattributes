@@ -1,1 +1,2 @@
-*.snap.md linguist-generated=true
+# Snapshots render with `\n`, so a CRLF checkout would fail every corpus test
+*.md text eol=lf

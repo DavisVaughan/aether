@@ -31,6 +31,17 @@ fn strings_may_span_newlines() {
 }
 
 #[test]
+fn a_crlf_inside_a_string_is_content() {
+    assert_lex!(
+        "\"multiline\r\nstring\"\r\n",
+        STRING_OPEN: 1,
+        STRING_CONTENT: 17,
+        STRING_CLOSE: 1,
+        NEWLINE: 2
+    );
+}
+
+#[test]
 fn the_other_quote_is_inert() {
     assert_lex!("\"it's\"", STRING_OPEN: 1, STRING_CONTENT: 4, STRING_CLOSE: 1);
     assert_lex!("'say \"hi\"'", STRING_OPEN: 1, STRING_CONTENT: 8, STRING_CLOSE: 1);
