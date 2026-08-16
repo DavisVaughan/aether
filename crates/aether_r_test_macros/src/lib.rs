@@ -4,15 +4,11 @@ use quote::quote;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Expands to one `#[test] fn` per `*.md` under `directory`, nested in modules
-/// that mirror the directory tree
+/// Expands to one `#[test] fn` per `*.md` under `directory`
 ///
 /// ```ignore
 /// gen_corpus_tests!("tests/corpus", crate::run_file);
 /// ```
-///
-/// `*.snap.md` is skipped: a snapshot is compared by the test its input file
-/// generates, never run on its own.
 #[proc_macro]
 pub fn gen_corpus_tests(input: TokenStream) -> TokenStream {
     let (directory, runner) = parse_arguments(input.into());
