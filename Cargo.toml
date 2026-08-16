@@ -30,6 +30,9 @@ aether_r_parser_tests = { path = "./crates/aether_r_parser_tests" }
 aether_r_syntax = { path = "./crates/aether_r_syntax" }
 aether_r_test_macros = { path = "./crates/aether_r_test_macros" }
 
+air_r_parser = { git = "https://github.com/posit-dev/air", rev = "3c25bc68e88df84c2e8f13c6efbb29ffd920aa7e" }
+air_r_syntax = { git = "https://github.com/posit-dev/air", rev = "3c25bc68e88df84c2e8f13c6efbb29ffd920aa7e" }
+
 anyhow = "1.0.89"
 bitflags = "2.6"
 bpaf = { version = "0.9.15", features = ["derive"] }

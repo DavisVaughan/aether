@@ -20,8 +20,8 @@ Tests run under [cargo-nextest](https://nexte.st), not `cargo test`.
 
 - `just quick` — run the `tests/quick_test.rs` scratchpad
 
-- `just oracle` — differential check against tree-sitter-r. Local only, never in
-  CI, and the whole crate goes away at swap-in. Run it at the end of a phase.
+- The differential check against tree-sitter-r runs as part of every test run,
+  on any block not marked `[deviation]`. It goes away at swap-in.
 
 - `cargo nextest run -E 'test(/Dollar/)'` — filter by name
 

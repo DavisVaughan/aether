@@ -26,6 +26,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "aether_r_oracle"
+version = "0.0.0"
+dependencies = [
+ "aether_r_parser",
+ "aether_r_syntax",
+ "air_r_parser",
+ "air_r_syntax",
+ "biome_rowan",
+]
+
+[[package]]
 name = "aether_r_parser"
 version = "0.0.0"
 dependencies = [
@@ -41,6 +52,7 @@ dependencies = [
 name = "aether_r_parser_tests"
 version = "0.0.0"
 dependencies = [
+ "aether_r_oracle",
  "aether_r_parser",
  "aether_r_syntax",
  "aether_r_test_macros",
@@ -67,6 +79,49 @@ version = "0.0.0"
 dependencies = [
  "proc-macro2",
  "quote",
+]
+
+[[package]]
+name = "aho-corasick"
+version = "1.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c982642fa9e8606056828ee9a8505737230110bb1099153c79efe865c59d12ba"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
+name = "air_r_factory"
+version = "0.0.0"
+source = "git+https://github.com/posit-dev/air?rev=3c25bc68e88df84c2e8f13c6efbb29ffd920aa7e#3c25bc68e88df84c2e8f13c6efbb29ffd920aa7e"
+dependencies = [
+ "air_r_syntax",
+ "biome_rowan",
+]
+
+[[package]]
+name = "air_r_parser"
+version = "0.0.0"
+source = "git+https://github.com/posit-dev/air?rev=3c25bc68e88df84c2e8f13c6efbb29ffd920aa7e#3c25bc68e88df84c2e8f13c6efbb29ffd920aa7e"
+dependencies = [
+ "air_r_factory",
+ "air_r_syntax",
+ "biome_parser",
+ "biome_rowan",
+ "biome_unicode_table",
+ "serde",
+ "tracing",
+ "tree-sitter",
+ "tree-sitter-r",
+]
+
+[[package]]
+name = "air_r_syntax"
+version = "0.0.0"
+source = "git+https://github.com/posit-dev/air?rev=3c25bc68e88df84c2e8f13c6efbb29ffd920aa7e#3c25bc68e88df84c2e8f13c6efbb29ffd920aa7e"
+dependencies = [
+ "biome_rowan",
+ "serde",
 ]
 
 [[package]]
@@ -249,6 +304,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "cc"
+version = "1.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "509591b7bcd67f4ef775afad7662703b4935daaa6ec0e5605cfb1090b32a2b6d"
+dependencies = [
+ "find-msvc-tools",
+ "shlex",
+]
+
+[[package]]
 name = "cfg-if"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -296,6 +361,12 @@ dependencies = [
  "libc",
  "windows-sys",
 ]
+
+[[package]]
+name = "find-msvc-tools"
+version = "0.1.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d45db016d36b838f563236e9193d0ee6ce38f3f68b6c94e914b4929c96bbb890"
 
 [[package]]
 name = "gimli"
@@ -368,6 +439,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "once_cell"
+version = "1.21.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
+
+[[package]]
+name = "pin-project-lite"
+version = "0.2.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
+
+[[package]]
 name = "proc-macro-error-attr2"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -407,10 +490,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "regex"
+version = "1.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f020237b6c8eed93db2e2cb53c00c60a8e1bc73da7d073199a1180401450218d"
+dependencies = [
+ "aho-corasick",
+ "memchr",
+ "regex-automata",
+ "regex-syntax",
+]
+
+[[package]]
 name = "regex-automata"
 version = "0.4.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ad8553b9b26413251cbf30e620595c7a41b3887f03da04579c0e6b0d6a06b4b2"
+dependencies = [
+ "aho-corasick",
+ "memchr",
+ "regex-syntax",
+]
+
+[[package]]
+name = "regex-syntax"
+version = "0.8.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
 name = "rustc-demangle"
@@ -490,6 +596,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "shlex"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
+
+[[package]]
 name = "similar"
 version = "2.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -498,6 +610,12 @@ dependencies = [
  "bstr",
  "unicode-segmentation",
 ]
+
+[[package]]
+name = "streaming-iterator"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b2231b7c3057d5e4ad0156fb3dc807d900806020c5ffa3ee6ff2c8c76fb8520"
 
 [[package]]
 name = "syn"
@@ -591,6 +709,53 @@ name = "toml_write"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d99f8c9a7727884afe522e9bd5edbfc91a3312b36a77b5fb8926e4c31a41801"
+
+[[package]]
+name = "tracing"
+version = "0.1.44"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "63e71662fa4b2a2c3a26f570f037eb95bb1f85397f3cd8076caed2f026a6d100"
+dependencies = [
+ "pin-project-lite",
+ "tracing-core",
+]
+
+[[package]]
+name = "tracing-core"
+version = "0.1.36"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a"
+dependencies = [
+ "once_cell",
+]
+
+[[package]]
+name = "tree-sitter"
+version = "0.24.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5387dffa7ffc7d2dae12b50c6f7aab8ff79d6210147c6613561fc3d474c6f75"
+dependencies = [
+ "cc",
+ "regex",
+ "regex-syntax",
+ "streaming-iterator",
+ "tree-sitter-language",
+]
+
+[[package]]
+name = "tree-sitter-language"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "009994f150cc0cd50ff54917d5bc8bffe8cad10ca10d81c34da2ec421ae61782"
+
+[[package]]
+name = "tree-sitter-r"
+version = "1.2.0"
+source = "git+https://github.com/r-lib/tree-sitter-r?rev=d459b97a9a11dd81643ab674938bede2874663b0#d459b97a9a11dd81643ab674938bede2874663b0"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
 
 [[package]]
 name = "unicode-bom"

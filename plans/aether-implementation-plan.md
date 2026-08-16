@@ -63,7 +63,7 @@ to be wrong, raise it explicitly rather than quietly deviating.
 |---|---|
 | 1 | New standalone repo, `aether`. Swapped into air at the very end. All tests live in aether. |
 | 2 | Vendor `r.ungram` + the `xtask codegen` machinery into aether. Aether owns its syntax layer. |
-| 3 | Vendor `tree-sitter-r` **and** air's tree-sitter→Rowan conversion as a differential oracle. **Local development tool, behind a Cargo feature, not run in CI**, and deleted outright at swap-in. |
+| 3 | Depend on air's tree-sitter-r-backed parser as a differential oracle. A development aid that runs with the rest of the tests, and is deleted outright at swap-in. |
 | 4 | Grammar deviations land **first**, so the parser targets the final tree shape from day one. |
 | 5 | Full Biome-style error recovery from the start: bogus nodes, `ParseRecoveryTokenSet`, rich `ParseDiagnostic`s. |
 | 6 | **Markdown snapshot harness for everything.** No Biome-style `tests/specs/**` + `.rast`. |
@@ -86,7 +86,7 @@ current `main`.
 | `xtask/codegen/src/*.rs` | The codegen: `generate_nodes.rs`, `generate_syntax_kinds.rs`, `generate_syntax_factory.rs`, `generate_node_factory.rs`, `generate_macros.rs`, `generate_nodes_mut.rs`, `ast.rs`, `kind_src.rs`, `language_kind.rs`. |
 | `crates/air_r_syntax/` | Generated output: `src/generated/{kind,nodes,nodes_mut,macros}.rs`, plus hand-written `syntax_node.rs`, `call_ext.rs`, `argument_ext.rs`. |
 | `crates/air_r_factory/` | Generated `RSyntaxFactory`. Consumed by `LosslessTreeSink`. |
-| `crates/air_r_parser/src/parse.rs` | The tree-sitter walker. This is what we are replacing, and what the oracle will vendor. |
+| `crates/air_r_parser/src/parse.rs` | The tree-sitter walker. This is what we are replacing, and what the oracle depends on as its reference (§10.4). |
 | `crates/air_r_parser/tests/spec_test.rs` | The current snapshot harness. Our markdown harness borrows its assertions. |
 | `crates/biome_ungrammar/` | Vendored ungrammar parser, path dep. |
 | `Cargo.toml` | Biome deps come from a **fork at a pinned rev**, not crates.io. |
@@ -224,11 +224,11 @@ aether/
     │           ├── control/
     │           ├── statements/
     │           └── recovery/
-    └── aether_r_oracle/           # ← oracle PR. Dev-only differential oracle
-        ├── Cargo.toml             # depends on tree-sitter, tree-sitter-r
+    └── aether_r_oracle/           # Dev-only differential oracle (§10.4)
+        ├── Cargo.toml             # depends on air_r_parser at a pinned rev
         └── src/
-            ├── lib.rs
-            └── treesitter.rs      # vendored air parse.rs walker
+            ├── lib.rs             # `compare()` and `OracleResult`
+            └── shape.rs           # normalizes either tree for comparison
 ```
 
 Everything without a `← Phase N` marker exists. `syntax.rs` holds only
@@ -243,18 +243,18 @@ Fourteen phases. Each is one reviewable PR. Phases 1–6 are infrastructure and
 should land quickly; the owner wants to review the *parser* in small pieces, not
 the scaffolding.
 
-**Every phase from 7 onward ends with the same three steps:**
+**Every phase from 7 onward ends with the same two steps:**
 1. Flip the `[pending]` markers off the corpus tests the feature enables.
 2. Regenerate snapshots, eyeball every changed cell.
-3. Run `just oracle` and confirm the diff is clean for all non-`[deviation]`
-   tests. This is a deliberate local step — the oracle is feature-gated and CI
-   does not run it (§10.4.1). Skip it until the oracle PR lands.
 
-**The oracle is its own PR, on top of Phase 6, and is not a numbered phase.** It
-is the one piece of §10 that needs a C toolchain and a vendored copy of air's
-walker, and nothing else in the project depends on it — so it ships separately
-rather than doubling the size of the phase that everything else is waiting on.
-§10.4 is written as that PR's spec.
+The oracle needs no step of its own: it runs with the rest of the tests (§10.4),
+so a newly enabled test that disagrees with tree-sitter-r fails immediately. What
+the phase owes it is a judgement — either the disagreement is a bug, or it is
+intentional and earns a `[deviation]` marker and a line in `docs/deviations.md`.
+
+**The oracle landed as its own PR on top of Phase 6, and is not a numbered
+phase.** Nothing else in the project depends on it, so it shipped separately
+rather than doubling the size of the phase everything else was waiting on.
 
 Phases 1–6 have landed. Their sections below are compressed to the decisions
 later phases depend on; the repo, `docs/deviations.md`, and the code's own
@@ -303,8 +303,9 @@ are deliberate:
   aether has none worth running; add the line back if that changes rather than
   letting it silently do nothing.
 
-- No recipe and no CI job passes `--features oracle`. The default test run builds
-  no C dependency and stays fast (§10.4.1).
+- There is no `just oracle` recipe. The oracle is not feature-gated, so it runs
+  with everything else and a dedicated recipe would only duplicate `just test`
+  (§10.4.1).
 
 ### 5.1 Why nextest
 
@@ -1016,7 +1017,7 @@ per-block override would put two marker syntaxes in the format to save a heading
 | *(none)* | Every block must parse with **zero** diagnostics and no bogus nodes. |
 | `[pending]` | Feature not implemented yet. Harness asserts **no** block parses cleanly. **An unexpected clean parse is a hard failure.** Each block is echoed followed by `*Not yet supported.*` in place of its generated cells. Round-trip still applies (§10.2) — a pending test may fail to parse, but must never lose a token. |
 | `[error]` | Every block must produce at least one error diagnostic. Fails if any parses cleanly. |
-| `[deviation]` | Excluded from the tree-sitter oracle comparison. Orthogonal to the others — combine as `[error, deviation]`. Inert until the oracle PR lands (§10.4). |
+| `[deviation]` | Excluded from the tree-sitter oracle comparison (§10.4). Orthogonal to the others — combine as `[error, deviation]`. |
 
 **The pairing invariant.** The snapshot's heading sequence must match the input's
 exactly — same names, same order, same markers, same number of blocks. It is
@@ -1269,127 +1270,100 @@ Leave the stragglers `[pending]` and let the phase that implements what they nee
 flip them. The per-phase counts in §11 are of imported tree-sitter tests for this
 reason.
 
-### 10.4 The oracle — a follow-up PR, not part of Phase 6
+### 10.4 The oracle — LANDED
 
-Everything in this subsection lands after Phase 6, in a PR of its own: the crate,
-the `oracle` feature, and step 5 of `check()`. Phase 6 imports `[deviation]`
-markers but nothing reads them until then.
-
-```rust
-// crates/aether_r_oracle/src/lib.rs
-//! Differential oracle: parse with tree-sitter-r + air's tree-sitter→Rowan
-//! walker, and compare the resulting Rowan tree against aether's.
-//!
-//! `treesitter.rs` and `walk.rs` are vendored VERBATIM from
-//! posit-dev/air `crates/air_r_parser/src/{treesitter.rs,parse.rs}` at rev <SHA>.
-//! Do not "improve" them — their whole value is being an independent
-//! implementation. Re-vendor if air's copy changes.
-
-pub enum OracleResult {
-    Match,
-    Mismatch { path: String, expected: String, actual: String },
-    /// tree-sitter itself failed; comparison is meaningless.
-    OracleUnavailable(String),
-}
-
-pub fn compare(source: &str, actual: &RSyntaxNode) -> OracleResult {
-    let expected = match parse_with_treesitter(source) {
-        Ok(tree) => tree,
-        Err(e) => return OracleResult::OracleUnavailable(e),
-    };
-    compare_nodes(&expected, actual, &mut String::from("RRoot"))
-}
-```
-
-Compare **kind, text range, and slot structure**, walking both trees in parallel
-by slot index (`node.slots()`), so the failure message can name the exact path:
+`aether_r_oracle::compare(source, actual)` parses the source with air's
+tree-sitter-r-backed parser and walks that tree against aether's, returning
+`Match`, `Mismatch { path, expected, actual }`, or `OracleUnavailable`. `check()`
+calls it on every block, and the failure names the first divergence:
 
 ```
-mismatch at RRoot > RStatementList > [0] > RBinaryExpression > right
-  expected: R_DOUBLE_VALUE @ 4..5
-  actual:   R_BOGUS_EXPRESSION @ 4..5
+R_ROOT > [0] > R_STATEMENT_LIST > [0] > R_DOUBLE_VALUE
+  expected: R_DOUBLE_VALUE @ 0..1
+  actual:   R_BOGUS_EXPRESSION @ 0..1
 ```
 
-**Handling the deviations.** The oracle cannot compare trees that intentionally
-differ. Two mechanisms:
+**Air's crates are a dependency, not a vendored copy.** Vendoring `treesitter.rs`
+and `parse.rs` is not possible: the walker builds air's syntax kinds, and aether
+deleted the two it emits for lists (deviations 1b and 1c). Hand-porting them would
+put aether's own decisions inside the implementation the oracle exists to check
+against. Air and aether pin
+the same biome rev and the same tree-sitter-r rev, so `air_r_parser` resolves as a
+git dependency with nothing to reconcile. Re-pin the rev if air's walker changes.
 
-1. `[deviation]` marker on the test — skip entirely. Use for semicolon tests and
-   extract/namespace-missing-RHS tests.
-2. A **normalization pass** applied to *both* trees before comparison, for
-   deviations that are mechanical. Two of them are:
+**Normalization is one canonical pass applied to both trees**, not a
+per-deviation list:
 
-   - **Semicolons.** Unwrap `R_STATEMENT` nodes, drop `SEMICOLON` tokens, and
-     treat aether's `R_STATEMENT_LIST` as equivalent to tree-sitter's
-     `R_EXPRESSION_LIST` before comparing. This is worth building — it lets ~85
-     of the 89 tests keep oracle coverage instead of blanket-skipping everything
-     containing a `;`.
+- Rename `R_EXPRESSION_LIST` to `R_STATEMENT_LIST` and `R_BRACED_EXPRESSIONS` to
+  `R_BRACED_STATEMENTS`. A mechanical diff of the two kind vocabularies says
+  these are the only renames. `R_STATEMENT`, `R_BOGUS_SELECTOR`, and
+  `ERROR_TOKEN` are aether-only and have no counterpart to compare against.
 
-   - **Whitespace attachment polarity** (deviation 10). Aether attaches
-     whitespace by `JsTokenSource`'s rule and air's walker by air's, so
-     without this every file containing a space between two tokens mismatches —
-     which is every file. Re-tag whitespace pieces on both trees by the same rule
-     before comparing; twenty-odd lines, in a crate that is deleted at swap-in
-     anyway.
+- Splice out `R_STATEMENT` wrappers and drop `SEMICOLON` tokens, which is
+  deviation 1. This is what lets the semicolon-free majority of the corpus keep
+  oracle coverage rather than being skipped wholesale.
 
-     **Normalize only `Whitespace` pieces, never comments.** Comment attachment
-     is bit-identical under the two rules, so it needs no normalization —
-     and it is the half that reaches air's formatter, which makes it precisely
-     the half the oracle must keep checking. A normalization written over
-     "trivia" rather than over whitespace would blind the oracle to the one kind
-     of attachment drift that has user-visible consequences.
+**Whitespace polarity (deviation 10) is handled by comparing trimmed ranges**
+rather than by re-tagging trivia on both trees. It reaches the same end — polarity
+cannot cause a mismatch — with no re-tagging code. Comment attachment is then
+compared *explicitly*, as the leading and trailing comment lists on each token, so
+the half that reaches air's formatter stays checked. That distinction is the
+point: a comparison written over "trivia" rather than over whitespace would blind
+the oracle to the one kind of attachment drift with user-visible consequences.
 
-**Where tree-sitter bails.** `parse_from_treesitter` returns a whole-file bogus
-node whenever `root_node().has_error()`. So for every `[error]` test the oracle is
-useless. That is fine and expected: mark them `[deviation]` or have `compare`
-return `OracleUnavailable` when tree-sitter reports an error, and treat that as a
-skip rather than a failure. Error-recovery behavior is exactly where aether is
-*supposed* to differ.
+Walking is by child index, not slot index. Splicing out `R_STATEMENT` gives the
+two trees different slot counts by construction, so slot-index walking cannot
+work; paths carry `[i]` segments instead of slot names.
 
-#### 10.4.1 Scope: local only, and temporary
+**Three things skip the comparison**, and between them they cover every
+intentional difference:
 
-**Settled with the owner: the oracle does not run in CI, and is deleted once the
-conversion is complete.** It is a development aid for catching drift while the
-parser is being written — most valuably comment attachment (§13) — not a
-permanent correctness gate.
+1. **Aether did not parse the block cleanly.** `docs/deviations.md` assumes this
+   — deviation 7's `1Li` is `float 1` plus `identifier Li` to tree-sitter and two
+   expressions on one line to aether, and tree-sitter accepts it, so nothing else
+   would skip it.
 
-Two things follow.
+2. **tree-sitter bailed**, which it does on any input with an error, returning a
+   whole-file bogus node. `compare` reports `OracleUnavailable` and `check()`
+   treats it as a skip. Error recovery is exactly where aether is *supposed* to
+   differ.
 
-**Feature-gate it.** The oracle is invoked from `check()`, which every corpus
-test calls, so without a gate `cargo nextest run --workspace` would build
-tree-sitter-r and its C toolchain on every run including CI.
+3. **The block is marked `[deviation]`**, for the differences that survive a clean
+   parse on both sides: the semicolon tests and `Specials`, plus the
+   extract/namespace missing-RHS tests that deviations 2 and 3 turn into errors.
 
-One feature, on the crate whose code carries the `#[cfg]`. In
-`aether_r_parser_tests/Cargo.toml`:
+Only the third needs a marker, which is why the corpus carries just twelve of
+them. That branch is also the one with no test yet: proving it needs a block that
+parses cleanly in aether *and* disagrees with tree-sitter, which the placeholder
+parser cannot produce. Phase 8's `Specials` and Phase 13's semicolons are the
+first real cover for it.
 
-```toml
-[features]
-default = []
-oracle  = ["dep:aether_r_oracle"]
+#### 10.4.1 Scope: temporary
 
-[dependencies]
-aether_r_parser = { workspace = true }
-aether_r_oracle = { workspace = true, optional = true }
-```
+**Settled with the owner: the oracle is deleted once the conversion is
+complete.** It is a development aid for catching drift while the parser is being
+written — most valuably comment attachment (§13) — not a permanent correctness
+gate.
 
-Note `aether_r_oracle` is a plain dependency, not a dev-dependency: `check()` is
-library code in `src/`, and dev-dependencies are not in scope for it. Nothing
-forwards this feature, and `aether_r_parser` never sees it — which is the point
-of the harness living in its own crate (§3).
-
-`just test` and CI run without it; `just oracle` runs with it, and the phase
-checklist (§4) calls for that at the end of every parser phase.
+It is **not** feature-gated and **not** excluded from CI, which is a deliberate
+trade: a crate scheduled for deletion does not earn the build machinery it would
+take to isolate it. The cost is that every build, CI included, compiles air and
+tree-sitter-r, and needs a C toolchain for the latter. There is no `just oracle`
+recipe, since with no feature to enable it would be identical to `just test`.
 
 **Do not defend it.** Because it is scheduled for deletion, the oracle does not
-earn much maintenance. If a Biome rev bump or a tree-sitter-r change breaks it,
-the reasonable responses are to fix it cheaply or to stop using it — not to spend
-a day restoring a tool whose remaining life is a handful of phases. What must
+earn much maintenance. If a Biome rev bump or a change in air breaks it, the
+reasonable responses are to fix it cheaply or to stop using it — not to spend a
+day restoring a tool whose remaining life is a handful of phases. What must
 survive its removal is the *reviewed snapshots*, which is why the phase checklist
 (§4) calls for eyeballing every changed cell rather than trusting the oracle to
 catch everything.
 
-The counterpart risk — that a local-only tool quietly stops being run — is real
-and is why the phase checklist names it as an explicit step rather than leaving it
-to habit.
+The counterpart risk that a local-only tool quietly stops being run is gone: it
+runs on every test run, so it fails the moment it disagrees. What replaces it is
+the risk that a phase turns a marker on and the oracle goes red for a difference
+that is intentional but unmarked — the fix there is a `[deviation]` marker and a
+line in `docs/deviations.md`, not a weaker comparison.
 
 ### 10.5 `quick_test.rs`
 
@@ -2869,9 +2843,10 @@ what it claims, not a regression.
    error. This is the most user-visible win of the whole project — call it out in
    the changelog.
 6. **Delete the oracle** (§10.4.1). Once air is on aether, tree-sitter-r is not
-   the reference for anything: remove `crates/aether_r_oracle/`, the `oracle`
-   feature and its `#[cfg]` in `check()`, the `just oracle` recipe, and the
-   `tree-sitter` / `tree-sitter-r` workspace deps from **aether** as well as air.
+   the reference for anything: remove `crates/aether_r_oracle/`, its call in
+   `check()` along with `CheckError::OracleMismatch`, the `air_r_parser` /
+   `air_r_syntax` workspace deps, and the `tree-sitter` / `tree-sitter-r` ones
+   from **aether** as well as air.
    The `[deviation]` marker stays — it still documents which tests intentionally
    differ, and `docs/deviations.md` still cross-references it — but it becomes
    inert in the harness. Say so in its row in §10.1's marker table when you do.
@@ -2908,8 +2883,8 @@ aether, so the indirection is discoverable from the place someone hits it.
 | **Trivia attachment drift** | A one-piece difference in *comment* attachment silently changes formatter output; a whitespace one changes every snapshot. | Largely retired by deviation 10: the rule is a latching bool with no lookahead, so there is little left to get subtly wrong. Comment attachment is unchanged from air and the oracle still compares it, since normalization touches whitespace only (§10.4). Landed in Phase 5, ahead of any grammar work; what exposure remains is settled by air's formatter snapshots at swap-in (§12.3 step 7). |
 | **`[[` / `]]` joining** | Genuinely ambiguous; tree-sitter needs an external scanner and still has open bugs. The lexer half landed in Phase 4; the parser half is Phase 9. | One join site, in the argument list's terminator check (§11.3). Six corpus tests exercise it. Do not invent a scope stack, and do not make the lexer glue closers. |
 | **Codegen drift** | If aether's generated code diverges from air's, the swap-in fails in confusing ways. | Retired: Phase 2 asserted byte-identity, and CI asserts `just codegen` idempotence on every PR. |
-| **Oracle unavailable on error tests** | tree-sitter bails on any error, so ~25 tests get no oracle coverage. | Accept it; those are exactly the tests where we *intend* to differ. Rely on reviewed snapshots there. |
-| **Oracle skipped or rotted** | It is local-only and feature-gated (§10.4.1), so nothing forces anyone to run it, and nothing catches it breaking. | Named as an explicit step in every phase's checklist (§4). If it does break, fix cheaply or abandon it — it is deleted at swap-in regardless. Reviewed snapshots, not the oracle, are what carry forward. |
+| **Oracle unavailable on error tests** | tree-sitter bails on any error, and aether's own error blocks are skipped too (§10.4), so the error corpus gets no oracle coverage at all. | Accept it; those are exactly the tests where we *intend* to differ. Rely on reviewed snapshots there. |
+| **Oracle breaks** | It depends on air at a pinned rev, so a rev bump on either side can break the build or the comparison. | It runs with every test, so a break is loud rather than silent. Fix cheaply or abandon it — it is deleted at swap-in regardless (§10.4.1), and reviewed snapshots, not the oracle, are what carry forward. |
 | **`[pending]` rot** | A large batch of inert tests invites ignoring them. | Unexpected pass is a *hard failure*, so the count only moves deliberately. Report `N/89 enabled` in CI output. |
 | **Biome fork rev skew** | Air's fork could move mid-project. | Pin, and treat a rev bump as its own PR with a full snapshot regeneration. |
 

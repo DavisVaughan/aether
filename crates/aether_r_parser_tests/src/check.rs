@@ -9,12 +9,23 @@ use biome_rowan::{SyntaxKind, SyntaxNode};
 
 #[derive(Debug)]
 pub enum CheckError {
-    RoundTrip { expected: String, got: String },
+    RoundTrip {
+        expected: String,
+        got: String,
+    },
     UnexpectedlyPasses,
     ExpectedError,
     UnexpectedError(String),
     BogusNodes(String),
-    UndiagnosedBogusNode { ranges: Vec<TextRange>, ast: String },
+    UndiagnosedBogusNode {
+        ranges: Vec<TextRange>,
+        ast: String,
+    },
+    OracleMismatch {
+        path: String,
+        expected: String,
+        actual: String,
+    },
 }
 
 /// One code block to check
@@ -67,6 +78,21 @@ pub fn check(block: &Block, markers: Markers) -> Result<Vec<Cell>, CheckError> {
                 .map(SyntaxNode::text_trimmed_range)
                 .collect(),
             ast,
+        });
+    }
+
+    if !has_errors
+        && !markers.deviation
+        && let aether_r_oracle::OracleResult::Mismatch {
+            path,
+            expected,
+            actual,
+        } = aether_r_oracle::compare(&block.source, &parsed.syntax())
+    {
+        return Err(CheckError::OracleMismatch {
+            path,
+            expected,
+            actual,
         });
     }
 
@@ -219,6 +245,18 @@ mod tests {
         .expect_err("parses cleanly");
 
         assert!(matches!(error, CheckError::ExpectedError));
+    }
+
+    #[test]
+    fn a_block_that_does_not_parse_cleanly_is_not_compared_to_the_oracle() {
+        check(
+            &block("1\n"),
+            Markers {
+                error: true,
+                ..Default::default()
+            },
+        )
+        .expect("tree-sitter accepts `1`, so a comparison here would report the placeholder");
     }
 
     /// `[deviation]` changes nothing here
