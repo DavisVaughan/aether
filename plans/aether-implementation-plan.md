@@ -1615,7 +1615,7 @@ pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
 }
 
 fn parse_expression_with_bp(p: &mut RParser, min_bp: BindingPower) -> ParsedSyntax {
-    let Present(lhs) = parse_prefix_expression(p) else { return Absent };
+    let Present(lhs) = parse_atom(p) else { return Absent };
     Present(parse_expression_with_lhs(p, lhs, min_bp))
 }
 
@@ -1730,15 +1730,22 @@ fn parse_expression_with_lhs(
     lhs
 }
 
+/// One atom: a prefix expression, or a primary where no prefix operator is.
+///
+/// Two callers, and they want the same thing for different reasons: the Pratt
+/// loop needs an lhs, and §11.4's selector recovery needs exactly one atom to
+/// wrap in `R_BOGUS_SELECTOR`.
+fn parse_atom(p: &mut RParser) -> ParsedSyntax {
+    parse_prefix_expression(p).or_else(|| parse_primary_expression(p))
+}
+
 fn parse_prefix_expression(p: &mut RParser) -> ParsedSyntax {
-    if let Some(bp) = prefix_binding_power(p.cur()) {
-        let m = p.start();
-        p.bump_any();
-        parse_expression_with_bp(p, bp)
-            .or_add_diagnostic(p, diagnostics::expected_expression);
-        return Present(m.complete(p, R_UNARY_EXPRESSION));
-    }
-    parse_primary_expression(p)
+    let Some(bp) = prefix_binding_power(p.cur()) else { return Absent };
+    let m = p.start();
+    p.bump_any();
+    parse_expression_with_bp(p, bp)
+        .or_add_diagnostic(p, diagnostics::expected_expression);
+    Present(m.complete(p, R_UNARY_EXPRESSION))
 }
 
 /// One operand: no operators, nothing to its left.
@@ -2395,9 +2402,12 @@ error:
 | `a$-1` | `a$«-1»` | prefix operators are part of the atom |
 | `a$)` | `a$` + missing slot | `)` starts no expression; **do not consume it**, or the enclosing call loses its terminator and one error becomes a cascade |
 
-So the recovery calls `parse_prefix_expression` — the same function the Pratt loop
-uses for its lhs — and wraps whatever comes back. When it returns `Absent`, this
-degrades to the plain `a$` case: missing slot, one diagnostic, nothing consumed.
+So the recovery calls `parse_atom` — the same function the Pratt loop uses for its
+lhs — and wraps whatever comes back. It has to be `parse_atom` and not
+`parse_prefix_expression`: three of the five rows above (`a$1`, `a$(b)`, and the
+`Absent` case) never reach a prefix operator at all, so the primary half of the
+`or_else` is doing the work. When both halves return `Absent`, this degrades to the
+plain `a$` case: missing slot, one diagnostic, nothing consumed.
 
 Either way it is **one diagnostic**, not one per malformed token, and the
 round-trip invariant holds because the offending tokens are inside the tree rather
@@ -2408,8 +2418,8 @@ it and put `RBogusSelector` in the `AnyRSelector` union (§7). Without a bogus
 variant in that union the factory silently reshapes the whole `a$1` into one bogus
 node instead of an `R_EXTRACT_EXPRESSION` with a bogus RHS — no panic, no compile
 error, and round-trip still passes. So `«…»` in the table above reads
-`R_BOGUS_SELECTOR` throughout, wrapping whatever single atom
-`parse_prefix_expression` returned: an `R_DOUBLE_VALUE` for `a$1`, an
+`R_BOGUS_SELECTOR` throughout, wrapping whatever single atom `parse_atom`
+returned: an `R_DOUBLE_VALUE` for `a$1`, an
 `R_PARENTHESIZED_EXPRESSION` for `a$(b)`, an `R_UNARY_EXPRESSION` for `a$-1`.
 
 Two aether-authored tests are worth adding for the boundary cases, since the
