@@ -1,4 +1,4 @@
-## Assignment [pending]
+## Assignment
 
 ```r
 x <- 1

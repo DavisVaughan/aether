@@ -1,4 +1,4 @@
-## Specials [pending, deviation]
+## Specials [deviation]
 
 ```r
 x %% y
@@ -24,7 +24,7 @@ x |> foo() |> bar() + baz()
 x |> {function(x) x}()
 ```
 
-## Pipe Placeholder [pending]
+## Pipe Placeholder
 
 ```r
 foo |> bar(x, y = _)

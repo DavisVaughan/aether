@@ -1,4 +1,4 @@
-## Colon [pending]
+## Colon
 
 ```r
 1:2

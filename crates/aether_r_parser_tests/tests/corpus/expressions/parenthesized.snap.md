@@ -16,15 +16,46 @@ fn((a), (b))
 
 *Not yet supported.*
 
-## Not A Parenthesized Expression 1 [pending, error]
+## Not A Parenthesized Expression 1 [error]
 
 ```r
 ()
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RParenthesizedExpression {
+                l_paren_token: L_PAREN@0..1 "(" [] [],
+                body: missing (required),
+                r_paren_token: R_PAREN@1..2 ")" [] [],
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@2..3 "" [Newline("\n")] [],
+}
+```
 
-## Not A Parenthesized Expression 2 [pending, error]
+```diagnostics
+test.R:1:2 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected an expression but instead found ')'.
+
+  > 1 │ ()
+      │  ^
+    2 │
+
+  i Expected an expression here.
+
+  > 1 │ ()
+      │  ^
+    2 │
+```
+
+## Not A Parenthesized Expression 2 [error]
 
 ```r
 (
@@ -33,7 +64,71 @@ fn((a), (b))
 )
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RParenthesizedExpression {
+                l_paren_token: L_PAREN@0..1 "(" [] [],
+                body: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@1..5 "1" [Newline("\n"), Whitespace("  ")] [],
+                },
+                r_paren_token: missing (required),
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RDoubleValue {
+                value_token: R_DOUBLE_LITERAL@5..9 "2" [Newline("\n"), Whitespace("  ")] [],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBogusExpression {
+                items: [
+                    R_PAREN@9..11 ")" [Newline("\n")] [],
+                ],
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@11..12 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:3:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `)` but instead found `2`
+
+    1 │ (
+    2 │   1
+  > 3 │   2
+      │   ^
+    4 │ )
+    5 │
+
+  i Remove 2
+
+test.R:4:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected an expression but instead found ')'.
+
+    2 │   1
+    3 │   2
+  > 4 │ )
+      │ ^
+    5 │
+
+  i Expected an expression here.
+
+    2 │   1
+    3 │   2
+  > 4 │ )
+      │ ^
+    5 │
+```
 
 ## Not A Parenthesized Expression 3 [pending, error]
 
@@ -63,15 +158,46 @@ fn((a), (b))
 
 *Not yet supported.*
 
-## Empty Parentheses [pending, error]
+## Empty Parentheses [error]
 
 ```r
 ()
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RParenthesizedExpression {
+                l_paren_token: L_PAREN@0..1 "(" [] [],
+                body: missing (required),
+                r_paren_token: R_PAREN@1..2 ")" [] [],
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@2..3 "" [Newline("\n")] [],
+}
+```
 
-## Multiple Expressions In Parentheses [pending, error]
+```diagnostics
+test.R:1:2 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected an expression but instead found ')'.
+
+  > 1 │ ()
+      │  ^
+    2 │
+
+  i Expected an expression here.
+
+  > 1 │ ()
+      │  ^
+    2 │
+```
+
+## Multiple Expressions In Parentheses [error]
 
 ```r
 (
@@ -80,4 +206,68 @@ fn((a), (b))
 )
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RParenthesizedExpression {
+                l_paren_token: L_PAREN@0..1 "(" [] [],
+                body: RIdentifier {
+                    name_token: IDENT@1..5 "a" [Newline("\n"), Whitespace("  ")] [],
+                },
+                r_paren_token: missing (required),
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RIdentifier {
+                name_token: IDENT@5..9 "b" [Newline("\n"), Whitespace("  ")] [],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBogusExpression {
+                items: [
+                    R_PAREN@9..11 ")" [Newline("\n")] [],
+                ],
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@11..12 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:3:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `)` but instead found `b`
+
+    1 │ (
+    2 │   a
+  > 3 │   b
+      │   ^
+    4 │ )
+    5 │
+
+  i Remove b
+
+test.R:4:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected an expression but instead found ')'.
+
+    2 │   a
+    3 │   b
+  > 4 │ )
+      │ ^
+    5 │
+
+  i Expected an expression here.
+
+    2 │   a
+    3 │   b
+  > 4 │ )
+      │ ^
+    5 │
+```

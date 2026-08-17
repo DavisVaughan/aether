@@ -1,4 +1,4 @@
-## Help Operator [pending]
+## Help Operator
 
 ```r
 a ? b

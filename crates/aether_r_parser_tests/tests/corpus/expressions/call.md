@@ -1,4 +1,4 @@
-## Calls [pending]
+## Calls
 
 ```r
 f()
@@ -38,7 +38,7 @@ f(..1 = ,)
 f(..1 = ..1)
 ```
 
-## Calls With NULL As Argument Name [pending]
+## Calls With NULL As Argument Name
 
 ```r
 fn(NULL =)
@@ -49,7 +49,7 @@ fn(NULL = 1)
 switch(typeof(x), NULL = this, integer = that)
 ```
 
-## Calls With `return` As Argument Name [pending]
+## Calls With `return` As Argument Name
 
 ```r
 # `return` is not a reserved word in R (it's not in `?Reserved`), so it is
@@ -77,7 +77,7 @@ return(x)
 return
 ```
 
-## Switch [pending]
+## Switch
 
 ```r
 switch(foo,
@@ -88,14 +88,14 @@ switch(foo,
 )
 ```
 
-## Calls With NA As Argument Name [pending, error]
+## Calls With NA As Argument Name [error]
 
 ```r
 # Unlike `NULL`, other keywords like `NA` aren't allowed here
 fn(NA = )
 ```
 
-## Not A Call, Subset, Or Subset2 [pending, error]
+## Not A Call, Subset, Or Subset2 [error]
 
 ```r
 f
@@ -108,7 +108,7 @@ foo
 [[x]]
 ```
 
-## Not A Call, Subset, Or Subset2 Due To Sequential Arguments [pending, error]
+## Not A Call, Subset, Or Subset2 Due To Sequential Arguments [error]
 
 ```r
 f(x y)
@@ -187,7 +187,7 @@ fn(
 return()
 ```
 
-## Side By Side Arguments [pending, error]
+## Side By Side Arguments [error]
 
 ```r
 # Can't have two arguments side by side without a delimiter

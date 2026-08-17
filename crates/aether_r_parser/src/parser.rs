@@ -1,8 +1,4 @@
-#![allow(
-    dead_code,
-    reason = "the parse context helpers are driven by the syntax modules from Phase 7 on"
-)]
-
+use crate::lexer::RReLexContext;
 use crate::options::RParserOptions;
 use crate::token_source::RTokenSource;
 use aether_r_syntax::RSyntaxKind;
@@ -14,6 +10,7 @@ use biome_parser::prelude::*;
 pub(crate) struct RParser<'src> {
     context: ParserContext<RSyntaxKind>,
     source: RTokenSource<'src>,
+    #[allow(dead_code, reason = "`RParserOptions` is still empty")]
     options: RParserOptions,
     scope: Scope,
 }
@@ -22,6 +19,7 @@ pub(crate) struct RParser<'src> {
 pub(crate) enum Scope {
     #[default]
     TopLevel,
+    #[allow(dead_code, reason = "`parse_braced_statements()` arrives in Phase 13")]
     Brace,
     Parenthesis,
     Bracket,
@@ -49,6 +47,7 @@ impl<'src> RParser<'src> {
         }
     }
 
+    #[allow(dead_code, reason = "`RParserOptions` is still empty")]
     pub(crate) fn options(&self) -> &RParserOptions {
         &self.options
     }
@@ -66,6 +65,10 @@ impl<'src> RParser<'src> {
 
     pub(crate) fn scope(&self) -> Scope {
         self.scope
+    }
+
+    pub(crate) fn re_lex(&mut self, context: RReLexContext) -> RSyntaxKind {
+        self.source_mut().re_lex(context)
     }
 
     pub(crate) fn finish(self) -> (Vec<Event<RSyntaxKind>>, Vec<Trivia>, Vec<ParseDiagnostic>) {

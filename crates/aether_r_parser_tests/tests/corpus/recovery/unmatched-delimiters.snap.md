@@ -50,34 +50,252 @@
 
 *Not yet supported.*
 
-## Opening Bracket2, Unmatched Closing Bracket [pending, error]
+## Opening Bracket2, Unmatched Closing Bracket [error]
 
 ```r
 x[[2]
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RSubset2 {
+                function: RIdentifier {
+                    name_token: IDENT@0..1 "x" [] [],
+                },
+                arguments: RSubset2Arguments {
+                    l_brack2_token: L_BRACK2@1..3 "[[" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RDoubleValue {
+                                value_token: R_DOUBLE_LITERAL@3..4 "2" [] [],
+                            },
+                        },
+                    ],
+                    r_brack2_token: missing (required),
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBogusExpression {
+                items: [
+                    R_BRACK@4..5 "]" [] [],
+                ],
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@5..6 "" [Newline("\n")] [],
+}
+```
 
-## Opening Bracket and Bracket2, Unmatched Closing Bracket [pending, error]
+```diagnostics
+test.R:1:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `]]` but instead found `]`
+
+  > 1 │ x[[2]
+      │     ^
+    2 │
+
+  i Remove ]
+```
+
+## Opening Bracket and Bracket2, Unmatched Closing Bracket [error]
 
 ```r
 x[y[[2]
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RSubset {
+                function: RIdentifier {
+                    name_token: IDENT@0..1 "x" [] [],
+                },
+                arguments: RSubsetArguments {
+                    l_brack_token: L_BRACK@1..2 "[" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RSubset2 {
+                                function: RIdentifier {
+                                    name_token: IDENT@2..3 "y" [] [],
+                                },
+                                arguments: RSubset2Arguments {
+                                    l_brack2_token: L_BRACK2@3..5 "[[" [] [],
+                                    items: RArgumentList [
+                                        RArgument {
+                                            name_clause: missing (optional),
+                                            value: RDoubleValue {
+                                                value_token: R_DOUBLE_LITERAL@5..6 "2" [] [],
+                                            },
+                                        },
+                                    ],
+                                    r_brack2_token: missing (required),
+                                },
+                            },
+                        },
+                    ],
+                    r_brack_token: R_BRACK@6..7 "]" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@7..8 "" [Newline("\n")] [],
+}
+```
 
-## Opening Bracket2 and Bracket, Matched Closing Bracket [pending, error]
+```diagnostics
+test.R:1:7 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `]]` but instead found `]`
+
+  > 1 │ x[y[[2]
+      │       ^
+    2 │
+
+  i Remove ]
+```
+
+## Opening Bracket2 and Bracket, Matched Closing Bracket [error]
 
 ```r
 x[[y[2]
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RSubset2 {
+                function: RIdentifier {
+                    name_token: IDENT@0..1 "x" [] [],
+                },
+                arguments: RSubset2Arguments {
+                    l_brack2_token: L_BRACK2@1..3 "[[" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RSubset {
+                                function: RIdentifier {
+                                    name_token: IDENT@3..4 "y" [] [],
+                                },
+                                arguments: RSubsetArguments {
+                                    l_brack_token: L_BRACK@4..5 "[" [] [],
+                                    items: RArgumentList [
+                                        RArgument {
+                                            name_clause: missing (optional),
+                                            value: RDoubleValue {
+                                                value_token: R_DOUBLE_LITERAL@5..6 "2" [] [],
+                                            },
+                                        },
+                                    ],
+                                    r_brack_token: R_BRACK@6..7 "]" [] [],
+                                },
+                            },
+                        },
+                    ],
+                    r_brack2_token: missing (required),
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@7..8 "" [Newline("\n")] [],
+}
+```
 
-## Opening Bracket2 and Bracket, Unmatched Closing Bracket [pending, error]
+```diagnostics
+test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `]]` but instead the file ends
+
+    1 │ x[[y[2]
+  > 2 │
+      │
+
+  i the file ends here
+
+    1 │ x[[y[2]
+  > 2 │
+      │
+```
+
+## Opening Bracket2 and Bracket, Unmatched Closing Bracket [error]
 
 ```r
 x[[y[2]]
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RSubset2 {
+                function: RIdentifier {
+                    name_token: IDENT@0..1 "x" [] [],
+                },
+                arguments: RSubset2Arguments {
+                    l_brack2_token: L_BRACK2@1..3 "[[" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RSubset {
+                                function: RIdentifier {
+                                    name_token: IDENT@3..4 "y" [] [],
+                                },
+                                arguments: RSubsetArguments {
+                                    l_brack_token: L_BRACK@4..5 "[" [] [],
+                                    items: RArgumentList [
+                                        RArgument {
+                                            name_clause: missing (optional),
+                                            value: RDoubleValue {
+                                                value_token: R_DOUBLE_LITERAL@5..6 "2" [] [],
+                                            },
+                                        },
+                                    ],
+                                    r_brack_token: R_BRACK@6..7 "]" [] [],
+                                },
+                            },
+                        },
+                    ],
+                    r_brack2_token: missing (required),
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBogusExpression {
+                items: [
+                    R_BRACK@7..8 "]" [] [],
+                ],
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@8..9 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:1:8 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `]]` but instead found `]`
+
+  > 1 │ x[[y[2]]
+      │        ^
+    2 │
+
+  i Remove ]
+```

@@ -1,4 +1,4 @@
-## Subset [pending]
+## Subset
 
 ```r
 foo[]
@@ -14,6 +14,20 @@ foo[,,x,,y,,]
 foo[bar]
 foo[1, 2]
 foo[x=1,,y=3,4]
+```
+
+## Nested Brackets
+
+The `]]` a subset2 wants reaches the parser as two `]`, so every rung of this
+ladder has to hand the right number of them to the right list. All clean parses,
+which is the point: the failure mode here is errors on valid code, and the
+imported corpus only covers mismatched brackets.
+
+```r
+x[a[b]]
+x[[a[b]]]
+x[a[[b]]]
+x[[a[[b]]]]
 ```
 
 ## Subset Arguments [pending]

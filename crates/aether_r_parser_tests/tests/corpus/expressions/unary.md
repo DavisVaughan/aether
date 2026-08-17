@@ -1,4 +1,4 @@
-## Unary Operators [pending]
+## Unary Operators
 
 ```r
 !a
@@ -12,7 +12,7 @@ foo(-a, bar)
 -  b
 ```
 
-## Unary Operators Across Lines [pending]
+## Unary Operators Across Lines
 
 ```r
 +1

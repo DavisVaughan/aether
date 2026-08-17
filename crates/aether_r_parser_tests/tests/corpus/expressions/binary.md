@@ -1,4 +1,4 @@
-## Relational [pending]
+## Relational
 
 ```r
 a == b
@@ -12,7 +12,7 @@ a ==
   b
 ```
 
-## Arithmetic Operator [pending]
+## Arithmetic Operator
 
 ```r
 a + b
@@ -29,14 +29,14 @@ a *
   b
 ```
 
-## Not An Arithmetic Operator [pending]
+## Not An Arithmetic Operator
 
 ```r
 a
   + b
 ```
 
-## Binary Operators [pending]
+## Binary Operators
 
 ```r
 1 ? 2

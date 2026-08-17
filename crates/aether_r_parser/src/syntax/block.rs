@@ -1,0 +1,70 @@
+use crate::diagnostics;
+use crate::parser::RParser;
+use crate::syntax::expr::parse_expression;
+use aether_r_syntax::RSyntaxKind::{self, R_BOGUS_EXPRESSION, R_STATEMENT, R_STATEMENT_LIST};
+use aether_r_syntax::T;
+use biome_parser::parsed_syntax::ParsedSyntax::{Absent, Present};
+use biome_parser::{Parser, ParserProgress};
+
+/// Where a statement list stops
+///
+/// A type rather than a bare [RSyntaxKind], so that a terminator added later has
+/// to say what it is rather than being hardcoded at the one call site that knows.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum StatementListEnd {
+    Eof,
+    #[allow(dead_code, reason = "`parse_braced_statements()` arrives in Phase 13")]
+    RCurly,
+}
+
+impl StatementListEnd {
+    fn matches(self, kind: RSyntaxKind) -> bool {
+        match self {
+            Self::Eof => kind == T![EOF],
+            Self::RCurly => kind == T!['}'],
+        }
+    }
+}
+
+/// Runs to `end` and never stops short of it, which is what lets
+/// [crate::syntax::parse_root()] expect an `EOF` it is sure to be sitting on
+pub(crate) fn parse_statement_list(p: &mut RParser, end: StatementListEnd) {
+    let m = p.start();
+    let mut progress = ParserProgress::default();
+
+    while !p.at(T![EOF]) && !end.matches(p.cur()) {
+        progress.assert_progressing(p);
+
+        let statement = p.start();
+
+        match parse_expression(p) {
+            // R separates statements by a newline or a `;` and by nothing else,
+            // so `1 2` is an error even though both halves parse on their own
+            Present(expression) => {
+                if !p.at(T![EOF]) && !end.matches(p.cur()) && !p.has_preceding_line_break() {
+                    p.error(diagnostics::expected_statement_separator(
+                        p,
+                        expression.range(p),
+                        p.cur_range(),
+                    ));
+                }
+            }
+            // Nothing starts an expression here. One token becomes the bogus
+            // statement and the next one gets a fresh try (deviation 4).
+            //
+            // The bogus node goes inside the statement: `R_STATEMENT_LIST` holds
+            // `RStatement` and nothing else.
+            Absent => {
+                p.error(diagnostics::expected_expression(p, p.cur_range()));
+
+                let bogus = p.start();
+                p.bump_any();
+                bogus.complete(p, R_BOGUS_EXPRESSION);
+            }
+        }
+
+        statement.complete(p, R_STATEMENT);
+    }
+
+    m.complete(p, R_STATEMENT_LIST);
+}

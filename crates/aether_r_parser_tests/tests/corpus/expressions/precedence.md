@@ -1,4 +1,4 @@
-## Operator precedence [pending]
+## Operator precedence
 
 ```r
 2+a*2
@@ -36,7 +36,7 @@ TRUE = FALSE ? NA
 TRUE ? FALSE = NA
 ```
 
-## Subset and Subset2 Precedence [pending]
+## Subset and Subset2 Precedence
 
 ```r
 a[[b[1]]]
