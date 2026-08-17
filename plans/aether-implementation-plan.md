@@ -425,7 +425,14 @@ present even when empty. So `root.statements()` needs no unwrapping.
 generated factory does not panic on a failed cast of the `right` slot — it maps
 `R_EXTRACT_EXPRESSION` through `to_bogus()` and collapses the whole expression
 into one bogus node. Round-trip still passes, so nothing in the harness would
-catch it. Phase 10 (§11.4) is what finally uses the kind.
+catch it.
+
+**Nothing constructs one.** Phase 10 was to be its first user, by consuming a
+non-selector RHS into a bogus node; §11.4 settles that it diagnoses and consumes
+nothing instead, so the kind is unproduced. It stays because a union of selectors
+having a bogus variant is defensible on its own and because removing it is codegen
+churn for no gain — but do not read its presence as evidence that some path builds
+one.
 
 `R_STATEMENT_LIST` is recognised as a list kind, so `SyntaxKind::is_list()`
 returns true for it. This was decided so that air's `has_bogus_nodes_or_empty_slots`
@@ -1615,7 +1622,8 @@ pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
 }
 
 fn parse_expression_with_bp(p: &mut RParser, min_bp: BindingPower) -> ParsedSyntax {
-    let Present(lhs) = parse_atom(p) else { return Absent };
+    let operand = parse_prefix_expression(p).or_else(|| parse_primary_expression(p));
+    let Present(lhs) = operand else { return Absent };
     Present(parse_expression_with_lhs(p, lhs, min_bp))
 }
 
@@ -1728,15 +1736,6 @@ fn parse_expression_with_lhs(
     }
 
     lhs
-}
-
-/// One atom: a prefix expression, or a primary where no prefix operator is.
-///
-/// Two callers, and they want the same thing for different reasons: the Pratt
-/// loop needs an lhs, and §11.4's selector recovery needs exactly one atom to
-/// wrap in `R_BOGUS_SELECTOR`.
-fn parse_atom(p: &mut RParser) -> ParsedSyntax {
-    parse_prefix_expression(p).or_else(|| parse_primary_expression(p))
 }
 
 fn parse_prefix_expression(p: &mut RParser) -> ParsedSyntax {
@@ -2336,9 +2335,9 @@ Behavior matrix — this is the deviation table for `docs/deviations.md`:
 | `a$b` | `extract_operator` | `R_EXTRACT_EXPRESSION`, clean |
 | `a$"b"` | `extract_operator` | clean |
 | `a$` | `extract_operator`, rhs absent, **no error** | node + missing slot + `expected_selector` |
-| `a$1` | rhs absent, `1` becomes a sibling statement, **no error** | bogus rhs (one atom) + `expected_selector` |
-| `a$NULL`, `a$TRUE`, `a$(b)`, `a${b}` | same as above | bogus rhs (one atom) + `expected_selector` |
-| `a$1 + 2` | as above, `+ 2` reattached to the sibling | `(a$«1») + 2` — infix not consumed |
+| `a$1` | rhs absent, `1` becomes a sibling statement, **no error** | same shape + `expected_selector` |
+| `a$NULL`, `a$TRUE`, `a$(b)`, `a${b}`, `a$if` | same as above | same shape + `expected_selector` |
+| `a$1 + 2` | as above, `+ 2` reattached to the sibling | same shape + `expected_selector` |
 | `foo::` | `namespace_operator`, rhs absent, no error | missing slot + `expected_selector` |
 | `foo::\nbar` | error (grammar says no newlines allowed) | error, matched |
 | `f(foo::\nbar)` | *(unverified — see below)* | **clean**, matching R |
@@ -2384,56 +2383,97 @@ oracle first runs against it; if it errors, the row above becomes a real deviati
 and moves into `docs/deviations.md` under the inherited **"tree-sitter-r vs. R"**
 heading (§8.4), not aether's own list.
 
-**The `a$1` case — settled: consume into a bogus RHS.** Today air produces
-`right: missing (required)` *and* a separate `RDoubleValue` sibling for the `1`,
-silently. Aether consumes the `1` into a bogus RHS so it does not leak out as a
-phantom statement.
+**The `a$1` case — settled: diagnose, leave the slot missing, consume nothing.**
+This needs no code beyond §11.2's operator arm, which is already written that way:
+`parse_selector(p).or_add_diagnostic(…)` raises `expected_selector` at the
+offending token and leaves `right` empty. Whatever follows is not the selector's
+problem — the Pratt loop finds no infix operator at `1`, breaks, and `1` becomes
+the next statement.
 
-**How much it consumes is the part that needs deciding, and the answer is exactly
-one atom** — a prefix expression, with no postfix and no infix. Not a full
-`parse_expression`, because that would change the shape of valid code around the
-error:
+There is exactly one recovery rule, then, and it is the same one for `a$`, `a$1`,
+`a${b}`, `a$if`, and `a$)`. An earlier draft consumed one atom into an
+`R_BOGUS_SELECTOR` to stop the `1` "leaking out as a phantom statement", which was
+wrong on the merits — the imported corpus says so in its own comments. On
+`foo${bar}` (`expressions/extract.md:28`):
 
-| Source | Tree | Why |
-|---|---|---|
-| `a$1 + 2` | `(a$«1») + 2` | `+` is left for the Pratt loop, as in valid code |
-| `a$1(x)` | `(a$«1»)(x)` | mirrors `a$f(x)`, which is `(a$f)(x)` in R — call is rank 18, `$` is 16 |
-| `a$(b)` | `a$«(b)»` | the parenthesized expression is one atom |
-| `a$-1` | `a$«-1»` | prefix operators are part of the atom |
-| `a$)` | `a$` + missing slot | `)` starts no expression; **do not consume it**, or the enclosing call loses its terminator and one error becomes a cascade |
+> These nodes allows an optional RHS, and the RHS must be a string/identifier, so
+> we nicely get a true node here alongside the braces. Even if that's not parsable
+> R code, it's useful for completions and highlighting.
 
-So the recovery calls `parse_atom` — the same function the Pratt loop uses for its
-lhs — and wraps whatever comes back. It has to be `parse_atom` and not
-`parse_prefix_expression`: three of the five rows above (`a$1`, `a$(b)`, and the
-`Absent` case) never reach a prefix operator at all, so the primary half of the
-`or_else` is doing the work. When both halves return `Absent`, this degrades to the
-plain `a$` case: missing slot, one diagnostic, nothing consumed.
+and on `foo$if` (`:52`):
 
-Either way it is **one diagnostic**, not one per malformed token, and the
-round-trip invariant holds because the offending tokens are inside the tree rather
-than dropped.
+> This ends up trying to match to an `if_statement` node, leaving the RHS empty,
+> and then the `if_statement` node errors because it doesn't have a `(`. This is
+> actually pretty decent behavior.
 
-**The bogus kind is `R_BOGUS_SELECTOR`**, which exists only because Phase 3 added
-it and put `RBogusSelector` in the `AnyRSelector` union (§7). Without a bogus
-variant in that union the factory silently reshapes the whole `a$1` into one bogus
-node instead of an `R_EXTRACT_EXPRESSION` with a bogus RHS — no panic, no compile
-error, and round-trip still passes. So `«…»` in the table above reads
-`R_BOGUS_SELECTOR` throughout, wrapping whatever single atom `parse_atom`
-returned: an `R_DOUBLE_VALUE` for `a$1`, an
-`R_PARENTHESIZED_EXPRESSION` for `a$(b)`, an `R_UNARY_EXPRESSION` for `a$-1`.
+Consuming destroys exactly the structure those comments call useful, and for the
+consumer that motivated the recovery in the first place. `foo${bar}` would lose a
+braced block into a bogus node and `foo$if` an entire if-statement. The newline
+case is worse still: `$` is in R's `EatLines` set, so
 
-Two aether-authored tests are worth adding for the boundary cases, since the
-imported corpus only covers bare `a$1`: `a$1 + 2` for the "infix is not consumed"
-rule, and `a$)` inside a call — `f(a$)` — for the "do not eat the terminator"
-rule. Both `[error]`.
+```r
+df$
+if (x) 1
+```
 
-**Enable:** `expressions/extract.md` and `expressions/namespace.md` in full — 10
-tests, of which three carry `[error, deviation]` (Dollar No RHS, Slot No RHS,
-Namespace With Missing RHS) and two carry `[error]` (the `if` RHS and
-Newline Before Operator cases). Air's `undefined/extract_expression_error.R` and
-`undefined/namespace_expression_error.R` live in these two files as well and
-become `[error]` tests. The two newline tests above are aether-authored, so they
-are absent from `MANIFEST.toml` and do not move the 89 count.
+is one expression to the parser, and consuming an atom eats the next line into the
+RHS of a `$` — while `df$` is the most common incomplete state in the language,
+being the completion trigger.
+
+**Not consuming also shrinks the deviation.** Those rows differ from tree-sitter
+in *shape* if the atom is consumed, so they need `[deviation]` and drop out of
+oracle coverage. Leaving the slot missing makes the shape identical to
+tree-sitter's — sibling and all — and the oracle compares shape, not diagnostics
+(`aether_r_oracle/src/shape.rs`). Only the diagnostics differ, which is deviation 2
+and is what `docs/deviations.md` already records.
+
+**The cost is a cascading diagnostic on same-line cases**, and it is worth stating
+rather than discovering. `a$1` raises `expected_selector` and then
+`expected_statement_separator`, because `parse_statement_list`'s check fires when
+there is no line break between the two statements (§11.7). The second message is
+redundant and mildly misleading — it points at a `;` that would not help.
+
+It is bounded: that check is guarded on `!p.has_preceding_line_break()`, so the
+`df$`-then-next-line shapes above raise one diagnostic and produce two clean
+statements. Only same-line typos like `df$2020` — a real class, since
+column names beginning with a digit need backticks — get the pair.
+
+Do not pre-solve it. These tests exist and their `.snap.md` prints every
+diagnostic, so Phase 10 shows exactly how the cascade reads. If it reads badly,
+suppressing a separator complaint at a position that already carries a diagnostic
+is a targeted fix, and one worth designing against real output.
+
+**`R_BOGUS_SELECTOR` is left unproduced.** §7 added it and expected Phase 10 to be
+its first user; no code path builds one now. The kind stays — `AnyRSelector`
+having a bogus variant is defensible on its own, and removing it means a codegen
+churn for nothing — but §7 records that nothing constructs it.
+
+**Enable:** `expressions/extract.md` and `expressions/namespace.md` in full — 18
+headings between them, currently 5 `[error, deviation]`, 6 `[error]`, and 7 plain
+`[pending]`. Air's `undefined/extract_expression_error.R` and
+`undefined/namespace_expression_error.R` live in these two files as well. The two
+newline tests above are aether-authored, so they are absent from `MANIFEST.toml`
+and do not move the 89 count.
+
+**Two marker changes fall out of the recovery decision, and both are the point of
+making it.**
+
+*Expect the five `[deviation]` markers to come off.* Dollar No RHS, Slot No RHS,
+Extract With A Literal RHS, Namespace With Missing RHS, and Namespace With A
+Literal RHS all carry `[error, deviation]` because an earlier draft's bogus RHS
+changed the shape. It no longer does. `Extract With A Literal RHS` even carries
+air's own output inline, and it is what aether will now produce:
+`RExtractExpression` with `right: missing (required)`, then `RDoubleValue` as a
+sibling. Empty slots are invisible to `shape_of` — it walks
+`children_with_tokens()` — so a missing `right` is not a shape difference at all.
+Drop `deviation` from each as the oracle confirms it, one at a time; five tests
+regaining oracle coverage is the concrete payoff for not consuming.
+
+*`Dollar, At, Namespace, Namespace Internal With Expression RHS` has to gain
+`[error]`.* It is plain `[pending]` today because `foo${bar}` is clean under
+tree-sitter's `optional()` RHS. Deviation 2 makes the RHS required, so aether
+raises `expected_selector` and the test must say so. Its shape still matches, so it
+needs no `deviation`.
 
 #### The diagnostic this phase adds
 
