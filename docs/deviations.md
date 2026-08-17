@@ -171,18 +171,33 @@ in the parser:
       │        ╰── Expected an identifier, a string, `...` or `..i` here.
   ```
 
-- `a$1`, `a$NA`, `a$NULL`, `a$TRUE`, `a$(b)`, `a${b}` → the RHS is present but is
-  not a valid selector, so it is wrapped in `R_BOGUS_SELECTOR` and
-  `expected_selector` labels the offending range. The bogus node consumes exactly
-  one atom — no postfix, no infix — so `a$1 + 2` still parses the `+` normally.
+- `a$1`, `a$NA`, `a$NULL`, `a$TRUE`, `a$(b)`, `a${b}`, `a$if` → identical
+  treatment. The RHS is present but is not a valid selector, so the slot is left
+  missing and `expected_selector` labels it. **Nothing is consumed**, so the `1`,
+  the `(b)`, or the whole `if` statement goes on to be parsed as the next
+  statement, exactly as under tree-sitter.
 
 Why: `missing (required)` with no diagnostic is a silent hole in the tree. The
 completions argument that motivates tree-sitter's `optional()` is served just as
 well by an `R_EXTRACT_EXPRESSION` that carries a diagnostic — the `left` slot is
 still there to complete from.
 
-Corpus tests: `Dollar No RHS`, `Slot No RHS` in `expressions/extract.md`, all
-marked `[deviation]`.
+Why nothing is consumed: the imported corpus argues for it in its own comments.
+On `foo${bar}` — "we nicely get a true node here alongside the braces … it's
+useful for completions and highlighting" — and on `foo$if` — "this is actually
+pretty decent behavior". Swallowing the RHS into a bogus node destroys exactly
+that structure, and `$` sits in R's `EatLines` set, so `df$` at the end of a line
+would eat the *next* line's first construct — while `df$` is the language's
+completion trigger and its most common incomplete state.
+
+So this deviation is diagnostics only, never shape. Aether's tree for `a$1` is
+what air already builds: `RExtractExpression` with `right: missing (required)`,
+then `RDoubleValue` as a sibling.
+
+Corpus tests: `Dollar No RHS`, `Slot No RHS`, and `Extract With A Literal RHS` in
+`expressions/extract.md`. All three are marked `[deviation]` today; since the shape
+now matches, expect that marker to come off as the oracle confirms it, leaving
+`[error]`.
 
 ### 3. Namespace RHS is required
 
@@ -191,8 +206,9 @@ Lands in Phase 10.
 Identical to deviation 2, for `::` and `:::`. Split out because tree-sitter-r
 models namespace as its own rule with its own `optional()`.
 
-Corpus tests: `Namespace With Missing RHS` in `expressions/namespace.md`, marked
-`[deviation]`.
+Corpus tests: `Namespace With Missing RHS` and `Namespace With A Literal RHS` in
+`expressions/namespace.md`, both marked `[deviation]` today and both expected to
+shed it for the reason given in deviation 2.
 
 ### 4. Recovery is localized
 
@@ -256,13 +272,15 @@ Why a new kind rather than reusing `RBogusValue`:
   ten of them. `AnyJsDecorator` is the one place a broader bogus kind is reused in
   a restricted union, and it is the exception.
 
-- The name does not lie. The bogus RHS wraps one whole prefix atom, so `a${b}`
-  wraps `R_BRACED_STATEMENTS`, `a$(b)` wraps `R_PARENTHESIZED_EXPRESSION`, and
-  `a$-1` wraps `R_UNARY_EXPRESSION`. None of those is a value, and snapshots are
-  the artifact reviewers read most.
-
 - The kind alone identifies the position. A tree walker seeing `R_BOGUS_SELECTOR`
   knows a selector was malformed without inspecting the parent.
+
+**Nothing constructs one.** Phase 10 was going to, by consuming a non-selector RHS
+into a bogus node; deviation 2 settles that it diagnoses and consumes nothing, so
+the kind is unproduced. It stays because the argument above does not depend on
+having a producer, and because removing it means renumbering nothing but churning
+codegen for no gain — but do not read its presence as evidence that some path
+builds one.
 
 Swap-in cost: air's `RSyntaxKind`, `nodes.rs`, and both factories are generated,
 so they follow from air's own codegen. The hand-written touch points are

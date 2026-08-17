@@ -15,27 +15,28 @@ pub(crate) struct RParser<'src> {
     context: ParserContext<RSyntaxKind>,
     source: RTokenSource<'src>,
     options: RParserOptions,
-    newlines: Newlines,
-    else_clause: ElseClause,
+    scope: Scope,
 }
 
-/// Strategy for interpreting line breaks
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub(crate) enum Newlines {
-    /// A line break ends the current expression at top level and inside `{`
+pub(crate) enum Scope {
     #[default]
-    Significant,
-
-    /// Ignore line breaks inside `(`, `[`, or `[[`
-    Ignored,
+    TopLevel,
+    Brace,
+    Parenthesis,
+    Bracket,
+    Bracket2,
 }
 
-/// R permits `else` on a line after the `consequence` only within braces
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-enum ElseClause {
-    #[default]
-    SameLineOnly,
-    MayFollowNewline,
+impl Scope {
+    /// A line break ends a statement at top level and inside `{`, and means
+    /// nothing inside `(`, `[`, or `[[`
+    pub(crate) fn newlines_are_significant(self) -> bool {
+        match self {
+            Self::TopLevel | Self::Brace => true,
+            Self::Parenthesis | Self::Bracket | Self::Bracket2 => false,
+        }
+    }
 }
 
 impl<'src> RParser<'src> {
@@ -44,8 +45,7 @@ impl<'src> RParser<'src> {
             context: ParserContext::default(),
             source: RTokenSource::from_str(source),
             options,
-            newlines: Newlines::default(),
-            else_clause: ElseClause::default(),
+            scope: Scope::default(),
         }
     }
 
@@ -53,36 +53,19 @@ impl<'src> RParser<'src> {
         &self.options
     }
 
-    /// Runs `f` with `newlines` in effect, restoring the previous value after
-    pub(crate) fn with_newlines<F, R>(&mut self, newlines: Newlines, f: F) -> R
+    /// Runs `f` with `scope` in effect, restoring the previous value after
+    pub(crate) fn with_scope<F, R>(&mut self, scope: Scope, f: F) -> R
     where
         F: FnOnce(&mut Self) -> R,
     {
-        let saved = std::mem::replace(&mut self.newlines, newlines);
+        let saved = std::mem::replace(&mut self.scope, scope);
         let result = f(self);
-        self.newlines = saved;
+        self.scope = saved;
         result
     }
 
-    /// Runs `f` inside `{`
-    pub(crate) fn with_braces<F, R>(&mut self, f: F) -> R
-    where
-        F: FnOnce(&mut Self) -> R,
-    {
-        let saved = (self.newlines, self.else_clause);
-        self.newlines = Newlines::Significant;
-        self.else_clause = ElseClause::MayFollowNewline;
-        let result = f(self);
-        (self.newlines, self.else_clause) = saved;
-        result
-    }
-
-    pub(crate) fn else_clause_may_follow_newline(&self) -> bool {
-        self.else_clause == ElseClause::MayFollowNewline
-    }
-
-    pub(crate) fn at_statement_break(&self) -> bool {
-        self.newlines == Newlines::Significant && self.has_preceding_line_break()
+    pub(crate) fn scope(&self) -> Scope {
+        self.scope
     }
 
     pub(crate) fn finish(self) -> (Vec<Event<RSyntaxKind>>, Vec<Trivia>, Vec<ParseDiagnostic>) {

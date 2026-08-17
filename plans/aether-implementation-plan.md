@@ -196,12 +196,12 @@ aether/
     │       ├── parser.rs          # RParser + the two context enums
     │       ├── syntax.rs          # ← Phase 7 onward
     │       └── syntax/
-    │           ├── expr.rs        # Pratt loop, primary exprs
+    │           ├── expr.rs        # Pratt loop, primary exprs, literals
     │           ├── call.rs        # call / subset / subset2 / arg lists
     │           ├── function.rs    # function defs, lambdas, parameters
     │           ├── control.rs     # if/else, for, while, repeat
     │           ├── block.rs       # braced exprs, statement lists, semicolons
-    │           └── value.rs       # literals, strings, keywords-as-values
+    │           └── value.rs       # strings, and the selector/name subsets
     ├── aether_r_test_macros/      # proc-macro: `gen_corpus_tests!`
     │   └── src/lib.rs             #   modelled on air's `tests_macros`
     ├── aether_r_parser_tests/     # Every corpus test, plus the harness that
@@ -425,7 +425,14 @@ present even when empty. So `root.statements()` needs no unwrapping.
 generated factory does not panic on a failed cast of the `right` slot — it maps
 `R_EXTRACT_EXPRESSION` through `to_bogus()` and collapses the whole expression
 into one bogus node. Round-trip still passes, so nothing in the harness would
-catch it. Phase 10 (§11.4) is what finally uses the kind.
+catch it.
+
+**Nothing constructs one.** Phase 10 was to be its first user, by consuming a
+non-selector RHS into a bogus node; §11.4 settles that it diagnoses and consumes
+nothing instead, so the kind is unproduced. It stays because a union of selectors
+having a bogus variant is defensible on its own and because removing it is codegen
+churn for no gain — but do not read its presence as evidence that some path builds
+one.
 
 `R_STATEMENT_LIST` is recognised as a list kind, so `SyntaxKind::is_list()`
 returns true for it. This was decided so that air's `has_bogus_nodes_or_empty_slots`
@@ -670,10 +677,9 @@ termination and `else` attachment.
   keeps no line-break state of its own and delegates the question to the lexer,
   exactly as `JsTokenSource` does (§9.1).
 
-- `RParser` reads the flag only through `at_statement_break()` (§9.2), which
-  gates it on the `Newlines` context. That predicate has three callers: the Pratt loop
-  (§11.2), `parse_postfix()` (§11.3), and `parse_else_clause()` (§11.6). Nothing
-  else reads the raw flag.
+- `RParser` reads the flag only in conjunction with the current `Scope` (§9.2).
+  Three sites do so: the Pratt loop's statement break and its `::` arm (§11.2),
+  and `parse_else_clause()` (§11.6). Nothing else reads the raw flag.
 
 Do not replicate tree-sitter's scope-stack approach of conditionally swallowing
 newlines in the lexer. In a recursive-descent parser the equivalent information
@@ -799,37 +805,54 @@ text is the body rather than a delimiter.
 
 ### 9.2 `RParser`
 
-Two `Copy` context fields — `newlines: Newlines` and `else_clause: ElseClause` —
-plus the helpers that scope them.
+One `Copy` context field — `scope: Scope` — plus the helper that scopes it.
 
-**The polarity of `Newlines`'s `#[default]` is deliberate, and the code does not
-say why.** A forgotten `with_newlines` leaves `Significant`, which produces a
-spurious statement break: a loud parse error at the first multi-line call in the
-corpus. The inverse default fails silently instead — `1\n+2` would quietly become
-one expression rather than two statements, a wrong tree with no diagnostic, which
-the round-trip assertion does not catch either.
+```rust
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum Scope {
+    #[default]
+    TopLevel,
+    Brace,
+    Parenthesis,
+    Bracket,
+    Bracket2,
+}
+```
 
-- **`with_newlines(newlines, f)`** saves and restores `newlines`. Eight callers,
-  one per construct that eats newlines: `f(…)`, `x[…]`, `x[[…]]`, `(…)`, the `if`
-  and `while` conditions, the `for` header, and a parameter list.
+**One field, five variants, and both of R's newline rules read off it.** Line
+breaks are significant at top level and inside `{`, and meaningless inside `(`,
+`[`, `[[`; an `else` may follow a line break everywhere except top level. Those
+are not two independent axes — the second is a refinement of the first, since a
+line break only reaches `else` where line breaks mean anything at all. tree-sitter-r
+models this the same way, as one scope stack (`SCOPE_TOP_LEVEL`, `SCOPE_BRACE`,
+`SCOPE_PAREN`, `SCOPE_BRACKET`, `SCOPE_BRACKET2` in `scanner.c`), and R's `gram.y`
+as one `contextp`.
 
-- **`with_braces(f)`** owns both fields, because braces are the one construct that
-  changes both and changes them in opposite directions: a line break inside braces
-  is significant *again* even when the braces sit inside a paren
-  (`f({\n  a\n  b\n})`), and an `else` may follow one. Owning the pair here rather
-  than at the call site is what stops the two from being restated — or set
-  inconsistently — by whatever else learns to parse a block.
+The three delimiter variants behave identically and could be one. They are kept
+apart so a `with_scope` call names the token it just bumped rather than a category
+the reader has to expand, and so the set lines up with the scanner's for anyone
+cross-reading it.
 
-- **`at_statement_break()`** is the single predicate for newline significance.
-  Both of the language's newline rules, statement termination and `else`
-  attachment, funnel through it; nothing else reads `newlines`. Three callers: the
-  Pratt loop (§11.2), `parse_postfix` (§11.3), and `parse_else_clause` (§11.6).
+**The polarity of the `#[default]` is deliberate, and the code does not say why.**
+A forgotten `with_scope` leaves `TopLevel`, which produces a spurious statement
+break: a loud parse error at the first multi-line call in the corpus. A default
+that ignored line breaks fails silently instead — `1\n+2` would quietly become one
+expression rather than two statements, a wrong tree with no diagnostic, which the
+round-trip assertion does not catch either. `Scope::newlines_are_significant()`
+answers exhaustively for the same reason: a scope added later has to say which
+side it is on rather than defaulting onto the silent one.
 
-- **`else_clause_may_follow_newline()`** has exactly one reader,
-  `parse_else_clause` (§11.6). `ElseClause` is private to `parser.rs`, so that
-  stays enforced by privacy rather than by hope.
+- **`with_scope(scope, f)`** saves and restores the field. Nine callers, one per
+  construct that opens a scope: `f(…)`, `x[…]`, `x[[…]]`, `(…)`, the `if` and
+  `while` conditions, the `for` header, a parameter list, and `{…}`. `parse_root`
+  is not among them — the default *is* top-level behaviour.
 
-#### 9.2.1 Why two enums and not a bitflags set
+- **`scope()`** is a plain read. Newline significance goes through
+  `Scope::newlines_are_significant()` and nothing tests the delimiter variants
+  individually; `parse_else_clause` (§11.6) is the one site that compares against
+  a variant, and it wants `TopLevel` by name.
+
+#### 9.2.1 Why an enum and not a bitflags set
 
 Checked against every Biome parser at the pinned rev, because the obvious reach
 here is `bitflags` and it is the wrong size of tool. `biome_js_parser` is the only
@@ -838,9 +861,9 @@ parser that uses flags for context, and the reasons it documents on
 (`FUNCTION_RESET_MASK`), and a whole context snapshotting into one word.
 `biome_css_parser` is the parser at *aether's* scale, with two context fields, and
 it uses plain fields with `std::mem::replace`. Nothing exists in between — graphql,
-html, yaml, json, and grit carry no parse context at all. At two fields neither of
-JS's reasons survives, and what the enums buy back is that the safe default is
-*named* rather than being "the empty set".
+html, yaml, json, and grit carry no parse context at all. At one field neither of
+JS's reasons survives, and flags could not express this context anyway: the five
+scopes are mutually exclusive, which an enum states and a flag set only promises.
 
 **A closure and not an RAII guard.** JS has both and uses the closure seventeen
 times against the guard's one; its single guard site is `parse_class`, where the
@@ -851,15 +874,15 @@ that shape — all nine are one call bracketed by a `bump` and an `expect`.
 `ExpressionContext`, passed down, and `ParsingContextFlags`, stored, and the split
 is the lesson: fine-grained context that changes within one expression is a
 parameter, while coarse context that changes at construct boundaries and is read
-at arbitrary depth lives on the state. R's two are unambiguously the second kind,
-so threading either would touch every parse function in the crate.
+at arbitrary depth lives on the state. `Scope` is unambiguously the second kind,
+so threading it would touch every parse function in the crate.
 
-That the helpers earn their place at all, where CSS ships without one, comes down
-to the call-site count and a failure mode: `at_statement_break()` is consulted
-several frames below whatever set the field, so a leaked value does not crash — it
-silently changes how newlines are read for the rest of the parse and yields a
-wrong tree that still round-trips. That is the one class of bug neither invariant
-1 nor the harness catches.
+That the helper earns its place at all, where CSS ships without one, comes down to
+the call-site count and a failure mode: the scope is consulted several frames below
+whatever set it, so a leaked value does not crash — it silently changes how
+newlines are read for the rest of the parse and yields a wrong tree that still
+round-trips. That is the one class of bug neither invariant 1 nor the harness
+catches.
 
 ### 9.3 `RParse` — Biome's shape, not air's
 
@@ -1382,7 +1405,7 @@ off the tests the feature enables, regenerate, review the diff.
 
 ### 11.1 Phase 7 — Literals, identifiers, program
 
-`src/syntax/value.rs`, `src/syntax.rs`.
+`src/syntax/value.rs`, `src/syntax/expr.rs`, `src/syntax.rs`.
 
 ```rust
 pub(crate) fn parse_root(p: &mut RParser) {
@@ -1409,48 +1432,22 @@ Phase 13 would let `1 2` parse clean for six phases, including Phase 8, where
 `statements/newlines.md` is supposed to go green. Write it here against
 §11.7's body with the semicolon lines omitted.
 
+**What `parse_expression` is in this phase.** `parse_statement_list` calls it and
+Phase 8 owns it, so what Phase 7 writes is the stub it grows from — the atom
+dispatch, with nothing above it:
+
 ```rust
-/// Anything that can start an expression and consists of exactly one token.
-fn parse_literal_expression(p: &mut RParser) -> ParsedSyntax {
-    let kind = match p.cur() {
-        R_INTEGER_LITERAL => R_INTEGER_VALUE,
-        R_DOUBLE_LITERAL  => R_DOUBLE_VALUE,
-        R_COMPLEX_LITERAL => R_COMPLEX_VALUE,
-        IDENT             => R_IDENTIFIER,
-        DOTS              => R_DOTS,
-        DOTDOTI           => R_DOT_DOT_I,
-        T![next]          => R_NEXT_EXPRESSION,
-        T![break]         => R_BREAK_EXPRESSION,
-        T![true]          => R_TRUE_EXPRESSION,
-        T![false]         => R_FALSE_EXPRESSION,
-        T![null]          => R_NULL_EXPRESSION,
-        T![inf]           => R_INF_EXPRESSION,
-        T![nan]           => R_NAN_EXPRESSION,
-        T![na_logical] | T![na_integer] | T![na_double]
-        | T![na_complex] | T![na_character] => R_NA_EXPRESSION,
-        STRING_OPEN       => return parse_string_value(p),
-        _ => return Absent,
-    };
-    let m = p.start();
-    p.bump_any();
-    Present(m.complete(p, kind))
+// crates/aether_r_parser/src/syntax/expr.rs
+pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
+    parse_primary_expression(p)
 }
+```
 
-/// A character the lexer could not make a token of. Copy `biome_js_parser`'s
-/// `parse_primary_expression` arm exactly: start a marker, bump the token, and
-/// complete it as a bogus node.
-///
-/// No diagnostic here — the lexer already raised `unexpected_character` and
-/// pointed at the character. A second one at the same range is noise, and
-/// invariant 2 (bogus nodes always come with at least one diagnostic) is already
-/// satisfied by the lexer's.
-fn parse_error_token(p: &mut RParser) -> ParsedSyntax {
-    if !p.at(ERROR_TOKEN) { return Absent }
-    let m = p.start();
-    p.bump_any();
-    Present(m.complete(p, R_BOGUS_EXPRESSION))
-}
+Phase 8 puts the Pratt loop behind that name (§11.2).
+`parse_primary_expression` stays where it is and gains an arm per phase, which is
+how each later phase's construct becomes reachable at all.
 
+```rust
 /// `R_STRING_VALUE` is three tokens; the last two need a lex context.
 fn parse_string_value(p: &mut RParser) -> ParsedSyntax {
     if !p.at(STRING_OPEN) { return Absent }
@@ -1473,16 +1470,17 @@ The empty-body case is why the `STRING_CONTENT` bump is conditional: `""` lexes 
 request on an empty body with the close (§8.4). The same `delimiter` value serves
 both bumps — do not re-read it at `STRING_CONTENT`, whose text is the body.
 
-`parse_error_token` hangs off `parse_primary_expression`, alongside
-`parse_literal_expression` — not off `parse_literal_expression` itself, which
-answers "one token, one value node" and would be lying. Placing it in the atom
-dispatch rather than leaving it to statement-list recovery is what keeps the
-damage to one token: recovery would skip to the next statement boundary and
-swallow whatever followed the stray character on the same line.
+**Everything else this phase parses is one token, and all of it is an arm of
+`parse_primary_expression` (§11.2)** — the literals, the identifiers, `next` and
+`break`, and `ERROR_TOKEN`. Phase 7 writes that function with those arms,
+`STRING_OPEN`, and `_ => Absent`; every later phase adds one more.
 
-`ERROR_TOKEN` needs no entry in any recovery set. It starts no production, so
-every `at(...)` test in the parser is already false for it, and the token can
-only be reached by the arm above.
+`ERROR_TOKEN` earns its arm rather than being left to statement-list recovery,
+and that is what keeps the damage to one token: recovery would skip to the next
+statement boundary and swallow whatever followed the stray character on the same
+line. It needs no entry in any recovery set, though — it starts no production, so
+every `at(...)` test in the parser is already false for it, and the token can only
+be reached from that arm.
 
 **Enable: the 19 imported tree-sitter tests across all five `corpus/literals/`
 files.** That is **19 of 89 green** at the end of the very first parser phase,
@@ -1516,61 +1514,50 @@ right; everything else hangs off it.
 
 #### The precedence table
 
-Transcribed from `tree-sitter-r/grammar.js`'s `PREC`, which is itself transcribed
-from R's `src/main/gram.y`. Higher binds tighter.
+Taken from R's `src/main/gram.y`. Higher binds tighter.
 
 | Rank | Name | Operators | Assoc |
 |---|---|---|---|
 | 1 | HELP | `?` (binary) | left |
-| 2 | FUNCTION_OR_LOOP | `function`, `while`, `for`, `repeat` bodies | (not an operator — see below) |
-| 3 | IF | `if` | (not an operator — see below) |
-| 4 | LEFT_ASSIGN | `<-` `<<-` `:=` | **right** |
-| 5 | EQUALS_ASSIGN | `=` | **right** |
-| 6 | RIGHT_ASSIGN | `->` `->>` | left |
-| 7 | TILDE | `~` | left |
-| 8 | OR | `\|` `\|\|` | left |
-| 9 | AND | `&` `&&` | left |
-| 10 | UNARY_NOT | `!` (unary) | left |
-| 11 | COMPARISON | `<` `<=` `>` `>=` `==` `!=` | left (nonassoc in R) |
-| 12 | PLUS_MINUS | `+` `-` (binary) | left |
-| 13 | MULTIPLY_DIVIDE | `*` `/` | left |
-| 14 | SPECIAL_OR_PIPE | `%...%` `\|>` | left |
-| 15 | COLON | `:` | left |
-| 16 | UNARY_PLUS_MINUS | `+` `-` (unary) | left |
-| 17 | EXPONENTIATE | `^` `**` | **right** |
-| 18 | EXTRACT | `$` `@` | left (see below) |
-| 19 | NAMESPACE | `::` `:::` | left (see below) |
-| 20 | CALL | `f(…)` `x[…]` `x[[…]]` | — (postfix) |
+| 2 | LEFT_ASSIGN | `<-` `<<-` `:=` | **right** |
+| 3 | EQUALS_ASSIGN | `=` | **right** |
+| 4 | RIGHT_ASSIGN | `->` `->>` | left |
+| 5 | TILDE | `~` | left |
+| 6 | OR | `\|` `\|\|` | left |
+| 7 | AND | `&` `&&` | left |
+| 8 | UNARY_NOT | `!` (unary) | left |
+| 9 | COMPARISON | `<` `<=` `>` `>=` `==` `!=` | left (nonassoc in R) |
+| 10 | PLUS_MINUS | `+` `-` (binary) | left |
+| 11 | MULTIPLY_DIVIDE | `*` `/` | left |
+| 12 | SPECIAL_OR_PIPE | `%...%` `\|>` | left |
+| 13 | COLON | `:` | left |
+| 14 | UNARY_PLUS_MINUS | `+` `-` (unary) | left |
+| 15 | EXPONENTIATE | `^` `**` | **right** |
+| 16 | EXTRACT | `$` `@` | left (see below) |
+| 17 | NAMESPACE | `::` `:::` | left (see below) |
+| 18 | CALL | `f(…)` `x[…]` `x[[…]]` | — (postfix) |
 
-**Ranks 2, 3, and 20 are deliberately absent from the binding-power functions
-below.** Ranks 2 and 3 are not operator precedences: in tree-sitter-r they wrap
-entire productions —
-
-```js
-function_definition: $ => withPrec(PREC.FUNCTION_OR_LOOP, seq(
-if_statement:        $ => withPrec(PREC.IF, seq(
-```
-
-— and their only job is to make a body greedy, i.e. to say how far right
+**`function`, `while`, `for`, `repeat`, and `if` get no rank.** R's grammar gives
+them one, and it does one job there: make the body greedy, i.e. say how far right
 `function(x) …` or `if (c) …` extends. A recursive-descent parser answers that by
-construction: the body is a plain `parse_expression` call that runs to its natural
-terminator (§11.5, §11.6). The two ranks are kept in the table so the numbering
-lines up with tree-sitter-r's `PREC` when comparing, and for nothing else.
+construction — the body is a plain `parse_expression` call that runs to its
+natural terminator (§11.5, §11.6).
 
-Rank 20 is absent for a different reason: postfix is handled structurally in the
-Pratt loop and applies unconditionally, so it is never compared against a
-`min_bp`. The number survives in code only as `POSTFIX_BINDING_POWER`, which
-exists purely to give the `debug_assert!` in `parse_expression_with_lhs` something
-to assert *against* — that 20 really is the ceiling. Adding an infix operator at
-rank 20 or above would break that and is what the assertion catches; the fix in
-that case is to renumber so postfix stays tightest, not to relax the assertion.
+**Rank 18 is absent from the binding-power functions below.** Postfix is handled
+structurally in the Pratt loop and applies unconditionally, so it is never
+compared against a `min_bp`. The number survives in code only as
+`POSTFIX_BINDING_POWER`, which exists purely to give the `debug_assert!` in
+`parse_expression_with_lhs` something to assert *against* — that 18 really is the
+ceiling. Adding an infix operator at rank 18 or above would break that and is what
+the assertion catches; the fix in that case is to renumber so postfix stays
+tightest, not to relax the assertion.
 
-The one case where a greedy body and a body parsed at `min_bp = 2` would differ is
-the binary `?` at rank 1 — `function() a ? b` could group either way. R's grammar
-makes a function body `expr_or_assign_or_help`, which includes help and so points
-at greedy, but do not take that on faith: let the oracle settle it the first time
-it runs against `functions/definition.md`, and record the answer here if it is
-not greedy.
+The one case where a greedy body and a body parsed at `min_bp = 2` — everything
+but `?` — would differ is the binary `?` at rank 1: `function() a ? b` could
+group either way. R's grammar makes a function body `expr_or_assign_or_help`,
+which includes help and so points at greedy, but do not take that on faith: let
+the oracle settle it the first time it runs against `functions/definition.md`,
+and record the answer here if it is not greedy.
 
 **Associativity of `$` `@` `::` `:::`.** tree-sitter-r forces these **right**
 associative and explains why in a long comment: it is a workaround for the
@@ -1587,31 +1574,31 @@ pub(crate) struct BindingPower(u8);
 #[derive(Debug, Clone, Copy)]
 enum Assoc { Left, Right }
 
-/// Rank 20 — `f(…)`, `x[…]`, `x[[…]]`. Appears in no lookup table because
+/// Rank 18 — `f(…)`, `x[…]`, `x[[…]]`. Appears in no lookup table because
 /// postfix is handled structurally in the Pratt loop, but it is named so the
 /// `debug_assert!` guarding "postfix is the tightest-binding construct" reads as
-/// a claim about the precedence table rather than a bare `20`.
-const POSTFIX_BINDING_POWER: BindingPower = BindingPower(20);
+/// a claim about the precedence table rather than a bare `18`.
+const POSTFIX_BINDING_POWER: BindingPower = BindingPower(18);
 
 fn infix_binding_power(kind: RSyntaxKind) -> Option<(BindingPower, Assoc)> {
     use RSyntaxKind::*;
     Some(match kind {
         T![?]                                    => (BindingPower(1),  Assoc::Left),
-        T![<-] | T![<<-] | T![:=]                => (BindingPower(4),  Assoc::Right),
-        T![=]                                    => (BindingPower(5),  Assoc::Right),
-        T![->] | T![->>]                         => (BindingPower(6),  Assoc::Left),
-        T![~]                                    => (BindingPower(7),  Assoc::Left),
-        T![|] | T![||]                           => (BindingPower(8),  Assoc::Left),
-        T![&] | T![&&]                           => (BindingPower(9),  Assoc::Left),
+        T![<-] | T![<<-] | T![:=]                => (BindingPower(2),  Assoc::Right),
+        T![=]                                    => (BindingPower(3),  Assoc::Right),
+        T![->] | T![->>]                         => (BindingPower(4),  Assoc::Left),
+        T![~]                                    => (BindingPower(5),  Assoc::Left),
+        T![|] | T![||]                           => (BindingPower(6),  Assoc::Left),
+        T![&] | T![&&]                           => (BindingPower(7),  Assoc::Left),
         T![<] | T![<=] | T![>] | T![>=]
-        | T![==] | T![!=]                        => (BindingPower(11), Assoc::Left),
-        T![+] | T![-]                            => (BindingPower(12), Assoc::Left),
-        T![*] | T![/]                            => (BindingPower(13), Assoc::Left),
-        SPECIAL | T![|>]                         => (BindingPower(14), Assoc::Left),
-        T![:]                                    => (BindingPower(15), Assoc::Left),
-        T![^] | T![**]                           => (BindingPower(17), Assoc::Right),
-        T![$] | T![@]                            => (BindingPower(18), Assoc::Left),
-        T![::] | T![:::]                         => (BindingPower(19), Assoc::Left),
+        | T![==] | T![!=]                        => (BindingPower(9),  Assoc::Left),
+        T![+] | T![-]                            => (BindingPower(10), Assoc::Left),
+        T![*] | T![/]                            => (BindingPower(11), Assoc::Left),
+        SPECIAL | T![|>]                         => (BindingPower(12), Assoc::Left),
+        T![:]                                    => (BindingPower(13), Assoc::Left),
+        T![^] | T![**]                           => (BindingPower(15), Assoc::Right),
+        T![$] | T![@]                            => (BindingPower(16), Assoc::Left),
+        T![::] | T![:::]                         => (BindingPower(17), Assoc::Left),
         _ => return None,
     })
 }
@@ -1619,9 +1606,9 @@ fn infix_binding_power(kind: RSyntaxKind) -> Option<(BindingPower, Assoc)> {
 fn prefix_binding_power(kind: RSyntaxKind) -> Option<BindingPower> {
     Some(match kind {
         T![?]         => BindingPower(1),
-        T![~]         => BindingPower(7),
-        T![!]         => BindingPower(10),
-        T![+] | T![-] => BindingPower(16),
+        T![~]         => BindingPower(5),
+        T![!]         => BindingPower(8),
+        T![+] | T![-] => BindingPower(14),
         _ => return None,
     })
 }
@@ -1635,7 +1622,8 @@ pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
 }
 
 fn parse_expression_with_bp(p: &mut RParser, min_bp: BindingPower) -> ParsedSyntax {
-    let Present(lhs) = parse_prefix_expression(p) else { return Absent };
+    let operand = parse_prefix_expression(p).or_else(|| parse_primary_expression(p));
+    let Present(lhs) = operand else { return Absent };
     Present(parse_expression_with_lhs(p, lhs, min_bp))
 }
 
@@ -1650,16 +1638,16 @@ fn parse_expression_with_lhs(
     mut lhs: CompletedMarker,
     min_bp: BindingPower,
 ) -> CompletedMarker {
-    // Postfix is rank 20 and applies unconditionally, so there is no `min_bp`
-    // guard around it below. That is only sound while 20 is genuinely the
+    // Postfix is rank 18 and applies unconditionally, so there is no `min_bp`
+    // guard around it below. That is only sound while 18 is genuinely the
     // ceiling: `min_bp` arrives as 0 from `parse_expression` and
-    // `parse_argument`, as a prefix bp (max 16) from `parse_prefix_expression`,
+    // `parse_argument`, as a prefix bp (max 14) from `parse_prefix_expression`,
     // and otherwise as this loop's own `right_bp` — which is `bp + 1` for
-    // left-assoc, topping out at 20 because the highest infix rank is `:::` at
-    // 19.
+    // left-assoc, topping out at 18 because the highest infix rank is `:::` at
+    // 17.
     //
     // Asserted rather than branched on. A branch here would be dead code that
-    // silently starts mattering if someone adds an infix operator at rank 20 or
+    // silently starts mattering if someone adds an infix operator at rank 18 or
     // above; the assertion instead fails loudly and points at the real problem,
     // which is that the precedence table needs renumbering to keep postfix
     // tightest. Placed at entry so it fires on any input, not only ones that
@@ -1676,7 +1664,9 @@ fn parse_expression_with_lhs(
         // before an infix operator ends the expression. `1\n+2` is two
         // statements; `1 +\n2` is one. Inside `(`/`[`/`[[` newlines are eaten
         // and this check is disabled.
-        if p.at_statement_break() { break }
+        if p.scope().newlines_are_significant() && p.has_preceding_line_break() {
+            break;
+        }
 
         // Postfix `(`, `[`, `[[` bind tightest and are handled here rather than
         // through `infix_binding_power`. Unconditional: there is no caller for
@@ -1717,10 +1707,11 @@ fn parse_expression_with_lhs(
             //     if (EatLines || *contextp == '[' || *contextp == '(')
             //         goto again;
             //
-            // `{` pushes LBRACE, not `(`, so braces do NOT get this.
-            // `at_statement_break()` already encodes exactly that distinction,
-            // so it is the whole of the check.
-            T![::] | T![:::] if p.at_statement_break() => {
+            // `{` pushes LBRACE, not `(`, so braces do NOT get this —
+            // `newlines_are_significant()` draws the line in the same place,
+            // which is the whole of the check.
+            T![::] | T![:::]
+                if p.scope().newlines_are_significant() && p.has_preceding_line_break() => {
                 p.error(diagnostics::expected_selector(
                     p, operator, operator_range, p.cur_range(),
                 ));
@@ -1748,29 +1739,140 @@ fn parse_expression_with_lhs(
 }
 
 fn parse_prefix_expression(p: &mut RParser) -> ParsedSyntax {
-    if let Some(bp) = prefix_binding_power(p.cur()) {
-        let m = p.start();
-        p.bump_any();
-        parse_expression_with_bp(p, bp)
-            .or_add_diagnostic(p, diagnostics::expected_expression);
-        return Present(m.complete(p, R_UNARY_EXPRESSION));
+    let Some(bp) = prefix_binding_power(p.cur()) else { return Absent };
+    let m = p.start();
+    p.bump_any();
+    parse_expression_with_bp(p, bp)
+        .or_add_diagnostic(p, diagnostics::expected_expression);
+    Present(m.complete(p, R_UNARY_EXPRESSION))
+}
+
+/// One operand: no operators, nothing to its left.
+///
+/// The fan-out point of the expression grammar — every phase from here to 13
+/// makes its construct reachable by adding an arm. Shown finished; Phase 7 writes
+/// the one-token arms, `STRING_OPEN`, and `_ => Absent`, and nothing else.
+fn parse_primary_expression(p: &mut RParser) -> ParsedSyntax {
+    match p.cur() {
+        R_INTEGER_LITERAL => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_INTEGER_VALUE))
+        }
+        R_DOUBLE_LITERAL => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_DOUBLE_VALUE))
+        }
+        R_COMPLEX_LITERAL => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_COMPLEX_VALUE))
+        }
+        IDENT => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_IDENTIFIER))
+        }
+        DOTS => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_DOTS))
+        }
+        DOTDOTI => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_DOT_DOT_I))
+        }
+        T![next] => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_NEXT_EXPRESSION))
+        }
+        T![break] => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_BREAK_EXPRESSION))
+        }
+        T![true] => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_TRUE_EXPRESSION))
+        }
+        T![false] => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_FALSE_EXPRESSION))
+        }
+        T![null] => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_NULL_EXPRESSION))
+        }
+        T![inf] => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_INF_EXPRESSION))
+        }
+        T![nan] => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_NAN_EXPRESSION))
+        }
+        T![na_logical] | T![na_integer] | T![na_double] | T![na_complex]
+        | T![na_character] => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_NA_EXPRESSION))
+        }
+        // No diagnostic: the lexer already raised `unexpected_character` and
+        // pointed at it, which is what satisfies invariant 2
+        ERROR_TOKEN => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_BOGUS_EXPRESSION))
+        }
+
+        STRING_OPEN             => parse_string_value(p),             // §11.1
+        T!['(']                 => parse_parenthesized_expression(p), // §11.3
+        T!['{']                 => parse_braced_statements(p),        // §11.7
+        T![function] | T!["\\"] => parse_function_definition(p),      // §11.5
+        T![if]                  => parse_if_statement(p),             // §11.6
+        T![for]                 => parse_for_statement(p),
+        T![while]               => parse_while_statement(p),
+        T![repeat]              => parse_repeat_statement(p),
+
+        _ => Absent,
     }
-    parse_primary_expression(p)
 }
 ```
+
+**Every arm returns, and none falls through to a shared tail.** The fifteen
+one-token arms repeat `start`/`bump_any`/`complete` rather than naming a kind for
+a tail below the `match`, and that is the point: an arm can be read on its own,
+and the `match` is uniform — token in, `ParsedSyntax` out, once per arm. Hoisting
+the tail would save about fifty lines and buy back a two-tier read where some arms
+produce a value and others produce a node.
+
+**`Absent` here is a result, not a failure.** It is how `f(,,)` gets its empty
+arguments, how `f(a = )` gets its empty value, and how `parse_statement_list`
+knows to recover. Only the caller knows whether an operand was required, so this
+function raises no diagnostic of its own — `ERROR_TOKEN` is the one arm that could
+and deliberately does not, because the lexer has already pointed at the character
+(§11.1).
 
 **Precedence facts worth writing explicit tests for**, all of which the
 `Operator precedence` and `Precedence Tests` corpus tests cover:
 
-- `-1^2` → `-(1^2)` — unary minus (16) binds looser than `^` (17).
-- `!a & b` → `(!a) & b` — `!` (10) binds tighter than `&` (9).
-- `-2:3` → `-(2:3)`? **No** — unary `-` is 16 and `:` is 15, so it is `(-2):3`,
-  the sequence from -2 to 3. Contrast `-1^2` above: `^` (17) outranks unary `-`,
+- `-1^2` → `-(1^2)` — unary minus (14) binds looser than `^` (15).
+- `!a & b` → `(!a) & b` — `!` (8) binds tighter than `&` (7).
+- `-2:3` → `-(2:3)`? **No** — unary `-` is 14 and `:` is 13, so it is `(-2):3`,
+  the sequence from -2 to 3. Contrast `-1^2` above: `^` (15) outranks unary `-`,
   `:` does not.
 - `a <- b <- c` → `a <- (b <- c)` — right assoc.
 - `a -> b -> c` → `(a -> b) -> c` — left assoc.
 - `2^3^2` → `2^(3^2)` — right assoc.
-- `a %in% b + c` → `a %in% (b + c)`? **No** — `%in%` is 14, `+` is 12, so
+- `a %in% b + c` → `a %in% (b + c)`? **No** — `%in%` is 12, `+` is 10, so
   `(a %in% b) + c`. This one trips people up; test it.
 
 The newline behaviour of the operator table is a separate axis and is settled
@@ -1853,8 +1955,8 @@ Later phases reuse it rather than wording their own — the function body of a
 /// Postfix: `f(x)`, `x[i]`, `x[[i]]`. Returns `None` if no postfix applies.
 fn parse_postfix(p: &mut RParser, lhs: CompletedMarker) -> Option<CompletedMarker> {
     // `f\n(x)` at statement level is two statements, not a call. Already
-    // guaranteed by the `at_statement_break()` check in the caller, but the
-    // errors corpus tests this directly ("Not A Call, Subset, Or Subset2").
+    // guaranteed by the statement-break check in the caller, but the errors
+    // corpus tests this directly ("Not A Call, Subset, Or Subset2").
     match p.cur() {
         T!['('] => {
             let m = lhs.precede(p);
@@ -1874,7 +1976,34 @@ fn parse_postfix(p: &mut RParser, lhs: CompletedMarker) -> Option<CompletedMarke
         _ => None,
     }
 }
+
+/// `(a)` — a node of its own, not a formatting hint, so air can round-trip it.
+fn parse_parenthesized_expression(p: &mut RParser) -> ParsedSyntax {
+    if !p.at(T!['(']) { return Absent }
+    let m = p.start();
+    p.bump(T!['(']);
+    p.with_scope(Scope::Parenthesis, |p| {
+        parse_expression(p).or_add_diagnostic(p, diagnostics::expected_expression);
+    });
+    p.expect(T![')']);
+    Present(m.complete(p, R_PARENTHESIZED_EXPRESSION))
+}
 ```
+
+**`(` is the one token in this phase with two jobs**, and the Pratt structure
+separates them with no lookahead at all. `parse_postfix` meets it with an operand
+already to its left and builds an `R_CALL`; `parse_primary_expression` (§11.2)
+meets it where an operand is due and builds a group. `f(x)` and `f (x)` are both
+calls; `f\n(x)` is not, because the statement break ends the loop before
+`parse_postfix` is reached. What it is *instead* — two statements, as in R, or an
+error, as in tree-sitter — is the question §11.2 leaves open under "Verify when
+the Phase 9 tests come off `[pending]`", and `Not A Call, Subset, Or Subset2` is
+where it gets settled.
+
+The body is a full `parse_expression`, not one restricted to §11.2's table: R's
+`'(' expr_or_assign_or_help ')'` admits `=` and `?`, so `(a = 1)` is an
+assignment and must parse clean. `()` has no such excuse and takes the
+`expected_expression` diagnostic, then the `expect` closes the node.
 
 #### `[[` and `]]` — the one genuinely hard tokenization problem
 
@@ -1967,10 +2096,7 @@ impl ArgumentListEnd {
 fn parse_subset2_arguments(p: &mut RParser) {
     let m = p.start();
     p.bump(T!["[["]);
-    // `else_clause` is deliberately left alone: it may stay `MayFollowNewline`
-    // from an enclosing `{`, and inside brackets that is harmless, because
-    // `parse_else_clause` also tests `at_statement_break()`.
-    p.with_newlines(Newlines::Ignored, |p| {
+    p.with_scope(Scope::Bracket2, |p| {
         parse_argument_list(p, ArgumentListEnd::RBrack2);
     });
     // The list joined its `]]` on the way out, so this is a plain expect.
@@ -2209,9 +2335,9 @@ Behavior matrix — this is the deviation table for `docs/deviations.md`:
 | `a$b` | `extract_operator` | `R_EXTRACT_EXPRESSION`, clean |
 | `a$"b"` | `extract_operator` | clean |
 | `a$` | `extract_operator`, rhs absent, **no error** | node + missing slot + `expected_selector` |
-| `a$1` | rhs absent, `1` becomes a sibling statement, **no error** | bogus rhs (one atom) + `expected_selector` |
-| `a$NULL`, `a$TRUE`, `a$(b)`, `a${b}` | same as above | bogus rhs (one atom) + `expected_selector` |
-| `a$1 + 2` | as above, `+ 2` reattached to the sibling | `(a$«1») + 2` — infix not consumed |
+| `a$1` | rhs absent, `1` becomes a sibling statement, **no error** | same shape + `expected_selector` |
+| `a$NULL`, `a$TRUE`, `a$(b)`, `a${b}`, `a$if` | same as above | same shape + `expected_selector` |
+| `a$1 + 2` | as above, `+ 2` reattached to the sibling | same shape + `expected_selector` |
 | `foo::` | `namespace_operator`, rhs absent, no error | missing slot + `expected_selector` |
 | `foo::\nbar` | error (grammar says no newlines allowed) | error, matched |
 | `f(foo::\nbar)` | *(unverified — see below)* | **clean**, matching R |
@@ -2231,8 +2357,8 @@ inferred from tree-sitter-r:
   newlines in those contexts before consulting `EatLines` at all. `{` pushes
   `LBRACE` and does not get this, so `foo::\nbar` inside braces is still an error.
 
-`at_statement_break()` encodes exactly that distinction, so the check in §11.2 is
-one guard clause. Add both as aether-authored tests in `expressions/namespace.md`
+`newlines_are_significant()` draws the line in exactly that place, so the check in
+§11.2 is one guard clause. Add both as aether-authored tests in `expressions/namespace.md`
 and `expressions/extract.md`:
 
 ````markdown
@@ -2257,53 +2383,97 @@ oracle first runs against it; if it errors, the row above becomes a real deviati
 and moves into `docs/deviations.md` under the inherited **"tree-sitter-r vs. R"**
 heading (§8.4), not aether's own list.
 
-**The `a$1` case — settled: consume into a bogus RHS.** Today air produces
-`right: missing (required)` *and* a separate `RDoubleValue` sibling for the `1`,
-silently. Aether consumes the `1` into a bogus RHS so it does not leak out as a
-phantom statement.
+**The `a$1` case — settled: diagnose, leave the slot missing, consume nothing.**
+This needs no code beyond §11.2's operator arm, which is already written that way:
+`parse_selector(p).or_add_diagnostic(…)` raises `expected_selector` at the
+offending token and leaves `right` empty. Whatever follows is not the selector's
+problem — the Pratt loop finds no infix operator at `1`, breaks, and `1` becomes
+the next statement.
 
-**How much it consumes is the part that needs deciding, and the answer is exactly
-one atom** — a prefix expression, with no postfix and no infix. Not a full
-`parse_expression`, because that would change the shape of valid code around the
-error:
+There is exactly one recovery rule, then, and it is the same one for `a$`, `a$1`,
+`a${b}`, `a$if`, and `a$)`. An earlier draft consumed one atom into an
+`R_BOGUS_SELECTOR` to stop the `1` "leaking out as a phantom statement", which was
+wrong on the merits — the imported corpus says so in its own comments. On
+`foo${bar}` (`expressions/extract.md:28`):
 
-| Source | Tree | Why |
-|---|---|---|
-| `a$1 + 2` | `(a$«1») + 2` | `+` is left for the Pratt loop, as in valid code |
-| `a$1(x)` | `(a$«1»)(x)` | mirrors `a$f(x)`, which is `(a$f)(x)` in R — call is rank 20, `$` is 18 |
-| `a$(b)` | `a$«(b)»` | the parenthesized expression is one atom |
-| `a$-1` | `a$«-1»` | prefix operators are part of the atom |
-| `a$)` | `a$` + missing slot | `)` starts no expression; **do not consume it**, or the enclosing call loses its terminator and one error becomes a cascade |
+> These nodes allows an optional RHS, and the RHS must be a string/identifier, so
+> we nicely get a true node here alongside the braces. Even if that's not parsable
+> R code, it's useful for completions and highlighting.
 
-So the recovery calls `parse_prefix_expression` — the same function the Pratt loop
-uses for its lhs — and wraps whatever comes back. When it returns `Absent`, this
-degrades to the plain `a$` case: missing slot, one diagnostic, nothing consumed.
+and on `foo$if` (`:52`):
 
-Either way it is **one diagnostic**, not one per malformed token, and the
-round-trip invariant holds because the offending tokens are inside the tree rather
-than dropped.
+> This ends up trying to match to an `if_statement` node, leaving the RHS empty,
+> and then the `if_statement` node errors because it doesn't have a `(`. This is
+> actually pretty decent behavior.
 
-**The bogus kind is `R_BOGUS_SELECTOR`**, which exists only because Phase 3 added
-it and put `RBogusSelector` in the `AnyRSelector` union (§7). Without a bogus
-variant in that union the factory silently reshapes the whole `a$1` into one bogus
-node instead of an `R_EXTRACT_EXPRESSION` with a bogus RHS — no panic, no compile
-error, and round-trip still passes. So `«…»` in the table above reads
-`R_BOGUS_SELECTOR` throughout, wrapping whatever single atom
-`parse_prefix_expression` returned: an `R_DOUBLE_VALUE` for `a$1`, an
-`R_PARENTHESIZED_EXPRESSION` for `a$(b)`, an `R_UNARY_EXPRESSION` for `a$-1`.
+Consuming destroys exactly the structure those comments call useful, and for the
+consumer that motivated the recovery in the first place. `foo${bar}` would lose a
+braced block into a bogus node and `foo$if` an entire if-statement. The newline
+case is worse still: `$` is in R's `EatLines` set, so
 
-Two aether-authored tests are worth adding for the boundary cases, since the
-imported corpus only covers bare `a$1`: `a$1 + 2` for the "infix is not consumed"
-rule, and `a$)` inside a call — `f(a$)` — for the "do not eat the terminator"
-rule. Both `[error]`.
+```r
+df$
+if (x) 1
+```
 
-**Enable:** `expressions/extract.md` and `expressions/namespace.md` in full — 10
-tests, of which three carry `[error, deviation]` (Dollar No RHS, Slot No RHS,
-Namespace With Missing RHS) and two carry `[error]` (the `if` RHS and
-Newline Before Operator cases). Air's `undefined/extract_expression_error.R` and
-`undefined/namespace_expression_error.R` live in these two files as well and
-become `[error]` tests. The two newline tests above are aether-authored, so they
-are absent from `MANIFEST.toml` and do not move the 89 count.
+is one expression to the parser, and consuming an atom eats the next line into the
+RHS of a `$` — while `df$` is the most common incomplete state in the language,
+being the completion trigger.
+
+**Not consuming also shrinks the deviation.** Those rows differ from tree-sitter
+in *shape* if the atom is consumed, so they need `[deviation]` and drop out of
+oracle coverage. Leaving the slot missing makes the shape identical to
+tree-sitter's — sibling and all — and the oracle compares shape, not diagnostics
+(`aether_r_oracle/src/shape.rs`). Only the diagnostics differ, which is deviation 2
+and is what `docs/deviations.md` already records.
+
+**The cost is a cascading diagnostic on same-line cases**, and it is worth stating
+rather than discovering. `a$1` raises `expected_selector` and then
+`expected_statement_separator`, because `parse_statement_list`'s check fires when
+there is no line break between the two statements (§11.7). The second message is
+redundant and mildly misleading — it points at a `;` that would not help.
+
+It is bounded: that check is guarded on `!p.has_preceding_line_break()`, so the
+`df$`-then-next-line shapes above raise one diagnostic and produce two clean
+statements. Only same-line typos like `df$2020` — a real class, since
+column names beginning with a digit need backticks — get the pair.
+
+Do not pre-solve it. These tests exist and their `.snap.md` prints every
+diagnostic, so Phase 10 shows exactly how the cascade reads. If it reads badly,
+suppressing a separator complaint at a position that already carries a diagnostic
+is a targeted fix, and one worth designing against real output.
+
+**`R_BOGUS_SELECTOR` is left unproduced.** §7 added it and expected Phase 10 to be
+its first user; no code path builds one now. The kind stays — `AnyRSelector`
+having a bogus variant is defensible on its own, and removing it means a codegen
+churn for nothing — but §7 records that nothing constructs it.
+
+**Enable:** `expressions/extract.md` and `expressions/namespace.md` in full — 18
+headings between them, currently 5 `[error, deviation]`, 6 `[error]`, and 7 plain
+`[pending]`. Air's `undefined/extract_expression_error.R` and
+`undefined/namespace_expression_error.R` live in these two files as well. The two
+newline tests above are aether-authored, so they are absent from `MANIFEST.toml`
+and do not move the 89 count.
+
+**Two marker changes fall out of the recovery decision, and both are the point of
+making it.**
+
+*Expect the five `[deviation]` markers to come off.* Dollar No RHS, Slot No RHS,
+Extract With A Literal RHS, Namespace With Missing RHS, and Namespace With A
+Literal RHS all carry `[error, deviation]` because an earlier draft's bogus RHS
+changed the shape. It no longer does. `Extract With A Literal RHS` even carries
+air's own output inline, and it is what aether will now produce:
+`RExtractExpression` with `right: missing (required)`, then `RDoubleValue` as a
+sibling. Empty slots are invisible to `shape_of` — it walks
+`children_with_tokens()` — so a missing `right` is not a shape difference at all.
+Drop `deviation` from each as the oracle confirms it, one at a time; five tests
+regaining oracle coverage is the concrete payoff for not consuming.
+
+*`Dollar, At, Namespace, Namespace Internal With Expression RHS` has to gain
+`[error]`.* It is plain `[pending]` today because `foo${bar}` is clean under
+tree-sitter's `optional()` RHS. Deviation 2 makes the RHS required, so aether
+raises `expected_selector` and the test must say so. Its shape still matches, so it
+needs no `deviation`.
 
 #### The diagnostic this phase adds
 
@@ -2358,15 +2528,15 @@ fn parse_function_definition(p: &mut RParser) -> ParsedSyntax {
 }
 ```
 
-**The newline subtlety.** `p.at_statement_break()` would normally stop us. Here it
-must not: after `function`, after `)`, and after the parameter list, newlines carry
-no meaning. The clean way is to *not consult* `at_statement_break()` in these
-positions at all — it is only consulted in the Pratt loop and in `parse_postfix`.
-Since `parse_function_definition` calls `parse_expression` unconditionally for the
-body, newlines are naturally skipped. Verify against the `Functions` corpus test,
-which contains all four spacing variants.
+**The newline subtlety.** A statement break would normally stop us. Here it must
+not: after `function`, after `)`, and after the parameter list, newlines carry no
+meaning. The clean way is to *not test* for one in these positions at all — the
+only tests live in the Pratt loop and in `parse_else_clause`. Since
+`parse_function_definition` calls `parse_expression` unconditionally for the body,
+newlines are naturally skipped. Verify against the `Functions` corpus test, which
+contains all four spacing variants.
 
-Parameters use `Newlines::Ignored` (newlines eaten) and a comma-separated list where each
+Parameters use `Scope::Parenthesis` (newlines eaten) and a comma-separated list where each
 `RParameter` is `name` + optional `RParameterDefault`. Names may be `IDENT`,
 `DOTS`, or `DOTDOTI` — note `return` is a plain identifier in R and is a valid
 parameter name (`Functions With return As Parameter Name`).
@@ -2409,7 +2579,7 @@ fn parse_if_statement(p: &mut RParser) -> ParsedSyntax {
     let m = p.start();
     p.bump(T![if]);
     p.expect(T!['(']);
-    p.with_newlines(Newlines::Ignored, |p| {
+    p.with_scope(Scope::Parenthesis, |p| {
         parse_expression(p).or_add_diagnostic(p, diagnostics::expected_condition);
     });
     p.expect(T![')']);
@@ -2440,7 +2610,7 @@ if (cond) 1
 else 2
 ```
 
-There is a **third** case, and it is the one the flag collapse in §9.2 exposes:
+There is a **third** case, and it is the one that decides the shape of the check:
 
 ```r
 # legal — inside `(`, newlines are eaten entirely, braces or no braces
@@ -2448,19 +2618,18 @@ f(if (a) 1
   else 2)
 ```
 
-So the rule is not "inside braces" but "a newline before `else` is fatal only
-where newlines are significant *and* we are not in braces". Test the first
-condition with `at_statement_break()` rather than `has_preceding_line_break()`,
-which handles the paren case for free and keeps both of the language's newline
-rules funnelling through one predicate:
+So the rule is not "inside braces". It is "a newline before `else` is fatal only
+where newlines are significant *and* we are not in braces" — and since the scopes
+where newlines are significant are exactly `TopLevel` and `Brace` (§9.2), removing
+`Brace` leaves one scope. The whole rule is `Scope::TopLevel`:
 
 ```rust
 fn parse_else_clause(p: &mut RParser) -> ParsedSyntax {
     if !p.at(T![else]) { return Absent }
 
-    // A newline before `else` is only tolerated inside `{}` — or anywhere
-    // newlines are insignificant, i.e. inside `(`/`[`/`[[`.
-    if p.at_statement_break() && !p.else_clause_may_follow_newline() {
+    // A newline before `else` is fatal at top level and nowhere else: `{}` allows
+    // it outright, and `(`/`[`/`[[` never see a line break in the first place.
+    if p.scope() == Scope::TopLevel && p.has_preceding_line_break() {
         return Absent;   // caller finishes the `if`; `else` becomes a bogus statement
     }
 
@@ -2471,11 +2640,11 @@ fn parse_else_clause(p: &mut RParser) -> ParsedSyntax {
 }
 ```
 
-Note that `else_clause` is therefore *not* reset on entering `(`/`[`/`[[` —
-leaving it at `MayFollowNewline` is harmless because `at_statement_break()` is
-already false there, and resetting it would mean re-deriving brace context on the
-way back out. That is why `with_newlines` touches only the one field. Only
-`with_braces` sets `else_clause`, and only `parse_else_clause` reads it.
+This is the one site that compares against a `Scope` variant by name rather than
+asking `newlines_are_significant()`, and it is why `scope()` is a plain read
+(§9.2). Note what it does *not* need: nothing has to be reset on the way into
+`(`/`[`/`[[` or restored on the way out, because there is a single field and
+`with_scope` saves it.
 
 Add all three cases to `control/if.md` as aether-authored tests. tree-sitter-r's
 corpus covers the braced and top-level forms; the parenthesised one is the case a
@@ -2530,11 +2699,9 @@ fn parse_braced_statements(p: &mut RParser) -> ParsedSyntax {
     if !p.at(T!['{']) { return Absent }
     let m = p.start();
     p.bump(T!['{']);
-    // The one construct that moves both fields, and in opposite directions:
-    // `f({\n  a\n  b\n})` re-enters newline-significant territory from inside a
-    // paren, and an `else` may now follow a line break. `with_braces` owns that
-    // pairing (§9.2).
-    p.with_braces(|p| parse_statement_list(p, StatementListEnd::RCurly));
+    // The one scope that makes newlines significant *again* from inside a
+    // paren: `f({\n  a\n  b\n})` is three statements, not one.
+    p.with_scope(Scope::Brace, |p| parse_statement_list(p, StatementListEnd::RCurly));
     p.expect(T!['}']);
     Present(m.complete(p, R_BRACED_STATEMENTS))
 }
@@ -2621,12 +2788,16 @@ fn parse_statement_list(p: &mut RParser, end: StatementListEnd) {
         // Guarded on `had_expression` so the recovery branch above — which has
         // already emitted `expected_expression` — does not also complain about a
         // separator it was never going to reach.
+        //
+        // A bare `has_preceding_line_break()` suffices where the Pratt loop needs
+        // `newlines_are_significant()` too: the only scopes a statement list runs
+        // in are `TopLevel` and `Brace`, and in both of them it is already true.
         let ate_semicolon = p.eat(T![;]);
         if had_expression
             && !ate_semicolon
             && !p.at(T![EOF])
             && !end.matches(p.cur())
-            && !p.at_statement_break()
+            && !p.has_preceding_line_break()
         {
             p.error(diagnostics::expected_statement_separator(
                 p, previous_range, p.cur_range(),
