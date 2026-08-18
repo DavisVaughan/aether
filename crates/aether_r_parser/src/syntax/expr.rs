@@ -1,9 +1,6 @@
 use crate::diagnostics;
-use crate::parser::RParser;
-use crate::syntax::call::{
-    parse_call_arguments, parse_parenthesized_expression, parse_subset_arguments,
-    parse_subset2_arguments,
-};
+use crate::parser::{RParser, Scope};
+use crate::syntax::call::{parse_call_arguments, parse_subset_arguments, parse_subset2_arguments};
 use crate::syntax::value::parse_string_value;
 use aether_r_syntax::RSyntaxKind::{self, *};
 use aether_r_syntax::T;
@@ -241,7 +238,15 @@ fn parse_primary_expression(p: &mut RParser) -> ParsedSyntax {
         }
 
         STRING_OPEN => parse_string_value(p),
-        T!['('] => parse_parenthesized_expression(p),
+        T!['('] => {
+            let m = p.start();
+            p.bump(T!['(']);
+            p.with_scope(Scope::Parenthesis, |p| {
+                parse_expression(p).or_add_diagnostic(p, diagnostics::expected_expression);
+            });
+            p.expect(T![')']);
+            Present(m.complete(p, R_PARENTHESIZED_EXPRESSION))
+        }
 
         _ => Absent,
     }

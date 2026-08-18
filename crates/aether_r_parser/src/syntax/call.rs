@@ -1,4 +1,3 @@
-use crate::diagnostics;
 use crate::lexer::RReLexContext;
 use crate::parser::{RParser, Scope};
 use crate::syntax::expr::{BindingPower, parse_expression, parse_expression_with_lhs};
@@ -6,27 +5,12 @@ use crate::syntax::value::parse_string_value;
 use aether_r_syntax::RSyntaxKind::{
     self, DOTDOTI, DOTS, IDENT, R_ARGUMENT, R_ARGUMENT_LIST, R_ARGUMENT_NAME_CLAUSE,
     R_BOGUS_EXPRESSION, R_CALL_ARGUMENTS, R_DOT_DOT_I, R_DOTS, R_IDENTIFIER, R_NULL_EXPRESSION,
-    R_PARENTHESIZED_EXPRESSION, R_SUBSET_ARGUMENTS, R_SUBSET2_ARGUMENTS, STRING_OPEN,
+    R_SUBSET_ARGUMENTS, R_SUBSET2_ARGUMENTS, STRING_OPEN,
 };
 use aether_r_syntax::T;
 use biome_parser::parse_recovery::ParseRecoveryTokenSet;
 use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
 use biome_parser::{Parser, ParserProgress, TokenSet, token_set};
-
-pub(crate) fn parse_parenthesized_expression(p: &mut RParser) -> ParsedSyntax {
-    if !p.at(T!['(']) {
-        return Absent;
-    }
-
-    let m = p.start();
-    p.bump(T!['(']);
-    p.with_scope(Scope::Parenthesis, |p| {
-        parse_expression(p).or_add_diagnostic(p, diagnostics::expected_expression);
-    });
-    p.expect(T![')']);
-
-    Present(m.complete(p, R_PARENTHESIZED_EXPRESSION))
-}
 
 pub(crate) fn parse_call_arguments(p: &mut RParser) {
     let m = p.start();
