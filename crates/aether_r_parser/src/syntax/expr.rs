@@ -63,11 +63,14 @@ pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
     parse_expression_with_binding_power(p, BindingPower::LOWEST)
 }
 
-fn parse_expression_with_binding_power(p: &mut RParser, min_bp: BindingPower) -> ParsedSyntax {
+fn parse_expression_with_binding_power(
+    p: &mut RParser,
+    current_binding_power: BindingPower,
+) -> ParsedSyntax {
     let Present(lhs) = parse_prefix_expression(p).or_else(|| parse_primary_expression(p)) else {
         return Absent;
     };
-    Present(parse_expression_with_lhs(p, lhs, min_bp))
+    Present(parse_expression_with_lhs(p, lhs, current_binding_power))
 }
 
 /// The Pratt loop, entered with an already-parsed left operand
@@ -77,13 +80,13 @@ fn parse_expression_with_binding_power(p: &mut RParser, min_bp: BindingPower) ->
 pub(crate) fn parse_expression_with_lhs(
     p: &mut RParser,
     mut lhs: CompletedMarker,
-    min_bp: BindingPower,
+    current_binding_power: BindingPower,
 ) -> CompletedMarker {
     // Asserted rather than branched on, so that adding an infix operator at rank
     // 18 or above fails loudly instead of silently reaching dead code
     debug_assert!(
-        min_bp <= BindingPower::HIGHEST,
-        "min_bp {min_bp:?} exceeds {:?}; postfix must stay the tightest-binding construct",
+        current_binding_power <= BindingPower::HIGHEST,
+        "{current_binding_power:?} exceeds {:?}; postfix must stay the tightest-binding construct",
         BindingPower::HIGHEST
     );
 
@@ -93,27 +96,27 @@ pub(crate) fn parse_expression_with_lhs(
             break;
         }
 
-        // Rank 18, so no `min_bp` guard: no caller wants a postfix refused
+        // Rank 18, so no binding power guard: no caller wants a postfix refused
         if let Some(call) = parse_postfix(p, &lhs) {
             lhs = call;
             continue;
         }
 
-        let Some((bp, assoc)) = infix_binding_power(p.cur()) else {
+        let Some((new_binding_power, associativity)) = infix_binding_power(p.cur()) else {
             break;
         };
-        if bp < min_bp {
+        if new_binding_power < current_binding_power {
             break;
         }
 
         let m = lhs.precede(p);
         p.bump_any();
 
-        let right_bp = match assoc {
-            Associativity::Left => BindingPower(bp.0 + 1),
-            Associativity::Right => bp,
+        let right_binding_power = match associativity {
+            Associativity::Left => BindingPower(new_binding_power.0 + 1),
+            Associativity::Right => new_binding_power,
         };
-        parse_expression_with_binding_power(p, right_bp)
+        parse_expression_with_binding_power(p, right_binding_power)
             .or_add_diagnostic(p, diagnostics::expected_expression);
 
         lhs = m.complete(p, R_BINARY_EXPRESSION);
