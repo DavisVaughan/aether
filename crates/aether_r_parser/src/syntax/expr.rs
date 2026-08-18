@@ -1,6 +1,6 @@
 use crate::diagnostics;
 use crate::parser::RParser;
-use crate::syntax::call::{parse_parenthesized_expression, parse_postfix};
+use crate::syntax::call::{parse_parenthesized_expression, parse_postfix_expression};
 use crate::syntax::value::parse_string_value;
 use aether_r_syntax::RSyntaxKind::{self, *};
 use aether_r_syntax::T;
@@ -97,7 +97,7 @@ pub(crate) fn parse_expression_with_lhs(
         }
 
         // Rank 18, so no binding power guard: no caller wants a postfix refused
-        if let Some(call) = parse_postfix(p, &lhs) {
+        if let Some(call) = parse_postfix_expression(p, &lhs) {
             lhs = call;
             continue;
         }

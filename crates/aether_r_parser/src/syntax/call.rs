@@ -16,7 +16,10 @@ use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
 use biome_parser::{Parser, ParserProgress, TokenSet, token_set};
 
 /// Postfix: `f(x)`, `x[i]`, `x[[i]]`
-pub(crate) fn parse_postfix(p: &mut RParser, lhs: &CompletedMarker) -> Option<CompletedMarker> {
+pub(crate) fn parse_postfix_expression(
+    p: &mut RParser,
+    lhs: &CompletedMarker,
+) -> Option<CompletedMarker> {
     match p.cur() {
         T!['('] => {
             let m = lhs.clone().precede(p);
