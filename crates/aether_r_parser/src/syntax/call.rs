@@ -111,6 +111,10 @@ fn parse_argument_list(p: &mut RParser, close: RSyntaxKind) {
 fn parse_argument(p: &mut RParser) {
     let m = p.start();
 
+    // We can't tell if we have `foo` or `foo =` up front, so we parse `foo`
+    // and check if we land at `=`. If so, we have a name clause, otherwise we
+    // have an argument value and we loop back through `parse_expression()` but
+    // with an already known LHS.
     match parse_argument_name(p) {
         Present(name) if p.at(T![=]) => {
             let clause = name.precede(p);
