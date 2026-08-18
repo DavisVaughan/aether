@@ -100,8 +100,8 @@ fn parse_argument_list(p: &mut RParser, end: ArgumentListEnd) {
                     break;
                 }
 
-                // `f(a b)`. Reported before recovering, so the range covers the
-                // tokens about to be buried in the bogus node.
+                // `f(a b)`. Reported before recovering, because afterwards the
+                // cursor sits on the terminator.
                 p.expect(T![,]);
 
                 let argument = p.start();
