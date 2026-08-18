@@ -35,9 +35,10 @@ pub(crate) fn parse_statement_list(p: &mut RParser, end: StatementListEnd) {
         let statement = p.start();
 
         match parse_expression(p) {
-            // R separates statements by a newline or a `;` and by nothing else,
-            // so `1 2` is an error even though both halves parse on their own
             Present(expression) => {
+                // We've just accepted an expression. Now check for a statement
+                // separator. If it looks like the next expression starts
+                // immediately, log that as a diagnostic, i.e. `1 2`.
                 if !p.at(T![EOF]) && !end.matches(p.cur()) && !p.has_preceding_line_break() {
                     p.error(diagnostics::expected_statement_separator(
                         p,
