@@ -50,7 +50,6 @@ pub(crate) fn unterminated_string(open: TextRange, eof: TextRange) -> ParseDiagn
     )
 }
 
-/// An expression is required and absent
 pub(crate) fn expected_expression(p: &RParser, range: TextRange) -> ParseDiagnostic {
     expected_node("expression", range, p)
 }
