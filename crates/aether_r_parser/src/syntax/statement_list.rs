@@ -6,10 +6,7 @@ use aether_r_syntax::T;
 use biome_parser::parsed_syntax::ParsedSyntax::{Absent, Present};
 use biome_parser::{Parser, ParserProgress};
 
-/// Where a statement list stops
-///
-/// A type rather than a bare [RSyntaxKind], so that a terminator added later has
-/// to say what it is rather than being hardcoded at the one call site that knows.
+/// Expected end of statement list
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum StatementListEnd {
     Eof,
