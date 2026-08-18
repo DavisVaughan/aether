@@ -43,9 +43,6 @@ pub(crate) fn unexpected_character(range: TextRange, character: char) -> ParseDi
 }
 
 /// A string that runs to the end of the file
-///
-/// Its content is lexed to EOF for the same reason a backtick-quoted name is, so
-/// the two point at the same pair of ranges.
 pub(crate) fn unterminated_string(open: TextRange, eof: TextRange) -> ParseDiagnostic {
     ParseDiagnostic::new("Unterminated string.", open).with_detail(
         eof,
