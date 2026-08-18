@@ -26,7 +26,7 @@ enum Associativity {
     Right,
 }
 
-/// Taken from R's `src/main/gram.y`
+/// Taken from R's `gram.y`
 ///
 /// `$`, `@`, `::`, and `:::` are missing until Phase 10 gives them a right-hand
 /// side of their own; `function`, `if`, `for`, `while`, and `repeat` never get a
