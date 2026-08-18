@@ -385,7 +385,9 @@ RRoot {
 ## Nested Brackets
 
 The `]]` a subset2 wants reaches the parser as two `]`, so every rung of this
-ladder has to hand the right number of them to the right list. All clean parses,
+ladder has to hand the right number of them to the right list. The last rung
+leaves two `]` that close two different `[` right after a `]]`, which is where a
+`[[` scope outliving its own closer would join them. All clean parses,
 which is the point: the failure mode here is errors on valid code, and the
 imported corpus only covers mismatched brackets.
 
@@ -394,6 +396,7 @@ x[a[b]]
 x[[a[b]]]
 x[a[[b]]]
 x[[a[[b]]]]
+x[y[z[[a]]]]
 ```
 
 ```cst
@@ -536,8 +539,56 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
+        RStatement {
+            expression: RSubset {
+                function: RIdentifier {
+                    name_token: IDENT@39..41 "x" [Newline("\n")] [],
+                },
+                arguments: RSubsetArguments {
+                    l_brack_token: L_BRACK@41..42 "[" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RSubset {
+                                function: RIdentifier {
+                                    name_token: IDENT@42..43 "y" [] [],
+                                },
+                                arguments: RSubsetArguments {
+                                    l_brack_token: L_BRACK@43..44 "[" [] [],
+                                    items: RArgumentList [
+                                        RArgument {
+                                            name_clause: missing (optional),
+                                            value: RSubset2 {
+                                                function: RIdentifier {
+                                                    name_token: IDENT@44..45 "z" [] [],
+                                                },
+                                                arguments: RSubset2Arguments {
+                                                    l_brack2_token: L_BRACK2@45..47 "[[" [] [],
+                                                    items: RArgumentList [
+                                                        RArgument {
+                                                            name_clause: missing (optional),
+                                                            value: RIdentifier {
+                                                                name_token: IDENT@47..48 "a" [] [],
+                                                            },
+                                                        },
+                                                    ],
+                                                    r_brack2_token: R_BRACK2@48..50 "]]" [] [],
+                                                },
+                                            },
+                                        },
+                                    ],
+                                    r_brack_token: R_BRACK@50..51 "]" [] [],
+                                },
+                            },
+                        },
+                    ],
+                    r_brack_token: R_BRACK@51..52 "]" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
     ],
-    eof_token: EOF@39..40 "" [Newline("\n")] [],
+    eof_token: EOF@52..53 "" [Newline("\n")] [],
 }
 ```
 

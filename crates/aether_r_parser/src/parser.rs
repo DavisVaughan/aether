@@ -1,7 +1,7 @@
-use crate::lexer::RReLexContext;
+use crate::lexer::{RLexContext, RReLexContext};
 use crate::options::RParserOptions;
 use crate::token_source::RTokenSource;
-use aether_r_syntax::RSyntaxKind;
+use aether_r_syntax::{RSyntaxKind, T};
 use biome_parser::ParserContext;
 use biome_parser::diagnostic::{ParseDiagnostic, merge_diagnostics};
 use biome_parser::event::Event;
@@ -52,6 +52,9 @@ impl<'src> RParser<'src> {
     }
 
     /// Runs `f` with `scope` in effect, restoring the previous value after
+    ///
+    /// A bump lexes the token that follows the one it consumes, so a construct
+    /// consumes its opener inside its scope and its closer outside it.
     pub(crate) fn with_scope<F, R>(&mut self, scope: Scope, f: F) -> R
     where
         F: FnOnce(&mut Self) -> R,
@@ -60,6 +63,17 @@ impl<'src> RParser<'src> {
         let result = f(self);
         self.scope = saved;
         result
+    }
+
+    /// Joins an adjacent `] ]` into the `]]` the lexer never emits
+    ///
+    /// Only inside a `[[`, where the innermost open construct owns both
+    /// brackets, and only if they are adjacent, so `x[[a] ]` and `x[[a]\n]`
+    /// stay errors.
+    fn join_brackets(&mut self) {
+        if self.scope == Scope::Bracket2 && self.cur() == T![']'] {
+            self.re_lex(RReLexContext::JoinBrackets);
+        }
     }
 
     pub(crate) fn scope(&self) -> Scope {
@@ -96,5 +110,27 @@ impl<'src> Parser for RParser<'src> {
 
     fn source_mut(&mut self) -> &mut Self::Source {
         &mut self.source
+    }
+
+    fn do_bump(&mut self, kind: Self::Kind) {
+        self.do_bump_with_context(kind, RLexContext::Regular);
+    }
+
+    /// Overridden so that every bump ends with [RParser::join_brackets()]
+    fn do_bump_with_context(
+        &mut self,
+        kind: Self::Kind,
+        context: <Self::Source as BumpWithContext>::Context,
+    ) {
+        let end = self.cur_range().end();
+        self.context_mut().push_token(kind, end);
+
+        if self.context().is_skipping() {
+            self.source_mut().skip_as_trivia_with_context(context);
+        } else {
+            self.source_mut().bump_with_context(context);
+        }
+
+        self.join_brackets();
     }
 }

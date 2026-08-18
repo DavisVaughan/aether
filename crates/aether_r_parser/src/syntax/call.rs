@@ -1,4 +1,3 @@
-use crate::lexer::RReLexContext;
 use crate::parser::{RParser, Scope};
 use crate::syntax::expr::{BindingPower, parse_expression, parse_expression_with_lhs};
 use crate::syntax::value::parse_string_value;
@@ -14,8 +13,8 @@ use biome_parser::{Parser, ParserProgress, TokenSet, token_set};
 
 pub(crate) fn parse_call_arguments(p: &mut RParser) {
     let m = p.start();
-    p.bump(T!['(']);
     p.with_scope(Scope::Parenthesis, |p| {
+        p.bump(T!['(']);
         parse_argument_list(p, ArgumentListEnd::Parenthesis);
     });
     p.expect(T![')']);
@@ -24,8 +23,8 @@ pub(crate) fn parse_call_arguments(p: &mut RParser) {
 
 pub(crate) fn parse_subset_arguments(p: &mut RParser) {
     let m = p.start();
-    p.bump(T!['[']);
     p.with_scope(Scope::Bracket, |p| {
+        p.bump(T!['[']);
         parse_argument_list(p, ArgumentListEnd::Bracket);
     });
     p.expect(T![']']);
@@ -34,11 +33,10 @@ pub(crate) fn parse_subset_arguments(p: &mut RParser) {
 
 pub(crate) fn parse_subset2_arguments(p: &mut RParser) {
     let m = p.start();
-    p.bump(T!["[["]);
     p.with_scope(Scope::Bracket2, |p| {
+        p.bump(T!["[["]);
         parse_argument_list(p, ArgumentListEnd::Bracket2);
     });
-    // The list joined its `]]` on the way out, so this is a plain expect
     p.expect(T!["]]"]);
     m.complete(p, R_SUBSET2_ARGUMENTS);
 }
@@ -53,17 +51,11 @@ enum ArgumentListEnd {
 
 impl ArgumentListEnd {
     /// Whether the current token closes this list
-    fn at(self, p: &mut RParser) -> bool {
+    fn at(self, p: &RParser) -> bool {
         match self {
             Self::Parenthesis => p.at(T![')']),
             Self::Bracket => p.at(T![']']),
-            Self::Bracket2 => {
-                // Only if adjacent, so `x[[a] ]` and `x[[a]\n]` stay errors
-                if p.at(T![']']) {
-                    p.re_lex(RReLexContext::JoinBrackets);
-                }
-                p.at(T!["]]"])
-            }
+            Self::Bracket2 => p.at(T!["]]"]),
         }
     }
 }
@@ -72,13 +64,10 @@ impl ArgumentListEnd {
 ///
 /// Deliberately wider than any one list's terminator: eating a closing
 /// delimiter of any kind would strip an enclosing construct of its terminator
-/// and turn one error into a cascade.
-///
-/// `]]` is absent because [ArgumentListEnd::at()] is the only thing that
-/// produces one, and only where the list is about to end. `EOF` is absent
-/// because `recover()` stops there whether the set says so or not.
+/// and turn one error into a cascade. `EOF` is absent because `recover()` stops
+/// there whether the set says so or not.
 const ARGUMENT_LIST_RECOVERY_SET: TokenSet<RSyntaxKind> =
-    token_set![T![,], T![')'], T![']'], T!['}']];
+    token_set![T![,], T![')'], T![']'], T!["]]"], T!['}']];
 
 fn parse_argument_list(p: &mut RParser, end: ArgumentListEnd) {
     let m = p.start();
@@ -114,7 +103,6 @@ fn parse_argument_list(p: &mut RParser, end: ArgumentListEnd) {
                 );
                 argument.complete(p, R_ARGUMENT);
 
-                // `end.at()` for the `]]` join, which only it can do
                 if end.at(p) || !p.at(T![,]) {
                     break;
                 }

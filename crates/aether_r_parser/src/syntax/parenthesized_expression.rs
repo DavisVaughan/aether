@@ -10,8 +10,8 @@ pub(crate) fn parse_parenthesized_expression(p: &mut RParser) -> ParsedSyntax {
     debug_assert!(p.at(T!['(']));
 
     let m = p.start();
-    p.bump(T!['(']);
     p.with_scope(Scope::Parenthesis, |p| {
+        p.bump(T!['(']);
         parse_expression(p).or_add_diagnostic(p, diagnostics::expected_expression);
     });
     p.expect(T![')']);
