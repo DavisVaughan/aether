@@ -60,10 +60,10 @@ fn prefix_binding_power(kind: RSyntaxKind) -> Option<BindingPower> {
 }
 
 pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
-    parse_expression_with_bp(p, BindingPower::LOWEST)
+    parse_expression_with_binding_power(p, BindingPower::LOWEST)
 }
 
-fn parse_expression_with_bp(p: &mut RParser, min_bp: BindingPower) -> ParsedSyntax {
+fn parse_expression_with_binding_power(p: &mut RParser, min_bp: BindingPower) -> ParsedSyntax {
     let Present(lhs) = parse_prefix_expression(p).or_else(|| parse_primary_expression(p)) else {
         return Absent;
     };
@@ -113,7 +113,7 @@ pub(crate) fn parse_expression_with_lhs(
             Associativity::Left => BindingPower(bp.0 + 1),
             Associativity::Right => bp,
         };
-        parse_expression_with_bp(p, right_bp)
+        parse_expression_with_binding_power(p, right_bp)
             .or_add_diagnostic(p, diagnostics::expected_expression);
 
         lhs = m.complete(p, R_BINARY_EXPRESSION);
@@ -129,7 +129,8 @@ fn parse_prefix_expression(p: &mut RParser) -> ParsedSyntax {
 
     let m = p.start();
     p.bump_any();
-    parse_expression_with_bp(p, bp).or_add_diagnostic(p, diagnostics::expected_expression);
+    parse_expression_with_binding_power(p, bp)
+        .or_add_diagnostic(p, diagnostics::expected_expression);
     Present(m.complete(p, R_UNARY_EXPRESSION))
 }
 
