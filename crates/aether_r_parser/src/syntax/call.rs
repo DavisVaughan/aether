@@ -20,8 +20,6 @@ pub(crate) fn parse_parenthesized_expression(p: &mut RParser) -> ParsedSyntax {
 
     let m = p.start();
     p.bump(T!['(']);
-    // R's `'(' expr_or_assign_or_help ')'` admits `=` and `?`, so the body is a
-    // full expression and `(a = 1)` is clean
     p.with_scope(Scope::Parenthesis, |p| {
         parse_expression(p).or_add_diagnostic(p, diagnostics::expected_expression);
     });
