@@ -136,14 +136,6 @@ fn parse_prefix_expression(p: &mut RParser) -> ParsedSyntax {
     Present(m.complete(p, R_UNARY_EXPRESSION))
 }
 
-/// One operand: no operators, nothing to its left
-///
-/// The fan-out point of the expression grammar. Every remaining phase makes its
-/// construct reachable by adding an arm here.
-///
-/// `Absent` is a result and not a failure — it is how `f(,,)` gets its empty
-/// arguments and how `parse_statement_list()` knows to recover — so nothing here
-/// raises a diagnostic. Only the caller knows whether an operand was required.
 fn parse_primary_expression(p: &mut RParser) -> ParsedSyntax {
     match p.cur() {
         R_INTEGER_LITERAL => {
