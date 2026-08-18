@@ -208,8 +208,7 @@ fn parse_primary_expression(p: &mut RParser) -> ParsedSyntax {
             p.bump_any();
             Present(m.complete(p, R_NA_EXPRESSION))
         }
-        // No diagnostic: the lexer already raised `unexpected_character()` and
-        // pointed at it, which is what satisfies invariant 2
+        // Lexer already raised `unexpected_character()`
         ERROR_TOKEN => {
             let m = p.start();
             p.bump_any();
