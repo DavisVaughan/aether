@@ -46,11 +46,8 @@ pub(crate) fn parse_statement_list(p: &mut RParser, end: StatementListEnd) {
                     ));
                 }
             }
-            // Nothing starts an expression here. One token becomes the bogus
-            // statement and the next one gets a fresh try (deviation 4).
-            //
-            // The bogus node goes inside the statement: `R_STATEMENT_LIST` holds
-            // `RStatement` and nothing else.
+            // Failed to find an expression. Consume one token as bogus
+            // and retry.
             Absent => {
                 p.error(diagnostics::expected_expression(p, p.cur_range()));
                 let bogus = p.start();
