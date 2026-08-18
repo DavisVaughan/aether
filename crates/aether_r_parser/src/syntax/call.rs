@@ -93,7 +93,7 @@ fn parse_subset2_arguments(p: &mut RParser) {
 /// What closes an argument list
 ///
 /// A type rather than a bare [RSyntaxKind] for the same reason
-/// [crate::syntax::block::StatementListEnd] is one, and for one more of its own:
+/// [crate::syntax::statement_list::StatementListEnd] is one, and for one more of its own:
 /// `[[` has a terminator the lexer deliberately does not produce, and only the
 /// terminator itself knows to ask for it.
 #[derive(Debug, Clone, Copy)]
