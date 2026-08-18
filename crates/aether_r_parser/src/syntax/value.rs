@@ -10,7 +10,6 @@ pub(crate) fn parse_string_value(p: &mut RParser) -> ParsedSyntax {
 
     let m = p.start();
 
-    // The same value serves both bumps: the text at `STRING_CONTENT` is the body
     let delimiter = RStringDelimiter::from_open(p.cur_text());
     let open_range = p.cur_range();
 
