@@ -16,10 +16,6 @@ use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
 use biome_parser::{Parser, ParserProgress, TokenSet, token_set};
 
 /// Postfix: `f(x)`, `x[i]`, `x[[i]]`
-///
-/// `f\n(x)` is two statements rather than a call, which the statement break in
-/// [crate::syntax::expr::parse_expression_with_lhs()] has already settled by the
-/// time this is reached.
 pub(crate) fn parse_postfix(p: &mut RParser, lhs: &CompletedMarker) -> Option<CompletedMarker> {
     match p.cur() {
         T!['('] => {
