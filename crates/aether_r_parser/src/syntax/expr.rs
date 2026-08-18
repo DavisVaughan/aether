@@ -108,15 +108,14 @@ pub(crate) fn parse_expression_with_lhs(
         if new_binding_power < current_binding_power {
             break;
         }
-
-        let m = lhs.precede(p);
-        p.bump_any();
-
-        let right_binding_power = match associativity {
+        let new_binding_power = match associativity {
             Associativity::Left => BindingPower(new_binding_power.0 + 1),
             Associativity::Right => new_binding_power,
         };
-        parse_expression_with_binding_power(p, right_binding_power)
+
+        let m = lhs.precede(p);
+        p.bump_any();
+        parse_expression_with_binding_power(p, new_binding_power)
             .or_add_diagnostic(p, diagnostics::expected_expression);
 
         lhs = m.complete(p, R_BINARY_EXPRESSION);
