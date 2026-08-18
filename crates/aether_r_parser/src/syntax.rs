@@ -1,5 +1,6 @@
 mod call;
 mod expr;
+mod parenthesized_expression;
 mod statement_list;
 mod value;
 
