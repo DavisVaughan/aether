@@ -13,7 +13,7 @@ use biome_parser::{Parser, ParserProgress};
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum StatementListEnd {
     Eof,
-    #[allow(dead_code, reason = "`parse_braced_statements()` arrives in Phase 13")]
+    #[expect(dead_code, reason = "`parse_braced_statements()` arrives in Phase 13")]
     RCurly,
 }
 

@@ -10,7 +10,6 @@ use biome_parser::prelude::*;
 pub(crate) struct RParser<'src> {
     context: ParserContext<RSyntaxKind>,
     source: RTokenSource<'src>,
-    #[allow(dead_code, reason = "`RParserOptions` is still empty")]
     options: RParserOptions,
     scope: Scope,
 }
@@ -19,7 +18,7 @@ pub(crate) struct RParser<'src> {
 pub(crate) enum Scope {
     #[default]
     TopLevel,
-    #[allow(dead_code, reason = "`parse_braced_statements()` arrives in Phase 13")]
+    #[expect(dead_code, reason = "`parse_braced_statements()` arrives in Phase 13")]
     Brace,
     Parenthesis,
     Bracket,
@@ -47,7 +46,7 @@ impl<'src> RParser<'src> {
         }
     }
 
-    #[allow(dead_code, reason = "`RParserOptions` is still empty")]
+    #[expect(dead_code, reason = "`RParserOptions` is still empty")]
     pub(crate) fn options(&self) -> &RParserOptions {
         &self.options
     }
