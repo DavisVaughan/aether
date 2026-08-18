@@ -49,7 +49,6 @@ fn infix_binding_power(kind: RSyntaxKind) -> Option<(BindingPower, Associativity
     })
 }
 
-/// Rank 8 is `!`, which sits between `&&` and the comparisons
 fn prefix_binding_power(kind: RSyntaxKind) -> Option<BindingPower> {
     Some(match kind {
         T![?] => BindingPower(1),
