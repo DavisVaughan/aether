@@ -108,12 +108,6 @@ fn parse_argument_list(p: &mut RParser, close: RSyntaxKind) {
 /// An empty argument opens and immediately closes its marker, pushing no
 /// children. That is the technique `r.ungram` documents, and it is what makes
 /// `f(,,a,,b,,)` representable.
-///
-/// The name and the head of a value are the same tokens, so the choice between
-/// them cannot be made before parsing — but it needs no rewind either. Parse the
-/// atom, then look at what follows. This is sound because R admits only a bare
-/// symbol, string, `...`, `..i`, or `NULL` as a name, so
-/// [parse_argument_name()] can never consume more than the value would have.
 fn parse_argument(p: &mut RParser) {
     let m = p.start();
 
