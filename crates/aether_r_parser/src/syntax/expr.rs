@@ -15,6 +15,9 @@ pub(crate) struct BindingPower(u8);
 impl BindingPower {
     /// Accepts every operator
     pub(crate) const LOWEST: Self = Self(0);
+
+    /// Rank of `f(…)`, `x[…]`, `x[[…]]`
+    const HIGHEST: Self = Self(18);
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -22,13 +25,6 @@ enum Associativity {
     Left,
     Right,
 }
-
-/// Rank of `f(…)`, `x[…]`, `x[[…]]`
-///
-/// Appears in no lookup table, because postfix is handled structurally in
-/// [parse_expression_with_lhs()]. Named so the `debug_assert!` there reads as a
-/// claim about the precedence table rather than a bare `18`.
-const POSTFIX_BINDING_POWER: BindingPower = BindingPower(18);
 
 /// Taken from R's `src/main/gram.y`
 ///
@@ -89,9 +85,9 @@ pub(crate) fn parse_expression_with_lhs(
     // Asserted rather than branched on, so that adding an infix operator at rank
     // 18 or above fails loudly instead of silently reaching dead code
     debug_assert!(
-        min_bp <= POSTFIX_BINDING_POWER,
-        "min_bp {min_bp:?} exceeds {POSTFIX_BINDING_POWER:?}; postfix must stay the \
-         tightest-binding construct"
+        min_bp <= BindingPower::HIGHEST,
+        "min_bp {min_bp:?} exceeds {:?}; postfix must stay the tightest-binding construct",
+        BindingPower::HIGHEST
     );
 
     loop {
