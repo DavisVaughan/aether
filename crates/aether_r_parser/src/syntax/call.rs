@@ -15,7 +15,7 @@ pub(crate) fn parse_call_arguments(p: &mut RParser) {
     let m = p.start();
     p.with_scope(Scope::Parenthesis, |p| {
         p.bump(T!['(']);
-        parse_argument_list(p, ArgumentListEnd::Parenthesis);
+        parse_argument_list(p, T![')']);
     });
     p.expect(T![')']);
     m.complete(p, R_CALL_ARGUMENTS);
@@ -25,7 +25,7 @@ pub(crate) fn parse_subset_arguments(p: &mut RParser) {
     let m = p.start();
     p.with_scope(Scope::Bracket, |p| {
         p.bump(T!['[']);
-        parse_argument_list(p, ArgumentListEnd::Bracket);
+        parse_argument_list(p, T![']']);
     });
     p.expect(T![']']);
     m.complete(p, R_SUBSET_ARGUMENTS);
@@ -35,29 +35,10 @@ pub(crate) fn parse_subset2_arguments(p: &mut RParser) {
     let m = p.start();
     p.with_scope(Scope::Bracket2, |p| {
         p.bump(T!["[["]);
-        parse_argument_list(p, ArgumentListEnd::Bracket2);
+        parse_argument_list(p, T!["]]"]);
     });
     p.expect(T!["]]"]);
     m.complete(p, R_SUBSET2_ARGUMENTS);
-}
-
-/// What closes an argument list
-#[derive(Debug, Clone, Copy)]
-enum ArgumentListEnd {
-    Parenthesis,
-    Bracket,
-    Bracket2,
-}
-
-impl ArgumentListEnd {
-    /// Whether the current token closes this list
-    fn at(self, p: &RParser) -> bool {
-        match self {
-            Self::Parenthesis => p.at(T![')']),
-            Self::Bracket => p.at(T![']']),
-            Self::Bracket2 => p.at(T!["]]"]),
-        }
-    }
 }
 
 /// Tokens a failed argument may resynchronise on
@@ -69,17 +50,17 @@ impl ArgumentListEnd {
 const ARGUMENT_LIST_RECOVERY_SET: TokenSet<RSyntaxKind> =
     token_set![T![,], T![')'], T![']'], T!["]]"], T!['}']];
 
-fn parse_argument_list(p: &mut RParser, end: ArgumentListEnd) {
+fn parse_argument_list(p: &mut RParser, close: RSyntaxKind) {
     let m = p.start();
     let mut progress = ParserProgress::default();
 
     // Handle empty list before looping
-    if !end.at(p) && !p.at(T![EOF]) {
+    if !p.at(close) && !p.at(T![EOF]) {
         loop {
             progress.assert_progressing(p);
             parse_argument(p);
 
-            if end.at(p) || p.at(T![EOF]) {
+            if p.at(close) || p.at(T![EOF]) {
                 break;
             }
 
@@ -103,7 +84,7 @@ fn parse_argument_list(p: &mut RParser, end: ArgumentListEnd) {
                 );
                 argument.complete(p, R_ARGUMENT);
 
-                if end.at(p) || !p.at(T![,]) {
+                if p.at(close) || !p.at(T![,]) {
                     break;
                 }
             }

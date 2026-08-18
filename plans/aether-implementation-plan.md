@@ -2075,27 +2075,6 @@ So a terminator check is a plain predicate:
 ```rust
 // crates/aether_r_parser/src/syntax/call.rs
 //
-/// What closes an argument list. A type rather than a bare `RSyntaxKind`, for the
-/// same reason `StatementListEnd` (§11.7) is one: the recovery set is derived
-/// from the terminator instead of hardcoded at each call site.
-#[derive(Debug, Clone, Copy)]
-enum ArgumentListEnd {
-    Parenthesis,
-    Bracket,
-    Bracket2,
-}
-
-impl ArgumentListEnd {
-    /// Whether the current token closes this list
-    fn at(self, p: &RParser) -> bool {
-        match self {
-            Self::Parenthesis => p.at(T![')']),
-            Self::Bracket => p.at(T![']']),
-            Self::Bracket2 => p.at(T!["]]"]),
-        }
-    }
-}
-
 /// Tokens a failed argument may resynchronise on
 ///
 /// Deliberately wider than any one list's terminator: eating a closing
@@ -2110,15 +2089,20 @@ fn parse_subset2_arguments(p: &mut RParser) {
     let m = p.start();
     p.with_scope(Scope::Bracket2, |p| {
         p.bump(T!["[["]);
-        parse_argument_list(p, ArgumentListEnd::Bracket2);
+        parse_argument_list(p, T!["]]"]);
     });
     p.expect(T!["]]"]);
     m.complete(p, R_SUBSET2_ARGUMENTS);
 }
 ```
 
-**The join was first written into the list's terminator check, and that was
-wrong.** Worth recording, because the reasoning that put it there is seductive:
+The terminator is a bare `RSyntaxKind` and the recovery set is a module-level
+const, unlike `StatementListEnd` (§11.7), which owns both. An argument list's
+recovery set is deliberately wider than its own terminator, so there is nothing
+to derive.
+
+**The join was first written into the argument list's terminator check, and that
+was wrong.** Worth recording, because the reasoning that put it there is seductive:
 only something that knows the nesting can tell a `]` that closes *this* list from
 a `]` that closes someone else's, and the terminator check is the one thing that
 knows. True — but it made the check side-effecting, which made calling it an
@@ -2174,13 +2158,13 @@ Not allowed:  fn(a b)
 ```
 
 ```rust
-fn parse_argument_list(p: &mut RParser, end: ArgumentListEnd) {
+fn parse_argument_list(p: &mut RParser, close: RSyntaxKind) {
     let m = p.start();
     let mut progress = ParserProgress::default();
     let mut first = true;
 
     loop {
-        if end.at(p) || p.at(T![EOF]) { break }
+        if p.at(close) || p.at(T![EOF]) { break }
 
         // `fn(,,a,,b,,)` means an iteration may legitimately consume only a
         // comma, so progress is asserted across the whole iteration rather than
@@ -2206,7 +2190,7 @@ fn parse_argument_list(p: &mut RParser, end: ArgumentListEnd) {
                 let arg = p.start();
                 let recovered = ParseRecoveryTokenSet::new(
                     R_BOGUS_EXPRESSION,
-                    end.recovery_set(),
+                    ARGUMENT_LIST_RECOVERY_SET,
                 )
                 .recover(p);
                 if recovered.is_err() {
@@ -2749,7 +2733,7 @@ fn parse_braced_statements(p: &mut RParser) -> ParsedSyntax {
 /// Where a statement list stops: end of file, or the `}` of a braced block.
 /// Owning the terminator as a type means the recovery set is derived from it
 /// rather than hardcoded, so a future list terminator cannot forget to add
-/// itself to the set. `ArgumentListEnd` (§11.3) is the same pattern.
+/// itself to the set.
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum StatementListEnd {
     Eof,
@@ -2924,7 +2908,7 @@ dedicated pass:
   `ParseSeparatedList::parse_list` checks its terminator in exactly one place,
   which is why none of its thirty-odd implementors can leak one;
   `parse_argument_list` (§11.3) checks in three, and while that was merely untidy
-  on its own, it cost a bug once `ArgumentListEnd::at()` also re-lexed the `]]`.
+  on its own, it cost a bug once its terminator check also re-lexed the `]]`.
   The recovery branch grew an exit that never called it, so `x[[a b]]` lost its
   terminator and stranded both brackets in the enclosing statement list. That is
   fixed at the root — the join moved to `RParser::do_bump()` and the check is a
