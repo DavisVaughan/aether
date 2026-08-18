@@ -42,6 +42,8 @@ pub(crate) fn parse_subset2_arguments(p: &mut RParser) {
         p.bump(T!["[["]);
         parse_argument_list(p, T!["]]"]);
     });
+    // Similarly, we `expect()` (bump + assert) outside the scope so that a
+    // potential future `]` can't be affected by a now closed Bracket2 scope
     p.expect(T!["]]"]);
     m.complete(p, R_SUBSET2_ARGUMENTS);
 }
