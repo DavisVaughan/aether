@@ -16,7 +16,7 @@ pub(crate) fn parse_call_arguments(p: &mut RParser) {
     let m = p.start();
     p.bump(T!['(']);
     p.with_scope(Scope::Parenthesis, |p| {
-        parse_argument_list(p, ArgumentListEnd::RParen);
+        parse_argument_list(p, ArgumentListEnd::Parenthesis);
     });
     p.expect(T![')']);
     m.complete(p, R_CALL_ARGUMENTS);
@@ -26,7 +26,7 @@ pub(crate) fn parse_subset_arguments(p: &mut RParser) {
     let m = p.start();
     p.bump(T!['[']);
     p.with_scope(Scope::Bracket, |p| {
-        parse_argument_list(p, ArgumentListEnd::RBrack);
+        parse_argument_list(p, ArgumentListEnd::Bracket);
     });
     p.expect(T![']']);
     m.complete(p, R_SUBSET_ARGUMENTS);
@@ -36,7 +36,7 @@ pub(crate) fn parse_subset2_arguments(p: &mut RParser) {
     let m = p.start();
     p.bump(T!["[["]);
     p.with_scope(Scope::Bracket2, |p| {
-        parse_argument_list(p, ArgumentListEnd::RBrack2);
+        parse_argument_list(p, ArgumentListEnd::Bracket2);
     });
     // The list joined its `]]` on the way out, so this is a plain expect
     p.expect(T!["]]"]);
@@ -46,9 +46,9 @@ pub(crate) fn parse_subset2_arguments(p: &mut RParser) {
 /// What closes an argument list
 #[derive(Debug, Clone, Copy)]
 enum ArgumentListEnd {
-    RParen,
-    RBrack,
-    RBrack2,
+    Parenthesis,
+    Bracket,
+    Bracket2,
 }
 
 impl ArgumentListEnd {
@@ -59,9 +59,9 @@ impl ArgumentListEnd {
     /// final `expect()` all see the exact closing token.
     fn join_and_check(self, p: &mut RParser) -> bool {
         match self {
-            Self::RParen => p.at(T![')']),
-            Self::RBrack => p.at(T![']']),
-            Self::RBrack2 => {
+            Self::Parenthesis => p.at(T![')']),
+            Self::Bracket => p.at(T![']']),
+            Self::Bracket2 => {
                 // Only if adjacent, so `x[[a] ]` and `x[[a]\n]` stay errors
                 if p.at(T![']']) {
                     p.re_lex(RReLexContext::JoinBrackets);
