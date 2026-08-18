@@ -75,9 +75,10 @@ impl ArgumentListEnd {
     /// cascade.
     ///
     /// `]]` is absent because [ArgumentListEnd::at()] is the only thing that
-    /// produces one, and only where the list is about to end.
+    /// produces one, and only where the list is about to end. `EOF` is absent
+    /// because `recover()` stops there whether the set says so or not.
     fn recovery_set(self) -> TokenSet<RSyntaxKind> {
-        token_set![T![,], T![')'], T![']'], T!['}'], T![EOF]]
+        token_set![T![,], T![')'], T![']'], T!['}']]
     }
 }
 
