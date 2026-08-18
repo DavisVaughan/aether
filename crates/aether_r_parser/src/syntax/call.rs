@@ -84,7 +84,7 @@ fn parse_argument_list(p: &mut RParser, close: RSyntaxKind) {
                 );
                 argument.complete(p, R_ARGUMENT);
 
-                if p.at(close) || !p.at(T![,]) {
+                if !p.at(T![,]) {
                     break;
                 }
             }
