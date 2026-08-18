@@ -58,7 +58,7 @@ const ARGUMENT_LIST_RECOVERY_SET: TokenSet<RSyntaxKind> =
     token_set![T![,], T![')'], T![']'], T!["]]"], T!['}']];
 
 fn parse_argument_list(p: &mut RParser, close: RSyntaxKind) {
-    let m = p.start();
+    let argument_list = p.start();
     let mut progress = ParserProgress::default();
 
     // Handle empty list before looping
@@ -100,7 +100,7 @@ fn parse_argument_list(p: &mut RParser, close: RSyntaxKind) {
         }
     }
 
-    m.complete(p, R_ARGUMENT_LIST);
+    argument_list.complete(p, R_ARGUMENT_LIST);
 }
 
 /// One argument: `[name =] [value]`, both halves optional
