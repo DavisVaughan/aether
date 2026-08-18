@@ -18,7 +18,7 @@ impl BindingPower {
 }
 
 #[derive(Debug, Clone, Copy)]
-enum Assoc {
+enum Associativity {
     Left,
     Right,
 }
@@ -35,21 +35,21 @@ const POSTFIX_BINDING_POWER: BindingPower = BindingPower(18);
 /// `$`, `@`, `::`, and `:::` are missing until Phase 10 gives them a right-hand
 /// side of their own; `function`, `if`, `for`, `while`, and `repeat` never get a
 /// rank, because a recursive-descent body is greedy by construction.
-fn infix_binding_power(kind: RSyntaxKind) -> Option<(BindingPower, Assoc)> {
+fn infix_binding_power(kind: RSyntaxKind) -> Option<(BindingPower, Associativity)> {
     Some(match kind {
-        T![?] => (BindingPower(1), Assoc::Left),
-        T![<-] | T![<<-] | T![:=] => (BindingPower(2), Assoc::Right),
-        T![=] => (BindingPower(3), Assoc::Right),
-        T![->] | T![->>] => (BindingPower(4), Assoc::Left),
-        T![~] => (BindingPower(5), Assoc::Left),
-        T![|] | T![||] => (BindingPower(6), Assoc::Left),
-        T![&] | T![&&] => (BindingPower(7), Assoc::Left),
-        T![<] | T![<=] | T![>] | T![>=] | T![==] | T![!=] => (BindingPower(9), Assoc::Left),
-        T![+] | T![-] => (BindingPower(10), Assoc::Left),
-        T![*] | T![/] => (BindingPower(11), Assoc::Left),
-        SPECIAL | T![|>] => (BindingPower(12), Assoc::Left),
-        T![:] => (BindingPower(13), Assoc::Left),
-        T![^] | T![**] => (BindingPower(15), Assoc::Right),
+        T![?] => (BindingPower(1), Associativity::Left),
+        T![<-] | T![<<-] | T![:=] => (BindingPower(2), Associativity::Right),
+        T![=] => (BindingPower(3), Associativity::Right),
+        T![->] | T![->>] => (BindingPower(4), Associativity::Left),
+        T![~] => (BindingPower(5), Associativity::Left),
+        T![|] | T![||] => (BindingPower(6), Associativity::Left),
+        T![&] | T![&&] => (BindingPower(7), Associativity::Left),
+        T![<] | T![<=] | T![>] | T![>=] | T![==] | T![!=] => (BindingPower(9), Associativity::Left),
+        T![+] | T![-] => (BindingPower(10), Associativity::Left),
+        T![*] | T![/] => (BindingPower(11), Associativity::Left),
+        SPECIAL | T![|>] => (BindingPower(12), Associativity::Left),
+        T![:] => (BindingPower(13), Associativity::Left),
+        T![^] | T![**] => (BindingPower(15), Associativity::Right),
         _ => return None,
     })
 }
@@ -117,8 +117,8 @@ pub(crate) fn parse_expression_with_lhs(
         p.bump_any();
 
         let right_bp = match assoc {
-            Assoc::Left => BindingPower(bp.0 + 1),
-            Assoc::Right => bp,
+            Associativity::Left => BindingPower(bp.0 + 1),
+            Associativity::Right => bp,
         };
         parse_expression_with_bp(p, right_bp)
             .or_add_diagnostic(p, diagnostics::expected_expression);
