@@ -53,7 +53,6 @@ pub(crate) fn parse_statement_list(p: &mut RParser, end: StatementListEnd) {
             // `RStatement` and nothing else.
             Absent => {
                 p.error(diagnostics::expected_expression(p, p.cur_range()));
-
                 let bogus = p.start();
                 p.bump_any();
                 bogus.complete(p, R_BOGUS_EXPRESSION);
