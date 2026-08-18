@@ -200,7 +200,7 @@ aether/
     │           ├── call.rs        # call / subset / subset2 / arg lists
     │           ├── function.rs    # function defs, lambdas, parameters
     │           ├── control.rs     # if/else, for, while, repeat
-    │           ├── block.rs       # braced exprs, statement lists, semicolons
+    │           ├── statement_list.rs # braced exprs, statement lists, semicolons
     │           └── value.rs       # strings, and the selector/name subsets
     ├── aether_r_test_macros/      # proc-macro: `gen_corpus_tests!`
     │   └── src/lib.rs             #   modelled on air's `tests_macros`
@@ -2692,7 +2692,16 @@ Only the two headers that have a condition use it. `for` names its own parts, an
 
 ### 11.7 Phase 13 — Blocks, statement lists, semicolons
 
-`src/syntax/block.rs`. This lands the semicolon deviation.
+`src/syntax/statement_list.rs`. This lands the semicolon deviation.
+
+**What landed in Phase 7 is simpler than the body below.** Its recovery branch
+consumes exactly one token into an `R_BOGUS_EXPRESSION` instead of running
+`ParseRecoveryTokenSet`, so a run of junk becomes one bogus statement per token
+rather than one per run. That is the shape Biome deprecated:
+`SingleTokenParseRecovery` lives in `biome_js_parser` rather than the shared
+crate, is marked `#[deprecated]`, and survives at a single call site. Replacing
+it with the version below — recovery set, `enable_recovery_on_line_break()`, and
+all — is part of this phase, not a refactor to schedule separately.
 
 ```rust
 fn parse_braced_statements(p: &mut RParser) -> ParsedSyntax {
@@ -2880,18 +2889,36 @@ dedicated pass:
 - Every `parse_*` that can fail has a recovery set that includes the enclosing
   construct's closing token, plus `T![;]`, plus `enable_recovery_on_line_break()`
   wherever a newline genuinely bounds the construct.
+
+- **Every list checks its terminator in exactly one place.** Biome's
+  `ParseSeparatedList::parse_list` does, which is why none of its thirty-odd
+  implementors can leak one; `parse_argument_list` (§11.3) does not, and that
+  cost a bug. `ArgumentListEnd::at()` is side-effecting — it re-lexes an adjacent
+  `] ]` into the `]]` the lexer never emits — and the recovery branch grew an
+  exit of its own that never called it, so `x[[a b]]` lost its terminator and
+  stranded both brackets in the enclosing statement list. Audit every `break` out
+  of a list loop for the same omission, and prefer restructuring to one check
+  point over adding a fourth call.
+
 - Every bogus node is overlapped by a diagnostic. `check()` step 4 has enforced
   this since Phase 6 (§10.2), so the Phase 14 job is to review the *wording* and
   the *placement* of those diagnostics, not to add the check — a diagnostic that
   satisfies the overlap test can still point at a range that reads badly. Air's
   `has_bogus_nodes_or_empty_slots` exists for the weaker version of this and its
   comment says so: *"used in the parser test to ensure it doesn't emit bogus nodes
-  without diagnostics."*
+  without diagnostics."* Placement is worth a second look where the diagnostic
+  is raised *before* recovery: `parse_argument_list` reports `expected ','` at
+  `p.cur_range()`, so `f(a b c)` points at `b` while the bogus node swallows
+  `b c`. Biome's `or_recover_with_token_set` — 66 uses against 10 bare
+  `recover()` calls — reports at `recovered.range(p)` instead, covering the whole
+  buried run. Decide which reads better and apply it uniformly.
+
 - The parser never loops forever. Add a `ParserProgress`-style guard (Biome has
   one) to every unbounded loop, not just the statement list. nextest's
   `slow-timeout = { period = "10s", terminate-after = 3 }` (§5.1) is the backstop:
   a runaway loop shows up as a terminated test rather than a hung CI job, but the
   guard is what makes it a *useful* failure with a stack trace.
+
 - The parser never panics on any input. Since fuzzing is out of scope for now, at
   minimum run the parser over every `.R` file you can find in air's repo
   (`crates/air_r_formatter/tests/**`) as a smoke test, asserting no panic and
