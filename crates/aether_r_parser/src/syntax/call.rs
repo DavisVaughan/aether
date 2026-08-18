@@ -53,7 +53,7 @@ enum ArgumentListEnd {
 
 impl ArgumentListEnd {
     /// Whether the current token closes this list
-    fn join_and_check(self, p: &mut RParser) -> bool {
+    fn at(self, p: &mut RParser) -> bool {
         match self {
             Self::Parenthesis => p.at(T![')']),
             Self::Bracket => p.at(T![']']),
@@ -74,8 +74,8 @@ impl ArgumentListEnd {
     /// an enclosing construct of its terminator and turn one error into a
     /// cascade.
     ///
-    /// `]]` is absent because [ArgumentListEnd::join_and_check()] is the only
-    /// thing that produces one, and only where the list is about to end.
+    /// `]]` is absent because [ArgumentListEnd::at()] is the only thing that
+    /// produces one, and only where the list is about to end.
     fn recovery_set(self) -> TokenSet<RSyntaxKind> {
         token_set![T![,], T![')'], T![']'], T!['}'], T![EOF]]
     }
@@ -87,12 +87,12 @@ fn parse_argument_list(p: &mut RParser, end: ArgumentListEnd) {
 
     // An empty list has no arguments at all, where `f(,)` has two: a comma
     // always has an argument on either side of it
-    if !end.join_and_check(p) && !p.at(T![EOF]) {
+    if !end.at(p) && !p.at(T![EOF]) {
         loop {
             progress.assert_progressing(p);
             parse_argument(p);
 
-            if end.join_and_check(p) || p.at(T![EOF]) {
+            if end.at(p) || p.at(T![EOF]) {
                 break;
             }
 
