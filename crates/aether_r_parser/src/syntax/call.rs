@@ -108,11 +108,10 @@ fn parse_argument_list(p: &mut RParser, end: ArgumentListEnd) {
                 let argument = p.start();
                 let recovered =
                     ParseRecoveryTokenSet::new(R_BOGUS_EXPRESSION, end.recovery_set()).recover(p);
-
-                if recovered.is_err() {
-                    argument.abandon(p);
-                    break;
-                }
+                debug_assert!(
+                    recovered.is_ok(),
+                    "`EOF` and the recovery set are both excluded above"
+                );
                 argument.complete(p, R_ARGUMENT);
 
                 // `end.at()` for the `]]` join, which only it can do
