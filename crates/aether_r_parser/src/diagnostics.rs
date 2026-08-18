@@ -64,5 +64,5 @@ pub(crate) fn expected_statement_separator(
         "Expected a newline or a `;` between two expressions.",
         range,
     )
-    .with_detail(previous, "This expression ends here.")
+    .with_detail(previous, "The first expression ends here.")
 }

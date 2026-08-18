@@ -1435,7 +1435,7 @@ test.R:5:5 parse ━━━━━━━━━━━━━━━━━━━━━
     6 │
     7 │ foo
 
-  i This expression ends here.
+  i The first expression ends here.
 
     4 │ foo
   > 5 │ [bar]
@@ -1468,7 +1468,7 @@ test.R:8:4 parse ━━━━━━━━━━━━━━━━━━━━━
       │    ^
     9 │
 
-  i This expression ends here.
+  i The first expression ends here.
 
     7 │ foo
   > 8 │ [[x]]

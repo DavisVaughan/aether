@@ -229,7 +229,7 @@ test.R:5:3 parse ━━━━━━━━━━━━━━━━━━━━━
       │   ^^^
     6 │
 
-  i This expression ends here.
+  i The first expression ends here.
 
     3 │ # error, we currently parse this as `.1` followed by `foo`, just like we do with
     4 │ # `1foo` (#190).

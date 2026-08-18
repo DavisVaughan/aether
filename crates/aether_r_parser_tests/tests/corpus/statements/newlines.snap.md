@@ -56,7 +56,7 @@ test.R:1:3 parse ━━━━━━━━━━━━━━━━━━━━━
       │   ^
     2 │
 
-  i This expression ends here.
+  i The first expression ends here.
 
   > 1 │ 1 2
       │ ^
