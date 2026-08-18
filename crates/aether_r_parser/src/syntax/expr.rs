@@ -8,7 +8,7 @@ use biome_parser::CompletedMarker;
 use biome_parser::Parser;
 use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
 
-/// How tightly an operator binds; higher wins
+/// How tightly an operator binds. Higher wins!
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct BindingPower(u8);
 
