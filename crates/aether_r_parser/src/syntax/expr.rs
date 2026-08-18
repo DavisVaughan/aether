@@ -1,6 +1,9 @@
 use crate::diagnostics;
 use crate::parser::RParser;
-use crate::syntax::call::{parse_parenthesized_expression, parse_postfix_expression};
+use crate::syntax::call::{
+    parse_call_arguments, parse_parenthesized_expression, parse_subset_arguments,
+    parse_subset2_arguments,
+};
 use crate::syntax::value::parse_string_value;
 use aether_r_syntax::RSyntaxKind::{self, *};
 use aether_r_syntax::T;
@@ -122,6 +125,28 @@ pub(crate) fn parse_expression_with_lhs(
     }
 
     lhs
+}
+
+/// Postfix: `f(x)`, `x[i]`, `x[[i]]`
+fn parse_postfix_expression(p: &mut RParser, lhs: &CompletedMarker) -> Option<CompletedMarker> {
+    match p.cur() {
+        T!['('] => {
+            let m = lhs.clone().precede(p);
+            parse_call_arguments(p);
+            Some(m.complete(p, R_CALL))
+        }
+        T!['['] => {
+            let m = lhs.clone().precede(p);
+            parse_subset_arguments(p);
+            Some(m.complete(p, R_SUBSET))
+        }
+        T!["[["] => {
+            let m = lhs.clone().precede(p);
+            parse_subset2_arguments(p);
+            Some(m.complete(p, R_SUBSET2))
+        }
+        _ => None,
+    }
 }
 
 fn parse_prefix_expression(p: &mut RParser) -> ParsedSyntax {
