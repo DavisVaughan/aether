@@ -64,8 +64,7 @@ pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
 }
 
 fn parse_expression_with_bp(p: &mut RParser, min_bp: BindingPower) -> ParsedSyntax {
-    let operand = parse_prefix_expression(p).or_else(|| parse_primary_expression(p));
-    let Present(lhs) = operand else {
+    let Present(lhs) = parse_prefix_expression(p).or_else(|| parse_primary_expression(p)) else {
         return Absent;
     };
     Present(parse_expression_with_lhs(p, lhs, min_bp))
