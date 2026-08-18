@@ -568,9 +568,10 @@ The facts the parser phases need, and the ones a later grammar edit can break.
 
 **`[` and `[[` are lexed greedily; `]` and `]]` are not.** `[[` is always a single
 token. `]]` is always two `]`, and the parser joins them with
-`p.re_lex(RReLexContext::JoinBrackets)` where the nesting says to. There is no
-scope stack in the lexer. This is the single most important design call in the
-lexer and the one most likely to be undone by accident.
+`p.re_lex(RReLexContext::JoinBrackets)` from `RParser::do_bump()`, using the scope
+it already tracks. There is no scope stack in the lexer. This is the single most
+important design call in the lexer and the one most likely to be undone by
+accident.
 
 The asymmetry is the point, and every reference implementation shares it. Openers
 stack left to right, so two adjacent ones never straddle a boundary and greedy is
@@ -586,12 +587,31 @@ splits it back, while `>` is never lexed greedily at all and
 Nested generics need no re-lex whatsoever, which is exactly the property we want
 for nested subsets.
 
-The concrete payoff: a token that appears unbidden has to be spelled out in every
-terminator check and every recovery set anywhere in the parser that mentions `]`,
-and missing one lets recovery swallow two closers, stripping an enclosing
-construct of its terminator. A `]]` that only ever exists because a subset2 asked
-for it cannot be swallowed by anything. §11.3 has the single join site and the
-`x[[a[b]]]` worked example.
+**A stack in the lexer is not on the table, whatever its merits.** §8.2.1 rules
+out lexer state for strings, and the same three mechanisms rule it out here:
+`BufferedLexer` rewinds the inner lexer on its own initiative, `LookaheadIterator`
+runs it ahead with `LexContext::default()`, and `LexerCheckpoint` has no slot to
+restore a stack from. Speculative lookahead would advance the stack and nothing
+would roll it back, which yields a wrong tree that still round-trips. Nothing
+calls `nth()` today, so that lands whenever lookahead is first added rather than
+when the stack is written — the worst possible interval. tree-sitter-r pays these
+costs in the open: its `Scopes` stack has to fit in
+`TREE_SITTER_SERIALIZATION_BUFFER_SIZE`, so `MAX_SCOPES_COUNT` caps nesting and a
+failed `scopes_push()` makes the scanner decline the token outright. And it still
+consults `valid_symbols[CLOSE_BRACKET2]` — parser state — to break the tie at `]`.
+Even there, the lexer is not deciding alone.
+
+It does not need to. The decision turns on one fact — whether the innermost open
+construct is a `[[` — and the parser already holds it as `Scope` (§9.2), so the
+join reads it from there on every bump, at one call site.
+
+The cost is `]]` in the recovery sets that run inside a `[[`, and that is not the
+hazard a greedy lexer creates. A greedy `]]` can straddle two constructs, so
+swallowing one costs two closers and strips an *enclosing* construct of its
+terminator. A scope-driven `]]` only ever exists where the innermost open
+construct owns both brackets, so it is an ordinary closer, named alongside `)`,
+`]`, and `}` and no more dangerous than any of them. §11.3 has the join site and
+the `x[[a[b]]]` worked example.
 
 **Keywords are lexed as `IDENT` first, then mapped by text.** That is what gets
 tree-sitter-r issue #200 right for free (`elseμ <- 1` must not see an `else`
@@ -846,6 +866,16 @@ side it is on rather than defaulting onto the silent one.
   construct that opens a scope: `f(…)`, `x[…]`, `x[[…]]`, `(…)`, the `if` and
   `while` conditions, the `for` header, a parameter list, and `{…}`. `parse_root`
   is not among them — the default *is* top-level behaviour.
+
+- **The opener is consumed inside the scope and the closer outside it.** A bump
+  lexes the token *after* the one it consumes, so the scope in effect at a bump
+  governs the token that lands. The opener's bump produces the first token of the
+  body, so it belongs inside; the closer's bump produces the first token after the
+  construct, so it belongs outside. Only `x[[…]]` can tell the difference, because
+  only it re-lexes on the strength of the scope (§8.4) — `x[[]]` needs the join on
+  the bump of the `[[` itself, and `x[y[z[[a]]]]` breaks if a `[[` scope is still
+  in effect when the two `]` that follow its `]]` arrive. Every construct follows
+  the rule anyway, since a reader will copy whichever one they are looking at.
 
 - **`scope()`** is a plain read. Newline significance goes through
   `Scope::newlines_are_significant()` and nothing tests the delimiter variants
@@ -1981,8 +2011,8 @@ fn parse_postfix(p: &mut RParser, lhs: CompletedMarker) -> Option<CompletedMarke
 fn parse_parenthesized_expression(p: &mut RParser) -> ParsedSyntax {
     if !p.at(T!['(']) { return Absent }
     let m = p.start();
-    p.bump(T!['(']);
     p.with_scope(Scope::Parenthesis, |p| {
+        p.bump(T!['(']);
         parse_expression(p).or_add_diagnostic(p, diagnostics::expected_expression);
     });
     p.expect(T![')']);
@@ -2013,118 +2043,121 @@ errors-corpus tests about mismatched brackets.
 
 **Approach: greedy openers, one-at-a-time closers, join via re-lex.** §8.4 makes
 the case for the asymmetry and names the precedents; what it means here is that a
-run of closing brackets reaches the parser as single `]` tokens, and the subset2
-that wants a `]]` asks for one. `L_BRACK2` arrives whole; `R_BRACK2` exists only
-because a list asked for it.
+run of closing brackets reaches the parser as single `]` tokens, and the parser
+puts a pair back together wherever the scope says both belong to the same `[[`.
+`L_BRACK2` arrives whole; `R_BRACK2` is manufactured.
 
-**The join must happen at the loop guard, not after the list returns.** This is
-the detail the whole approach turns on. Only the guard can tell a `]` that closes
-*this* list from a `]` that closes someone else's, and if it cannot, the list
-never recognises its own terminator: at `]` the guard `p.at(end)` is false, it is
-not at `,` either, so every valid `x[[1]]` leaves through the error-recovery
-branch instead of the loop condition. It happens to survive that today only
-because `]` is in the recovery set and recovery therefore consumes nothing —
-resting a correct parse of valid code on a recovery set's contents is exactly the
-kind of load-bearing accident this section exists to prevent.
-
-So the list has to own its terminator, including the case where the lexer refused
-to spell that terminator out:
+**The join happens on every bump, at one call site, off the scope.** Nothing that
+inspects a token needs to know about it:
 
 ```rust
-// `RReLexContext::JoinBrackets` landed with the lexer in Phase 4; this is its one
-// and only call site.
+// crates/aether_r_parser/src/parser.rs
+//
+/// Joins an adjacent `] ]` into the `]]` the lexer never emits
+///
+/// Only inside a `[[`, where the innermost open construct owns both
+/// brackets, and only if they are adjacent, so `x[[a] ]` and `x[[a]\n]`
+/// stay errors.
+fn join_brackets(&mut self) {
+    if self.scope == Scope::Bracket2 && self.cur() == T![']'] {
+        self.re_lex(RReLexContext::JoinBrackets);
+    }
+}
+```
 
+`do_bump()` and `do_bump_with_context()` are overridden to end with it —
+`biome_js_parser` overrides the same pair, for its keyword-escape check — and
+every bump in the parser funnels through them, `expect`, `bump_ts`, and the
+skipping bumps inside `ParseRecoveryTokenSet` included. §9.2's placement rule is
+what makes that sufficient: because a bump lexes the *next* token, the opener is
+consumed inside the scope and the closer outside it.
+
+So a terminator check is a plain predicate:
+
+```rust
 // crates/aether_r_parser/src/syntax/call.rs
 //
-/// What closes an argument list. A type rather than a bare `RSyntaxKind`,
-/// for the same reason `StatementListEnd` (§11.7) is one: the recovery set is
-/// derived from the terminator instead of hardcoded at each call site. Here
-/// there is a second reason — `[[` has a terminator the lexer deliberately does
-/// not produce, and only the terminator itself knows to ask for it.
+/// What closes an argument list. A type rather than a bare `RSyntaxKind`, for the
+/// same reason `StatementListEnd` (§11.7) is one: the recovery set is derived
+/// from the terminator instead of hardcoded at each call site.
 #[derive(Debug, Clone, Copy)]
-pub(crate) enum ArgumentListEnd {
-    RParen,   // `f(…)`
-    RBrack,   // `x[…]`
-    RBrack2,  // `x[[…]]` — its `]]` arrives as two `]` and has to be asked for
+enum ArgumentListEnd {
+    Parenthesis,
+    Bracket,
+    Bracket2,
 }
 
 impl ArgumentListEnd {
-    /// True when the current token closes this list.
-    ///
-    /// **Side-effecting by design.** For `RBrack2`, an adjacent pair of `]` is
-    /// joined into one `]]` before the answer is returned, so every caller
-    /// downstream — the loop guard, the recovery set, and the final `expect` —
-    /// sees the exact closing token and none of them has to know the join
-    /// happened.
-    fn join_and_check(self, p: &mut RParser) -> bool {
+    /// Whether the current token closes this list
+    fn at(self, p: &RParser) -> bool {
         match self {
-            Self::RParen => p.at(T![')']),
-            Self::RBrack => p.at(T![']']),
-            Self::RBrack2 => {
-                // `x[[a]]` — this list wants both brackets, and gets them only
-                // if they are adjacent. `x[[a] ]` and #177's `x[[a]\n]` are
-                // errors in tree-sitter-r and stay errors here (§8.4).
-                if p.at(T![']']) {
-                    p.re_lex(RReLexContext::JoinBrackets);
-                }
-                p.at(T!["]]"])
-            }
+            Self::Parenthesis => p.at(T![')']),
+            Self::Bracket => p.at(T![']']),
+            Self::Bracket2 => p.at(T!["]]"]),
         }
-    }
-
-    /// Deliberately uniform across all three variants, and deliberately wider
-    /// than this list's own terminator: recovery must never consume a closing
-    /// delimiter of ANY kind. Eating one turns a single error into a cascade by
-    /// stripping an enclosing construct of its terminator — the same rule as
-    /// `a$)` in §11.4, where the `)` is left alone for exactly this reason.
-    ///
-    /// There is no `T!["]]"]` here, and that is the payoff of §8.4's direction
-    /// rather than an oversight: nothing but `join_and_check` produces that
-    /// token, and it only does so when the list is about to terminate, so
-    /// recovery can never be looking at one. A lexer that glued closers would
-    /// oblige this set — and every other set in the parser that mentions `]` —
-    /// to name both arities, and to swallow two closers wherever one was missed.
-    fn recovery_set(self) -> TokenSet<RSyntaxKind> {
-        token_set![
-            T![,],
-            T![')'], T![']'], T!['}'],
-            T![EOF],
-        ]
     }
 }
 
+/// Tokens a failed argument may resynchronise on
+///
+/// Deliberately wider than any one list's terminator: eating a closing
+/// delimiter of any kind would strip an enclosing construct of its terminator
+/// and turn one error into a cascade — the same rule as `a$)` in §11.4, where
+/// the `)` is left alone for exactly this reason. `EOF` is absent because
+/// `recover()` stops there whether the set says so or not.
+const ARGUMENT_LIST_RECOVERY_SET: TokenSet<RSyntaxKind> =
+    token_set![T![,], T![')'], T![']'], T!["]]"], T!['}']];
+
 fn parse_subset2_arguments(p: &mut RParser) {
     let m = p.start();
-    p.bump(T!["[["]);
     p.with_scope(Scope::Bracket2, |p| {
-        parse_argument_list(p, ArgumentListEnd::RBrack2);
+        p.bump(T!["[["]);
+        parse_argument_list(p, ArgumentListEnd::Bracket2);
     });
-    // The list joined its `]]` on the way out, so this is a plain expect.
     p.expect(T!["]]"]);
     m.complete(p, R_SUBSET2_ARGUMENTS);
 }
 ```
 
+**The join was first written into the list's terminator check, and that was
+wrong.** Worth recording, because the reasoning that put it there is seductive:
+only something that knows the nesting can tell a `]` that closes *this* list from
+a `]` that closes someone else's, and the terminator check is the one thing that
+knows. True — but it made the check side-effecting, which made calling it an
+obligation at every exit of the loop, and the recovery branch grew an exit that
+did not. `x[[a b]]` lost its terminator and stranded both brackets in the
+enclosing statement list. The scope knows the same fact and knows it everywhere,
+so the obligation disappears rather than being documented.
+
 **Nothing is ever undone, and the ladder cases confirm it** — worth stating,
 because it is where a reader will stop. `x[[a[b]]]` lexes as
-`x` `[[` `a` `[` `b` `]` `]` `]`. The inner `[` takes the first `]` without asking
-anyone; the outer subset2 then joins the two that are left. `x[[a[[b]]]]` is the
-same story twice: the inner subset2 joins a pair, and the outer joins the pair
-behind it. Because a join reads forward from the current token and never rewinds
-past it, no split, merge, or unget is ever needed.
+`x` `[[` `a` `[` `b` `]` `]` `]`. The inner `[` is not a `[[` scope, so its `]`
+arrives unjoined; consuming it lands the parser back in the `[[` scope, where the
+two that are left join. `x[[a[[b]]]]` is the same story twice. Because a join
+reads forward from the current token and never rewinds past it, no split, merge,
+or unget is ever needed.
 
-Add the nesting ladder as aether-authored tests in `expressions/subset.md`:
-`x[a[b]]`, `x[[a[b]]]`, `x[a[[b]]]`, `x[[a[[b]]]]`. All clean parses, no markers —
-which is the point, since the failure mode here produces errors on *valid* code
-and the imported corpus only covers mismatched brackets and `#177`.
+The nesting ladder lives in `expressions/subset.md` as aether-authored tests:
+`x[a[b]]`, `x[[a[b]]]`, `x[a[[b]]]`, `x[[a[[b]]]]`, `x[y[z[[a]]]]`. All clean
+parses, no markers — which is the point, since the failure mode here produces
+errors on *valid* code and the imported corpus only covers mismatched brackets and
+`#177`. The last rung is the one that pins §9.2's placement rule: it leaves two
+`]` that close two different `[` immediately after a `]]`, which is exactly what a
+`[[` scope outliving its own closer would wrongly join. The shorter rungs cannot
+catch that — they leave only one `]` behind the `]]`. `x[[]]` in
+`expressions/subset2.md` pins the other half, where the join has to land on the
+bump of the `[[` itself.
 
-**Verify `re_lex` against buffered lookahead** at the pinned rev before writing
-this. `TokenSourceWithBufferedLexer` caches lookahead tokens, and re-lexing the
-current token must invalidate that cache. `BufferedLexer::re_lex` clears the
-lookahead whenever the kind changes, which is the contract `biome_js_parser`
-relies on for `>>` — but confirm it holds through `RTokenSource`, because a stale
-cache here yields a wrong tree that still round-trips, which is precisely the
-class of bug no invariant in this project catches.
+**`re_lex` against buffered lookahead** holds at the pinned rev, checked by
+reading it rather than by test. `TokenSourceWithBufferedLexer` caches lookahead
+tokens, and re-lexing the current token must invalidate that cache;
+`BufferedLexer::re_lex` rewinds the inner lexer and clears the lookahead whenever
+the kind changes, which is the contract `biome_js_parser` relies on for `>>`, and
+`RTokenSource::re_lex` delegates straight to it. Nothing pins that — no call site
+uses `nth()` yet — so re-check it on a fork rev bump and again when the first
+lookahead lands, because a stale cache here yields a wrong tree that still
+round-trips, which is precisely the class of bug no invariant in this project
+catches.
 
 The mirror case (`x[[a]` — a `[[` that should have been two `[`) is a genuine
 syntax error in R; produce a diagnostic and recover rather than trying to be
@@ -2149,9 +2182,7 @@ fn parse_argument_list(p: &mut RParser, end: ArgumentListEnd) {
     let mut first = true;
 
     loop {
-        // Joins a `]]` as a side effect when `end` is `RBrack2`, so from here
-        // down the terminator is always a single, exact token.
-        if end.join_and_check(p) || p.at(T![EOF]) { break }
+        if end.at(p) || p.at(T![EOF]) { break }
 
         // `fn(,,a,,b,,)` means an iteration may legitimately consume only a
         // comma, so progress is asserted across the whole iteration rather than
@@ -2578,8 +2609,8 @@ fn parse_if_statement(p: &mut RParser) -> ParsedSyntax {
     if !p.at(T![if]) { return Absent }
     let m = p.start();
     p.bump(T![if]);
-    p.expect(T!['(']);
     p.with_scope(Scope::Parenthesis, |p| {
+        p.expect(T!['(']);
         parse_expression(p).or_add_diagnostic(p, diagnostics::expected_condition);
     });
     p.expect(T![')']);
@@ -2707,10 +2738,12 @@ all — is part of this phase, not a refactor to schedule separately.
 fn parse_braced_statements(p: &mut RParser) -> ParsedSyntax {
     if !p.at(T!['{']) { return Absent }
     let m = p.start();
-    p.bump(T!['{']);
     // The one scope that makes newlines significant *again* from inside a
     // paren: `f({\n  a\n  b\n})` is three statements, not one.
-    p.with_scope(Scope::Brace, |p| parse_statement_list(p, StatementListEnd::RCurly));
+    p.with_scope(Scope::Brace, |p| {
+        p.bump(T!['{']);
+        parse_statement_list(p, StatementListEnd::RCurly)
+    });
     p.expect(T!['}']);
     Present(m.complete(p, R_BRACED_STATEMENTS))
 }
@@ -2718,8 +2751,7 @@ fn parse_braced_statements(p: &mut RParser) -> ParsedSyntax {
 /// Where a statement list stops: end of file, or the `}` of a braced block.
 /// Owning the terminator as a type means the recovery set is derived from it
 /// rather than hardcoded, so a future list terminator cannot forget to add
-/// itself to the set. `ArgumentListEnd` (§11.3) is the same pattern, and carries
-/// the additional job of asking the lexer for a `]]`.
+/// itself to the set. `ArgumentListEnd` (§11.3) is the same pattern.
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum StatementListEnd {
     Eof,
@@ -2890,15 +2922,17 @@ dedicated pass:
   construct's closing token, plus `T![;]`, plus `enable_recovery_on_line_break()`
   wherever a newline genuinely bounds the construct.
 
-- **Every list checks its terminator in exactly one place.** Biome's
-  `ParseSeparatedList::parse_list` does, which is why none of its thirty-odd
-  implementors can leak one; `parse_argument_list` (§11.3) does not, and that
-  cost a bug. `ArgumentListEnd::at()` is side-effecting — it re-lexes an adjacent
-  `] ]` into the `]]` the lexer never emits — and the recovery branch grew an
-  exit of its own that never called it, so `x[[a b]]` lost its terminator and
-  stranded both brackets in the enclosing statement list. Audit every `break` out
-  of a list loop for the same omission, and prefer restructuring to one check
-  point over adding a fourth call.
+- **No list check is allowed to be load-bearing beyond what it returns.** Biome's
+  `ParseSeparatedList::parse_list` checks its terminator in exactly one place,
+  which is why none of its thirty-odd implementors can leak one;
+  `parse_argument_list` (§11.3) checks in three, and while that was merely untidy
+  on its own, it cost a bug once `ArgumentListEnd::at()` also re-lexed the `]]`.
+  The recovery branch grew an exit that never called it, so `x[[a b]]` lost its
+  terminator and stranded both brackets in the enclosing statement list. That is
+  fixed at the root — the join moved to `RParser::do_bump()` and the check is a
+  pure predicate again (§11.3) — so what is left for this pass is the general
+  rule: a predicate that a loop calls at some exits and not others must not be the
+  only thing doing a job. Audit every `break` out of a list loop on that basis.
 
 - Every bogus node is overlapped by a diagnostic. `check()` step 4 has enforced
   this since Phase 6 (§10.2), so the Phase 14 job is to review the *wording* and
@@ -3079,7 +3113,7 @@ aether, so the indirection is discoverable from the place someone hits it.
 | Risk | Why it bites | Mitigation |
 |---|---|---|
 | **Trivia attachment drift** | A one-piece difference in *comment* attachment silently changes formatter output; a whitespace one changes every snapshot. | Largely retired by deviation 10: the rule is a latching bool with no lookahead, so there is little left to get subtly wrong. Comment attachment is unchanged from air and the oracle still compares it, since normalization touches whitespace only (§10.4). Landed in Phase 5, ahead of any grammar work; what exposure remains is settled by air's formatter snapshots at swap-in (§12.3 step 7). |
-| **`[[` / `]]` joining** | Genuinely ambiguous; tree-sitter needs an external scanner and still has open bugs. The lexer half landed in Phase 4; the parser half is Phase 9. | One join site, in the argument list's terminator check (§11.3). Six corpus tests exercise it. Do not invent a scope stack, and do not make the lexer glue closers. |
+| **`[[` / `]]` joining** | Genuinely ambiguous; tree-sitter needs an external scanner and still has open bugs. The lexer half landed in Phase 4; the parser half landed in Phase 9. | One join site, in `RParser::do_bump()`, reading the scope (§11.3). The corpus works it from both ends: the nesting ladder in `expressions/subset.md` on valid code, the mismatched-bracket set in `recovery/unmatched-delimiters.md` on invalid. Do not put a scope stack in the lexer — §8.4 says why it cannot work here — and do not make the lexer glue closers. |
 | **Codegen drift** | If aether's generated code diverges from air's, the swap-in fails in confusing ways. | Retired: Phase 2 asserted byte-identity, and CI asserts `just codegen` idempotence on every PR. |
 | **Oracle unavailable on error tests** | tree-sitter bails on any error, and aether's own error blocks are skipped too (§10.4), so the error corpus gets no oracle coverage at all. | Accept it; those are exactly the tests where we *intend* to differ. Rely on reviewed snapshots there. |
 | **Oracle breaks** | It depends on air at a pinned rev, so a rev bump on either side can break the build or the comparison. | It runs with every test, so a break is loud rather than silent. Fix cheaply or abandon it — it is deleted at swap-in regardless (§10.4.1), and reviewed snapshots, not the oracle, are what carry forward. |
