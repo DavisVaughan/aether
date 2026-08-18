@@ -63,10 +63,6 @@ impl<'src> RParser<'src> {
     }
 
     /// Joins an adjacent `] ]` into the `]]` the lexer never emits
-    ///
-    /// Only inside a `[[`, where the innermost open construct owns both
-    /// brackets, and only if they are adjacent, so `x[[a] ]` and `x[[a]\n]`
-    /// stay errors.
     fn join_brackets(&mut self) {
         if self.scope == Scope::Bracket2 && self.cur() == T![']'] {
             self.re_lex(RReLexContext::JoinBrackets);
