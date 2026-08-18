@@ -21,7 +21,10 @@ pub(crate) struct BindingPower(u8);
 impl BindingPower {
     pub(crate) const LOWEST: Self = Self(0);
 
-    /// Rank of `f(…)`, `x[…]`, `x[[…]]`
+    /// Technically would represent the binding power of postfix operations,
+    /// like `f(...)`, `x[...]`, and `x[[...]]`. This mostly just falls out
+    /// structurally, but we have a debug assertion that uses this just to be
+    /// sure.
     const HIGHEST: Self = Self(18);
 }
 
