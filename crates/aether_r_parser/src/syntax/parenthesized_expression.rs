@@ -4,12 +4,10 @@ use crate::syntax::expr::parse_expression;
 use aether_r_syntax::RSyntaxKind::R_PARENTHESIZED_EXPRESSION;
 use aether_r_syntax::T;
 use biome_parser::Parser;
-use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
+use biome_parser::parsed_syntax::ParsedSyntax::{self, Present};
 
 pub(crate) fn parse_parenthesized_expression(p: &mut RParser) -> ParsedSyntax {
-    if !p.at(T!['(']) {
-        return Absent;
-    }
+    debug_assert!(p.at(T!['(']));
 
     let m = p.start();
     p.bump(T!['(']);
