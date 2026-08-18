@@ -11,14 +11,14 @@ use biome_parser::{Parser, ParserProgress};
 pub(crate) enum StatementListEnd {
     Eof,
     #[expect(dead_code, reason = "`parse_braced_statements()` arrives in Phase 13")]
-    RCurly,
+    ClosingBrace,
 }
 
 impl StatementListEnd {
     fn matches(self, kind: RSyntaxKind) -> bool {
         match self {
             Self::Eof => kind == T![EOF],
-            Self::RCurly => kind == T!['}'],
+            Self::ClosingBrace => kind == T!['}'],
         }
     }
 }
