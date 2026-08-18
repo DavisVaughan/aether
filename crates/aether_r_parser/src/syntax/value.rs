@@ -3,12 +3,10 @@ use crate::lexer::{RLexContext, RStringDelimiter};
 use crate::parser::RParser;
 use aether_r_syntax::RSyntaxKind::{R_STRING_VALUE, STRING_CLOSE, STRING_CONTENT, STRING_OPEN};
 use biome_parser::Parser;
-use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
+use biome_parser::parsed_syntax::ParsedSyntax::{self, Present};
 
 pub(crate) fn parse_string_value(p: &mut RParser) -> ParsedSyntax {
-    if !p.at(STRING_OPEN) {
-        return Absent;
-    }
+    debug_assert!(p.at(STRING_OPEN));
 
     let m = p.start();
 
