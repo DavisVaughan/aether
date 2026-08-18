@@ -1,3 +1,8 @@
+//! Pratt parser core
+//!
+//! https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html
+//! https://kevinushey.github.io/blog/2016/02/12/top-down-operator-precedence-parsing-with-r/
+
 use crate::diagnostics;
 use crate::parser::RParser;
 use crate::syntax::call::{parse_call_arguments, parse_subset_arguments, parse_subset2_arguments};
