@@ -5,7 +5,6 @@ use aether_r_syntax::RSyntaxKind::{R_STRING_VALUE, STRING_CLOSE, STRING_CONTENT,
 use biome_parser::Parser;
 use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
 
-/// `R_STRING_VALUE` is three tokens, and the last two need a lex context
 pub(crate) fn parse_string_value(p: &mut RParser) -> ParsedSyntax {
     if !p.at(STRING_OPEN) {
         return Absent;
