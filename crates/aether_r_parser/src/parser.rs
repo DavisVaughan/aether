@@ -52,9 +52,6 @@ impl<'src> RParser<'src> {
     }
 
     /// Runs `f` with `scope` in effect, restoring the previous value after
-    ///
-    /// A bump lexes the token that follows the one it consumes, so a construct
-    /// consumes its opener inside its scope and its closer outside it.
     pub(crate) fn with_scope<F, R>(&mut self, scope: Scope, f: F) -> R
     where
         F: FnOnce(&mut Self) -> R,
