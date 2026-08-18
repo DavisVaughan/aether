@@ -53,10 +53,6 @@ enum ArgumentListEnd {
 
 impl ArgumentListEnd {
     /// Whether the current token closes this list
-    ///
-    /// Side-effecting by design: an adjacent pair of `]` is joined into one `]]`
-    /// before the answer comes back, so the loop, the recovery set, and the
-    /// final `expect()` all see the exact closing token.
     fn join_and_check(self, p: &mut RParser) -> bool {
         match self {
             Self::Parenthesis => p.at(T![')']),
