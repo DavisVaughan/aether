@@ -109,7 +109,7 @@ impl<'src> Parser for RParser<'src> {
         self.do_bump_with_context(kind, RLexContext::Regular);
     }
 
-    /// Overridden so that every bump ends with [RParser::join_brackets()]
+    /// Overridden so that every bump checks for a potential `]]` re-lex
     fn do_bump_with_context(
         &mut self,
         kind: Self::Kind,
