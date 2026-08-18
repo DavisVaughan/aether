@@ -13,7 +13,6 @@ use biome_parser::parse_recovery::ParseRecoveryTokenSet;
 use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
 use biome_parser::{Parser, ParserProgress, TokenSet, token_set};
 
-/// `(a)` — a node of its own, not a formatting hint, so air can round-trip it
 pub(crate) fn parse_parenthesized_expression(p: &mut RParser) -> ParsedSyntax {
     if !p.at(T!['(']) {
         return Absent;
