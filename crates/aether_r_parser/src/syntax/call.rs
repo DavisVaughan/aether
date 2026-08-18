@@ -148,9 +148,9 @@ fn parse_argument(p: &mut RParser) {
             clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
             parse_expression(p).ok();
         }
-        // Not a name clause after all, so the atom was the head of the value
-        Present(atom) => {
-            parse_expression_with_lhs(p, atom, BindingPower::LOWEST);
+        // Not a name clause after all, use as lhs instead
+        Present(lhs) => {
+            parse_expression_with_lhs(p, lhs, BindingPower::LOWEST);
         }
         Absent => {
             parse_expression(p).ok();
