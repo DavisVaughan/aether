@@ -19,8 +19,6 @@ pub(crate) fn parse_string_value(p: &mut RParser) -> ParsedSyntax {
         p.bump_with_context(STRING_CONTENT, RLexContext::StringEnd(delimiter));
     }
 
-    // Not `expect()`: `STRING_CLOSE` has no spelling to name in its message, and
-    // the body ran to EOF, so there is a better one to give
     if !p.eat(STRING_CLOSE) {
         p.error(diagnostics::unterminated_string(open_range, p.cur_range()));
     }
