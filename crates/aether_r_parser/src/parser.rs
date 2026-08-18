@@ -62,13 +62,6 @@ impl<'src> RParser<'src> {
         result
     }
 
-    /// Joins an adjacent `] ]` into the `]]` the lexer never emits
-    fn join_brackets(&mut self) {
-        if self.scope == Scope::Bracket2 && self.cur() == T![']'] {
-            self.re_lex(RReLexContext::JoinBrackets);
-        }
-    }
-
     pub(crate) fn scope(&self) -> Scope {
         self.scope
     }
@@ -124,6 +117,9 @@ impl<'src> Parser for RParser<'src> {
             self.source_mut().bump_with_context(context);
         }
 
-        self.join_brackets();
+        // Joins an adjacent `] ]` into the `]]` the lexer never emits
+        if self.scope == Scope::Bracket2 && self.cur() == T![']'] {
+            self.re_lex(RReLexContext::JoinBrackets);
+        }
     }
 }

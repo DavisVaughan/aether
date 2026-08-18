@@ -2051,19 +2051,17 @@ puts a pair back together wherever the scope says both belong to the same `[[`.
 inspects a token needs to know about it:
 
 ```rust
-// crates/aether_r_parser/src/parser.rs
+// crates/aether_r_parser/src/parser.rs, at the end of `do_bump_with_context()`
 //
-/// Joins an adjacent `] ]` into the `]]` the lexer never emits
-///
-/// Only inside a `[[`, where the innermost open construct owns both
-/// brackets, and only if they are adjacent, so `x[[a] ]` and `x[[a]\n]`
-/// stay errors.
-fn join_brackets(&mut self) {
-    if self.scope == Scope::Bracket2 && self.cur() == T![']'] {
-        self.re_lex(RReLexContext::JoinBrackets);
-    }
+// Joins an adjacent `] ]` into the `]]` the lexer never emits
+if self.scope == Scope::Bracket2 && self.cur() == T![']'] {
+    self.re_lex(RReLexContext::JoinBrackets);
 }
 ```
+
+It fires only inside a `[[`, where the innermost open construct owns both
+brackets, and only on brackets that are adjacent, so `x[[a] ]` and `x[[a]\n]`
+stay errors.
 
 `do_bump()` and `do_bump_with_context()` are overridden to end with it —
 `biome_js_parser` overrides the same pair, for its keyword-escape check — and
