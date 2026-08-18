@@ -66,21 +66,19 @@ impl ArgumentListEnd {
             }
         }
     }
-
-    /// Tokens a failed argument may resynchronise on
-    ///
-    /// Uniform across all three variants, and deliberately wider than this
-    /// list's own terminator: eating a closing delimiter of any kind would strip
-    /// an enclosing construct of its terminator and turn one error into a
-    /// cascade.
-    ///
-    /// `]]` is absent because [ArgumentListEnd::at()] is the only thing that
-    /// produces one, and only where the list is about to end. `EOF` is absent
-    /// because `recover()` stops there whether the set says so or not.
-    fn recovery_set(self) -> TokenSet<RSyntaxKind> {
-        token_set![T![,], T![')'], T![']'], T!['}']]
-    }
 }
+
+/// Tokens a failed argument may resynchronise on
+///
+/// Deliberately wider than any one list's terminator: eating a closing
+/// delimiter of any kind would strip an enclosing construct of its terminator
+/// and turn one error into a cascade.
+///
+/// `]]` is absent because [ArgumentListEnd::at()] is the only thing that
+/// produces one, and only where the list is about to end. `EOF` is absent
+/// because `recover()` stops there whether the set says so or not.
+const ARGUMENT_LIST_RECOVERY_SET: TokenSet<RSyntaxKind> =
+    token_set![T![,], T![')'], T![']'], T!['}']];
 
 fn parse_argument_list(p: &mut RParser, end: ArgumentListEnd) {
     let m = p.start();
@@ -98,7 +96,7 @@ fn parse_argument_list(p: &mut RParser, end: ArgumentListEnd) {
 
             if !p.at(T![,]) {
                 // A closing delimiter that belongs to someone else
-                if p.at_ts(end.recovery_set()) {
+                if p.at_ts(ARGUMENT_LIST_RECOVERY_SET) {
                     break;
                 }
 
@@ -108,7 +106,8 @@ fn parse_argument_list(p: &mut RParser, end: ArgumentListEnd) {
 
                 let argument = p.start();
                 let recovered =
-                    ParseRecoveryTokenSet::new(R_BOGUS_EXPRESSION, end.recovery_set()).recover(p);
+                    ParseRecoveryTokenSet::new(R_BOGUS_EXPRESSION, ARGUMENT_LIST_RECOVERY_SET)
+                        .recover(p);
                 debug_assert!(
                     recovered.is_ok(),
                     "`EOF` and the recovery set are both excluded above"
