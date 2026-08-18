@@ -19,7 +19,6 @@ use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
 pub(crate) struct BindingPower(u8);
 
 impl BindingPower {
-    /// Accepts every operator
     pub(crate) const LOWEST: Self = Self(0);
 
     /// Rank of `f(…)`, `x[…]`, `x[[…]]`
