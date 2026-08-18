@@ -85,8 +85,7 @@ fn parse_argument_list(p: &mut RParser, end: ArgumentListEnd) {
     let m = p.start();
     let mut progress = ParserProgress::default();
 
-    // An empty list has no arguments at all, where `f(,)` has two: a comma
-    // always has an argument on either side of it
+    // Handle empty list before looping
     if !end.at(p) && !p.at(T![EOF]) {
         loop {
             progress.assert_progressing(p);
