@@ -1594,24 +1594,8 @@ RRoot {
                             },
                         },
                     ],
-                    r_brack2_token: missing (required),
+                    r_brack2_token: R_BRACK2@24..26 "]]" [] [],
                 },
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RBogusExpression {
-                items: [
-                    R_BRACK@24..25 "]" [] [],
-                ],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RBogusExpression {
-                items: [
-                    R_BRACK@25..26 "]" [] [],
-                ],
             },
             semicolon_token: missing (optional),
         },
@@ -1718,24 +1702,8 @@ RRoot {
                             },
                         },
                     ],
-                    r_brack2_token: missing (required),
+                    r_brack2_token: R_BRACK2@61..63 "]]" [] [],
                 },
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RBogusExpression {
-                items: [
-                    R_BRACK@61..62 "]" [] [],
-                ],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RBogusExpression {
-                items: [
-                    R_BRACK@62..63 "]" [] [],
-                ],
             },
             semicolon_token: missing (optional),
         },
@@ -1836,24 +1804,8 @@ RRoot {
                             },
                         },
                     ],
-                    r_brack2_token: missing (required),
+                    r_brack2_token: R_BRACK2@95..97 "]]" [] [],
                 },
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RBogusExpression {
-                items: [
-                    R_BRACK@95..96 "]" [] [],
-                ],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RBogusExpression {
-                items: [
-                    R_BRACK@96..97 "]" [] [],
-                ],
             },
             semicolon_token: missing (optional),
         },
@@ -1899,39 +1851,6 @@ test.R:3:8 parse ━━━━━━━━━━━━━━━━━━━━━
 
   i Remove y
 
-test.R:3:9 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × expected `]]` but instead found `]`
-
-    1 │ f(x y)
-    2 │ foo[x y]
-  > 3 │ foo[[x y]]
-      │         ^
-    4 │
-    5 │ f(x, y z)
-
-  i Remove ]
-
-test.R:3:10 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Expected an expression but instead found ']'.
-
-    1 │ f(x y)
-    2 │ foo[x y]
-  > 3 │ foo[[x y]]
-      │          ^
-    4 │
-    5 │ f(x, y z)
-
-  i Expected an expression here.
-
-    1 │ f(x y)
-    2 │ foo[x y]
-  > 3 │ foo[[x y]]
-      │          ^
-    4 │
-    5 │ f(x, y z)
-
 test.R:5:8 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × expected `,` but instead found `z`
@@ -1970,39 +1889,6 @@ test.R:7:11 parse ━━━━━━━━━━━━━━━━━━━━�
 
   i Remove z
 
-test.R:7:12 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × expected `]]` but instead found `]`
-
-    5 │ f(x, y z)
-    6 │ foo[x, y z]
-  > 7 │ foo[[x, y z]]
-      │            ^
-    8 │
-    9 │ f(, x y)
-
-  i Remove ]
-
-test.R:7:13 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Expected an expression but instead found ']'.
-
-    5 │ f(x, y z)
-    6 │ foo[x, y z]
-  > 7 │ foo[[x, y z]]
-      │             ^
-    8 │
-    9 │ f(, x y)
-
-  i Expected an expression here.
-
-    5 │ f(x, y z)
-    6 │ foo[x, y z]
-  > 7 │ foo[[x, y z]]
-      │             ^
-    8 │
-    9 │ f(, x y)
-
 test.R:9:7 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × expected `,` but instead found `y`
@@ -2039,36 +1925,6 @@ test.R:11:10 parse ━━━━━━━━━━━━━━━━━━━━�
     12 │
 
   i Remove y
-
-test.R:11:11 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × expected `]]` but instead found `]`
-
-     9 │ f(, x y)
-    10 │ foo[, x y]
-  > 11 │ foo[[, x y]]
-       │           ^
-    12 │
-
-  i Remove ]
-
-test.R:11:12 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Expected an expression but instead found ']'.
-
-     9 │ f(, x y)
-    10 │ foo[, x y]
-  > 11 │ foo[[, x y]]
-       │            ^
-    12 │
-
-  i Expected an expression here.
-
-     9 │ f(, x y)
-    10 │ foo[, x y]
-  > 11 │ foo[[, x y]]
-       │            ^
-    12 │
 ```
 
 ## Call Arguments [pending]

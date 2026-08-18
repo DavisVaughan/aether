@@ -115,7 +115,8 @@ fn parse_argument_list(p: &mut RParser, end: ArgumentListEnd) {
                 }
                 argument.complete(p, R_ARGUMENT);
 
-                if !p.at(T![,]) {
+                // `end.at()` for the `]]` join, which only it can do
+                if end.at(p) || !p.at(T![,]) {
                     break;
                 }
             }

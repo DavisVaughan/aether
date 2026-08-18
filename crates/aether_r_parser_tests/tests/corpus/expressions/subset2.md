@@ -24,6 +24,16 @@ x[["a"]
 ]
 ```
 
+## Side By Side Arguments Still Join The `]]` [error]
+
+Recovering inside `[[` must still leave the `]]` joined. The lexer never emits
+one, so a list that gives up without asking its terminator strands both `]` in
+the enclosing statement list.
+
+```r
+x[[a b]]
+```
+
 ## Subset2 Arguments [pending]
 
 ```r

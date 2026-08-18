@@ -493,6 +493,66 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
     3 │
 ```
 
+## Side By Side Arguments Still Join The `]]` [error]
+
+Recovering inside `[[` must still leave the `]]` joined. The lexer never emits
+one, so a list that gives up without asking its terminator strands both `]` in
+the enclosing statement list.
+
+```r
+x[[a b]]
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RSubset2 {
+                function: RIdentifier {
+                    name_token: IDENT@0..1 "x" [] [],
+                },
+                arguments: RSubset2Arguments {
+                    l_brack2_token: L_BRACK2@1..3 "[[" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIdentifier {
+                                name_token: IDENT@3..5 "a" [] [Whitespace(" ")],
+                            },
+                        },
+                        missing separator,
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RBogusExpression {
+                                items: [
+                                    IDENT@5..6 "b" [] [],
+                                ],
+                            },
+                        },
+                    ],
+                    r_brack2_token: R_BRACK2@6..8 "]]" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@8..9 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:1:6 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `,` but instead found `b`
+
+  > 1 │ x[[a b]]
+      │      ^
+    2 │
+
+  i Remove b
+```
+
 ## Subset2 Arguments [pending]
 
 ```r
