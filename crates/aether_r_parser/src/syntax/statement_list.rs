@@ -26,7 +26,7 @@ impl StatementListEnd {
 /// Runs to `end` and never stops short of it, which is what lets
 /// [crate::syntax::parse_root()] expect an `EOF`.
 pub(crate) fn parse_statement_list(p: &mut RParser, end: StatementListEnd) {
-    let m = p.start();
+    let statement_list = p.start();
     let mut progress = ParserProgress::default();
 
     while !p.at(T![EOF]) && !end.matches(p.cur()) {
@@ -60,5 +60,5 @@ pub(crate) fn parse_statement_list(p: &mut RParser, end: StatementListEnd) {
         statement.complete(p, R_STATEMENT);
     }
 
-    m.complete(p, R_STATEMENT_LIST);
+    statement_list.complete(p, R_STATEMENT_LIST);
 }
