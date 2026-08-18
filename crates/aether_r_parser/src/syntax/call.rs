@@ -34,6 +34,11 @@ pub(crate) fn parse_subset_arguments(p: &mut RParser) {
 pub(crate) fn parse_subset2_arguments(p: &mut RParser) {
     let m = p.start();
     p.with_scope(Scope::Bracket2, |p| {
+        // Purposefully bump inside `with_scope()`. Bumping lexes the next
+        // token after this one, and the context for how two back to back `]`
+        // `]` are lexed depends on whether we are in a Bracket2 scope or not.
+        // If we bump before `with_scope()` then an empty `x[[]]` parses
+        // incorrectly!
         p.bump(T!["[["]);
         parse_argument_list(p, T!["]]"]);
     });
