@@ -162,10 +162,8 @@ fn parse_argument(p: &mut RParser) {
 
 /// identifier | string | `...` | `..i` | `NULL`
 ///
-/// Every one of these is also an expression, which is what lets
-/// [parse_argument()] hand the atom straight to the Pratt loop when no `=`
-/// follows it. `NULL` is accepted here and nowhere else, and has been since the
-/// beginning of R — see r-lib/tree-sitter-r#164.
+/// `NULL` is accepted here and nowhere else, and has been since the
+/// beginning of R (r-lib/tree-sitter-r#164).
 fn parse_argument_name(p: &mut RParser) -> ParsedSyntax {
     match p.cur() {
         IDENT => {
