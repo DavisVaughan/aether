@@ -140,7 +140,6 @@ fn parse_infix_expression(
     p.bump_any();
     parse_expression_with_binding_power(p, new_binding_power)
         .or_add_diagnostic(p, diagnostics::expected_expression);
-
     Present(m.complete(p, R_BINARY_EXPRESSION))
 }
 
