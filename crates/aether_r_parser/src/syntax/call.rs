@@ -15,7 +15,7 @@ pub(crate) fn parse_call_arguments(p: &mut RParser) {
     let m = p.start();
     p.with_scope(Scope::Parenthesis, |p| {
         p.bump(T!['(']);
-        parse_argument_list(p, T![')']);
+        parse_argument_list(p);
     });
     p.expect(T![')']);
     m.complete(p, R_CALL_ARGUMENTS);
@@ -25,7 +25,7 @@ pub(crate) fn parse_subset_arguments(p: &mut RParser) {
     let m = p.start();
     p.with_scope(Scope::Bracket, |p| {
         p.bump(T!['[']);
-        parse_argument_list(p, T![']']);
+        parse_argument_list(p);
     });
     p.expect(T![']']);
     m.complete(p, R_SUBSET_ARGUMENTS);
@@ -40,7 +40,7 @@ pub(crate) fn parse_subset2_arguments(p: &mut RParser) {
         // If we bump before `with_scope()` then an empty `x[[]]` parses
         // incorrectly!
         p.bump(T!["[["]);
-        parse_argument_list(p, T!["]]"]);
+        parse_argument_list(p);
     });
     // Similarly, we `expect()` (bump + assert) outside the scope so that a
     // potential future `]` can't be affected by a now closed Bracket2 scope
@@ -48,40 +48,29 @@ pub(crate) fn parse_subset2_arguments(p: &mut RParser) {
     m.complete(p, R_SUBSET2_ARGUMENTS);
 }
 
-/// Tokens a failed argument may resynchronise on
+/// What ends an argument list
 ///
-/// Deliberately wider than any one list's terminator: eating a closing
-/// delimiter of any kind would strip an enclosing construct of its terminator
-/// and turn one error into a cascade. `EOF` is absent because `recover()` stops
-/// there whether the set says so or not.
-const ARGUMENT_LIST_RECOVERY_SET: TokenSet<RSyntaxKind> =
-    token_set![T![,], T![')'], T![']'], T!["]]"], T!['}']];
+/// Any closing delimiter, not just the one the caller opened. We don't consume
+/// it, we return from here. The caller's `expect()` on the closing delimiter
+/// reports a diagnostic, which still doesn't consume, and the delimiter
+/// survives (ideally to be consumed by its actual owner).
+const ARGUMENT_LIST_ENDS: TokenSet<RSyntaxKind> =
+    token_set![T![EOF], T![')'], T![']'], T!["]]"], T!['}']];
 
-fn parse_argument_list(p: &mut RParser, close: RSyntaxKind) {
+/// Where an argument may stop: at the `,` that starts the next one, or at an end
+const ARGUMENT_LIST_BOUNDARIES: TokenSet<RSyntaxKind> = ARGUMENT_LIST_ENDS.union(token_set![T![,]]);
+
+fn parse_argument_list(p: &mut RParser) {
     let argument_list = p.start();
     let mut progress = ParserProgress::default();
 
     // Handle empty list before looping
-    if !p.at(close) && !p.at(T![EOF]) {
+    if !p.at_ts(ARGUMENT_LIST_ENDS) {
         loop {
             progress.assert_progressing(p);
             parse_argument(p);
 
-            // Normal exit, we found our close
-            if p.at(close) || p.at(T![EOF]) {
-                break;
-            }
-
-            if !p.at(T![,]) {
-                // A closing delimiter that belongs to someone else. We don't
-                // consume it, we return from here. The caller's `expect()` on
-                // the closing delimiter reports a diagnostic, which still
-                // doesn't consume, and the delimiter survives (ideally to be
-                // consumed by its actual owner).
-                if p.at_ts(ARGUMENT_LIST_RECOVERY_SET) {
-                    break;
-                }
-
+            if !p.at_ts(ARGUMENT_LIST_BOUNDARIES) {
                 // We know there is a missing separator, so here's where we get
                 // to report that. Since the comma is missing, this doesn't
                 // bump, it just reports a diagnostic and we continue sitting
@@ -89,26 +78,24 @@ fn parse_argument_list(p: &mut RParser, close: RSyntaxKind) {
                 p.expect(T![,]);
 
                 let argument = p.start();
-                // Opens a marker, bumps repeatedly until we hit a recovery
-                // token or EOF, closes as R_BOGUS_EXPRESSION
+                // Opens a marker, bumps repeatedly until we hit a boundary,
+                // closes as R_BOGUS_EXPRESSION
                 let recovered =
-                    ParseRecoveryTokenSet::new(R_BOGUS_EXPRESSION, ARGUMENT_LIST_RECOVERY_SET)
+                    ParseRecoveryTokenSet::new(R_BOGUS_EXPRESSION, ARGUMENT_LIST_BOUNDARIES)
                         .recover(p);
                 debug_assert!(
                     recovered.is_ok(),
-                    "`EOF` and the recovery set are both excluded above"
+                    "not at a boundary, so not at `EOF` either"
                 );
                 argument.complete(p, R_ARGUMENT);
+            }
 
-                // We've now recovered to a recovery set token or EOF. If that
-                // recovery set token was a comma, we consume it below and
-                // continue parsing arguments. Otherwise we've recovered to a
-                // closing delimiter (either ours or someone else's) so we
-                // break. If it wasn't our closing delimiter, the caller's
-                // `expect()` will report a diagnostic for that.
-                if !p.at(T![,]) {
-                    break;
-                }
+            // We are at a boundary, either because the argument ended at one or
+            // because we just recovered to one. A comma means another argument
+            // follows, so consume it and loop. Anything else ends the list, and
+            // we leave it where it is.
+            if !p.at(T![,]) {
+                break;
             }
 
             p.bump(T![,]);

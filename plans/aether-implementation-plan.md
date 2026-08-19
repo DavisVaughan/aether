@@ -2075,31 +2075,41 @@ So a terminator check is a plain predicate:
 ```rust
 // crates/aether_r_parser/src/syntax/call.rs
 //
-/// Tokens a failed argument may resynchronise on
+/// What ends an argument list
 ///
-/// Deliberately wider than any one list's terminator: eating a closing
-/// delimiter of any kind would strip an enclosing construct of its terminator
-/// and turn one error into a cascade — the same rule as `a$)` in §11.4, where
-/// the `)` is left alone for exactly this reason. `EOF` is absent because
-/// `recover()` stops there whether the set says so or not.
-const ARGUMENT_LIST_RECOVERY_SET: TokenSet<RSyntaxKind> =
-    token_set![T![,], T![')'], T![']'], T!["]]"], T!['}']];
+/// Any closing delimiter, not just the one the caller opened: eating one that
+/// belongs to an enclosing construct would strip it of its terminator and turn
+/// one error into a cascade — the same rule as `a$)` in §11.4, where the `)` is
+/// left alone for exactly this reason.
+const ARGUMENT_LIST_ENDS: TokenSet<RSyntaxKind> =
+    token_set![T![EOF], T![')'], T![']'], T!["]]"], T!['}']];
+
+/// Where an argument may stop: at the `,` that starts the next one, or at an end
+const ARGUMENT_LIST_BOUNDARIES: TokenSet<RSyntaxKind> = ARGUMENT_LIST_ENDS.union(token_set![T![,]]);
 
 fn parse_subset2_arguments(p: &mut RParser) {
     let m = p.start();
     p.with_scope(Scope::Bracket2, |p| {
         p.bump(T!["[["]);
-        parse_argument_list(p, T!["]]"]);
+        parse_argument_list(p);
     });
     p.expect(T!["]]"]);
     m.complete(p, R_SUBSET2_ARGUMENTS);
 }
 ```
 
-The terminator is a bare `RSyntaxKind` and the recovery set is a module-level
-const, unlike `StatementListEnd` (§11.7), which owns both. An argument list's
-recovery set is deliberately wider than its own terminator, so there is nothing
-to derive.
+**The list does not know which closer is its own, and that is the point.** It
+stops at every one of them; `p.expect(close)` in the caller is the only place
+that knows which was expected, and it reports the difference. A list that cannot
+name its terminator cannot leak it either, which is what `StatementListEnd`
+(§11.7) buys with a type instead. The two constants carry the rest: `_ENDS` for
+where the list stops, `_BOUNDARIES = _ENDS ∪ {,}` for where an argument may
+stop, so the recovery set is derived rather than restated. `EOF` is in `_ENDS`
+because it ends every list; `recover()` stops there on its own account too.
+
+An argument list stopping at a foreign closer costs it its own terminator, and
+`fn(}` in `expressions/call.md` pins the shape: an empty `RArgumentList`, a
+missing `)`, and the `}` surviving as a statement of its own.
 
 **The join was first written into the argument list's terminator check, and that
 was wrong.** Worth recording, because the reasoning that put it there is seductive:
@@ -2158,13 +2168,13 @@ Not allowed:  fn(a b)
 ```
 
 ```rust
-fn parse_argument_list(p: &mut RParser, close: RSyntaxKind) {
+fn parse_argument_list(p: &mut RParser) {
     let m = p.start();
     let mut progress = ParserProgress::default();
     let mut first = true;
 
     loop {
-        if p.at(close) || p.at(T![EOF]) { break }
+        if p.at_ts(ARGUMENT_LIST_ENDS) { break }
 
         // `fn(,,a,,b,,)` means an iteration may legitimately consume only a
         // comma, so progress is asserted across the whole iteration rather than
@@ -2190,7 +2200,7 @@ fn parse_argument_list(p: &mut RParser, close: RSyntaxKind) {
                 let arg = p.start();
                 let recovered = ParseRecoveryTokenSet::new(
                     R_BOGUS_EXPRESSION,
-                    ARGUMENT_LIST_RECOVERY_SET,
+                    ARGUMENT_LIST_BOUNDARIES,
                 )
                 .recover(p);
                 if recovered.is_err() {
@@ -2907,14 +2917,15 @@ dedicated pass:
 - **No list check is allowed to be load-bearing beyond what it returns.** Biome's
   `ParseSeparatedList::parse_list` checks its terminator in exactly one place,
   which is why none of its thirty-odd implementors can leak one;
-  `parse_argument_list` (§11.3) checks in three, and while that was merely untidy
-  on its own, it cost a bug once its terminator check also re-lexed the `]]`.
-  The recovery branch grew an exit that never called it, so `x[[a b]]` lost its
-  terminator and stranded both brackets in the enclosing statement list. That is
-  fixed at the root — the join moved to `RParser::do_bump()` and the check is a
-  pure predicate again (§11.3) — so what is left for this pass is the general
-  rule: a predicate that a loop calls at some exits and not others must not be the
-  only thing doing a job. Audit every `break` out of a list loop on that basis.
+  `parse_argument_list` (§11.3) once checked in three places, and while that was
+  merely untidy on its own, it cost a bug when its terminator check also re-lexed
+  the `]]`. The recovery branch grew an exit that never called it, so `x[[a b]]`
+  lost its terminator and stranded both brackets in the enclosing statement list.
+  Both halves are fixed: the join moved to `RParser::do_bump()`, and the loop was
+  rewritten around `ARGUMENT_LIST_ENDS` so that it has one `break` and no
+  terminator of its own to leak. The general rule still wants the audit: a
+  predicate that a loop calls at some exits and not others must not be the only
+  thing doing a job. Check every `break` out of a list loop on that basis.
 
 - Every bogus node is overlapped by a diagnostic. `check()` step 4 has enforced
   this since Phase 6 (§10.2), so the Phase 14 job is to review the *wording* and

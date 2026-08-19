@@ -193,3 +193,18 @@ return()
 # Can't have two arguments side by side without a delimiter
 fn(a b)
 ```
+
+## Closing Delimiter Belonging To Someone Else [error]
+
+The argument list ends at any closing delimiter, not just its own, so the `}`
+survives for its owner rather than being eaten as an argument. Nothing was
+written between the `(` and the `}`, so the list is empty rather than holding
+one empty argument.
+
+```r
+fn(}
+```
+
+```r
+fn(a}
+```

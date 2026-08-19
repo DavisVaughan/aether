@@ -2049,3 +2049,109 @@ test.R:2:6 parse ━━━━━━━━━━━━━━━━━━━━━
 
   i Remove b
 ```
+
+## Closing Delimiter Belonging To Someone Else [error]
+
+The argument list ends at any closing delimiter, not just its own, so the `}`
+survives for its owner rather than being eaten as an argument. Nothing was
+written between the `(` and the `}`, so the list is empty rather than holding
+one empty argument.
+
+```r
+fn(}
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@0..2 "fn" [] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@2..3 "(" [] [],
+                    items: RArgumentList [],
+                    r_paren_token: missing (required),
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBogusExpression {
+                items: [
+                    R_CURLY@3..4 "}" [] [],
+                ],
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@4..5 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:1:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `)` but instead found `}`
+
+  > 1 │ fn(}
+      │    ^
+    2 │
+
+  i Remove }
+```
+
+```r
+fn(a}
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@0..2 "fn" [] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@2..3 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIdentifier {
+                                name_token: IDENT@3..4 "a" [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: missing (required),
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBogusExpression {
+                items: [
+                    R_CURLY@4..5 "}" [] [],
+                ],
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@5..6 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:1:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `)` but instead found `}`
+
+  > 1 │ fn(a}
+      │     ^
+    2 │
+
+  i Remove }
+```
