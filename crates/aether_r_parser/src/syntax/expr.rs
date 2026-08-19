@@ -128,6 +128,7 @@ fn parse_infix_expression(
         return Absent;
     };
     if new_binding_power < current_binding_power {
+        // New operator binds too loosely
         return Absent;
     }
     let new_binding_power = match associativity {
