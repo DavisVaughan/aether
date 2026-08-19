@@ -34,39 +34,6 @@ enum Associativity {
     Right,
 }
 
-/// Taken from R's `gram.y`
-///
-/// `$`, `@`, `::`, and `:::` are missing until Phase 10 gives them a right-hand
-/// side of their own
-fn infix_binding_power(kind: RSyntaxKind) -> Option<(BindingPower, Associativity)> {
-    Some(match kind {
-        T![?] => (BindingPower(1), Associativity::Left),
-        T![<-] | T![<<-] | T![:=] => (BindingPower(2), Associativity::Right),
-        T![=] => (BindingPower(3), Associativity::Right),
-        T![->] | T![->>] => (BindingPower(4), Associativity::Left),
-        T![~] => (BindingPower(5), Associativity::Left),
-        T![|] | T![||] => (BindingPower(6), Associativity::Left),
-        T![&] | T![&&] => (BindingPower(7), Associativity::Left),
-        T![<] | T![<=] | T![>] | T![>=] | T![==] | T![!=] => (BindingPower(9), Associativity::Left),
-        T![+] | T![-] => (BindingPower(10), Associativity::Left),
-        T![*] | T![/] => (BindingPower(11), Associativity::Left),
-        SPECIAL | T![|>] => (BindingPower(12), Associativity::Left),
-        T![:] => (BindingPower(13), Associativity::Left),
-        T![^] | T![**] => (BindingPower(15), Associativity::Right),
-        _ => return None,
-    })
-}
-
-fn prefix_binding_power(kind: RSyntaxKind) -> Option<BindingPower> {
-    Some(match kind {
-        T![?] => BindingPower(1),
-        T![~] => BindingPower(5),
-        T![!] => BindingPower(8),
-        T![+] | T![-] => BindingPower(14),
-        _ => return None,
-    })
-}
-
 pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
     parse_expression_with_binding_power(p, BindingPower::LOWEST)
 }
@@ -115,67 +82,6 @@ pub(crate) fn parse_expression_with_lhs(
     }
 
     lhs
-}
-
-/// Infix: `a + b`, `a <- b`, `a %in% b`
-fn parse_infix_expression(
-    p: &mut RParser,
-    lhs: &CompletedMarker,
-    current_binding_power: BindingPower,
-) -> ParsedSyntax {
-    let Some((new_binding_power, associativity)) = infix_binding_power(p.cur()) else {
-        // Not an infix operator
-        return Absent;
-    };
-    if new_binding_power < current_binding_power {
-        // New operator binds too loosely
-        return Absent;
-    }
-    let new_binding_power = match associativity {
-        Associativity::Left => BindingPower(new_binding_power.0 + 1),
-        Associativity::Right => new_binding_power,
-    };
-
-    let m = lhs.clone().precede(p);
-    p.bump_any();
-    parse_expression_with_binding_power(p, new_binding_power)
-        .or_add_diagnostic(p, diagnostics::expected_expression);
-    Present(m.complete(p, R_BINARY_EXPRESSION))
-}
-
-/// Postfix: `f(x)`, `x[i]`, `x[[i]]`
-fn parse_postfix_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedSyntax {
-    match p.cur() {
-        T!['('] => {
-            let m = lhs.clone().precede(p);
-            parse_call_arguments(p);
-            Present(m.complete(p, R_CALL))
-        }
-        T!['['] => {
-            let m = lhs.clone().precede(p);
-            parse_subset_arguments(p);
-            Present(m.complete(p, R_SUBSET))
-        }
-        T!["[["] => {
-            let m = lhs.clone().precede(p);
-            parse_subset2_arguments(p);
-            Present(m.complete(p, R_SUBSET2))
-        }
-        _ => Absent,
-    }
-}
-
-fn parse_prefix_expression(p: &mut RParser) -> ParsedSyntax {
-    let Some(binding_power) = prefix_binding_power(p.cur()) else {
-        // Not a prefix operator
-        return Absent;
-    };
-
-    let m = p.start();
-    p.bump_any();
-    parse_expression_with_binding_power(p, binding_power)
-        .or_add_diagnostic(p, diagnostics::expected_expression);
-    Present(m.complete(p, R_UNARY_EXPRESSION))
 }
 
 fn parse_primary_expression(p: &mut RParser) -> ParsedSyntax {
@@ -258,6 +164,100 @@ fn parse_primary_expression(p: &mut RParser) -> ParsedSyntax {
         }
         STRING_OPEN => parse_string_value(p),
         T!['('] => parse_parenthesized_expression(p),
+        _ => Absent,
+    }
+}
+
+fn parse_prefix_expression(p: &mut RParser) -> ParsedSyntax {
+    let Some(binding_power) = prefix_binding_power(p.cur()) else {
+        // Not a prefix operator
+        return Absent;
+    };
+
+    let m = p.start();
+    p.bump_any();
+    parse_expression_with_binding_power(p, binding_power)
+        .or_add_diagnostic(p, diagnostics::expected_expression);
+    Present(m.complete(p, R_UNARY_EXPRESSION))
+}
+
+fn prefix_binding_power(kind: RSyntaxKind) -> Option<BindingPower> {
+    Some(match kind {
+        T![?] => BindingPower(1),
+        T![~] => BindingPower(5),
+        T![!] => BindingPower(8),
+        T![+] | T![-] => BindingPower(14),
+        _ => return None,
+    })
+}
+
+/// Infix: `a + b`, `a <- b`, `a %in% b`
+fn parse_infix_expression(
+    p: &mut RParser,
+    lhs: &CompletedMarker,
+    current_binding_power: BindingPower,
+) -> ParsedSyntax {
+    let Some((new_binding_power, associativity)) = infix_binding_power(p.cur()) else {
+        // Not an infix operator
+        return Absent;
+    };
+    if new_binding_power < current_binding_power {
+        // New operator binds too loosely
+        return Absent;
+    }
+    let new_binding_power = match associativity {
+        Associativity::Left => BindingPower(new_binding_power.0 + 1),
+        Associativity::Right => new_binding_power,
+    };
+
+    let m = lhs.clone().precede(p);
+    p.bump_any();
+    parse_expression_with_binding_power(p, new_binding_power)
+        .or_add_diagnostic(p, diagnostics::expected_expression);
+    Present(m.complete(p, R_BINARY_EXPRESSION))
+}
+
+/// Taken from R's `gram.y`
+///
+/// `$`, `@`, `::`, and `:::` are missing until Phase 10 gives them a right-hand
+/// side of their own
+fn infix_binding_power(kind: RSyntaxKind) -> Option<(BindingPower, Associativity)> {
+    Some(match kind {
+        T![?] => (BindingPower(1), Associativity::Left),
+        T![<-] | T![<<-] | T![:=] => (BindingPower(2), Associativity::Right),
+        T![=] => (BindingPower(3), Associativity::Right),
+        T![->] | T![->>] => (BindingPower(4), Associativity::Left),
+        T![~] => (BindingPower(5), Associativity::Left),
+        T![|] | T![||] => (BindingPower(6), Associativity::Left),
+        T![&] | T![&&] => (BindingPower(7), Associativity::Left),
+        T![<] | T![<=] | T![>] | T![>=] | T![==] | T![!=] => (BindingPower(9), Associativity::Left),
+        T![+] | T![-] => (BindingPower(10), Associativity::Left),
+        T![*] | T![/] => (BindingPower(11), Associativity::Left),
+        SPECIAL | T![|>] => (BindingPower(12), Associativity::Left),
+        T![:] => (BindingPower(13), Associativity::Left),
+        T![^] | T![**] => (BindingPower(15), Associativity::Right),
+        _ => return None,
+    })
+}
+
+/// Postfix: `f(x)`, `x[i]`, `x[[i]]`
+fn parse_postfix_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedSyntax {
+    match p.cur() {
+        T!['('] => {
+            let m = lhs.clone().precede(p);
+            parse_call_arguments(p);
+            Present(m.complete(p, R_CALL))
+        }
+        T!['['] => {
+            let m = lhs.clone().precede(p);
+            parse_subset_arguments(p);
+            Present(m.complete(p, R_SUBSET))
+        }
+        T!["[["] => {
+            let m = lhs.clone().precede(p);
+            parse_subset2_arguments(p);
+            Present(m.complete(p, R_SUBSET2))
+        }
         _ => Absent,
     }
 }
