@@ -167,6 +167,7 @@ fn parse_postfix_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedSyn
 
 fn parse_prefix_expression(p: &mut RParser) -> ParsedSyntax {
     let Some(binding_power) = prefix_binding_power(p.cur()) else {
+        // Not a prefix operator
         return Absent;
     };
 
