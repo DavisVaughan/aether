@@ -82,9 +82,6 @@ fn parse_expression_with_binding_power(
 }
 
 /// The Pratt loop, entered with an already-parsed left operand
-///
-/// Split out for [crate::syntax::call::parse_argument()], which speculatively
-/// parses an argument name and hands the atom over when no `=` follows it.
 pub(crate) fn parse_expression_with_lhs(
     p: &mut RParser,
     mut lhs: CompletedMarker,
