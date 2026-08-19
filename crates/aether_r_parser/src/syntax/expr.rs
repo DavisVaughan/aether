@@ -118,9 +118,6 @@ pub(crate) fn parse_expression_with_lhs(
 }
 
 /// Infix: `a + b`, `a <- b`, `a %in% b`
-///
-/// `Absent` when the current token is not an infix operator, or binds too
-/// loosely for the caller to take it.
 fn parse_infix_expression(
     p: &mut RParser,
     lhs: &CompletedMarker,
