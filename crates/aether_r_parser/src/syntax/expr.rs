@@ -250,8 +250,8 @@ fn parse_primary_expression(p: &mut RParser) -> ParsedSyntax {
             p.bump_any();
             Present(m.complete(p, R_NA_EXPRESSION))
         }
-        // Lexer already raised `unexpected_character()`
         ERROR_TOKEN => {
+            // Lexer already raised `unexpected_character()`
             let m = p.start();
             p.bump_any();
             Present(m.complete(p, R_BOGUS_EXPRESSION))
