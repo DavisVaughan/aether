@@ -87,8 +87,6 @@ pub(crate) fn parse_expression_with_lhs(
     mut lhs: CompletedMarker,
     current_binding_power: BindingPower,
 ) -> CompletedMarker {
-    // Asserted rather than branched on, so that adding an infix operator at rank
-    // 18 or above fails loudly instead of silently reaching dead code
     debug_assert!(
         current_binding_power <= BindingPower::HIGHEST,
         "{current_binding_power:?} exceeds {:?}; postfix must stay the tightest-binding construct",
