@@ -96,6 +96,7 @@ pub(crate) fn parse_expression_with_lhs(
     loop {
         // `1\n+2` is two statements, `1 +\n2` is one
         if p.scope().newlines_are_significant() && p.has_preceding_line_break() {
+            // Finish current expression due to line break
             break;
         }
 
