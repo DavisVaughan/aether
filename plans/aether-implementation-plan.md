@@ -1701,7 +1701,7 @@ fn parse_expression_with_lhs(
         // Postfix `(`, `[`, `[[` bind tightest and are handled here rather than
         // through `infix_binding_power`. Unconditional: there is no caller for
         // which refusing a postfix would be correct — `a::b(c)` is `(a::b)(c)`.
-        if let Some(next) = parse_postfix(p, &lhs) { lhs = next; continue }
+        if let Present(new_lhs) = parse_postfix(p, &lhs) { lhs = new_lhs; continue }
 
         let Present(binary) = parse_infix_expression(p, &lhs, min_bp) else { break };
         lhs = binary;
@@ -1995,28 +1995,28 @@ Later phases reuse it rather than wording their own — the function body of a
 `src/syntax/call.rs`.
 
 ```rust
-/// Postfix: `f(x)`, `x[i]`, `x[[i]]`. Returns `None` if no postfix applies.
-fn parse_postfix(p: &mut RParser, lhs: CompletedMarker) -> Option<CompletedMarker> {
+/// Postfix: `f(x)`, `x[i]`, `x[[i]]`. `Absent` if no postfix applies.
+fn parse_postfix(p: &mut RParser, lhs: &CompletedMarker) -> ParsedSyntax {
     // `f\n(x)` at statement level is two statements, not a call. Already
     // guaranteed by the statement-break check in the caller, but the errors
     // corpus tests this directly ("Not A Call, Subset, Or Subset2").
     match p.cur() {
         T!['('] => {
-            let m = lhs.precede(p);
+            let m = lhs.clone().precede(p);
             parse_call_arguments(p);
-            Some(m.complete(p, R_CALL))
+            Present(m.complete(p, R_CALL))
         }
         T!['['] => {
-            let m = lhs.precede(p);
+            let m = lhs.clone().precede(p);
             parse_subset_arguments(p);
-            Some(m.complete(p, R_SUBSET))
+            Present(m.complete(p, R_SUBSET))
         }
         T!["[["] => {
-            let m = lhs.precede(p);
+            let m = lhs.clone().precede(p);
             parse_subset2_arguments(p);
-            Some(m.complete(p, R_SUBSET2))
+            Present(m.complete(p, R_SUBSET2))
         }
-        _ => None,
+        _ => Absent,
     }
 }
 

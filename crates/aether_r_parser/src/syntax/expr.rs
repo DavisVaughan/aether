@@ -101,7 +101,7 @@ pub(crate) fn parse_expression_with_lhs(
 
         // No need for binding power here. Postfix operations all share the
         // maximum binding power.
-        if let Some(new_lhs) = parse_postfix_expression(p, &lhs) {
+        if let Present(new_lhs) = parse_postfix_expression(p, &lhs) {
             lhs = new_lhs;
             continue;
         }
@@ -144,24 +144,24 @@ fn parse_infix_expression(
 }
 
 /// Postfix: `f(x)`, `x[i]`, `x[[i]]`
-fn parse_postfix_expression(p: &mut RParser, lhs: &CompletedMarker) -> Option<CompletedMarker> {
+fn parse_postfix_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedSyntax {
     match p.cur() {
         T!['('] => {
             let m = lhs.clone().precede(p);
             parse_call_arguments(p);
-            Some(m.complete(p, R_CALL))
+            Present(m.complete(p, R_CALL))
         }
         T!['['] => {
             let m = lhs.clone().precede(p);
             parse_subset_arguments(p);
-            Some(m.complete(p, R_SUBSET))
+            Present(m.complete(p, R_SUBSET))
         }
         T!["[["] => {
             let m = lhs.clone().precede(p);
             parse_subset2_arguments(p);
-            Some(m.complete(p, R_SUBSET2))
+            Present(m.complete(p, R_SUBSET2))
         }
-        _ => None,
+        _ => Absent,
     }
 }
 
