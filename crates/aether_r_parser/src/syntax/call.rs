@@ -82,8 +82,10 @@ fn parse_argument_list(p: &mut RParser, close: RSyntaxKind) {
                     break;
                 }
 
-                // `f(a b)`. Reported before recovering, because afterwards the
-                // cursor sits on the terminator.
+                // We know there is a missing separator, so here's where we get
+                // to report that. Since the comma is missing, this doesn't
+                // bump, it just reports a diagnostic and we continue sitting
+                // where we are.
                 p.expect(T![,]);
 
                 let argument = p.start();
