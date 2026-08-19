@@ -89,7 +89,7 @@ pub(crate) fn parse_expression_with_lhs(
 ) -> CompletedMarker {
     debug_assert!(
         current_binding_power <= BindingPower::HIGHEST,
-        "{current_binding_power:?} exceeds {:?}; postfix must stay the tightest-binding construct",
+        "{current_binding_power:?} exceeds {:?}. Postfix must stay the tightest-binding construct!",
         BindingPower::HIGHEST
     );
 
