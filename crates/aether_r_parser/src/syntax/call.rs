@@ -100,6 +100,12 @@ fn parse_argument_list(p: &mut RParser, close: RSyntaxKind) {
                 );
                 argument.complete(p, R_ARGUMENT);
 
+                // We've now recovered to a recovery set token or EOF. If that
+                // recovery set token was a comma, we consume it below and
+                // continue parsing arguments. Otherwise we've recovered to a
+                // closing delimiter (either ours or someone else's) so we
+                // break. If it wasn't our closing delimiter, the caller's
+                // `expect()` will report a diagnostic for that.
                 if !p.at(T![,]) {
                     break;
                 }
