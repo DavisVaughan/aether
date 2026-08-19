@@ -124,6 +124,7 @@ fn parse_infix_expression(
     current_binding_power: BindingPower,
 ) -> ParsedSyntax {
     let Some((new_binding_power, associativity)) = infix_binding_power(p.cur()) else {
+        // Not an infix operator
         return Absent;
     };
     if new_binding_power < current_binding_power {
