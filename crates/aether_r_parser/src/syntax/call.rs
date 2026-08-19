@@ -67,6 +67,7 @@ fn parse_argument_list(p: &mut RParser, close: RSyntaxKind) {
             progress.assert_progressing(p);
             parse_argument(p);
 
+            // Normal exit, we found our close
             if p.at(close) || p.at(T![EOF]) {
                 break;
             }
