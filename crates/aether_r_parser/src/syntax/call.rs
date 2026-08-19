@@ -89,6 +89,8 @@ fn parse_argument_list(p: &mut RParser, close: RSyntaxKind) {
                 p.expect(T![,]);
 
                 let argument = p.start();
+                // Opens a marker, bumps repeatedly until we hit a recovery
+                // token or EOF, closes as R_BOGUS_EXPRESSION
                 let recovered =
                     ParseRecoveryTokenSet::new(R_BOGUS_EXPRESSION, ARGUMENT_LIST_RECOVERY_SET)
                         .recover(p);
