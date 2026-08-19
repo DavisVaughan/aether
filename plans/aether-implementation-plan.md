@@ -1443,7 +1443,7 @@ pub(crate) fn parse_root(p: &mut RParser) {
     p.eat(UNICODE_BOM);
     // No scoped helper here: the defaults *are* top-level behaviour — newlines
     // are significant and `else` may not follow one. See §9.2 on polarity.
-    parse_statement_list(p, StatementListEnd::Eof);
+    parse_statement_list(p, EOF);
     p.expect(T![EOF]);
     m.complete(p, R_ROOT);
 }
@@ -2101,8 +2101,9 @@ fn parse_subset2_arguments(p: &mut RParser) {
 **The list does not know which closer is its own, and that is the point.** It
 stops at every one of them; `p.expect(close)` in the caller is the only place
 that knows which was expected, and it reports the difference. A list that cannot
-name its terminator cannot leak it either, which is what `StatementListEnd`
-(§11.7) buys with a type instead. The two constants carry the rest: `_ENDS` for
+name its terminator cannot leak it either. `parse_statement_list()` (§11.7)
+takes the same shape, a bare `close` and a const recovery set, for the same
+reason. The two constants carry the rest here: `_ENDS` for
 where the list stops, `_BOUNDARIES = _ENDS ∪ {,}` for where an argument may
 stop, so the recovery set is derived rather than restated. `EOF` is in `_ENDS`
 because it ends every list; `recover()` stops there on its own account too.
@@ -2734,46 +2735,23 @@ fn parse_braced_statements(p: &mut RParser) -> ParsedSyntax {
     // paren: `f({\n  a\n  b\n})` is three statements, not one.
     p.with_scope(Scope::Brace, |p| {
         p.bump(T!['{']);
-        parse_statement_list(p, StatementListEnd::RCurly)
+        parse_statement_list(p, T!['}'])
     });
     p.expect(T!['}']);
     Present(m.complete(p, R_BRACED_STATEMENTS))
 }
 
-/// Where a statement list stops: end of file, or the `}` of a braced block.
-/// Owning the terminator as a type means the recovery set is derived from it
-/// rather than hardcoded, so a future list terminator cannot forget to add
-/// itself to the set.
-#[derive(Debug, Clone, Copy)]
-pub(crate) enum StatementListEnd {
-    Eof,
-    RCurly,
-}
+/// Tokens a failed statement may resynchronise on: the statement separator, the
+/// `}` of a braced block, and EOF as the universal backstop. Listed whether or
+/// not this particular list is the one a `}` closes, for the reason §11.3 gives:
+/// a closer that belongs to someone else must survive to reach them.
+const STATEMENT_LIST_RECOVERY_SET: TokenSet<RSyntaxKind> = token_set![T![;], T![EOF], T!['}']];
 
-impl StatementListEnd {
-    fn matches(self, kind: RSyntaxKind) -> bool {
-        match self {
-            Self::Eof => kind == T![EOF],
-            Self::RCurly => kind == T!['}'],
-        }
-    }
-
-    /// Tokens a failed statement may resynchronise on: the statement separator,
-    /// this list's own terminator, and EOF as the universal backstop.
-    fn recovery_set(self) -> TokenSet<RSyntaxKind> {
-        let base = token_set![T![;], T![EOF]];
-        match self {
-            Self::Eof => base,
-            Self::RCurly => base.union(token_set![T!['}']]),
-        }
-    }
-}
-
-fn parse_statement_list(p: &mut RParser, end: StatementListEnd) {
+fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
     let m = p.start();
     let mut progress = ParserProgress::default();
 
-    while !p.at(T![EOF]) && !end.matches(p.cur()) {
+    while !p.at(T![EOF]) && !p.at(close) {
         progress.assert_progressing(p);
 
         let stmt = p.start();
@@ -2794,7 +2772,8 @@ fn parse_statement_list(p: &mut RParser, end: StatementListEnd) {
             // aether's `R_STATEMENT_LIST` will not, which is exactly why the
             // marker has to wrap the recovery.
             let range = p.cur_range();
-            let recovered = ParseRecoveryTokenSet::new(R_BOGUS_EXPRESSION, end.recovery_set())
+            let recovered =
+                ParseRecoveryTokenSet::new(R_BOGUS_EXPRESSION, STATEMENT_LIST_RECOVERY_SET)
                 .enable_recovery_on_line_break()
                 .recover(p);
 
@@ -2829,7 +2808,7 @@ fn parse_statement_list(p: &mut RParser, end: StatementListEnd) {
         if had_expression
             && !ate_semicolon
             && !p.at(T![EOF])
-            && !end.matches(p.cur())
+            && !p.at(close)
             && !p.has_preceding_line_break()
         {
             p.error(diagnostics::expected_statement_separator(
