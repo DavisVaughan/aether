@@ -101,8 +101,8 @@ pub(crate) fn parse_expression_with_lhs(
 
         // No need for binding power here. Postfix operations all share the
         // maximum binding power.
-        if let Some(call) = parse_postfix_expression(p, &lhs) {
-            lhs = call;
+        if let Some(new_lhs) = parse_postfix_expression(p, &lhs) {
+            lhs = new_lhs;
             continue;
         }
 
