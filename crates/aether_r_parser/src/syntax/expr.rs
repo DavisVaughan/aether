@@ -106,10 +106,12 @@ pub(crate) fn parse_expression_with_lhs(
             continue;
         }
 
-        let Present(binary) = parse_infix_expression(p, &lhs, current_binding_power) else {
-            break;
+        if let Present(new_lhs) = parse_infix_expression(p, &lhs, current_binding_power) {
+            lhs = new_lhs;
+            continue;
         };
-        lhs = binary;
+
+        break;
     }
 
     lhs
