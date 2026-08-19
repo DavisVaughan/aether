@@ -167,13 +167,13 @@ fn parse_postfix_expression(p: &mut RParser, lhs: &CompletedMarker) -> Option<Co
 }
 
 fn parse_prefix_expression(p: &mut RParser) -> ParsedSyntax {
-    let Some(bp) = prefix_binding_power(p.cur()) else {
+    let Some(binding_power) = prefix_binding_power(p.cur()) else {
         return Absent;
     };
 
     let m = p.start();
     p.bump_any();
-    parse_expression_with_binding_power(p, bp)
+    parse_expression_with_binding_power(p, binding_power)
         .or_add_diagnostic(p, diagnostics::expected_expression);
     Present(m.complete(p, R_UNARY_EXPRESSION))
 }
