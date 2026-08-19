@@ -6,8 +6,7 @@ use aether_r_syntax::T;
 use biome_parser::parsed_syntax::ParsedSyntax::{Absent, Present};
 use biome_parser::{Parser, ParserProgress};
 
-/// Runs to `close` and never stops short of it, which is what lets
-/// [crate::syntax::parse_root()] expect an `EOF`.
+/// Runs to `close` and never stops short of it
 pub(crate) fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
     let statement_list = p.start();
     let mut progress = ParserProgress::default();
