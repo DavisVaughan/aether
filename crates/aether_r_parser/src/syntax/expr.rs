@@ -100,7 +100,8 @@ pub(crate) fn parse_expression_with_lhs(
             break;
         }
 
-        // Rank 18, so no binding power guard: no caller wants a postfix refused
+        // No need for binding power here. Postfix operations all share the
+        // maximum binding power.
         if let Some(call) = parse_postfix_expression(p, &lhs) {
             lhs = call;
             continue;
