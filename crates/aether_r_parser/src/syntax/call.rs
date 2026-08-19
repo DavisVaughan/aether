@@ -117,6 +117,14 @@ fn parse_argument(p: &mut RParser) {
     // and check if we land at `=`. If so, we have a name clause, otherwise we
     // have an argument value and we loop back through `parse_expression()` but
     // with an already known LHS.
+    //
+    // TODO: We should try and parse strings in one token in the lexer, removing
+    // open/close as individual tokens, but introducing AnyRStringValue with
+    // RSingleQuotedStringValue, RDoubleQuotedStringValue, and RRawStringValue
+    // to easily tell the difference. In the syntax crate we should add a method
+    // on these 3 types to extract the content text without the delimiter. All
+    // of this would allow us to do a simple lookahead of 1 token instead, and
+    // remove the Lexer contexts for strings.
     match parse_argument_name(p) {
         Present(name) if p.at(T![=]) => {
             let clause = name.precede(p);
