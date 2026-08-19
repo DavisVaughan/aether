@@ -107,26 +107,41 @@ pub(crate) fn parse_expression_with_lhs(
             continue;
         }
 
-        let Some((new_binding_power, associativity)) = infix_binding_power(p.cur()) else {
+        let Present(binary) = parse_infix_expression(p, &lhs, current_binding_power) else {
             break;
         };
-        if new_binding_power < current_binding_power {
-            break;
-        }
-        let new_binding_power = match associativity {
-            Associativity::Left => BindingPower(new_binding_power.0 + 1),
-            Associativity::Right => new_binding_power,
-        };
-
-        let m = lhs.precede(p);
-        p.bump_any();
-        parse_expression_with_binding_power(p, new_binding_power)
-            .or_add_diagnostic(p, diagnostics::expected_expression);
-
-        lhs = m.complete(p, R_BINARY_EXPRESSION);
+        lhs = binary;
     }
 
     lhs
+}
+
+/// Infix: `a + b`, `a <- b`, `a %in% b`
+///
+/// `Absent` when the current token is not an infix operator, or binds too
+/// loosely for the caller to take it.
+fn parse_infix_expression(
+    p: &mut RParser,
+    lhs: &CompletedMarker,
+    current_binding_power: BindingPower,
+) -> ParsedSyntax {
+    let Some((new_binding_power, associativity)) = infix_binding_power(p.cur()) else {
+        return Absent;
+    };
+    if new_binding_power < current_binding_power {
+        return Absent;
+    }
+    let new_binding_power = match associativity {
+        Associativity::Left => BindingPower(new_binding_power.0 + 1),
+        Associativity::Right => new_binding_power,
+    };
+
+    let m = lhs.clone().precede(p);
+    p.bump_any();
+    parse_expression_with_binding_power(p, new_binding_power)
+        .or_add_diagnostic(p, diagnostics::expected_expression);
+
+    Present(m.complete(p, R_BINARY_EXPRESSION))
 }
 
 /// Postfix: `f(x)`, `x[i]`, `x[[i]]`

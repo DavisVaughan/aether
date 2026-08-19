@@ -1701,71 +1701,84 @@ fn parse_expression_with_lhs(
         // Postfix `(`, `[`, `[[` bind tightest and are handled here rather than
         // through `infix_binding_power`. Unconditional: there is no caller for
         // which refusing a postfix would be correct — `a::b(c)` is `(a::b)(c)`.
-        if let Some(next) = parse_postfix(p, lhs) { lhs = next; continue }
+        if let Some(next) = parse_postfix(p, &lhs) { lhs = next; continue }
 
-        let Some((bp, assoc)) = infix_binding_power(p.cur()) else { break };
-        if bp < min_bp { break }
-
-        let m = lhs.precede(p);
-        let operator = p.cur();
-        // Captured before the bump: `expected_selector` labels the operator
-        // itself, so it needs the range while it is still current.
-        let operator_range = p.cur_range();
-        p.bump_any();
-
-        // Newlines AFTER an infix operator are insignificant for every operator
-        // in the table above except `::` and `:::`. Verified against R's own
-        // lexer rather than taken from tree-sitter-r's note: `yylex` sets
-        // `EatLines = 1` after each of `+ - * / ^ < <= >= > == != | & || &&
-        // |> => %…% ? ! = : ~ $ @ <- <<- := -> ->>` (and the loop/function
-        // keywords), and `NS_GET`/`NS_GET_INT` appear nowhere in that switch.
-        // The preceding SYMBOL/STR_CONST sets `EatLines = 0`, so the flag is
-        // still 0 when `::` is scanned and the newline survives as a token the
-        // grammar has no rule for.
-        //
-        // Note `$` and `@` ARE in R's list, so `df$\n  x` is legal R and must
-        // parse clean here. Only the namespace operators are restricted.
-        let right_bp = match assoc {
-            Assoc::Left  => BindingPower(bp.0 + 1),
-            Assoc::Right => bp,
-        };
-
-        let node_kind = match operator {
-            // R suspends the restriction inside `(`, `[`, `[[` — the newline
-            // discard there fires before `EatLines` is consulted at all:
-            //
-            //     if (EatLines || *contextp == '[' || *contextp == '(')
-            //         goto again;
-            //
-            // `{` pushes LBRACE, not `(`, so braces do NOT get this —
-            // `newlines_are_significant()` draws the line in the same place,
-            // which is the whole of the check.
-            T![::] | T![:::]
-                if p.scope().newlines_are_significant() && p.has_preceding_line_break() => {
-                p.error(diagnostics::expected_selector(
-                    p, operator, operator_range, p.cur_range(),
-                ));
-                R_NAMESPACE_EXPRESSION   // `right` slot left missing
-            }
-            T![$] | T![@] | T![::] | T![:::] => {
-                parse_selector(p).or_add_diagnostic(p, |p, range| {
-                    diagnostics::expected_selector(p, operator, operator_range, range)
-                });
-                match operator {
-                    T![$] | T![@] => R_EXTRACT_EXPRESSION,
-                    _ => R_NAMESPACE_EXPRESSION,
-                }
-            }
-            _ => {
-                parse_expression_with_bp(p, right_bp)
-                    .or_add_diagnostic(p, diagnostics::expected_expression);
-                R_BINARY_EXPRESSION
-            }
-        };
-        lhs = m.complete(p, node_kind);
+        let Present(binary) = parse_infix_expression(p, &lhs, min_bp) else { break };
+        lhs = binary;
     }
 
     lhs
+}
+
+/// Infix: `a + b`, `a <- b`, `a %in% b`, and the selector operators
+///
+/// `Absent` when the current token is not an infix operator, or binds too
+/// loosely for the caller to take it.
+fn parse_infix_expression(
+    p: &mut RParser,
+    lhs: &CompletedMarker,
+    min_bp: BindingPower,
+) -> ParsedSyntax {
+    let Some((bp, assoc)) = infix_binding_power(p.cur()) else { return Absent };
+    if bp < min_bp { return Absent }
+
+    let m = lhs.clone().precede(p);
+    let operator = p.cur();
+    // Captured before the bump: `expected_selector` labels the operator
+    // itself, so it needs the range while it is still current.
+    let operator_range = p.cur_range();
+    p.bump_any();
+
+    // Newlines AFTER an infix operator are insignificant for every operator
+    // in the table above except `::` and `:::`. Verified against R's own
+    // lexer rather than taken from tree-sitter-r's note: `yylex` sets
+    // `EatLines = 1` after each of `+ - * / ^ < <= >= > == != | & || &&
+    // |> => %…% ? ! = : ~ $ @ <- <<- := -> ->>` (and the loop/function
+    // keywords), and `NS_GET`/`NS_GET_INT` appear nowhere in that switch.
+    // The preceding SYMBOL/STR_CONST sets `EatLines = 0`, so the flag is
+    // still 0 when `::` is scanned and the newline survives as a token the
+    // grammar has no rule for.
+    //
+    // Note `$` and `@` ARE in R's list, so `df$\n  x` is legal R and must
+    // parse clean here. Only the namespace operators are restricted.
+    let right_bp = match assoc {
+        Assoc::Left  => BindingPower(bp.0 + 1),
+        Assoc::Right => bp,
+    };
+
+    let node_kind = match operator {
+        // R suspends the restriction inside `(`, `[`, `[[` — the newline
+        // discard there fires before `EatLines` is consulted at all:
+        //
+        //     if (EatLines || *contextp == '[' || *contextp == '(')
+        //         goto again;
+        //
+        // `{` pushes LBRACE, not `(`, so braces do NOT get this —
+        // `newlines_are_significant()` draws the line in the same place,
+        // which is the whole of the check.
+        T![::] | T![:::]
+            if p.scope().newlines_are_significant() && p.has_preceding_line_break() => {
+            p.error(diagnostics::expected_selector(
+                p, operator, operator_range, p.cur_range(),
+            ));
+            R_NAMESPACE_EXPRESSION   // `right` slot left missing
+        }
+        T![$] | T![@] | T![::] | T![:::] => {
+            parse_selector(p).or_add_diagnostic(p, |p, range| {
+                diagnostics::expected_selector(p, operator, operator_range, range)
+            });
+            match operator {
+                T![$] | T![@] => R_EXTRACT_EXPRESSION,
+                _ => R_NAMESPACE_EXPRESSION,
+            }
+        }
+        _ => {
+            parse_expression_with_bp(p, right_bp)
+                .or_add_diagnostic(p, diagnostics::expected_expression);
+            R_BINARY_EXPRESSION
+        }
+    };
+    Present(m.complete(p, node_kind))
 }
 
 fn parse_prefix_expression(p: &mut RParser) -> ParsedSyntax {
