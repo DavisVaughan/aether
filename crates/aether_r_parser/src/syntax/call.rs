@@ -73,7 +73,11 @@ fn parse_argument_list(p: &mut RParser, close: RSyntaxKind) {
             }
 
             if !p.at(T![,]) {
-                // A closing delimiter that belongs to someone else
+                // A closing delimiter that belongs to someone else. We don't
+                // consume it, we return from here. The caller's `expect()` on
+                // the closing delimiter reports a diagnostic, which still
+                // doesn't consume, and the delimiter survives (ideally to be
+                // consumed by its actual owner).
                 if p.at_ts(ARGUMENT_LIST_RECOVERY_SET) {
                     break;
                 }
