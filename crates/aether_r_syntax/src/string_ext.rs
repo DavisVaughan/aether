@@ -11,7 +11,7 @@ impl RStringValue {
     /// `"foo"` and `r"---(foo)---"` both give `foo`
     pub fn inner_string_text(&self) -> SyntaxResult<TokenText> {
         let token = self.value()?;
-        Ok(token.token_text_trimmed().slice(inner_range(&token)))
+        Ok(token.token_text_trimmed().slice(inner_string_range(&token)))
     }
 }
 
@@ -19,7 +19,7 @@ impl RStringValue {
 ///
 /// Total because the lexer gives an unterminated string an `ERROR_TOKEN`, so a
 /// string literal kind always carries both of its delimiters
-fn inner_range(token: &RSyntaxToken) -> TextRange {
+fn inner_string_range(token: &RSyntaxToken) -> TextRange {
     let text = token.text_trimmed();
 
     let (open, close) = match token.kind() {
