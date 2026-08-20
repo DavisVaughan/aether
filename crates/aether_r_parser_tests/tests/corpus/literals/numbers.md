@@ -1,4 +1,4 @@
-## Integers [pending]
+## Integers
 
 ```r
 12332L
@@ -10,7 +10,7 @@
 .1L
 ```
 
-## Floats [pending]
+## Floats
 
 ```r
 .66
@@ -20,7 +20,7 @@
 x <- -.66
 ```
 
-## Hexadecimal [pending]
+## Hexadecimal
 
 ```r
 # `x` vs `X`
@@ -72,7 +72,7 @@ x <- -.66
 0x1.1L
 ```
 
-## Scientific Notation Floats [pending]
+## Scientific Notation Floats
 
 ```r
 1e322
@@ -83,7 +83,7 @@ x <- -.66
 1e10
 ```
 
-## Complex [pending]
+## Complex
 
 ```r
 1i
@@ -96,7 +96,7 @@ x <- -.66
 0x.1i
 ```
 
-## Integer Values [pending]
+## Integer Values
 
 ```r
 1L
@@ -136,7 +136,7 @@ x <- -.66
 0x1.1p1L
 ```
 
-## Double Values [pending]
+## Double Values
 
 ```r
 1
@@ -178,7 +178,7 @@ x <- -.66
 0x1.1p1
 ```
 
-## Complex Values [pending]
+## Complex Values
 
 ```r
 1i

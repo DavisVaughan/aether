@@ -1,4 +1,4 @@
-## Subset2 [pending]
+## Subset2
 
 ```r
 foo[[]]
@@ -17,11 +17,26 @@ foo[[1, 2]]
 foo[[x=1,,y=3,4]]
 ```
 
-## Unsupported Subset2 With `]]` Over Multiple Lines (#177) [pending, error]
+## Unsupported Subset2 With `]]` Over Multiple Lines (#177) [error]
 
 ```r
 x[["a"]
 ]
+```
+
+## Empty Subset2 Joins Its `]]`
+
+Nothing stands between the `[[` and the `]]`, so the join has to happen on the
+bump of the `[[` itself.
+
+```r
+x[[]]
+```
+
+## Side By Side Arguments Still Join The `]]` [error]
+
+```r
+x[[a b]]
 ```
 
 ## Subset2 Arguments [pending]

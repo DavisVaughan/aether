@@ -1,4 +1,4 @@
-## Comments [pending]
+## Comments
 
 ```r
 # a comment'
@@ -10,7 +10,7 @@
 # still not a comment'
 ```
 
-## Leading And Trailing Comments [pending]
+## Leading And Trailing Comments
 
 ```r
 # Leading

@@ -11,13 +11,13 @@ fn((a), (b))
 })
 ```
 
-## Not A Parenthesized Expression 1 [pending, error]
+## Not A Parenthesized Expression 1 [error]
 
 ```r
 ()
 ```
 
-## Not A Parenthesized Expression 2 [pending, error]
+## Not A Parenthesized Expression 2 [error]
 
 ```r
 (
@@ -50,13 +50,13 @@ fn((a), (b))
 ) # comment5
 ```
 
-## Empty Parentheses [pending, error]
+## Empty Parentheses [error]
 
 ```r
 ()
 ```
 
-## Multiple Expressions In Parentheses [pending, error]
+## Multiple Expressions In Parentheses [error]
 
 ```r
 (

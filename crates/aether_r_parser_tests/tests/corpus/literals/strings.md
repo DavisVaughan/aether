@@ -1,4 +1,4 @@
-## Strings [pending]
+## Strings
 
 ```r
 "foo"
@@ -15,14 +15,14 @@ bar'
 '}'
 ```
 
-## Strings Without Content [pending]
+## Strings Without Content
 
 ```r
 ""
 ''
 ```
 
-## Strings With Escape Sequences [pending]
+## Strings With Escape Sequences
 
 ```r
 "\\"
@@ -80,7 +80,7 @@ bar'
 '\''
 ```
 
-## Raw Strings [pending]
+## Raw Strings
 
 ```r
 r"(raw string)"
@@ -132,26 +132,26 @@ r'(")'
 r()
 ```
 
-## Unclosed Double Quote [pending, error]
+## Unclosed Double Quote [error]
 
 ```r
 "\"
 ```
 
-## Unclosed Single Quote [pending, error]
+## Unclosed Single Quote [error]
 
 ```r
 '\'
 ```
 
-## Unclosed Raw String [pending, error]
+## Unclosed Raw String [error]
 
 ```r
 r"(
 "
 ```
 
-## String Values [pending]
+## String Values
 
 ```r
 "hi there!"

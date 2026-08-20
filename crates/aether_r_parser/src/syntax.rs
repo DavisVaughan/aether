@@ -1,43 +1,18 @@
+mod call;
+mod expr;
+mod parenthesized_expression;
+mod statement_list;
+mod value;
+
 use crate::parser::RParser;
-use aether_r_syntax::RSyntaxKind::{
-    EOF, R_BOGUS_EXPRESSION, R_ROOT, R_STATEMENT, R_STATEMENT_LIST, UNICODE_BOM,
-};
+use crate::syntax::statement_list::parse_statement_list;
+use aether_r_syntax::RSyntaxKind::{EOF, R_ROOT, UNICODE_BOM};
 use biome_parser::Parser;
-use biome_parser::diagnostic::ParseDiagnostic;
 
 pub(crate) fn parse_root(p: &mut RParser) {
-    let root = p.start();
+    let m = p.start();
     p.eat(UNICODE_BOM);
-
-    let statements = p.start();
-    parse_placeholder_statement(p);
-    statements.complete(p, R_STATEMENT_LIST);
-
+    parse_statement_list(p, EOF);
     p.expect(EOF);
-    root.complete(p, R_ROOT);
-}
-
-/// Swallows the file into one bogus statement
-///
-/// Phase 7 replaces this with `parse_statement_list()`. Until then the corpus
-/// needs every non-empty input to round-trip and to *not* parse cleanly, which
-/// is what makes a `[pending]` marker mean something.
-fn parse_placeholder_statement(p: &mut RParser) {
-    if p.at(EOF) {
-        return;
-    }
-
-    let statement = p.start();
-    let bogus = p.start();
-
-    p.error(ParseDiagnostic::new(
-        "The parser does not support R syntax yet.",
-        p.cur_range(),
-    ));
-    while !p.at(EOF) {
-        p.bump_any();
-    }
-
-    bogus.complete(p, R_BOGUS_EXPRESSION);
-    statement.complete(p, R_STATEMENT);
+    m.complete(p, R_ROOT);
 }

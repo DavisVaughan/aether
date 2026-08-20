@@ -1,11 +1,7 @@
-#![allow(
-    dead_code,
-    reason = "the parse context helpers are driven by the syntax modules from Phase 7 on"
-)]
-
+use crate::lexer::{RLexContext, RReLexContext};
 use crate::options::RParserOptions;
 use crate::token_source::RTokenSource;
-use aether_r_syntax::RSyntaxKind;
+use aether_r_syntax::{RSyntaxKind, T};
 use biome_parser::ParserContext;
 use biome_parser::diagnostic::{ParseDiagnostic, merge_diagnostics};
 use biome_parser::event::Event;
@@ -22,6 +18,7 @@ pub(crate) struct RParser<'src> {
 pub(crate) enum Scope {
     #[default]
     TopLevel,
+    #[expect(dead_code, reason = "`parse_braced_statements()` arrives in Phase 13")]
     Brace,
     Parenthesis,
     Bracket,
@@ -49,6 +46,7 @@ impl<'src> RParser<'src> {
         }
     }
 
+    #[expect(dead_code, reason = "`RParserOptions` is still empty")]
     pub(crate) fn options(&self) -> &RParserOptions {
         &self.options
     }
@@ -66,6 +64,10 @@ impl<'src> RParser<'src> {
 
     pub(crate) fn scope(&self) -> Scope {
         self.scope
+    }
+
+    pub(crate) fn re_lex(&mut self, context: RReLexContext) -> RSyntaxKind {
+        self.source_mut().re_lex(context)
     }
 
     pub(crate) fn finish(self) -> (Vec<Event<RSyntaxKind>>, Vec<Trivia>, Vec<ParseDiagnostic>) {
@@ -94,5 +96,30 @@ impl<'src> Parser for RParser<'src> {
 
     fn source_mut(&mut self) -> &mut Self::Source {
         &mut self.source
+    }
+
+    fn do_bump(&mut self, kind: Self::Kind) {
+        self.do_bump_with_context(kind, RLexContext::Regular);
+    }
+
+    /// Overridden so that every bump checks for a potential `]]` re-lex
+    fn do_bump_with_context(
+        &mut self,
+        kind: Self::Kind,
+        context: <Self::Source as BumpWithContext>::Context,
+    ) {
+        let end = self.cur_range().end();
+        self.context_mut().push_token(kind, end);
+
+        if self.context().is_skipping() {
+            self.source_mut().skip_as_trivia_with_context(context);
+        } else {
+            self.source_mut().bump_with_context(context);
+        }
+
+        // Joins an adjacent `] ]` into the `]]` the lexer never emits
+        if self.scope == Scope::Bracket2 && self.cur() == T![']'] {
+            self.re_lex(RReLexContext::JoinBrackets);
+        }
     }
 }

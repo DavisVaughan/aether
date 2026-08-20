@@ -1,4 +1,4 @@
-## Formulas [pending]
+## Formulas
 
 ```r
 ~x

@@ -36,6 +36,7 @@ them, since the ledger runs ahead of the parser.
 | 8 | Unterminated numbers | `0x`, `0x1p`, `1e` re-split or accepted, all silently | one literal token carrying `Unterminated hexadecimal literal.`, `Unterminated binary exponent.`, or `Unterminated exponent.` |
 | 9 | A backslash inside `%...%` | excluded by the `special` regex, so `%a\b%` errors | ordinary text, as R takes it, so `%a\b%` is one `SPECIAL` |
 | 10 | Whitespace attachment | air's walker: leading of the following token, with a second rule for whitespace before a newline | `JsTokenSource`'s rule — trailing of the preceding token until a newline, leading from the newline on. Comment and newline attachment are unchanged |
+| 11 | Two expressions on one line | accepted silently, since `program` needs no separator | an error, as R requires |
 
 ### 1. Semicolons are real tokens
 
@@ -480,7 +481,10 @@ no meaning inside `%...%` for the lexer to act on — there are no escapes there
 so it is one more character in the operator's name. The newline is different,
 since R stops at it too.
 
-Corpus tests: `expressions/specials.md`, marked `[deviation]`.
+Lexer test: `a_backslash_is_ordinary_text` in
+`crates/aether_r_parser/src/lexer/tests/specials.rs`. No corpus test — every
+special in `expressions/specials.md` matches tree-sitter-r's regex too, so the
+block is compared rather than marked `[deviation]`.
 
 ### 10. Whitespace attaches trailing, not leading
 
@@ -595,6 +599,47 @@ comparing. **Whitespace only, never comments:** comment attachment is unchanged
 here, and it is the half that reaches air's formatter, so it is exactly the half
 the oracle has to keep checking. Normalizing over "trivia" rather than over
 whitespace would blind it to the one attachment drift that has consequences.
+
+### 11. Two expressions on one line is an error
+
+Landed in Phase 7.
+
+Example:
+
+```r
+1 2
+```
+
+R separates statements by a newline or a `;` and by nothing else, so this is a
+syntax error:
+
+```
+> 1 2
+Error: unexpected numeric constant in "1 2"
+```
+
+tree-sitter-r's `program` is a bare repetition of expressions with no separator
+between them, so it accepts this, and so does air. Aether follows R and reports
+
+```
+Expected a newline or a `;` between two expressions.
+```
+
+at the second expression, with the first labelled as the one that already ended.
+
+The tree is the same either way — two statements — so this is a diagnostic-only
+deviation, in the same family as deviations 2 and 3. What it costs is that every
+input of this shape stops being oracle-compared, because the oracle skips
+anything aether does not parse cleanly.
+
+Why follow R: the alternative is silence on a class of typo the language really
+does reject, and the rule is what makes `1foo`, `0x`, and `a$1` land as two
+statements with something said about them rather than two statements with
+nothing said. Deviations 7 and 8 both lean on it, and their tables are written
+against it.
+
+Corpus tests: `statements/newlines.md`, and `literals/identifiers.md`'s
+`Invalid Identifiers`, which is `[error]` here and clean under tree-sitter.
 
 ## tree-sitter-r vs. R
 

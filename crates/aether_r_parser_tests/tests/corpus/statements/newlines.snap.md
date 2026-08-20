@@ -19,3 +19,84 @@ apple
 ```
 
 *Not yet supported.*
+
+## Two Expressions On One Line [error]
+
+```r
+1 2
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RDoubleValue {
+                value_token: R_DOUBLE_LITERAL@0..2 "1" [] [Whitespace(" ")],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RDoubleValue {
+                value_token: R_DOUBLE_LITERAL@2..3 "2" [] [],
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@3..4 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:1:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a newline or a `;` between two expressions.
+
+  > 1 │ 1 2
+      │   ^
+    2 │
+
+  i The first expression ends here.
+
+  > 1 │ 1 2
+      │ ^
+    2 │
+```
+
+## Two Expressions On One Line Inside Braces [pending, error]
+
+```r
+{ 1 2 }
+```
+
+*Not yet supported.*
+
+## A Comment Does Not Hide A Line Break
+
+Lexer's `after_line_break` flag is sticky across trivia
+
+```r
+1 # c
+2
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RDoubleValue {
+                value_token: R_DOUBLE_LITERAL@0..5 "1" [] [Whitespace(" "), Comments("# c")],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RDoubleValue {
+                value_token: R_DOUBLE_LITERAL@5..7 "2" [Newline("\n")] [],
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@7..8 "" [Newline("\n")] [],
+}
+```

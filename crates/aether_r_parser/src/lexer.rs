@@ -21,11 +21,9 @@ pub(crate) enum RLexContext {
     Regular,
 
     /// Lex the body of a string opened with this delimiter
-    #[allow(dead_code, reason = "requested by `parse_string_value` in Phase 7")]
     StringContent(RStringDelimiter),
 
     /// Lex the closing delimiter of a string
-    #[allow(dead_code, reason = "requested by `parse_string_value` in Phase 7")]
     StringEnd(RStringDelimiter),
 }
 
@@ -50,7 +48,6 @@ pub(crate) enum RStringDelimiter {
 
 impl RStringDelimiter {
     /// The delimiter a `STRING_OPEN` token's text opens
-    #[allow(dead_code, reason = "called by `parse_string_value` in Phase 7")]
     pub(crate) fn from_open(text: &str) -> Self {
         match text.as_bytes().first() {
             Some(b'\'') => Self::Single,
@@ -147,7 +144,6 @@ impl RawStringBracket {
 pub(crate) enum RReLexContext {
     /// Re-lex `]` as `]]` when the very next byte is another `]`. A no-op on any
     /// other current token.
-    #[allow(dead_code, reason = "requested by `parse_subset2` in Phase 9")]
     JoinBrackets,
 }
 

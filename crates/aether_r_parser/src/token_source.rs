@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::lexer::{RLexContext, RLexer};
+use crate::lexer::{RLexContext, RLexer, RReLexContext};
 use aether_r_syntax::RSyntaxKind::{self, EOF};
 use biome_parser::diagnostic::ParseDiagnostic;
 use biome_parser::lexer::BufferedLexer;
@@ -55,6 +55,11 @@ impl<'src> RTokenSource<'src> {
             self.trivia
                 .push(Trivia::new(trivia_kind, self.current_range(), trailing));
         }
+    }
+
+    /// Re-lexes the current token, invalidating any buffered lookahead
+    pub(crate) fn re_lex(&mut self, context: RReLexContext) -> RSyntaxKind {
+        self.lexer.re_lex(context)
     }
 }
 

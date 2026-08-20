@@ -247,16 +247,18 @@ mod tests {
         assert!(matches!(error, CheckError::ExpectedError));
     }
 
+    /// `0x` is deviation 8: one literal here, `0` and the name `x` to
+    /// tree-sitter, so a comparison would report a mismatch
     #[test]
     fn a_block_that_does_not_parse_cleanly_is_not_compared_to_the_oracle() {
         check(
-            &block("1\n"),
+            &block("0x\n"),
             Markers {
                 error: true,
                 ..Default::default()
             },
         )
-        .expect("tree-sitter accepts `1`, so a comparison here would report the placeholder");
+        .expect("tree-sitter accepts `0x`, and the shapes differ");
     }
 
     /// `[deviation]` changes nothing here

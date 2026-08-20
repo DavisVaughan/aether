@@ -172,23 +172,25 @@ mod tests {
         assert_eq!(oracle("  \n\n  "), OracleResult::Match);
     }
 
+    /// Deviation 8: tree-sitter re-splits `0x` into `0` and the name `x`, where
+    /// aether keeps one literal and diagnoses it
     #[test]
-    fn the_placeholder_parser_mismatches_on_real_syntax() {
+    fn a_shape_difference_is_reported() {
         let OracleResult::Mismatch {
             path,
             expected,
             actual,
-        } = oracle("1")
+        } = oracle("0x")
         else {
-            panic!("the placeholder parser cannot agree with air on `1`");
+            panic!("tree-sitter cannot agree with aether on `0x`");
         };
 
         assert_eq!(
             path,
             "R_ROOT > [0] > R_STATEMENT_LIST > [0] > R_DOUBLE_VALUE"
         );
-        assert!(expected.starts_with("R_DOUBLE_VALUE"), "{expected}");
-        assert!(actual.starts_with("R_BOGUS_EXPRESSION"), "{actual}");
+        assert!(expected.contains("0..1"), "{expected}");
+        assert!(actual.contains("0..2"), "{actual}");
     }
 
     #[test]

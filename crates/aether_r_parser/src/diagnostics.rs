@@ -1,6 +1,8 @@
 //! Constructors for every diagnostic aether emits
 
-use biome_parser::diagnostic::ParseDiagnostic;
+use crate::parser::RParser;
+use biome_parser::Parser;
+use biome_parser::diagnostic::{ParseDiagnostic, expected_node};
 use biome_rowan::TextRange;
 
 /// A backtick-quoted name that runs to the end of the file
@@ -38,4 +40,29 @@ pub(crate) fn unterminated_exponent(range: TextRange) -> ParseDiagnostic {
 /// A character that starts no known R token
 pub(crate) fn unexpected_character(range: TextRange, character: char) -> ParseDiagnostic {
     ParseDiagnostic::new(format!("Unexpected character `{character}`."), range)
+}
+
+/// A string that runs to the end of the file
+pub(crate) fn unterminated_string(open: TextRange, eof: TextRange) -> ParseDiagnostic {
+    ParseDiagnostic::new("Unterminated string.", open).with_detail(
+        eof,
+        "Reached the end of the file looking for a closing delimiter.",
+    )
+}
+
+pub(crate) fn expected_expression(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("expression", range, p)
+}
+
+/// Two expressions with nothing between them, as in `1 2`
+pub(crate) fn expected_statement_separator(
+    p: &RParser,
+    previous: TextRange,
+    range: TextRange,
+) -> ParseDiagnostic {
+    p.err_builder(
+        "Expected a newline or a `;` between two expressions.",
+        range,
+    )
+    .with_detail(previous, "The first expression ends here.")
 }

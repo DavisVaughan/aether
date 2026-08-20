@@ -1,4 +1,4 @@
-## Subset [pending]
+## Subset
 
 ```r
 foo[]
@@ -14,6 +14,16 @@ foo[,,x,,y,,]
 foo[bar]
 foo[1, 2]
 foo[x=1,,y=3,4]
+```
+
+## Nested Brackets
+
+```r
+x[a[b]]
+x[[a[b]]]
+x[a[[b]]]
+x[[a[[b]]]]
+x[y[z[[a]]]]
 ```
 
 ## Subset Arguments [pending]

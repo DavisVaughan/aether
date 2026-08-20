@@ -1,4 +1,4 @@
-## Identifiers [pending]
+## Identifiers
 
 ```r
 foo
@@ -26,7 +26,7 @@ __foo
 _foo_
 ```
 
-## Unicode Identifiers [pending]
+## Unicode Identifiers
 
 ```r
 你好
@@ -34,7 +34,7 @@ _foo_
 .你_好.
 ```
 
-## Invalid Identifiers [pending]
+## Invalid Identifiers [error]
 
 ```r
 # R does not allow identifiers to start with a `.` followed by a digit, as this
@@ -44,14 +44,14 @@ _foo_
 .1foo
 ```
 
-## Dot Dot I [pending]
+## Dot Dot I
 
 ```r
 ..1
 ..10
 ```
 
-## Unclosed Backtick [pending, error]
+## Unclosed Backtick [error]
 
 ```r
 `\`

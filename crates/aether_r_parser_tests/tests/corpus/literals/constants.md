@@ -1,4 +1,4 @@
-## Constants [pending]
+## Constants
 
 ```r
 TRUE
@@ -12,7 +12,7 @@ NA_character_
 NA_complex_
 ```
 
-## Keywords [pending]
+## Keywords
 
 ```r
 break
