@@ -15,10 +15,13 @@ impl RStringValue {
     }
 }
 
-/// Relative to the start of the token
+/// Range of the inner text
 ///
-/// Total because the lexer gives an unterminated string an `ERROR_TOKEN`, so a
-/// string literal kind always carries both of its delimiters
+/// # Safety
+///
+/// String literals always carry both of their delimiters. Broken strings are
+/// returned from the lexer as `ERROR_TOKEN`s, making this safe on any string we
+/// see.
 fn inner_string_range(token: &RSyntaxToken) -> TextRange {
     let text = token.text_trimmed();
 
