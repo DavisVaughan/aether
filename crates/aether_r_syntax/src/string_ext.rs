@@ -43,3 +43,104 @@ fn inner_string_range(token: &RSyntaxToken) -> TextRange {
         TextSize::from((text.len() - close) as u32),
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::RSyntaxKind::{self, R_STRING_VALUE};
+    use crate::RSyntaxNode;
+    use biome_rowan::{AstNode, TriviaPiece};
+
+    /// The parser cannot be reached from here, so the token is built by hand.
+    /// `lexer/tests/strings.rs` is what pins that the lexer really produces it.
+    fn string_value(kind: RSyntaxKind, text: &str, leading: usize) -> RStringValue {
+        let leading = (leading > 0).then(|| TriviaPiece::whitespace(leading as u32));
+        let token = RSyntaxToken::new_detached(kind, text, leading, []);
+        let node = RSyntaxNode::new_detached(R_STRING_VALUE, [Some(token.into())]);
+
+        RStringValue::cast(node).expect("a string value")
+    }
+
+    #[track_caller]
+    fn assert_inner(kind: RSyntaxKind, text: &str, expected: &str, range: TextRange) {
+        let value = string_value(kind, text, 0);
+
+        assert_eq!(value.inner_string_text().unwrap().text(), expected);
+        assert_eq!(inner_string_range(&value.value().unwrap()), range);
+        assert_eq!(&text[range], expected);
+    }
+
+    fn range(start: u32, end: u32) -> TextRange {
+        TextRange::new(TextSize::from(start), TextSize::from(end))
+    }
+
+    #[test]
+    fn quoted_strings() {
+        assert_inner(
+            R_DOUBLE_QUOTED_STRING_LITERAL,
+            "\"foo\"",
+            "foo",
+            range(1, 4),
+        );
+        assert_inner(R_SINGLE_QUOTED_STRING_LITERAL, "'foo'", "foo", range(1, 4));
+    }
+
+    #[test]
+    fn empty_strings() {
+        assert_inner(R_SINGLE_QUOTED_STRING_LITERAL, "''", "", range(1, 1));
+        assert_inner(R_DOUBLE_QUOTED_STRING_LITERAL, "\"\"", "", range(1, 1));
+        assert_inner(R_RAW_STRING_LITERAL, "r\"()\"", "", range(3, 3));
+    }
+
+    #[test]
+    fn raw_strings() {
+        assert_inner(R_RAW_STRING_LITERAL, "r\"(a)\"", "a", range(3, 4));
+        assert_inner(R_RAW_STRING_LITERAL, "r\"---(a)---\"", "a", range(6, 7));
+        assert_inner(R_RAW_STRING_LITERAL, "R'--[a]--'", "a", range(5, 6));
+    }
+
+    /// A closing bracket that does not close belongs to the content
+    #[test]
+    fn a_raw_string_containing_its_own_bracket() {
+        assert_inner(R_RAW_STRING_LITERAL, "r\"(())\"", "()", range(3, 5));
+    }
+
+    #[test]
+    fn multiline_strings() {
+        assert_inner(
+            R_DOUBLE_QUOTED_STRING_LITERAL,
+            "\"a\nb\"",
+            "a\nb",
+            range(1, 4),
+        );
+        assert_inner(R_RAW_STRING_LITERAL, "r\"(a\nb)\"", "a\nb", range(3, 6));
+    }
+
+    /// Escapes are handed back exactly as written
+    #[test]
+    fn nothing_is_unescaped() {
+        assert_inner(
+            R_DOUBLE_QUOTED_STRING_LITERAL,
+            "\"a\\nb\"",
+            "a\\nb",
+            range(1, 5),
+        );
+        assert_inner(
+            R_DOUBLE_QUOTED_STRING_LITERAL,
+            "\"a\\\"b\"",
+            "a\\\"b",
+            range(1, 5),
+        );
+    }
+
+    /// The range is off the trimmed token, so leading trivia does not shift it
+    #[test]
+    fn trivia_is_not_content() {
+        let value = string_value(R_DOUBLE_QUOTED_STRING_LITERAL, "  \"foo\"", 2);
+        let token = value.value().unwrap();
+
+        assert_eq!(token.text_trimmed(), "\"foo\"");
+        assert_eq!(value.inner_string_text().unwrap().text(), "foo");
+        assert_eq!(inner_string_range(&token), range(1, 4));
+    }
+}
