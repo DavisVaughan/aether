@@ -1,4 +1,4 @@
-## Specials [deviation]
+## Specials
 
 ```r
 x %% y

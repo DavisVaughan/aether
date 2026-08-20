@@ -481,7 +481,10 @@ no meaning inside `%...%` for the lexer to act on — there are no escapes there
 so it is one more character in the operator's name. The newline is different,
 since R stops at it too.
 
-Corpus tests: `expressions/specials.md`, marked `[deviation]`.
+Lexer test: `a_backslash_is_ordinary_text` in
+`crates/aether_r_parser/src/lexer/tests/specials.rs`. No corpus test — every
+special in `expressions/specials.md` matches tree-sitter-r's regex too, so the
+block is compared rather than marked `[deviation]`.
 
 ### 10. Whitespace attaches trailing, not leading
 
