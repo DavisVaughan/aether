@@ -752,17 +752,54 @@ precisely what aether replaces. What is left:
   codegen.
 
 - `air_r_syntax/src/lib.rs` — the two exhaustive `is_bogus()` / `to_bogus()`
-  matches.
+  matches. Every token kind is listed there, so this is three lines out and
+  three in rather than anything about strings.
 
 - `air_r_formatter/src/r/auxiliary/string_value.rs` — three writes become one.
+  Field names, not kinds: `RStringValueFields` destructures to `{ value }`.
 
-- `air_r_formatter/src/string_content.rs` — normalize the whole token rather than
-  the content token. Identical in effect, since no delimiter contains `\r\n`.
+- `air_r_formatter/src/string_content.rs` — **the one that needs reading rather
+  than editing.** See below.
 
 - `air_r_syntax/src/call_ext.rs` — unchanged, which is one of the reasons for one
-  node type.
+  node type. So are the three `AnyR*::RStringValue(node) => node.format()` arms
+  in the formatter's `r/any/`. Everything in air that is semantic about a string
+  goes through the node, which is the whole point.
 
 Air's formatter specs are R-in / R-out, so no snapshot churn there.
+
+#### `string_content.rs` inherits an invariant this breaks
+
+Normalizing the whole token rather than the content token is identical in
+effect, since no delimiter contains `\r\n`. The hazard is trivia, not
+normalization.
+
+`FormatStringContentToken` asserts that its token has none:
+
+```rust
+debug_assert!(
+    token.text() == token.text_trimmed(),
+    "String content tokens should never have trivia. Trivia should be on string open or string close tokens instead."
+);
+```
+
+That is false by construction here. There is no open token left to hold the
+trivia, so the one literal token owns the string's leading and trailing pieces.
+
+Deleting the assert is not enough, because the code depends on it.
+`normalize_string_content_token()` reads `token.text()`, while `fmt()` passes
+`token.text_trimmed_range().start()` to `syntax_token_cow_slice()` as the offset
+that text sits at. The two agree only while the assert holds. With trivia
+present, `syntax_token_cow_slice()`'s borrowed-case check
+
+```rust
+let range = TextRange::at(self.start, text.text_len());
+debug_assert_eq!(*text, &self.token.text()[range - self.token.text_range().start()], …);
+```
+
+fires in debug and slices the wrong bytes in release. **`normalize_string_content_token()`
+must read `text_trimmed()`.** Do that in the same commit as the assert, not
+after it.
 
 #### Oracle
 
