@@ -569,10 +569,10 @@ The facts the parser phases need, and the ones a later grammar edit can break.
 
 **`[` and `[[` are lexed greedily; `]` and `]]` are not.** `[[` is always a single
 token. `]]` is always two `]`, and the parser joins them with
-`p.re_lex(RReLexContext::JoinBrackets)` from `RParser::do_bump()`, using the scope
-it already tracks. There is no scope stack in the lexer. This is the single most
-important design call in the lexer and the one most likely to be undone by
-accident.
+`p.re_lex(RReLexContext::JoinBrackets)` from `RParser::do_bump_with_context()`,
+using the scope it already tracks. There is no scope stack in the lexer. This is
+the single most important design call in the lexer and the one most likely to be
+undone by accident.
 
 The asymmetry is the point, and every reference implementation shares it. Openers
 stack left to right, so two adjacent ones never straddle a boundary and greedy is
@@ -1771,36 +1771,41 @@ share a constructor.
 Small phase, but it is where aether's first user-visible deviation lands, so keep
 it separate for reviewability.
 
-```rust
-/// `AnyRSelector` = identifier | string | `...` | `..i`.
-fn parse_selector(p: &mut RParser) -> ParsedSyntax {
-    match p.cur() {
-        IDENT   => { let m = p.start(); p.bump_any(); Present(m.complete(p, R_IDENTIFIER)) }
-        DOTS    => { /* R_DOTS */ }
-        DOTDOTI => { /* R_DOT_DOT_I */ }
-        STRING_OPEN => parse_string_value(p),
-        _ => Absent,
-    }
-}
-```
+#### What changes in the Pratt loop
 
-Behavior matrix — this is the deviation table for `docs/deviations.md`:
+`parse_infix_expression` completes `R_BINARY_EXPRESSION` unconditionally today and
+`infix_binding_power` stops at rank 15. Four edits, all in `expr.rs`:
 
-| Source | tree-sitter-r | aether |
-|---|---|---|
-| `a$b` | `extract_operator` | `R_EXTRACT_EXPRESSION`, clean |
-| `a$"b"` | `extract_operator` | clean |
-| `a$` | `extract_operator`, rhs absent, **no error** | node + missing slot + `expected_selector` |
-| `a$1` | rhs absent, `1` becomes a sibling statement, **no error** | same shape + `expected_selector` |
-| `a$NULL`, `a$TRUE`, `a$(b)`, `a${b}`, `a$if` | same as above | same shape + `expected_selector` |
-| `a$1 + 2` | as above, `+ 2` reattached to the sibling | same shape + `expected_selector` |
-| `foo::` | `namespace_operator`, rhs absent, no error | missing slot + `expected_selector` |
-| `foo::\nbar` | error (grammar says no newlines allowed) | error, matched |
-| `f(foo::\nbar)` | *(unverified — see below)* | **clean**, matching R |
-| `a$\nb` | clean | clean, matching R |
+1. Add ranks 16 and 17 to `infix_binding_power` — `T![$] | T![@]` at 16 and
+   `T![::] | T![:::]` at 17, both `Associativity::Left` (see §11.2 on why left
+   rather than tree-sitter-r's right). Delete the doc-comment saying they are
+   missing until Phase 10.
 
-**The two newline rows are the ones to get right, and neither is covered by an
-imported test.** R's rule, read off `yylex` in `src/main/gram.y` rather than
+2. Capture the operator kind and `p.cur_range()` **before** `p.bump_any()`.
+   Neither survives the bump, and `expected_selector` needs both: the kind to name
+   the operator in its message, the range for its secondary label.
+
+3. Branch on the operator to choose the node kind — `R_EXTRACT_EXPRESSION` for
+   `$` and `@`, `R_NAMESPACE_EXPRESSION` for `::` and `:::`, `R_BINARY_EXPRESSION`
+   for everything else. The selector operators call `parse_selector` in place of
+   the recursive `parse_expression_with_binding_power`, so the right-hand side is
+   a selector rather than a full expression.
+
+4. Add the newline guard, which fires before any of the above: at `::` or `:::`
+   with `p.scope().newlines_are_significant() && p.has_preceding_line_break()`,
+   raise `expected_selector` and complete `R_NAMESPACE_EXPRESSION` with `right`
+   left missing, consuming nothing further.
+
+`parse_selector` is the new function, and it is `AnyRSelector` — identifier,
+string, `...`, `..i` — with the same one-arm-per-kind shape as
+`parse_argument_name` in `call.rs`. Its string arm matches `STRING_OPEN` today; if
+`plans/string-simplification.md` lands first it matches the three string literal
+kinds instead.
+
+#### The newline rule
+
+**The two newline rows below are the ones to get right, and neither is covered by
+an imported test.** R's rule, read off `yylex` in `src/main/gram.y` rather than
 inferred from tree-sitter-r:
 
 - `NS_GET`/`NS_GET_INT` are the only operators in aether's precedence table
@@ -1809,13 +1814,22 @@ inferred from tree-sitter-r:
   *are* in that switch, so `a$\nb` is legal R and must parse clean — the two
   operator families genuinely differ here and it would be easy to make both
   accidentally permissive.
+
 - The restriction is suspended inside `(`, `[`, and `[[`, because R discards
   newlines in those contexts before consulting `EatLines` at all. `{` pushes
   `LBRACE` and does not get this, so `foo::\nbar` inside braces is still an error.
 
-`newlines_are_significant()` draws the line in exactly that place, so the check in
-§11.2 is one guard clause. Add both as aether-authored tests in `expressions/namespace.md`
-and `expressions/extract.md`:
+`newlines_are_significant()` draws the line in exactly that place, which is why
+step 4 above is one guard clause rather than a scope walk.
+
+| Source | tree-sitter-r | aether |
+|---|---|---|
+| `foo::\nbar` | error, no newlines allowed | error, matched |
+| `f(foo::\nbar)` | *(unverified)* | **clean**, matching R |
+| `a$\nb` | clean | clean, matching R |
+
+Add both of the aether cases as aether-authored tests, in
+`expressions/namespace.md` and `expressions/extract.md`:
 
 ````markdown
 ## Namespace Newline Is Significant Only Outside Parens
@@ -1835,64 +1849,42 @@ df$
 
 The first needs no marker — it is a *clean* parse, which is the surprising half.
 Whether tree-sitter-r agrees is worth checking rather than assuming when the
-oracle first runs against it; if it errors, the row above becomes a real deviation
-and moves into `docs/deviations.md` under the inherited **"tree-sitter-r vs. R"**
-heading (§8.4), not aether's own list.
+oracle first runs against it; if it errors, it becomes a real deviation and moves
+into `docs/deviations.md` under the inherited **"tree-sitter-r vs. R"** heading
+(§8.4), not aether's own list.
 
-**The `a$1` case — settled: diagnose, leave the slot missing, consume nothing.**
-The selector arm this phase adds to `parse_infix_expression` is what carries it:
+#### Recovery: diagnose, leave the slot missing, consume nothing
+
+One rule, and it is the same one for `a$`, `a$1`, `a${b}`, `a$if`, and `a$)`.
 `parse_selector(p).or_add_diagnostic(…)` raises `expected_selector` at the
 offending token and leaves `right` empty. Whatever follows is not the selector's
 problem — the Pratt loop finds no infix operator at `1`, breaks, and `1` becomes
-the next statement.
+the next statement. `a$1 + 2` follows from that: the `+ 2` reattaches to the
+sibling, so the second statement is the whole `1 + 2`.
 
-There is exactly one recovery rule, then, and it is the same one for `a$`, `a$1`,
-`a${b}`, `a$if`, and `a$)`. An earlier draft consumed one atom into an
-`R_BOGUS_SELECTOR` to stop the `1` "leaking out as a phantom statement", which was
-wrong on the merits — the imported corpus says so in its own comments. On
-`foo${bar}` (`expressions/extract.md:28`):
+`docs/deviations.md` entry 2 carries the argument in full, including the two
+corpus comments that settle it and the `df$`-eats-the-next-line case. The short
+version: an earlier draft consumed one atom into an `R_BOGUS_SELECTOR` to stop the
+`1` leaking out as a phantom statement, and that destroys the structure the
+imported corpus explicitly calls useful — `foo${bar}` would lose a braced block
+and `foo$if` an entire if-statement.
 
-> These nodes allows an optional RHS, and the RHS must be a string/identifier, so
-> we nicely get a true node here alongside the braces. Even if that's not parsable
-> R code, it's useful for completions and highlighting.
-
-and on `foo$if` (`:52`):
-
-> This ends up trying to match to an `if_statement` node, leaving the RHS empty,
-> and then the `if_statement` node errors because it doesn't have a `(`. This is
-> actually pretty decent behavior.
-
-Consuming destroys exactly the structure those comments call useful, and for the
-consumer that motivated the recovery in the first place. `foo${bar}` would lose a
-braced block into a bogus node and `foo$if` an entire if-statement. The newline
-case is worse still: `$` is in R's `EatLines` set, so
-
-```r
-df$
-if (x) 1
-```
-
-is one expression to the parser, and consuming an atom eats the next line into the
-RHS of a `$` — while `df$` is the most common incomplete state in the language,
-being the completion trigger.
-
-**Not consuming also shrinks the deviation.** Those rows differ from tree-sitter
-in *shape* if the atom is consumed, so they need `[deviation]` and drop out of
-oracle coverage. Leaving the slot missing makes the shape identical to
-tree-sitter's — sibling and all — and the oracle compares shape, not diagnostics
-(`aether_r_oracle/src/shape.rs`). Only the diagnostics differ, which is deviation 2
-and is what `docs/deviations.md` already records.
+**Not consuming also shrinks the deviation**, which is the mechanical payoff.
+Consuming makes those rows differ from tree-sitter in *shape*, so they need
+`[deviation]` and drop out of oracle coverage. Leaving the slot missing makes the
+shape identical — sibling and all — and the oracle compares shape, not diagnostics
+(`aether_r_oracle/src/shape.rs`). Empty slots are invisible to `shape_of`, which
+walks `children_with_tokens()`.
 
 **The cost is a cascading diagnostic on same-line cases**, and it is worth stating
 rather than discovering. `a$1` raises `expected_selector` and then
 `expected_statement_separator`, because `parse_statement_list`'s check fires when
-there is no line break between the two statements (§11.7). The second message is
-redundant and mildly misleading — it points at a `;` that would not help.
+there is no line break between the two statements (§11.1).
 
 It is bounded: that check is guarded on `!p.has_preceding_line_break()`, so the
-`df$`-then-next-line shapes above raise one diagnostic and produce two clean
-statements. Only same-line typos like `df$2020` — a real class, since
-column names beginning with a digit need backticks — get the pair.
+`df$`-then-next-line shapes raise one diagnostic and produce two clean statements.
+Only same-line typos like `df$2020` — a real class, since column names beginning
+with a digit need backticks — get the pair.
 
 Do not pre-solve it. These tests exist and their `.snap.md` prints every
 diagnostic, so Phase 10 shows exactly how the cascade reads. If it reads badly,
@@ -1904,6 +1896,8 @@ its first user; no code path builds one now. The kind stays — `AnyRSelector`
 having a bogus variant is defensible on its own, and removing it means a codegen
 churn for nothing — but §7 records that nothing constructs it.
 
+#### Corpus
+
 **Enable:** `expressions/extract.md` and `expressions/namespace.md` in full — 18
 headings between them, currently 5 `[error, deviation]`, 6 `[error]`, and 7 plain
 `[pending]`. Air's `undefined/extract_expression_error.R` and
@@ -1914,30 +1908,28 @@ and do not move the 89 count.
 **Two marker changes fall out of the recovery decision, and both are the point of
 making it.**
 
-*Expect the five `[deviation]` markers to come off.* Dollar No RHS, Slot No RHS,
-Extract With A Literal RHS, Namespace With Missing RHS, and Namespace With A
-Literal RHS all carry `[error, deviation]` because an earlier draft's bogus RHS
-changed the shape. It no longer does. `Extract With A Literal RHS` even carries
-air's own output inline, and it is what aether will now produce:
-`RExtractExpression` with `right: missing (required)`, then `RDoubleValue` as a
-sibling. Empty slots are invisible to `shape_of` — it walks
-`children_with_tokens()` — so a missing `right` is not a shape difference at all.
-Drop `deviation` from each as the oracle confirms it, one at a time; five tests
-regaining oracle coverage is the concrete payoff for not consuming.
+*Expect the five `[deviation]` markers to come off.* `Dollar No RHS`,
+`Slot No RHS`, `Extract With A Literal RHS`, `Namespace With Missing RHS`, and
+`Namespace With A Literal RHS` all carry `[error, deviation]` because an earlier
+draft's bogus RHS changed the shape. It no longer does. `Extract With A Literal
+RHS` even carries air's own output inline, and it is what aether will now
+produce: `RExtractExpression` with `right: missing (required)`, then
+`RDoubleValue` as a sibling. Drop `deviation` from each as the oracle confirms it,
+one at a time; five tests regaining oracle coverage is the concrete payoff for not
+consuming.
 
 *`Dollar, At, Namespace, Namespace Internal With Expression RHS` has to gain
 `[error]`.* It is plain `[pending]` today because `foo${bar}` is clean under
 tree-sitter's `optional()` RHS. Deviation 2 makes the RHS required, so aether
-raises `expected_selector` and the test must say so. Its shape still matches, so it
-needs no `deviation`.
+raises `expected_selector` and the test must say so. Its shape still matches, so
+it needs no `deviation`.
 
 #### The diagnostic this phase adds
 
 `$`, `@`, `::`, and `:::` all funnel through one constructor, so it names the
 operator that was actually written — a message listing all four tells the reader
 nothing about which one they typed. The secondary label points at the operator,
-which is why the Pratt loop captures `operator_range` **before** the bump
-(§11.2).
+which is what step 2 above exists for.
 
 ```rust
 /// The name on the right of `$`, `@`, `::`, or `:::` is missing
@@ -1962,8 +1954,8 @@ pub(crate) fn expected_selector(
 which `String` already satisfies, and `biome_parser` builds its own details the
 same way. It keeps `biome_console` out of the crate's dependency list.
 
-This is the constructor the deviation table above leans on — every row where air
-produces no error and aether produces one is a row where this fires.
+This is the constructor `docs/deviations.md` entries 2 and 3 lean on — every row
+where air produces no error and aether produces one is a row where this fires.
 
 ### 11.5 Phase 11 — Function definitions
 
@@ -1971,7 +1963,8 @@ produces no error and aether produces one is a row where this fires.
 
 ```rust
 fn parse_function_definition(p: &mut RParser) -> ParsedSyntax {
-    if !p.at(T![function]) && !p.at(T!["\\"]) { return Absent }
+    debug_assert!(p.at(T![function]) || p.at(T!["\\"]));
+
     let m = p.start();
     p.bump_any();                       // `function` or `\`
     // Newlines between `function` and `(` are insignificant. tree-sitter-r has
@@ -1997,7 +1990,7 @@ Parameters use `Scope::Parenthesis` (newlines eaten) and a comma-separated list 
 `DOTS`, or `DOTDOTI` — note `return` is a plain identifier in R and is a valid
 parameter name (`Functions With return As Parameter Name`).
 
-**Enable:** the 7 imported tests across `corpus/functions/` — `definition.md`,
+**Enable:** all 8 imported tests across `corpus/functions/` — `definition.md`,
 `lambda.md`, `parameters.md` — two of them `[error]`. Air's merged
 `ok/function_definition.R` comes with them only if it stays within function
 syntax; check it rather than assuming (§10.3.4).
@@ -2031,7 +2024,8 @@ not.
 
 ```rust
 fn parse_if_statement(p: &mut RParser) -> ParsedSyntax {
-    if !p.at(T![if]) { return Absent }
+    debug_assert!(p.at(T![if]));
+
     let m = p.start();
     p.bump(T![if]);
     p.with_scope(Scope::Parenthesis, |p| {
@@ -2129,7 +2123,7 @@ we notice if it regresses.
 identifier. Handled in the lexer by lexing the full identifier and *then* checking
 for keyword-hood, so it needs no parser support. Two corpus tests cover it.
 
-**Enable:** the 11 imported tests across `corpus/control/` — `if.md`, `for.md`,
+**Enable:** all 15 imported tests across `corpus/control/` — `if.md`, `for.md`,
 `while.md`, `repeat.md`. Air's four merged `ok/*_statement.R` snapshots come with
 them where they stay within control-flow syntax (§10.3.4). Note the two `#200` `else`-prefix identifier tests live in
 `if.md` rather than `literals/identifiers.md`; see §10.3.2.
@@ -2157,11 +2151,17 @@ rather than one per run. That is the shape Biome deprecated:
 `SingleTokenParseRecovery` lives in `biome_js_parser` rather than the shared
 crate, is marked `#[deprecated]`, and survives at a single call site. Replacing
 it with the version below — recovery set, `enable_recovery_on_line_break()`, and
-all — is part of this phase, not a refactor to schedule separately.
+all — is part of this phase, not a refactor to schedule separately. Read the body
+below as a diff against the landed `parse_statement_list`, not as a fresh
+function. Its marker names and its `expression.range(p)` as the separator
+diagnostic's first range are already right and stay as they are; what does change
+is the landed `match` on `parse_expression`, which becomes an `Option`, because
+the `;` has to be eaten after either branch rather than inside one.
 
 ```rust
 fn parse_braced_statements(p: &mut RParser) -> ParsedSyntax {
-    if !p.at(T!['{']) { return Absent }
+    debug_assert!(p.at(T!['{']));
+
     let m = p.start();
     // The one scope that makes newlines significant *again* from inside a
     // paren: `f({\n  a\n  b\n})` is three statements, not one.
@@ -2180,17 +2180,16 @@ fn parse_braced_statements(p: &mut RParser) -> ParsedSyntax {
 const STATEMENT_LIST_RECOVERY_SET: TokenSet<RSyntaxKind> = token_set![T![;], T![EOF], T!['}']];
 
 fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
-    let m = p.start();
+    let statement_list = p.start();
     let mut progress = ParserProgress::default();
 
     while !p.at(T![EOF]) && !p.at(close) {
         progress.assert_progressing(p);
 
-        let stmt = p.start();
-        let previous_range = p.cur_range();
-        let had_expression = parse_expression(p).is_present();
+        let statement = p.start();
+        let expression = parse_expression(p).ok();
 
-        if !had_expression && !p.at(T![;]) {
+        if expression.is_none() && !p.at(T![;]) {
             // Nothing here starts an expression. Recover INSIDE the statement,
             // so the bogus node fills the `expression` slot rather than becoming
             // a stray child of `R_STATEMENT_LIST` — that list is `RStatement*`
@@ -2213,7 +2212,7 @@ fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
                 // Already at a recovery token with nothing consumed: abandon the
                 // empty statement rather than completing a childless
                 // `R_STATEMENT`, which `r.ungram` says is never produced.
-                stmt.abandon(p);
+                statement.abandon(p);
                 break;
             }
             p.error(diagnostics::expected_expression(p, range));
@@ -2229,29 +2228,29 @@ fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
         // is the most useful reading, and progress is already guaranteed because
         // `parse_expression` consumed.
         //
-        // Guarded on `had_expression` so the recovery branch above — which has
-        // already emitted `expected_expression` — does not also complain about a
-        // separator it was never going to reach.
+        // Guarded on the expression being present so the recovery branch above —
+        // which has already emitted `expected_expression` — does not also
+        // complain about a separator it was never going to reach.
         //
         // A bare `has_preceding_line_break()` suffices where the Pratt loop needs
         // `newlines_are_significant()` too: the only scopes a statement list runs
         // in are `TopLevel` and `Brace`, and in both of them it is already true.
         let ate_semicolon = p.eat(T![;]);
-        if had_expression
+        if let Some(expression) = expression
             && !ate_semicolon
             && !p.at(T![EOF])
             && !p.at(close)
             && !p.has_preceding_line_break()
         {
             p.error(diagnostics::expected_statement_separator(
-                p, previous_range, p.cur_range(),
+                p, expression.range(p), p.cur_range(),
             ));
         }
 
-        stmt.complete(p, R_STATEMENT);
+        statement.complete(p, R_STATEMENT);
     }
 
-    m.complete(p, R_STATEMENT_LIST);
+    statement_list.complete(p, R_STATEMENT_LIST);
 }
 ```
 
@@ -2280,9 +2279,10 @@ All three are `[deviation]`, so they do not move the 89 count.
 
 **Enable:** all of `corpus/statements/` — `braces.md`, `semicolons.md`, and the
 two headings in `newlines.md` that have been waiting on braces since Phase 8.
-This is the one directory that really does finish here: braces and statement lists are the last constructs any merged
-air snapshot in it can depend on. Every test in `semicolons.md` comes
-from air's snapshots rather than tree-sitter and carries `[deviation]`.
+This is the one directory that really does finish here: braces and statement
+lists are the last constructs any merged air snapshot in it can depend on. Every
+test in `semicolons.md` comes from air's snapshots rather than tree-sitter and
+carries `[deviation]`.
 
 #### The diagnostics this phase adds
 
@@ -2317,9 +2317,9 @@ dedicated pass:
   merely untidy on its own, it cost a bug when its terminator check also re-lexed
   the `]]`. The recovery branch grew an exit that never called it, so `x[[a b]]`
   lost its terminator and stranded both brackets in the enclosing statement list.
-  Both halves are fixed: the join moved to `RParser::do_bump()`, and the loop was
-  rewritten around `ARGUMENT_LIST_ENDS` so that it has one `break` and no
-  terminator of its own to leak. The general rule still wants the audit: a
+  Both halves are fixed: the join moved to `RParser::do_bump_with_context()`, and
+  the loop was rewritten around `ARGUMENT_LIST_ENDS` so that it has one `break`
+  and no terminator of its own to leak. The general rule still wants the audit: a
   predicate that a loop calls at some exits and not others must not be the only
   thing doing a job. Check every `break` out of a list loop on that basis.
 
