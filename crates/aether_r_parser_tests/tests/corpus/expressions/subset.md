@@ -18,13 +18,6 @@ foo[x=1,,y=3,4]
 
 ## Nested Brackets
 
-The `]]` a subset2 wants reaches the parser as two `]`, so every rung of this
-ladder has to hand the right number of them to the right list. The last rung
-leaves two `]` that close two different `[` right after a `]]`, which is where a
-`[[` scope outliving its own closer would join them. All clean parses,
-which is the point: the failure mode here is errors on valid code, and the
-imported corpus only covers mismatched brackets.
-
 ```r
 x[a[b]]
 x[[a[b]]]
