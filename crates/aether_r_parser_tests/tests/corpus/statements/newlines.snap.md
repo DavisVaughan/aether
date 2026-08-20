@@ -73,11 +73,7 @@ test.R:1:3 parse ━━━━━━━━━━━━━━━━━━━━━
 
 ## A Comment Does Not Hide A Line Break
 
-A clean parse, and the one here that can regress silently. It only passes
-because the lexer's `after_line_break` flag is sticky across trivia, so the break
-still reaches `2` with a comment sitting between. If that stickiness breaks, this
-fails at the lexer rather than surfacing later as a mystery
-`expected_statement_separator`.
+Lexer's `after_line_break` flag is sticky across trivia
 
 ```r
 1 # c
