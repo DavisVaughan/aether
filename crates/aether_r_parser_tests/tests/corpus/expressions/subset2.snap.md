@@ -496,8 +496,7 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
 ## Empty Subset2 Joins Its `]]`
 
 Nothing stands between the `[[` and the `]]`, so the join has to happen on the
-bump of the `[[` itself. That is what the `[[` being consumed inside its own
-scope buys.
+bump of the `[[` itself.
 
 ```r
 x[[]]
