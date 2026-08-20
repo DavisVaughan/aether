@@ -24,7 +24,6 @@ fn assert_inner(source: &str, expected: &str, range: TextRange) {
     let value = string_value(source);
 
     assert_eq!(value.inner_string_text().unwrap().text(), expected);
-    assert_eq!(value.inner_string_range().unwrap(), range);
     assert_eq!(&source[range], expected);
 }
 

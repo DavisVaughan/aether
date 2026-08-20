@@ -13,12 +13,6 @@ impl RStringValue {
         let token = self.value()?;
         Ok(token.token_text_trimmed().slice(inner_range(&token)))
     }
-
-    /// Source range of [RStringValue::inner_string_text()]
-    pub fn inner_string_range(&self) -> SyntaxResult<TextRange> {
-        let token = self.value()?;
-        Ok(inner_range(&token) + token.text_trimmed_range().start())
-    }
 }
 
 /// Relative to the start of the token
