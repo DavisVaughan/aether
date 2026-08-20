@@ -722,9 +722,9 @@ Why deviate:
   its lookahead in the default context — `p.nth(n)` past a `STRING_OPEN` came
   back with the string body lexed as code. That was survivable only because the
   lexer deliberately kept no string state, an invariant that existed for no other
-  reason. One-token strings delete the hazard outright: there is no non-regular
-  context left to be wrong about, and `RLexContext`, `BumpWithContext`, and
-  `do_bump_with_context` all go with it.
+  reason. One-token strings delete the hazard outright: `RLexContext` is down to
+  its `Regular` variant, so there is no non-regular context left to be wrong
+  about, and `BumpWithContext` and `do_bump_with_context` go with it.
 
 - **The optional slot stops existing.** `content: 'string_content'?` was optional
   only because an empty body emits nothing. A required `value` slot says what is

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::lexer::{RLexer, RReLexContext};
+use crate::lexer::{RLexContext, RLexer, RReLexContext};
 use aether_r_syntax::RSyntaxKind::{self, EOF};
 use biome_parser::diagnostic::ParseDiagnostic;
 use biome_parser::lexer::BufferedLexer;
@@ -40,7 +40,7 @@ impl<'src> RTokenSource<'src> {
         let mut trailing = !first;
 
         loop {
-            let kind = self.lexer.next_token(());
+            let kind = self.lexer.next_token(RLexContext::Regular);
 
             let Ok(trivia_kind) = TriviaPieceKind::try_from(kind) else {
                 break;

@@ -34,7 +34,7 @@ pub(super) fn lex(source: &str) -> (Vec<LexedToken>, Vec<ParseDiagnostic>) {
     let mut tokens = Vec::new();
 
     loop {
-        let kind = lexer.next_token(());
+        let kind = lexer.next_token(RLexContext::Regular);
         if kind == EOF {
             break;
         }

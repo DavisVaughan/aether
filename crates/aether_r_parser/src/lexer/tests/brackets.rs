@@ -36,11 +36,11 @@ fn a_third_open_bracket_stands_alone() {
 fn join_takes_both_brackets() {
     let mut lexer = RLexer::from_str("]]a");
 
-    assert_eq!(lexer.next_token(()), R_BRACK);
+    assert_eq!(lexer.next_token(RLexContext::Regular), R_BRACK);
     assert_eq!(lexer.re_lex(RReLexContext::JoinBrackets), R_BRACK2);
     assert_eq!(lexer.current_range(), TextRange::new(0.into(), 2.into()));
 
-    assert_eq!(lexer.next_token(()), IDENT);
+    assert_eq!(lexer.next_token(RLexContext::Regular), IDENT);
     assert_eq!(lexer.current_range(), TextRange::new(2.into(), 3.into()));
 }
 
@@ -49,10 +49,10 @@ fn join_takes_both_brackets() {
 fn a_joined_pair_leaves_the_rest_of_the_run() {
     let mut lexer = RLexer::from_str("]]]]");
 
-    assert_eq!(lexer.next_token(()), R_BRACK);
+    assert_eq!(lexer.next_token(RLexContext::Regular), R_BRACK);
     assert_eq!(lexer.re_lex(RReLexContext::JoinBrackets), R_BRACK2);
 
-    assert_eq!(lexer.next_token(()), R_BRACK);
+    assert_eq!(lexer.next_token(RLexContext::Regular), R_BRACK);
     assert_eq!(lexer.re_lex(RReLexContext::JoinBrackets), R_BRACK2);
     assert_eq!(lexer.current_range(), TextRange::new(2.into(), 4.into()));
 }
@@ -61,7 +61,7 @@ fn a_joined_pair_leaves_the_rest_of_the_run() {
 fn join_is_idempotent() {
     let mut lexer = RLexer::from_str("]]");
 
-    assert_eq!(lexer.next_token(()), R_BRACK);
+    assert_eq!(lexer.next_token(RLexContext::Regular), R_BRACK);
     assert_eq!(lexer.re_lex(RReLexContext::JoinBrackets), R_BRACK2);
     assert_eq!(lexer.re_lex(RReLexContext::JoinBrackets), R_BRACK2);
     assert_eq!(lexer.current_range(), TextRange::new(0.into(), 2.into()));
@@ -74,13 +74,16 @@ fn join_needs_the_brackets_adjacent() {
     for source in ["] ]", "]\n]"] {
         let mut lexer = RLexer::from_str(source);
 
-        assert_eq!(lexer.next_token(()), R_BRACK);
+        assert_eq!(lexer.next_token(RLexContext::Regular), R_BRACK);
         assert_eq!(lexer.re_lex(RReLexContext::JoinBrackets), R_BRACK);
         assert_eq!(lexer.current_range(), TextRange::new(0.into(), 1.into()));
 
-        assert!(matches!(lexer.next_token(()), WHITESPACE | NEWLINE));
-        assert_eq!(lexer.next_token(()), R_BRACK);
-        assert_eq!(lexer.next_token(()), EOF);
+        assert!(matches!(
+            lexer.next_token(RLexContext::Regular),
+            WHITESPACE | NEWLINE
+        ));
+        assert_eq!(lexer.next_token(RLexContext::Regular), R_BRACK);
+        assert_eq!(lexer.next_token(RLexContext::Regular), EOF);
     }
 }
 
@@ -88,7 +91,7 @@ fn join_needs_the_brackets_adjacent() {
 fn join_is_a_no_op_at_the_end_of_the_source() {
     let mut lexer = RLexer::from_str("]");
 
-    assert_eq!(lexer.next_token(()), R_BRACK);
+    assert_eq!(lexer.next_token(RLexContext::Regular), R_BRACK);
     assert_eq!(lexer.re_lex(RReLexContext::JoinBrackets), R_BRACK);
     assert_eq!(lexer.current_range(), TextRange::new(0.into(), 1.into()));
 }
@@ -99,9 +102,9 @@ fn join_is_a_no_op_at_the_end_of_the_source() {
 fn join_preserves_the_preceding_line_break() {
     let mut lexer = RLexer::from_str("1\n]]");
 
-    assert_eq!(lexer.next_token(()), R_DOUBLE_LITERAL);
-    assert_eq!(lexer.next_token(()), NEWLINE);
-    assert_eq!(lexer.next_token(()), R_BRACK);
+    assert_eq!(lexer.next_token(RLexContext::Regular), R_DOUBLE_LITERAL);
+    assert_eq!(lexer.next_token(RLexContext::Regular), NEWLINE);
+    assert_eq!(lexer.next_token(RLexContext::Regular), R_BRACK);
     assert!(lexer.has_preceding_line_break());
 
     assert_eq!(lexer.re_lex(RReLexContext::JoinBrackets), R_BRACK2);

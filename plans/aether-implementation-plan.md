@@ -459,10 +459,12 @@ the parser phases are written against, plus the landmines.
 `ReLexer`. `LexerWithCheckpoint` is what gives `NthToken` lookahead for free via
 `BufferedLexer`.
 
-**There is no lex context.** `type LexContext = ()`, whose `is_regular()` is
-always true, so `BufferedLexer` never resets its buffered lookahead and `p.nth(n)`
-means the same thing everywhere in the file. Every R token is context-free to
-lex, which was only true once strings became one token each (deviation 12).
+**`RLexContext` has one variant, `Regular`**, so `is_regular()` is always true,
+`BufferedLexer` never resets its buffered lookahead, and `p.nth(n)` means the
+same thing everywhere in the file. Every R token is context-free to lex, which
+was only true once strings became one token each (deviation 12). The enum stays
+rather than collapsing to `()` so the contract is named where a reader of the
+lexer will look for it.
 
 ### 8.2 Lexer state and the sticky line-break flag
 

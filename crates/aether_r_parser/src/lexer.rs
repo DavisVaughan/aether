@@ -9,9 +9,27 @@ use crate::diagnostics::{
 use aether_r_syntax::RSyntaxKind::{self, *};
 use aether_r_syntax::T;
 use biome_parser::diagnostic::ParseDiagnostic;
-use biome_parser::lexer::{Lexer, LexerCheckpoint, LexerWithCheckpoint, ReLexer, TokenFlags};
+use biome_parser::lexer::{
+    LexContext, Lexer, LexerCheckpoint, LexerWithCheckpoint, ReLexer, TokenFlags,
+};
 use biome_rowan::{SyntaxKind, TextRange, TextSize};
 use unicode_ident::{is_xid_continue, is_xid_start};
+
+/// Lex context for R
+///
+/// There aren't any special contexts for R, so we just have a single `Regular`
+/// context that everything is lexed in.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) enum RLexContext {
+    #[default]
+    Regular,
+}
+
+impl LexContext for RLexContext {
+    fn is_regular(&self) -> bool {
+        true
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RStringDelimiter {
@@ -170,7 +188,7 @@ impl<'src> Lexer<'src> for RLexer<'src> {
     const WHITESPACE: Self::Kind = WHITESPACE;
 
     type Kind = RSyntaxKind;
-    type LexContext = ();
+    type LexContext = RLexContext;
     type ReLexContext = RReLexContext;
 
     fn source(&self) -> &'src str {

@@ -28,7 +28,7 @@ const ERROR_SOURCES: &[&str] = &["\u{1}"];
 /// `R_BRACK2` is the only one
 fn re_lexed_kinds() -> HashSet<RSyntaxKind> {
     let mut lexer = RLexer::from_str("]]");
-    lexer.next_token(());
+    lexer.next_token(RLexContext::Regular);
     HashSet::from([lexer.re_lex(RReLexContext::JoinBrackets)])
 }
 
