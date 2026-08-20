@@ -56,7 +56,6 @@ impl RStringDelimiter {
         })
     }
 
-    /// The literal kind a string with this delimiter lexes as
     fn kind(self) -> RSyntaxKind {
         match self {
             Self::Single => R_SINGLE_QUOTED_STRING_LITERAL,
