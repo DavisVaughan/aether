@@ -185,6 +185,7 @@ impl<'src> Lexer<'src> for RLexer<'src> {
         self.current_start
     }
 
+    /// There's only one "Regular" context for R
     fn next_token(&mut self, _context: Self::LexContext) -> Self::Kind {
         self.current_start = TextSize::from(self.position as u32);
         self.current_flags = TokenFlags::empty();
