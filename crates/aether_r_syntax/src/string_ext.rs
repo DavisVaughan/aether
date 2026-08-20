@@ -24,7 +24,7 @@ fn inner_string_range(token: &RSyntaxToken) -> TextRange {
 
     let (open, close) = match token.kind() {
         R_SINGLE_QUOTED_STRING_LITERAL | R_DOUBLE_QUOTED_STRING_LITERAL => (1, 1),
-        // `r`, the quote, the hyphens, and the bracket; the close drops the `r`
+        // `r`, the quote, the hyphens, and the bracket
         R_RAW_STRING_LITERAL => {
             let hyphens = text.as_bytes()[2..]
                 .iter()
