@@ -2,7 +2,7 @@
 mod generated;
 pub mod argument_ext;
 pub mod call_ext;
-pub mod string_value_ext;
+pub mod string_ext;
 mod syntax_node;
 
 pub use self::generated::*;
