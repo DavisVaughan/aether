@@ -35,10 +35,6 @@ x[[]]
 
 ## Side By Side Arguments Still Join The `]]` [error]
 
-Recovering inside `[[` must leave the `]]` alone. It is a closing delimiter like
-any other, so the recovery set names it; without that, recovery swallows both
-brackets and strands the `[[` without a terminator.
-
 ```r
 x[[a b]]
 ```
