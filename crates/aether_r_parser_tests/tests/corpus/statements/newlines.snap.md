@@ -65,9 +65,6 @@ test.R:1:3 parse ━━━━━━━━━━━━━━━━━━━━━
 
 ## Two Expressions On One Line Inside Braces [pending, error]
 
-Confirms the rule survives `parse_braced_statements()` making newlines
-significant again from inside a paren.
-
 ```r
 { 1 2 }
 ```
