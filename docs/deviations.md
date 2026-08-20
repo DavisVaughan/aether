@@ -40,7 +40,8 @@ them, since the ledger runs ahead of the parser.
 
 ### 1. Semicolons are real tokens
 
-Landed in Phase 3.
+Grammar landed in Phase 3; the parser fills the slot in Phase 13, so the trees
+below are the target rather than what aether builds today.
 
 Example:
 
@@ -196,8 +197,8 @@ what air already builds: `RExtractExpression` with `right: missing (required)`,
 then `RDoubleValue` as a sibling.
 
 Corpus tests: `Dollar No RHS`, `Slot No RHS`, and `Extract With A Literal RHS` in
-`expressions/extract.md`. All three are marked `[deviation]` today; since the shape
-now matches, expect that marker to come off as the oracle confirms it, leaving
+`expressions/extract.md`. All three carry `[deviation]` today, and the shape
+matches, so expect the marker to come off once the oracle confirms it — leaving
 `[error]`.
 
 ### 3. Namespace RHS is required
@@ -208,8 +209,8 @@ Identical to deviation 2, for `::` and `:::`. Split out because tree-sitter-r
 models namespace as its own rule with its own `optional()`.
 
 Corpus tests: `Namespace With Missing RHS` and `Namespace With A Literal RHS` in
-`expressions/namespace.md`, both marked `[deviation]` today and both expected to
-shed it for the reason given in deviation 2.
+`expressions/namespace.md`, both carrying `[deviation]` today and both expected
+to shed it for the reason given in deviation 2.
 
 ### 4. Recovery is localized
 
@@ -298,7 +299,8 @@ in the same generated pass.
 
 ### 6. A character that starts no token becomes an `ERROR_TOKEN`
 
-Landed in Phase 4. `ERROR_TOKEN` is a new token kind, added to `r_kinds_src.rs`.
+Landed in Phase 4 as a new token kind in `r_kinds_src.rs`; Phase 7 added the
+`parse_primary_expression` arm that wraps it.
 
 Example:
 
@@ -385,9 +387,9 @@ ever pushed back. Aether follows R on both counts.
 | `1e5iL` | `float 1e5`, `identifier iL` | `1e5i`, then the name `L` |
 
 Every row but the first is a syntax error in R and in aether, arriving as two
-expressions on one line (§11.7). tree-sitter-r parses all of them cleanly, since
-its `program` does not require a separator between expressions. So nothing is
-lost by disagreeing: the oracle only compares trees for inputs aether parses
+expressions on one line (deviation 11). tree-sitter-r parses all of them cleanly,
+since its `program` does not require a separator between expressions. So nothing
+is lost by disagreeing: the oracle only compares trees for inputs aether parses
 cleanly, and it skips every one of these either way.
 
 Why follow R rather than the oracle: R's rule cannot disagree with R about a
@@ -439,15 +441,16 @@ that was consumed and carries a diagnostic.
 Why: the token boundaries barely change — `1east` splits the same way either
 way — so this buys almost nothing in tree shape and everything in the message.
 Without it, `0x` is not silently accepted either: it lexes as two expressions on
-one line, and §11.7's statement separator rule reports `expected a statement
-separator between two expressions`, which is a bewildering thing to read while
+one line, and the separator rule of deviation 11 reports "Expected a newline or a
+`;` between two expressions.", which is a bewildering thing to read while
 half-typing `0xFF`. The lexer is the only place that still knows a hexadecimal
 was started, so it is the only place that can say so.
 
-Keeping the token rather than emitting an `ERROR_TOKEN` follows the `%foo` rule
-in deviation 6: the text is a well-formed literal that was cut short, so the
-parser can still use it, and `ERROR_TOKEN` is reserved for characters that start
-nothing at all.
+Keeping the token rather than emitting an `ERROR_TOKEN` is deviation 6's line
+held from the other side: the text is a well-formed literal that was cut short,
+so the parser can still use it, and `ERROR_TOKEN` is reserved for characters that
+start nothing at all. An unterminated `%...%` keeps its `SPECIAL` token for the
+same reason, which the `%foo` entry below picks up.
 
 The line is drawn at what the grammar *requires*. A suffix is optional, so a
 literal that ends without one is finished, not unterminated — `1L` and `1Li` are
@@ -550,17 +553,11 @@ of the file. Under this one it is trailing in both.
 
 #### Why Phase 5 and not after the swap
 
-The plan originally deferred this, on the grounds that adopting the simpler rule
-would be cheap once air was on aether and expensive before, because re-tagging
-every whitespace piece would mask the drift the oracle exists to watch for.
-
-Both halves are backwards. The corpus does not exist until Phase 6, so
-"regenerate every snapshot" costs nothing today and grows monotonically from
-here; deferring past the swap would additionally mean regenerating air's
-formatter snapshots, on a rule change that then has to be argued invisible rather
-than simply never introduced. And the oracle keeps full coverage through
-normalization instead of losing it, because the drift worth watching for is in
-comment attachment, which this does not touch.
+The cost of the change grows monotonically: it landed before the corpus existed,
+where regenerating every snapshot was free, and deferring past the swap would
+have added air's formatter snapshots on top. The oracle lost no coverage either
+— see below — because the drift worth watching for is in comment attachment,
+which this does not touch.
 
 #### Swap-in cost, and the audit behind that claim
 
