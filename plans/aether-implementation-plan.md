@@ -459,17 +459,10 @@ the parser phases are written against, plus the landmines.
 `ReLexer`. `LexerWithCheckpoint` is what gives `NthToken` lookahead for free via
 `BufferedLexer`.
 
-**Lookahead lexes in `RLexContext::default()`**, so it is only meaningful for
-tokens whose lexing is context-free — it cannot peek past a `STRING_OPEN`, whose
-body would come back lexed as code. That constraint is why §11.3 parses argument
-names optimistically rather than looking ahead for the `=`.
-
-The kinds such a lookahead returns are useless, but they are only useless: it
-leaves nothing behind for the real pass to trip over, because the lexer keeps no
-state a rewind cannot restore. §8.2.1 is where that is arranged, and it is load
-bearing — the lookahead pass and the rewind that undoes it are both
-`BufferedLexer`'s business, not the parser's, so no parser-side discipline can
-substitute for it.
+**There is no lex context.** `type LexContext = ()`, whose `is_regular()` is
+always true, so `BufferedLexer` never resets its buffered lookahead and `p.nth(n)`
+means the same thing everywhere in the file. Every R token is context-free to
+lex, which was only true once strings became one token each (deviation 12).
 
 ### 8.2 Lexer state and the sticky line-break flag
 
@@ -495,61 +488,6 @@ nothing in R reads it. `LexerCheckpoint` has the field, so `checkpoint()` must
 construct it and `rewind()` must destructure it; a hardcoded `0` there would be a
 lie the next reader has to re-derive.
 
-#### 8.2.1 The lexer keeps no string state
-
-**This is an invariant, not an implementation detail, and §11.3 depends on it.**
-A string is three tokens, so the lexer could remember what it opened:
-
-```rust
-// NOT what aether does
-string_delimiter: Option<RStringDelimiter>,  // set at STRING_OPEN, cleared at STRING_CLOSE
-```
-
-That would buy dataless context variants and spare the parser from naming a
-delimiter. It is also wrong, because `BufferedLexer` rewinds the inner lexer on
-its own initiative in two places: `next_token` calls `reset_lookahead()` whenever
-`!context.is_regular()`, so every string body request can rewind, and `re_lex`
-rewinds before and after re-lexing.
-
-Meanwhile `LookaheadIterator::next()` lexes ahead with `LexContext::default()`,
-so a lookahead pass runs `lex_token()` over string bodies and would set such a
-field as a side effect. `LexerCheckpoint` has no slot for it, so the rewind
-restores the position and leaves the field describing whichever string the
-lookahead happened to stop inside:
-
-```r
-"x" r"(y)"
-```
-
-Lex `STRING_OPEN`, checkpoint, lex four tokens in the regular context, rewind.
-The position comes back to 1; a `string_delimiter` field comes back holding
-`Raw { quote: b'"', hyphens: 0, bracket: Paren }`. Lexing the body of `"x"`
-against that delimiter scans for `)"` and swallows the rest of the line. Round
-trip still holds — no bytes are lost — so the corpus would not catch it; only the
-token boundaries are wrong.
-
-**So the delimiter travels in the context**, and the caller reads it back off the
-`STRING_OPEN` token's text with `RStringDelimiter::from_open()`. The text is the
-only channel available in any case: `BufferedLexer`'s `inner` is private with no
-accessor and no `Deref`, and `TokenSourceWithBufferedLexer::lexer()` hands back
-the `BufferedLexer`, not the `RLexer`. Nothing above the lexer can read a lexer
-field, so "ask the lexer for the delimiter" is not implementable at any layer,
-however the lexer is written.
-
-`from_open()` and the lexer's own dispatch share
-`RStringDelimiter::try_from_raw_string_open()`, which reads no further than the
-delimiter itself. That leaves exactly one parser of the hyphen-and-bracket
-grammar, and the sharing is what makes `from_open()`'s `expect` safe — the lexer
-emits a `STRING_OPEN` starting with `r` only where `try_from_raw_string_open()`
-answered `Some` on the same bytes.
-
-`open_length()` and `close_length()` keep the two lengths in one place.
-`checkpoint.rs` pins the lookahead-then-rewind sequence above, that each open
-form reads back as its delimiter, and that a name like `rnorm` answers `None`.
-
-§9.1.1 is the parser's side of this, and it calls the same `from_open()` the test
-driver does, so the two cannot drift.
-
 ### 8.3 Dispatch
 
 `lex_token()` is one `match` on the leading byte. Read it in the code; the
@@ -569,7 +507,7 @@ The facts the parser phases need, and the ones a later grammar edit can break.
 
 **`[` and `[[` are lexed greedily; `]` and `]]` are not.** `[[` is always a single
 token. `]]` is always two `]`, and the parser joins them with
-`p.re_lex(RReLexContext::JoinBrackets)` from `RParser::do_bump_with_context()`,
+`p.re_lex(RReLexContext::JoinBrackets)` from `RParser::do_bump()`,
 using the scope it already tracks. There is no scope stack in the lexer. This is
 the single most important design call in the lexer and the one most likely to be
 undone by accident.
@@ -588,14 +526,14 @@ splits it back, while `>` is never lexed greedily at all and
 Nested generics need no re-lex whatsoever, which is exactly the property we want
 for nested subsets.
 
-**A stack in the lexer is not on the table, whatever its merits.** §8.2.1 rules
-out lexer state for strings, and the same three mechanisms rule it out here:
-`BufferedLexer` rewinds the inner lexer on its own initiative, `LookaheadIterator`
-runs it ahead with `LexContext::default()`, and `LexerCheckpoint` has no slot to
-restore a stack from. Speculative lookahead would advance the stack and nothing
-would roll it back, which yields a wrong tree that still round-trips. Nothing
-calls `nth()` today, so that lands whenever lookahead is first added rather than
-when the stack is written — the worst possible interval. tree-sitter-r pays these
+**A stack in the lexer is not on the table, whatever its merits.** Three
+mechanisms rule it out: `BufferedLexer` rewinds the inner lexer on its own
+initiative, `LookaheadIterator` runs it ahead speculatively, and
+`LexerCheckpoint` has no slot to restore a stack from. A speculative lookahead
+would advance the stack and nothing would roll it back, which yields a wrong tree
+that still round-trips. Nothing calls `nth()` today, so that lands whenever
+lookahead is first added rather than when the stack is written — the worst
+possible interval. tree-sitter-r pays these
 costs in the open: its `Scopes` stack has to fit in
 `TREE_SITTER_SERIALIZATION_BUFFER_SIZE`, so `MAX_SCOPES_COUNT` caps nesting and a
 failed `scopes_push()` makes the scanner decline the token outright. And it still
@@ -639,34 +577,33 @@ are `COMMENT`; there is no `#` token.
 **Backticks produce an identifier, not a string.** `` `my var` `` is one `IDENT`
 covering the delimiters, because tree-sitter-r puts the quoted form inside its
 `identifier` rule and air's walker maps it straight to `R_IDENTIFIER`. So there
-is no `Backtick` variant in `RStringDelimiter`, and an unterminated backtick is a
-lexer diagnostic (`unterminated_backtick_identifier`), where the three
-unclosed-quote cases surface through the parser's `expect(STRING_CLOSE)` in
-§11.1.
+is no `Backtick` variant in `RStringDelimiter`.
 
-Backticked names may span newlines, and so may strings — R's `token()` dispatches
-both to the same `StringValue()` function, which turns a newline into an escaped
-newline rather than an error. An unterminated one genuinely runs to EOF, which is
-what tree-sitter does too. The way to keep the error useful is where the
-diagnostic points, not where the scan stops: at the opening delimiter, with EOF
-as a secondary label. `enable_recovery_on_line_break()` will not help the parser
+**A string is one token too**, delimiters included, with a kind per quote style:
+`R_SINGLE_QUOTED_STRING_LITERAL`, `R_DOUBLE_QUOTED_STRING_LITERAL`, or
+`R_RAW_STRING_LITERAL`. Escapes are not modelled separately — neither air's
+walker nor `r.ungram` has an `escape_sequence` — so the body is text and nothing
+else, reached through `RStringValue::inner_string_text()` in `aether_r_syntax`.
+Deviation 12 in `docs/deviations.md` carries the argument. So backticked names
+and strings work alike, which is the point.
+
+Both may span newlines: R's `token()` dispatches them to the same
+`StringValue()` function, which turns a newline into an escaped newline rather
+than an error. An unterminated one genuinely runs to EOF, which is what
+tree-sitter does too. The way to keep the error useful is where the diagnostic
+points, not where the scan stops: at the opening delimiter, with EOF as a
+secondary label. `enable_recovery_on_line_break()` will not help the parser
 resynchronise after one, and it should not be expected to.
 
-**Strings are three tokens**: `STRING_OPEN`, `STRING_CONTENT`, `STRING_CLOSE`.
-Content is one token spanning everything between the delimiters, escapes
-included — neither air's walker nor `r.ungram` models `escape_sequence`
-separately. `STRING_CONTENT` is **optional**: an empty body emits none, so a
-`StringContent` request on a body that closes immediately comes back as
-`STRING_CLOSE`, and `""` is two tokens where `"a"` is three. Both consumers of
-the lexer decide the next context from the kind that came back, never from the
-one they asked for. §11.1's `parse_string_value()` is where that matters.
-
-**`ERROR_TOKEN`** is a character that starts no token at all: one character
-consumed, `unexpected_character` raised, `ERROR_TOKEN` returned. Deviation 6 in
-`docs/deviations.md` carries the argument for why it is not `IDENT`. The
-reachable cases are narrow — every printable ASCII character starts some R token,
-so this is only control characters and non-ASCII characters that are neither
-`XID_Start` nor `XID_Continue`. §11.1 is the parser's side.
+**`ERROR_TOKEN`** is text no production can take. Three producers, all in the
+lexer: a character that starts no token (`unexpected_character`, one character
+consumed), an unterminated string (`unterminated_string`), and an unterminated
+backtick-quoted name (`unterminated_backtick_identifier`). Deviation 6 in
+`docs/deviations.md` carries the argument for why none of them keeps a
+well-formed kind, and where the line falls against deviation 8's bounded
+literals. The stray-character case is narrow — every printable ASCII character
+starts some R token, so it is only control characters and non-ASCII characters
+that are neither `XID_Start` nor `XID_Continue`. §11.1 is the parser's side.
 
 **Four number and operator behaviours are deviations**, all landed and all
 documented in `docs/deviations.md` rather than here: the greedy `L`/`i` suffix
@@ -795,35 +732,13 @@ maintained here in `next_non_trivia_token()` would not — it would describe
 whichever token was last pulled through that function rather than the current one.
 A lookahead-then-bump test pins it.
 
-`skip_as_trivia_with_context()` resumes as if at the start of the file, so trivia
-after a skipped token leads the next token instead of trailing what was skipped.
-Phase 14's recovery is what produces those pieces.
+`skip_as_trivia()` resumes as if at the start of the file, so trivia after a
+skipped token leads the next token instead of trailing what was skipped. Phase
+14's recovery is what produces those pieces.
 
-`BumpWithContext` is what carries `RLexContext` down for string bodies, and
-`TokenSourceWithBufferedLexer` supplies `NthToken` lookahead for free.
-
-#### 9.1.1 The string delimiter comes from the token text
-
-The lexer keeps no memory of the string it opened (§8.2.1), so the delimiter is
-named by the caller, which is `parse_string_value` (§11.1):
-
-```rust
-let delimiter = RStringDelimiter::from_open(p.cur_text());
-```
-
-**Neither `RTokenSource` nor `RParser` has a `string_delimiter()` method**, and
-neither should grow one. `Parser::cur_text()` is provided, and its body is already
-the whole of what such a method would do. The token source has no internal use for
-a delimiter either: `bump_with_context` takes the context as an argument, so
-context only ever flows parser → source, and a method there would exist solely to
-be forwarded out again.
-
-Behind `at(STRING_OPEN)` the call is total — the lexer emitted that token by
-parsing the same bytes successfully — so it needs no guard beside it, and it is
-stateless, so a checkpoint taken anywhere inside a string is as good as any other.
-Read the delimiter once at the open and pass it to both bumps. Do not thread it
-through `RParser` state, and do not look it up again at `STRING_CONTENT`, whose
-text is the body rather than a delimiter.
+`TokenSourceWithBufferedLexer` supplies `NthToken` lookahead for free. There is
+no `BumpWithContext` impl: nothing in R needs a lex context (§8.1), so `bump()`
+and `skip_as_trivia()` are the whole surface.
 
 ### 9.2 `RParser`
 
@@ -1357,6 +1272,12 @@ per-deviation list:
   deviation 1. This is what lets the semicolon-free majority of the corpus keep
   oracle coverage rather than being skipped wholesale.
 
+- Collapse `R_STRING_VALUE`'s children to one synthetic `STRING` token spanning
+  the node, which is deviation 12. Air's three tokens and aether's one meet
+  there, and the comparison still pins where every string starts and ends —
+  which is what the raw-string delimiter logic gets wrong when it gets anything
+  wrong.
+
 **Whitespace polarity (deviation 10) is handled by comparing trimmed ranges**
 rather than by re-tagging trivia on both trees. It reaches the same end — polarity
 cannot cause a mismatch — with no re-tagging code. Comment attachment is then
@@ -1458,12 +1379,24 @@ the stray character on the same line. It needs no entry in any recovery set,
 though — it starts no production, so every `at(...)` test in the parser is already
 false for it, and the arm is the only way to reach it.
 
-`unterminated_string` landed with the two-range shape
+`unterminated_string` carries the two-range shape
 `unterminated_backtick_identifier` already uses: the opening delimiter, with what
 was found instead as a secondary label. A string runs to EOF for the same reason
-a backticked name does (§8.4). `Unclosed Backtick` in `literals/identifiers.md`
-takes the lexer's path rather than this one, since a backtick-quoted name is an
-`IDENT` and not a string.
+a backticked name does (§8.4), and both are raised by the lexer, which is the
+only layer that still knows a delimiter was opened.
+
+`parse_string_value` is a bump. The lexer hands back one token, so the node has
+one slot and the function has nothing to decide:
+
+```rust
+pub(crate) fn parse_string_value(p: &mut RParser) -> ParsedSyntax {
+    debug_assert!(p.at_ts(STRING_LITERALS));
+
+    let m = p.start();
+    p.bump_any();
+    Present(m.complete(p, R_STRING_VALUE))
+}
+```
 
 ### 11.2 Phase 8 — Binary and unary operators (the Pratt core) — LANDED
 
@@ -1621,10 +1554,9 @@ pair back together wherever the scope says both belong to the same `[[`.
 `L_BRACK2` arrives whole; `R_BRACK2` is manufactured.
 
 **The join happens on every bump, at one call site, off the scope** — the tail of
-`RParser::do_bump_with_context()`, which `do_bump()` delegates to, so `expect`,
-`bump_ts`, and the skipping bumps inside `ParseRecoveryTokenSet` all funnel
-through it. `biome_js_parser` overrides the same pair for its keyword-escape
-check. The join fires only inside a `[[`, where the innermost open construct owns
+`RParser::do_bump()`, which `expect`, `bump_ts`, and the skipping bumps inside
+`ParseRecoveryTokenSet` all funnel through. `biome_js_parser` overrides the same
+method for its keyword-escape check. The join fires only inside a `[[`, where the innermost open construct owns
 both brackets, and only on brackets that are adjacent, so `x[[a] ]` and `x[[a]\n]`
 stay errors. §9.2's placement rule is what makes one site sufficient: because a
 bump lexes the *next* token, the opener is consumed inside the scope and the
@@ -1737,15 +1669,12 @@ lhs. Nothing is ever unparsed. This is sound because R admits only a bare symbol
 string, `...`, `..i`, or `NULL` as an argument name — `f(a$b = 1)` is not legal —
 so `parse_argument_name` can never consume more than the value would have.
 
-**No checkpoint, no `nth` offsets.** The earlier sketch looked one token ahead for
-`=` and fell back to `ParserContextCheckpoint` for strings, because a string is
-three tokens — or **two** when empty, so `f("" = 1)` puts the `=` at `nth(2)`
-while `f("a" = 1)` puts it at `nth(3)`. Worse, that offset is not merely variable
-but unknowable: lookahead lexes in `RLexContext::default()` (§8.1), so `p.nth(2)`
-past a `STRING_OPEN` re-lexes the string body as code. §8.2.1 is what keeps that
-harmless rather than corrupting. Parsing first sidesteps all of it — every token
-is lexed exactly once, all five name forms take one path, and the `f("" = 1)`
-asymmetry stops existing rather than being handled.
+**No checkpoint, no `nth` offsets.** A one-token lookahead for `=` would work now
+that a string is one token, and it is still the wrong trade: `p.nth(1)` re-lexes
+the head of every argument of every call in the file to save one match arm, where
+parsing first lexes every token exactly once. `biome_js_parser` parses
+optimistically for the same ambiguity. All five name forms take one path either
+way.
 
 `==` never reaches the `p.at(T![=])` test as two tokens: the lexer's maximal munch
 (§8.4) returns a single `==`, so `f(a == 1)` takes the `Present(lhs)` arm and the
@@ -1798,9 +1727,8 @@ it separate for reviewability.
 
 `parse_selector` is the new function, and it is `AnyRSelector` — identifier,
 string, `...`, `..i` — with the same one-arm-per-kind shape as
-`parse_argument_name` in `call.rs`. Its string arm matches `STRING_OPEN` today; if
-`plans/string-simplification.md` lands first it matches the three string literal
-kinds instead.
+`parse_argument_name` in `call.rs`. Its string arm spells out the three string
+literal kinds, as that one does.
 
 #### The newline rule
 
@@ -2317,7 +2245,7 @@ dedicated pass:
   merely untidy on its own, it cost a bug when its terminator check also re-lexed
   the `]]`. The recovery branch grew an exit that never called it, so `x[[a b]]`
   lost its terminator and stranded both brackets in the enclosing statement list.
-  Both halves are fixed: the join moved to `RParser::do_bump_with_context()`, and
+  Both halves are fixed: the join moved to `RParser::do_bump()`, and
   the loop was rewritten around `ARGUMENT_LIST_ENDS` so that it has one `break`
   and no terminator of its own to leak. The general rule still wants the audit: a
   predicate that a loop calls at some exits and not others must not be the only
@@ -2429,10 +2357,15 @@ what it claims, not a regression.
 
    `into_result()` had no caller in air and needs nothing.
 
-4. **Update `air_r_formatter`** for the `R_STATEMENT` wrapper and real
-   semicolon tokens. Expect churn in `r/expressions/expression_list.rs` and
-   `r/expressions/braced_expressions.rs` (renamed to `braced_statements.rs`) and
-   their snapshots.
+4. **Update `air_r_formatter`** for the `R_STATEMENT` wrapper, real semicolon
+   tokens, and one-token strings. Expect churn in
+   `r/expressions/expression_list.rs` and `r/expressions/braced_expressions.rs`
+   (renamed to `braced_statements.rs`) and their snapshots.
+
+   The string half is two files and no snapshot churn, since the formatter is
+   R-in / R-out: `r/auxiliary/string_value.rs`, where three writes become one,
+   and `string_content.rs`, which normalizes the whole token rather than the
+   content token. Deviation 12 has the rest of the accounting.
 
    **Semantics, settled with the owner:** `format_removed(&semicolon)` plus a
    hard line break, so `1;2` formats as two lines. Three things follow, and the
@@ -2502,7 +2435,7 @@ aether, so the indirection is discoverable from the place someone hits it.
 | Risk | Why it bites | Mitigation |
 |---|---|---|
 | **Trivia attachment drift** | A one-piece difference in *comment* attachment silently changes formatter output; a whitespace one changes every snapshot. | Largely retired by deviation 10: the rule is a latching bool with no lookahead, so there is little left to get subtly wrong. Comment attachment is unchanged from air and the oracle still compares it, since normalization touches whitespace only (§10.4). Landed in Phase 5, ahead of any grammar work; what exposure remains is settled by air's formatter snapshots at swap-in (§12.3 step 7). |
-| **`[[` / `]]` joining** | Genuinely ambiguous; tree-sitter needs an external scanner and still has open bugs. The lexer half landed in Phase 4; the parser half landed in Phase 9. | One join site, in `RParser::do_bump_with_context()`, reading the scope (§11.3). The corpus works it from both ends: the nesting ladder in `expressions/subset.md` on valid code, the mismatched-bracket set in `recovery/unmatched-delimiters.md` on invalid. Do not put a scope stack in the lexer — §8.4 says why it cannot work here — and do not make the lexer glue closers. |
+| **`[[` / `]]` joining** | Genuinely ambiguous; tree-sitter needs an external scanner and still has open bugs. The lexer half landed in Phase 4; the parser half landed in Phase 9. | One join site, in `RParser::do_bump()`, reading the scope (§11.3). The corpus works it from both ends: the nesting ladder in `expressions/subset.md` on valid code, the mismatched-bracket set in `recovery/unmatched-delimiters.md` on invalid. Do not put a scope stack in the lexer — §8.4 says why it cannot work here — and do not make the lexer glue closers. |
 | **Codegen drift** | If aether's generated code diverges from air's, the swap-in fails in confusing ways. | Retired: Phase 2 asserted byte-identity, and CI asserts `just codegen` idempotence on every PR. |
 | **Oracle unavailable on error tests** | tree-sitter bails on any error, and aether's own error blocks are skipped too (§10.4), so the error corpus gets no oracle coverage at all. | Accept it; those are exactly the tests where we *intend* to differ. Rely on reviewed snapshots there. |
 | **Oracle breaks** | It depends on air at a pinned rev, so a rev bump on either side can break the build or the comparison. | It runs with every test, so a break is loud rather than silent. Fix cheaply or abandon it — it is deleted at swap-in regardless (§10.4.1), and reviewed snapshots, not the oracle, are what carry forward. |

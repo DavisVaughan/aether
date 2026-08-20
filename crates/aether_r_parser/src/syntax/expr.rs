@@ -162,7 +162,9 @@ fn parse_primary_expression(p: &mut RParser) -> ParsedSyntax {
             p.bump_any();
             Present(m.complete(p, R_BOGUS_EXPRESSION))
         }
-        STRING_OPEN => parse_string_value(p),
+        R_SINGLE_QUOTED_STRING_LITERAL | R_DOUBLE_QUOTED_STRING_LITERAL | R_RAW_STRING_LITERAL => {
+            parse_string_value(p)
+        }
         T!['('] => parse_parenthesized_expression(p),
         _ => Absent,
     }

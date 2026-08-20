@@ -239,6 +239,22 @@ mod tests {
     }
 
     #[test]
+    fn string_values_collapse_to_one_token_on_both_sides() {
+        let reference = air_r_parser::parse("\"a\"", air_r_parser::RParserOptions::default());
+        let expected = flatten(&shape_of(&reference.syntax()));
+
+        let parsed = aether_r_parser::parse("\"a\"", RParserOptions::default());
+        let actual = flatten(&shape_of(&parsed.syntax()));
+
+        assert_eq!(expected, actual);
+        assert!(expected.contains(&"STRING".to_string()), "{expected:?}");
+        assert!(
+            !expected.contains(&"STRING_OPEN".to_string()),
+            "{expected:?}"
+        );
+    }
+
+    #[test]
     fn semicolons_are_dropped() {
         let reference = air_r_parser::parse("{ 1; 2 }", air_r_parser::RParserOptions::default());
 

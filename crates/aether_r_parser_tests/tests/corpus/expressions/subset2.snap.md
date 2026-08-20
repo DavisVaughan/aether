@@ -432,9 +432,7 @@ RRoot {
                         RArgument {
                             name_clause: missing (optional),
                             value: RStringValue {
-                                open_token: STRING_OPEN@3..4 "\"" [] [],
-                                content_token: STRING_CONTENT@4..5 "a" [] [],
-                                close_token: STRING_CLOSE@5..6 "\"" [] [],
+                                value: R_DOUBLE_QUOTED_STRING_LITERAL@3..6 "\"a\"" [] [],
                             },
                         },
                     ],

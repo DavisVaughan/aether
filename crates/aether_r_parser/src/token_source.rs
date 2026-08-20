@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests;
 
-use crate::lexer::{RLexContext, RLexer, RReLexContext};
+use crate::lexer::{RLexer, RReLexContext};
 use aether_r_syntax::RSyntaxKind::{self, EOF};
 use biome_parser::diagnostic::ParseDiagnostic;
 use biome_parser::lexer::BufferedLexer;
-use biome_parser::prelude::{BumpWithContext, TokenSource, Trivia};
+use biome_parser::prelude::{TokenSource, Trivia};
 use biome_parser::token_source::TokenSourceWithBufferedLexer;
 use biome_rowan::{TextRange, TriviaPieceKind};
 
@@ -25,7 +25,7 @@ impl<'src> RTokenSource<'src> {
             trivia: Vec::new(),
         };
 
-        source.next_non_trivia_token(RLexContext::default(), true);
+        source.next_non_trivia_token(true);
         source
     }
 
@@ -36,11 +36,11 @@ impl<'src> RTokenSource<'src> {
     /// file, everything leads. That aligns with Biome's parsers and is both
     /// very logical and very practical because it doesn't require any
     /// lookahead.
-    fn next_non_trivia_token(&mut self, context: RLexContext, first: bool) {
+    fn next_non_trivia_token(&mut self, first: bool) {
         let mut trailing = !first;
 
         loop {
-            let kind = self.lexer.next_token(context);
+            let kind = self.lexer.next_token(());
 
             let Ok(trivia_kind) = TriviaPieceKind::try_from(kind) else {
                 break;
@@ -83,28 +83,12 @@ impl TokenSource for RTokenSource<'_> {
     }
 
     fn bump(&mut self) {
-        self.bump_with_context(RLexContext::Regular);
-    }
-
-    fn skip_as_trivia(&mut self) {
-        self.skip_as_trivia_with_context(RLexContext::Regular);
-    }
-
-    fn finish(self) -> (Vec<Trivia>, Vec<ParseDiagnostic>) {
-        (self.trivia, self.lexer.finish())
-    }
-}
-
-impl BumpWithContext for RTokenSource<'_> {
-    type Context = RLexContext;
-
-    fn bump_with_context(&mut self, context: Self::Context) {
         if self.current() != EOF {
-            self.next_non_trivia_token(context, false);
+            self.next_non_trivia_token(false);
         }
     }
 
-    fn skip_as_trivia_with_context(&mut self, context: Self::Context) {
+    fn skip_as_trivia(&mut self) {
         if self.current() != EOF {
             self.trivia.push(Trivia::new(
                 TriviaPieceKind::Skipped,
@@ -112,8 +96,12 @@ impl BumpWithContext for RTokenSource<'_> {
                 false,
             ));
 
-            self.next_non_trivia_token(context, true);
+            self.next_non_trivia_token(true);
         }
+    }
+
+    fn finish(self) -> (Vec<Trivia>, Vec<ParseDiagnostic>) {
+        (self.trivia, self.lexer.finish())
     }
 }
 

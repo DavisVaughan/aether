@@ -4,34 +4,14 @@ mod tests;
 use crate::diagnostics::{
     unexpected_character, unterminated_backtick_identifier, unterminated_exponent,
     unterminated_hexadecimal, unterminated_hexadecimal_binary_exponent, unterminated_special,
+    unterminated_string,
 };
 use aether_r_syntax::RSyntaxKind::{self, *};
 use aether_r_syntax::T;
 use biome_parser::diagnostic::ParseDiagnostic;
-use biome_parser::lexer::{
-    LexContext, Lexer, LexerCheckpoint, LexerWithCheckpoint, ReLexer, TokenFlags,
-};
+use biome_parser::lexer::{Lexer, LexerCheckpoint, LexerWithCheckpoint, ReLexer, TokenFlags};
 use biome_rowan::{SyntaxKind, TextRange, TextSize};
 use unicode_ident::{is_xid_continue, is_xid_start};
-
-/// The context the parser lexes the next token in
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub(crate) enum RLexContext {
-    #[default]
-    Regular,
-
-    /// Lex the body of a string opened with this delimiter
-    StringContent(RStringDelimiter),
-
-    /// Lex the closing delimiter of a string
-    StringEnd(RStringDelimiter),
-}
-
-impl LexContext for RLexContext {
-    fn is_regular(&self) -> bool {
-        matches!(self, RLexContext::Regular)
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RStringDelimiter {
@@ -47,15 +27,6 @@ pub(crate) enum RStringDelimiter {
 }
 
 impl RStringDelimiter {
-    /// The delimiter a `STRING_OPEN` token's text opens
-    pub(crate) fn from_open(text: &str) -> Self {
-        match text.as_bytes().first() {
-            Some(b'\'') => Self::Single,
-            Some(b'"') => Self::Double,
-            _ => Self::try_from_raw_string_open(text).expect("`text` opens a raw string"),
-        }
-    }
-
     /// The raw string delimiter opening at the start of `text`, or `None` when
     /// none does
     ///
@@ -83,6 +54,15 @@ impl RStringDelimiter {
             hyphens,
             bracket,
         })
+    }
+
+    /// The literal kind a string with this delimiter lexes as
+    fn kind(self) -> RSyntaxKind {
+        match self {
+            Self::Single => R_SINGLE_QUOTED_STRING_LITERAL,
+            Self::Double => R_DOUBLE_QUOTED_STRING_LITERAL,
+            Self::Raw { .. } => R_RAW_STRING_LITERAL,
+        }
     }
 
     /// The string quote character
@@ -191,7 +171,7 @@ impl<'src> Lexer<'src> for RLexer<'src> {
     const WHITESPACE: Self::Kind = WHITESPACE;
 
     type Kind = RSyntaxKind;
-    type LexContext = RLexContext;
+    type LexContext = ();
     type ReLexContext = RReLexContext;
 
     fn source(&self) -> &'src str {
@@ -206,19 +186,11 @@ impl<'src> Lexer<'src> for RLexer<'src> {
         self.current_start
     }
 
-    fn next_token(&mut self, context: Self::LexContext) -> Self::Kind {
+    fn next_token(&mut self, _context: Self::LexContext) -> Self::Kind {
         self.current_start = TextSize::from(self.position as u32);
         self.current_flags = TokenFlags::empty();
 
-        let kind = if self.is_eof() {
-            EOF
-        } else {
-            match context {
-                RLexContext::Regular => self.lex_token(),
-                RLexContext::StringContent(delimiter) => self.lex_string_content(delimiter),
-                RLexContext::StringEnd(delimiter) => self.lex_string_end(delimiter),
-            }
-        };
+        let kind = if self.is_eof() { EOF } else { self.lex_token() };
 
         // Stamped after lexing so that the lex functions are free to set other
         // flags first
@@ -374,8 +346,8 @@ impl<'src> RLexer<'src> {
 
             b'#' => self.consume_comment(),
 
-            b'"' => self.consume_string_open(RStringDelimiter::Double),
-            b'\'' => self.consume_string_open(RStringDelimiter::Single),
+            b'"' => self.consume_string(RStringDelimiter::Double),
+            b'\'' => self.consume_string(RStringDelimiter::Single),
             b'`' => self.consume_backtick_identifier(),
 
             // Ahead of the digit arm, which would otherwise take the `0`
@@ -392,7 +364,7 @@ impl<'src> RLexer<'src> {
             // range and cost the whole match its jump table for `s` onwards.
             b'_' | b'a'..=b'z' | b'A'..=b'Z' => {
                 match RStringDelimiter::try_from_raw_string_open(&self.source[self.position..]) {
-                    Some(delimiter) => self.consume_string_open(delimiter),
+                    Some(delimiter) => self.consume_string(delimiter),
                     None => self.consume_identifier_or_keyword(),
                 }
             }
@@ -581,7 +553,7 @@ impl<'src> RLexer<'src> {
 
         let eof = TextRange::empty(self.text_position());
         self.push_diagnostic(unterminated_backtick_identifier(open, eof));
-        IDENT
+        ERROR_TOKEN
     }
 
     /// The `byte >= 128` arm, which is also where the BOM is resolved
@@ -762,15 +734,14 @@ impl<'src> RLexer<'src> {
     // -----------------------------------------------------------------------
     // Strings
 
-    fn consume_string_open(&mut self, delimiter: RStringDelimiter) -> RSyntaxKind {
+    fn consume_string(&mut self, delimiter: RStringDelimiter) -> RSyntaxKind {
+        let open = TextRange::at(
+            self.text_position(),
+            TextSize::from(delimiter.open_length() as u32),
+        );
         self.advance(delimiter.open_length());
-        STRING_OPEN
-    }
 
-    fn lex_string_content(&mut self, delimiter: RStringDelimiter) -> RSyntaxKind {
-        debug_assert!(!self.is_eof());
-
-        match delimiter {
+        let terminated = match delimiter {
             RStringDelimiter::Single | RStringDelimiter::Double => {
                 self.consume_quoted_string_content(delimiter.quote())
             }
@@ -779,19 +750,20 @@ impl<'src> RLexer<'src> {
                 hyphens,
                 bracket,
             } => self.consume_raw_string_content(quote, hyphens, bracket),
+        };
+
+        if !terminated {
+            let eof = TextRange::empty(self.text_position());
+            self.push_diagnostic(unterminated_string(open, eof));
+            return ERROR_TOKEN;
         }
 
-        // An empty body emits no `STRING_CONTENT` at all. The close follows the
-        // open directly.
-        if self.position == usize::from(self.current_start) {
-            self.lex_string_end(delimiter)
-        } else {
-            STRING_CONTENT
-        }
+        self.advance(delimiter.close_length());
+        delimiter.kind()
     }
 
     /// Everything up to the closing quote
-    fn consume_quoted_string_content(&mut self, quote: u8) {
+    fn consume_quoted_string_content(&mut self, quote: u8) -> bool {
         while let Some(byte) = self.current_byte() {
             match byte {
                 b'\\' => {
@@ -804,6 +776,8 @@ impl<'src> RLexer<'src> {
                 byte => self.advance_byte_or_char(byte),
             }
         }
+
+        self.current_byte() == Some(quote)
     }
 
     /// Everything up to the closing sequence
@@ -812,13 +786,20 @@ impl<'src> RLexer<'src> {
     /// It belongs to the body, and the scan carries on from the byte after it,
     /// or `r"(())"` and `r"-())-"` never find their close
     /// (r-lib/tree-sitter-r#162).
-    fn consume_raw_string_content(&mut self, quote: u8, hyphens: u8, bracket: RawStringBracket) {
+    fn consume_raw_string_content(
+        &mut self,
+        quote: u8,
+        hyphens: u8,
+        bracket: RawStringBracket,
+    ) -> bool {
         while let Some(byte) = self.current_byte() {
             if self.at_raw_string_close(quote, hyphens, bracket) {
                 break;
             }
             self.advance_byte_or_char(byte);
         }
+
+        self.at_raw_string_close(quote, hyphens, bracket)
     }
 
     /// Whether a whole closing sequence — the bracket, the hyphens, and the
@@ -831,26 +812,6 @@ impl<'src> RLexer<'src> {
         let hyphens = usize::from(hyphens);
         (1..=hyphens).all(|offset| self.byte_at(offset) == Some(b'-'))
             && self.byte_at(hyphens + 1) == Some(quote)
-    }
-
-    fn lex_string_end(&mut self, delimiter: RStringDelimiter) -> RSyntaxKind {
-        debug_assert!(!self.is_eof());
-
-        match delimiter {
-            RStringDelimiter::Single | RStringDelimiter::Double => {
-                self.assert_byte(delimiter.quote());
-            }
-            RStringDelimiter::Raw {
-                quote,
-                hyphens,
-                bracket,
-            } => {
-                debug_assert!(self.at_raw_string_close(quote, hyphens, bracket));
-            }
-        }
-
-        self.advance(delimiter.close_length());
-        STRING_CLOSE
     }
 
     // -----------------------------------------------------------------------

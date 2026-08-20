@@ -38,12 +38,12 @@ fn names_may_span_newlines() {
 fn unterminated_runs_to_the_end_of_the_file() {
     assert_lex_err!(
         "`a\nb <- 1",
-        IDENT: 9
+        ERROR_TOKEN: 9
         => "Unterminated backtick-quoted name"
     );
 }
 
 #[test]
 fn a_trailing_escape_does_not_run_past_the_end() {
-    assert_lex_err!("`a\\", IDENT: 3 => "Unterminated backtick-quoted name");
+    assert_lex_err!("`a\\", ERROR_TOKEN: 3 => "Unterminated backtick-quoted name");
 }

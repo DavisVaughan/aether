@@ -342,9 +342,7 @@ RRoot {
                         RArgument {
                             name_clause: RArgumentNameClause {
                                 name: RStringValue {
-                                    open_token: STRING_OPEN@70..71 "\"" [] [],
-                                    content_token: STRING_CONTENT@71..72 "x" [] [],
-                                    close_token: STRING_CLOSE@72..73 "\"" [] [],
+                                    value: R_DOUBLE_QUOTED_STRING_LITERAL@70..73 "\"x\"" [] [],
                                 },
                                 eq_token: EQUAL@73..74 "=" [] [],
                             },
@@ -1208,9 +1206,7 @@ RRoot {
                         RArgument {
                             name_clause: RArgumentNameClause {
                                 name: RStringValue {
-                                    open_token: STRING_OPEN@20..24 "\"" [Newline("\n"), Whitespace("  ")] [],
-                                    content_token: STRING_CONTENT@24..25 "y" [] [],
-                                    close_token: STRING_CLOSE@25..27 "\"" [] [Whitespace(" ")],
+                                    value: R_DOUBLE_QUOTED_STRING_LITERAL@20..27 "\"y\"" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                                 },
                                 eq_token: EQUAL@27..29 "=" [] [Whitespace(" ")],
                             },

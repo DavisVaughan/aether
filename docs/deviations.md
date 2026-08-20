@@ -31,12 +31,13 @@ them, since the ledger runs ahead of the parser.
 | 3 | Namespace RHS | `optional()`, silent | required, diagnostic + bogus |
 | 4 | Error recovery | whole-file bogus node | localized bogus nodes, tree still walkable |
 | 5 | `AnyRSelector` | 4 variants, no bogus | new `RBogusSelector` kind added as a fifth variant, so a malformed RHS is contained in the `right` slot instead of collapsing the whole expression |
-| 6 | A character that starts no token | `ERROR` node | new `ERROR_TOKEN` kind added, reported by the lexer and wrapped in a bogus node by the parser |
+| 6 | Text no production can take: a character that starts no token, an unterminated string, an unterminated backtick-quoted name | `ERROR` node | new `ERROR_TOKEN` kind added, reported by the lexer and wrapped in a bogus node by the parser |
 | 7 | `L` and `i` suffixes | tokens of their own, so `1 L` is one `integer` and `1Li` is `1` and `Li` | part of the literal, taken whatever follows, as R takes them |
 | 8 | Unterminated numbers | `0x`, `0x1p`, `1e` re-split or accepted, all silently | one literal token carrying `Unterminated hexadecimal literal.`, `Unterminated binary exponent.`, or `Unterminated exponent.` |
 | 9 | A backslash inside `%...%` | excluded by the `special` regex, so `%a\b%` errors | ordinary text, as R takes it, so `%a\b%` is one `SPECIAL` |
 | 10 | Whitespace attachment | air's walker: leading of the following token, with a second rule for whitespace before a newline | `JsTokenSource`'s rule — trailing of the preceding token until a newline, leading from the newline on. Comment and newline attachment are unchanged |
 | 11 | Two expressions on one line | accepted silently, since `program` needs no separator | an error, as R requires |
+| 12 | Strings | `string` node over an open, an optional content, and a close | one literal token per quote style, delimiters included, with the body reachable through `RStringValue::inner_string_text()` |
 
 ### 1. Semicolons are real tokens
 
@@ -297,21 +298,25 @@ impl FormatBogusNodeRule<RBogusSelector> for FormatRBogusSelector {}
 `FormatAnyRSelector` in `air_r_formatter/src/r/any/selector.rs` gains a fifth arm
 in the same generated pass.
 
-### 6. A character that starts no token becomes an `ERROR_TOKEN`
+### 6. Text no production can take becomes an `ERROR_TOKEN`
 
 Landed in Phase 4 as a new token kind in `r_kinds_src.rs`; Phase 7 added the
-`parse_primary_expression` arm that wraps it.
+`parse_primary_expression` arm that wraps it. Unterminated strings and
+unterminated backtick-quoted names joined it in the string simplification pass.
 
 Example:
 
 ```r
 €
+"abc
+`abc
 ```
 
-tree-sitter-r produces an `ERROR` node. Aether reports the character with an
-`Unexpected character` diagnostic and hands it on as an `ERROR_TOKEN`, which the
-parser can only wrap in a bogus node. The file never parses cleanly, so the
-oracle skips it, and the character survives into the tree where a reader can see
+tree-sitter-r produces an `ERROR` node. Aether reports each of these from the
+lexer — `Unexpected character`, `Unterminated string.`,
+`Unterminated backtick-quoted name.` — and hands the text on as an `ERROR_TOKEN`,
+which the parser can only wrap in a bogus node. The file never parses cleanly, so
+the oracle skips it, and the text survives into the tree where a reader can see
 it.
 
 Dropping the character is not an option — the tree has to round-trip, and folding
@@ -348,6 +353,39 @@ Unlike `R_BOGUS_SELECTOR` this one does renumber, since token kinds precede node
 kinds in the generated enum. Nothing depends on the numbering — no explicit
 discriminants are emitted, and `to_raw`/`from_raw` round-trip within a single
 build — so the generated diff is the one added line.
+
+#### Where the line falls
+
+Not every diagnosed token becomes an `ERROR_TOKEN`. The test is whether the
+lexer knew where the token ended:
+
+- **Bounded.** `0x`, `1e`, and `%a` stop where the literal stops or at the next
+  newline, so the token's extent is right and only its content is malformed. It
+  keeps its kind and carries the diagnostic — deviation 8 for the numbers, the
+  `%foo` entry below for the operator. A parser that goes on to use such a token
+  is not being lied to about its span.
+
+- **Runs to EOF.** `consume_string()` and `consume_backtick_identifier()` have no
+  line-based stop, so `x <- "abc` followed by five hundred lines produces one
+  token covering all five hundred. A well-formed kind there would assert that the
+  rest of the file is a string, which is deviation 6's own argument for `€`: the
+  diagnostic would be present, the tree would still lie, and round-trip passes
+  either way. `biome_js_parser` draws the same line — `read_str_literal` returns
+  `ERROR_TOKEN` when `consume_str_literal()` fails.
+
+Recovery does not suffer. These tokens eat the rest of the file, so there is
+nothing after them to recover into.
+
+What it costs, recorded honestly: the tree stops recording *which* construct
+broke, because `parse_primary_expression()`'s `ERROR_TOKEN` arm builds
+`R_BOGUS_EXPRESSION` and not `R_BOGUS_VALUE`. The diagnostic still names it, so a
+human loses nothing and a tree walker does. Nothing downstream is affected today
+— air refuses to format any file with parse errors, and ark reads tree-sitter
+directly.
+
+Corpus tests: `Unclosed Double Quote`, `Unclosed Single Quote`, and
+`Unclosed Raw String` in `literals/strings.md`, and `Unclosed Backtick` in
+`literals/identifiers.md`, all `[error]`.
 
 ### 7. `L` and `i` belong to the literal, not to the token stream
 
@@ -637,6 +675,111 @@ against it.
 
 Corpus tests: `statements/newlines.md`, and `literals/identifiers.md`'s
 `Invalid Identifiers`, which is `[error]` here and clean under tree-sitter.
+
+### 12. A string is one token
+
+Landed in the string simplification pass, after Phase 9.
+
+Example:
+
+```r
+r"---(foo)---"
+```
+
+tree-sitter-r spells a string as a node over three children, and air's walker
+carries that through: an open delimiter, an optional content, and a close. The
+content is optional because an empty body has nothing to emit, so `""` has two
+children where `"a"` has three:
+
+```
+RStringValue {
+    open_token: STRING_OPEN@0..6 "r\"---(" [] [],
+    content_token: STRING_CONTENT@6..9 "foo" [] [],
+    close_token: STRING_CLOSE@9..14 ")---\"" [] [],
+}
+```
+
+Aether lexes the whole thing, delimiters included, as one literal token, with a
+kind per quote style:
+
+```
+RStringValue {
+    value: R_RAW_STRING_LITERAL@0..14 "r\"---(foo)---\"" [] [],
+}
+```
+
+`R_SINGLE_QUOTED_STRING_LITERAL`, `R_DOUBLE_QUOTED_STRING_LITERAL`, and
+`R_RAW_STRING_LITERAL` are three new literal kinds; `STRING_OPEN`,
+`STRING_CONTENT`, and `STRING_CLOSE` are gone. The body is reached through
+`RStringValue::inner_string_text()`, with `inner_string_range()` alongside it for
+consumers that want the span rather than the text. Neither unescapes anything:
+`"a\nb"` comes back with a literal backslash and `n`.
+
+Why deviate:
+
+- **It removes a lookahead hazard rather than managing one.** A string body is
+  not a regular token, so it needed a lexer context, and `BufferedLexer` lexes
+  its lookahead in the default context — `p.nth(n)` past a `STRING_OPEN` came
+  back with the string body lexed as code. That was survivable only because the
+  lexer deliberately kept no string state, an invariant that existed for no other
+  reason. One-token strings delete the hazard outright: there is no non-regular
+  context left to be wrong about, and `RLexContext`, `BumpWithContext`, and
+  `do_bump_with_context` all go with it.
+
+- **The optional slot stops existing.** `content: 'string_content'?` was optional
+  only because an empty body emits nothing. A required `value` slot says what is
+  true.
+
+- **It is what the rest of the lexer already does.** A backtick-quoted name is
+  one `IDENT` scanned to its close. Strings were the odd one out, and
+  `biome_js_parser`'s `JS_STRING_LITERAL` is one token including its quotes.
+
+Three kinds rather than one: the lexer already knows which delimiter it matched,
+so the kind is free; a `cst` cell reads as `R_RAW_STRING_LITERAL@0..14` without
+the reader parsing the text; and air's eventual quote-style option gets a kind
+check rather than a first-byte sniff. Three *node* types under an
+`AnyRStringValue` union were rejected — same information, but a union level
+inside `AnyRValue`, `AnyRSelector`, and `AnyRArgumentName`, three more generated
+formatter files, and a break to air's `call_ext.rs` match on
+`AnyRValue::RStringValue(_)`.
+
+Swap-in cost, smaller than the file count suggests. `air_r_parser`'s `parse.rs`
+and `treesitter.rs` are deleted by the swap anyway — their
+`handle_string_value_enter()` / `handle_string_content_enter()` walker is
+precisely what aether replaces. What is left:
+
+- `xtask/codegen/r.ungram` and `xtask/codegen/src/r_kinds_src.rs`, then air's
+  codegen.
+
+- `air_r_syntax/src/lib.rs` — the two exhaustive `is_bogus()` / `to_bogus()`
+  matches.
+
+- `air_r_formatter/src/r/auxiliary/string_value.rs` — three writes become one.
+
+- `air_r_formatter/src/string_content.rs` — normalize the whole token rather than
+  the content token. Identical in effect, since no delimiter contains `\r\n`.
+
+- `air_r_syntax/src/call_ext.rs` — unchanged, which is one of the reasons for one
+  node type.
+
+Air's formatter specs are R-in / R-out, so no snapshot churn there.
+
+#### Oracle
+
+**No test carries `[deviation]` for this.** Air keeps three tokens until swap-in,
+so without normalization every block containing a string would mismatch, and
+marking them all `[deviation]` would throw away real coverage.
+
+So the oracle collapses `R_STRING_VALUE` on both trees before comparing: its
+children become one synthetic `STRING` token spanning the node's trimmed range,
+with comments taken from the first and last token. Coverage loss is close to
+zero. The collapsed comparison still pins where every string starts and ends,
+which is what the raw-string delimiter logic gets wrong when it gets anything
+wrong — `r"(())"`, hyphen counts, `r"-abc"` falling through to an identifier. The
+internal boundaries no longer exist on aether's side, so there is nothing there
+to lose.
+
+Unterminated strings are deviation 6's business, not this entry's.
 
 ## tree-sitter-r vs. R
 

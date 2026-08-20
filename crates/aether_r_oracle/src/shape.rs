@@ -34,10 +34,36 @@ impl Shape {
 }
 
 pub(crate) fn shape_of<L: Language>(node: &SyntaxNode<L>) -> Shape {
+    let kind = canonical_kind(&debug_kind(node.kind()));
+
+    let children = if kind == "R_STRING_VALUE" {
+        vec![collapsed_string(node)]
+    } else {
+        children_of(node)
+    };
+
     Shape::Node {
-        kind: canonical_kind(&debug_kind(node.kind())),
+        kind,
         range: node.text_trimmed_range(),
-        children: children_of(node),
+        children,
+    }
+}
+
+/// Air spells a string as an open, an optional content, and a close; aether as
+/// one literal token. Both collapse to this.
+fn collapsed_string<L: Language>(node: &SyntaxNode<L>) -> Shape {
+    let leading = node
+        .first_token()
+        .map(|token| comments_of(token.leading_trivia().pieces()));
+    let trailing = node
+        .last_token()
+        .map(|token| comments_of(token.trailing_trivia().pieces()));
+
+    Shape::Token {
+        kind: "STRING".to_string(),
+        range: node.text_trimmed_range(),
+        leading_comments: leading.unwrap_or_default(),
+        trailing_comments: trailing.unwrap_or_default(),
     }
 }
 

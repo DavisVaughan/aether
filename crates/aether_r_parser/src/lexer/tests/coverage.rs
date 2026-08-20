@@ -15,7 +15,7 @@ const SOURCES: &[&str] = &[
     "function for in while repeat if else next break",
     "TRUE FALSE NULL Inf NaN NA NA_integer_ NA_real_ NA_complex_ NA_character_",
     "foo ... ..1 1 1L 1i %in%\n# comment\n",
-    "\"a\"",
+    "\"a\" 'b' r\"(c)\"",
 ];
 
 /// Sources for the kinds no well-formed source can reach. `ERROR_TOKEN` is the
@@ -28,7 +28,7 @@ const ERROR_SOURCES: &[&str] = &["\u{1}"];
 /// `R_BRACK2` is the only one
 fn re_lexed_kinds() -> HashSet<RSyntaxKind> {
     let mut lexer = RLexer::from_str("]]");
-    lexer.next_token(RLexContext::Regular);
+    lexer.next_token(());
     HashSet::from([lexer.re_lex(RReLexContext::JoinBrackets)])
 }
 
