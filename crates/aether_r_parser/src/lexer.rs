@@ -188,6 +188,7 @@ impl<'src> Lexer<'src> for RLexer<'src> {
     const WHITESPACE: Self::Kind = WHITESPACE;
 
     type Kind = RSyntaxKind;
+    // Only a "Regular" context is required for R
     type LexContext = RLexContext;
     type ReLexContext = RReLexContext;
 
