@@ -772,12 +772,13 @@ impl<'src> RLexer<'src> {
                         self.advance_byte_or_char(escaped);
                     }
                 }
-                byte if byte == quote => break,
+                byte if byte == quote => return true,
                 byte => self.advance_byte_or_char(byte),
             }
         }
 
-        self.current_byte() == Some(quote)
+        // Unterminated string
+        false
     }
 
     /// Everything up to the closing sequence
@@ -794,12 +795,13 @@ impl<'src> RLexer<'src> {
     ) -> bool {
         while let Some(byte) = self.current_byte() {
             if self.at_raw_string_close(quote, hyphens, bracket) {
-                break;
+                return true;
             }
             self.advance_byte_or_char(byte);
         }
 
-        self.at_raw_string_close(quote, hyphens, bracket)
+        // Unterminated string
+        false
     }
 
     /// Whether a whole closing sequence — the bracket, the hyphens, and the
