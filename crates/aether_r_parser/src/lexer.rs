@@ -27,6 +27,7 @@ pub(crate) enum RLexContext {
 
 impl LexContext for RLexContext {
     fn is_regular(&self) -> bool {
+        // Because we only have `Regular`!
         true
     }
 }
