@@ -1802,15 +1802,12 @@ the guard is one clause in the `::` arm rather than a scope walk.
 | `f(foo::\nbar)` | clean | **clean**, matching R |
 | `a$\nb` | clean | clean, matching R |
 
-**Neither of the two clean rows is covered by a test.** Both were written as
-aether-authored tests and both came out of review, so what the corpus pins is the
-strict half only: `Namespace get` opens with a bare `foo::` at top level and
-errors. That `f(foo::\nbar)` parses clean — the row that decides whether the `::`
-arm consults `newlines_are_significant()` at all — and that `a$\nb` parses clean
-where `foo::\nbar` does not, are both unpinned. Dropping the scope check, or
-guarding the `$` arm the same way as the `::` arm, would still pass the suite.
-Both were checked against tree-sitter-r when they were written, and it agrees on
-both, so neither is a deviation.
+Both aether cases are aether-authored tests: `Namespace Newline Is Significant
+Only Outside Parens` in `expressions/namespace.md` and `Dollar Tolerates A
+Newline` in `expressions/extract.md`. Neither carries a marker — they are *clean*
+parses, which is the surprising half, and the oracle confirms tree-sitter-r
+agrees on both, so nothing moved into the inherited **"tree-sitter-r vs. R"**
+heading (§8.4).
 
 The `foo::\nbar` row is the one place the guard's diagnostic is not
 `expected_rhs_selector`. Reporting "expected a name" at the parser's position names
@@ -1861,9 +1858,9 @@ there the tokens are already consumed, so containment costs nothing and a bogus
 **Enabled:** `expressions/extract.md` and `expressions/namespace.md` in full — 18
 headings between them, which were 5 `[error, deviation]`, 6 `[error]`, and 7 plain
 `[pending]`. Air's `undefined/extract_expression_error.R` and
-`undefined/namespace_expression_error.R` live in these two files as well. Nothing
-aether-authored was added, so `MANIFEST.toml` and the 89 count are untouched.
-`Precedence Tests` in `expressions/precedence.md`
+`undefined/namespace_expression_error.R` live in these two files as well. The two
+newline tests above are aether-authored, so they are absent from `MANIFEST.toml`
+and do not move the 89 count. `Precedence Tests` in `expressions/precedence.md`
 also shed its `[pending]`; `A$"B"^NA` and `a::b$c` were the only things it was
 waiting on.
 
