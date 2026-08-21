@@ -206,7 +206,7 @@ fn parse_infix_binary_expression(
     current_binding_power: BindingPower,
 ) -> ParsedSyntax {
     let Some((new_binding_power, associativity)) = infix_binary_binding_power(p.cur()) else {
-        // Not an infix operator
+        // Not an infix binary operator
         return Absent;
     };
     if new_binding_power < current_binding_power {
