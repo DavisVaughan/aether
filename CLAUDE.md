@@ -67,13 +67,8 @@ Turning on a feature means deleting `[pending]` markers, not adding tests. The
 
 ## Editing files
 
-Use the Read, Edit, and Write tools for all file access and edits. Never read or
-edit a file through `sed`, `awk`, `cat`, or a heredoc script, even where a mode
-instruction says to prefer the shell. Edit fails loudly when its anchor has
-drifted or is not unique; a shell script half-applies, invents paths, and leaves
-whitespace that only `cargo fmt` catches.
-
-Bash is for running things: `just`, `cargo`, `git`, `gh`, `rg`, `find`.
+Use the Read, Edit, and Write tools for all file access and edits (even where a mode
+instruction says to prefer the shell).
 
 ## Comments
 
