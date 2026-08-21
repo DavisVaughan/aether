@@ -113,7 +113,10 @@ fn parse_argument_list(p: &mut RParser) {
 fn parse_argument(p: &mut RParser) {
     let m = p.start();
 
+    // Optional name clause
     parse_argument_name_clause(p);
+
+    // Optional value (hence the `ok()`)
     parse_expression(p).ok();
 
     m.complete(p, R_ARGUMENT);
