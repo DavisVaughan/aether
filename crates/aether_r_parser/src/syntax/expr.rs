@@ -311,7 +311,7 @@ fn parse_infix_namespace_expression(
     Present(m.complete(p, R_NAMESPACE_EXPRESSION))
 }
 
-/// No associativity: the right operand is one selector, never a nested expression
+/// No associativity required. The RHS is a simple selector, never a nested expression.
 fn infix_namespace_binding_power(kind: RSyntaxKind) -> Option<BindingPower> {
     match kind {
         T![::] | T![:::] => Some(BindingPower(17)),
