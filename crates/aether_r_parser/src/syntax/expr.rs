@@ -293,7 +293,8 @@ fn parse_infix_namespace_expression(
     let operator = p.cur();
     let operator_range = p.cur_range();
 
-    let m = parse_namespace_left(p, lhs, operator, operator_range).precede(p);
+    let lhs = parse_namespace_left(p, lhs, operator, operator_range);
+    let m = lhs.precede(p);
     p.bump_any();
 
     if p.scope().newlines_are_significant() && p.has_preceding_line_break() {
