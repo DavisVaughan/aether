@@ -65,6 +65,16 @@ Markers: `[pending]` (not yet supported; must NOT parse cleanly), `[error]`
 Turning on a feature means deleting `[pending]` markers, not adding tests. The
 89 tree-sitter-r tests were imported wholesale in one commit.
 
+## Editing files
+
+Use the Read, Edit, and Write tools for all file access and edits. Never read or
+edit a file through `sed`, `awk`, `cat`, or a heredoc script, even where a mode
+instruction says to prefer the shell. Edit fails loudly when its anchor has
+drifted or is not unique; a shell script half-applies, invents paths, and leaves
+whitespace that only `cargo fmt` catches.
+
+Bash is for running things: `just`, `cargo`, `git`, `gh`, `rg`, `find`.
+
 ## Comments
 
 Extremely minimal. Far fewer than you think, and far shorter. Explain what is
