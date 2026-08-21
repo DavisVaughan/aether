@@ -889,15 +889,28 @@ specified in that phase's section rather than here:
 | `expected_parameters`, `expected_parameter` | §11.5, Phase 11 | `parse_function_definition` |
 | `expected_condition` | §11.6, Phase 12 | the `if` and `while` headers |
 
-Two rules hold across all of them, and the split above does not weaken either:
+Three rules hold across all of them, and the split above does not weaken any:
 
-- **Every diagnostic is a named function in `diagnostics.rs`, never an inline
-  `err_builder` in a syntax module.** It keeps wording consistent and makes the
-  whole diagnostic surface reviewable in one sitting.
+- **Every diagnostic is a named function in `diagnostics.rs`, never inline in a
+  syntax module.** It keeps wording consistent and makes the whole diagnostic
+  surface reviewable in one sitting.
 
 - **Only the *specification* moves to the feature's section; the *definition*
   still goes in `diagnostics.rs`.** Splitting the file per phase would trade the
   one-file review for nothing.
+
+- **A constructor takes `&RParser` only when its message depends on source
+  text.** Everything else takes ranges and builds with `ParseDiagnostic::new`.
+  `err_builder` is not used in this crate: `biome_parser` defines it as
+  `ParseDiagnostic::new` with a `&self` it never reads, so it makes a pure
+  constructor look parser-dependent and hides which ones actually are. Under this
+  rule the seven lexer diagnostics and `expected_statement_separator` are pure,
+  and `expected_expression` takes `p` because `expected_node` reads `p.text(range)`
+  to name the token it found instead.
+
+The sink stays at the call site. `p.error()` is the only thing that reaches
+`ParserContext`, and it is not neutral — it drops a diagnostic that starts where
+the previous one starts — so nothing in `diagnostics.rs` pushes.
 
 ---
 
@@ -2173,7 +2186,7 @@ fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
             && !p.has_preceding_line_break()
         {
             p.error(diagnostics::expected_statement_separator(
-                p, expression.range(p), p.cur_range(),
+                expression.range(p), p.cur_range(),
             ));
         }
 
