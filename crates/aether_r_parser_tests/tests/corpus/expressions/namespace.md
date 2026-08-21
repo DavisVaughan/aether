@@ -136,3 +136,10 @@ a()::b
 ```r
 a():::b
 ```
+
+## Namespace Newline Is Significant Only Outside Parens
+
+```r
+f(stats::
+  median)
+```

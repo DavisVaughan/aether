@@ -1673,3 +1673,45 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │    ^^^
     2 │
 ```
+
+## Namespace Newline Is Significant Only Outside Parens
+
+```r
+f(stats::
+  median)
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@0..1 "f" [] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@1..2 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RNamespaceExpression {
+                                left: RIdentifier {
+                                    name_token: IDENT@2..7 "stats" [] [],
+                                },
+                                operator: COLON2@7..9 "::" [] [],
+                                right: RIdentifier {
+                                    name_token: IDENT@9..18 "median" [Newline("\n"), Whitespace("  ")] [],
+                                },
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@18..19 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@19..20 "" [Newline("\n")] [],
+}
+```
