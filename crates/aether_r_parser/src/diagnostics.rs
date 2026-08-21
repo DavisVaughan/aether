@@ -1,7 +1,6 @@
 //! Constructors for every diagnostic aether emits
 
 use crate::parser::RParser;
-use biome_parser::Parser;
 use biome_parser::diagnostic::{ParseDiagnostic, expected_node};
 use biome_rowan::TextRange;
 
@@ -54,11 +53,10 @@ pub(crate) fn expected_expression(p: &RParser, range: TextRange) -> ParseDiagnos
 
 /// Two expressions with nothing between them, as in `1 2`
 pub(crate) fn expected_statement_separator(
-    p: &RParser,
     previous: TextRange,
     range: TextRange,
 ) -> ParseDiagnostic {
-    p.err_builder(
+    ParseDiagnostic::new(
         "Expected a newline or a `;` between two expressions.",
         range,
     )

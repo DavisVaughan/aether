@@ -23,7 +23,6 @@ pub(crate) fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
                 // immediately, log that as a diagnostic, i.e. `1 2`.
                 if !p.at(T![EOF]) && !p.at(close) && !p.has_preceding_line_break() {
                     p.error(diagnostics::expected_statement_separator(
-                        p,
                         expression.range(p),
                         p.cur_range(),
                     ));
