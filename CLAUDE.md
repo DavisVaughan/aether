@@ -65,6 +65,11 @@ Markers: `[pending]` (not yet supported; must NOT parse cleanly), `[error]`
 Turning on a feature means deleting `[pending]` markers, not adding tests. The
 89 tree-sitter-r tests were imported wholesale in one commit.
 
+## Editing files
+
+Use the Read, Edit, and Write tools for all file access and edits (even where a mode
+instruction says to prefer the shell).
+
 ## Comments
 
 Extremely minimal. Far fewer than you think, and far shorter. Explain what is

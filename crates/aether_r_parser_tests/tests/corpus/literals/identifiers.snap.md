@@ -298,7 +298,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │ ^
     2 │
 
-  i Reached the end of the file looking for a closing `` ` ``.
+  i Reached the end of the file looking for a closing `.
 
     1 │ `\`
   > 2 │
