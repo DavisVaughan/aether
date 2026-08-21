@@ -58,3 +58,13 @@ x[[y[2]
 ```r
 x[[y[2]]
 ```
+
+## An Argument Name Cut Off By The End Of The File [error]
+
+```r
+f(a
+```
+
+```r
+f(a=
+```

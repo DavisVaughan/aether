@@ -201,8 +201,7 @@ aether/
     │           ├── parenthesized_expression.rs
     │           ├── function.rs    # ← Phase 11. defs, lambdas, parameters
     │           ├── control.rs     # ← Phase 12. if/else, for, while, repeat
-    │           ├── statement_list.rs # statement lists; braces and `;` in 13
-    │           └── value.rs       # strings, and the selector/name subsets
+    │           └── statement_list.rs # statement lists; braces and `;` in 13
     ├── aether_r_test_macros/      # proc-macro: `gen_corpus_tests!`
     │   └── src/lib.rs             #   modelled on air's `tests_macros`
     ├── aether_r_parser_tests/     # Every corpus test, plus the harness that
@@ -533,9 +532,9 @@ mechanisms rule it out: `BufferedLexer` rewinds the inner lexer on its own
 initiative, `LookaheadIterator` runs it ahead speculatively, and
 `LexerCheckpoint` has no slot to restore a stack from. A speculative lookahead
 would advance the stack and nothing would roll it back, which yields a wrong tree
-that still round-trips. Nothing calls `nth()` today, so that lands whenever
-lookahead is first added rather than when the stack is written — the worst
-possible interval. tree-sitter-r pays these
+that still round-trips. `parse_argument` calls `nth()` inside `[[` (§11.3), so
+that is no longer a hazard waiting on a future call site — a lexer stack would be
+wrong the day it was written. tree-sitter-r pays these
 costs in the open: its `Scopes` stack has to fit in
 `TREE_SITTER_SERIALIZATION_BUFFER_SIZE`, so `MAX_SCOPES_COUNT` caps nesting and a
 failed `scopes_push()` makes the scanner decline the token outright. And it still
@@ -1372,8 +1371,8 @@ off the tests the feature enables, regenerate, review the diff.
 
 ### 11.1 Phase 7 — Literals, identifiers, program — LANDED
 
-`syntax.rs`, `syntax/statement_list.rs`, `syntax/value.rs`, and the one-token
-arms of `syntax/expr.rs`.
+`syntax.rs`, `syntax/statement_list.rs`, and the one-token arms of
+`syntax/expr.rs`.
 
 `parse_root` takes no scope helper, because the defaults *are* top-level
 behaviour — newlines are significant and `else` may not follow one (§9.2 on
@@ -1400,18 +1399,22 @@ was found instead as a secondary label. A string runs to EOF for the same reason
 a backticked name does (§8.4), and both are raised by the lexer, which is the
 only layer that still knows a delimiter was opened.
 
-`parse_string_value` is a bump. The lexer hands back one token, so the node has
-one slot and the function has nothing to decide:
+**A string is one more one-token arm.** The lexer hands back a single token, so
+`R_STRING_VALUE` has one slot and there is nothing to decide:
 
 ```rust
-pub(crate) fn parse_string_value(p: &mut RParser) -> ParsedSyntax {
-    debug_assert!(p.at_ts(STRING_LITERALS));
-
+R_SINGLE_QUOTED_STRING_LITERAL | R_DOUBLE_QUOTED_STRING_LITERAL | R_RAW_STRING_LITERAL => {
     let m = p.start();
     p.bump_any();
     Present(m.complete(p, R_STRING_VALUE))
 }
 ```
+
+An earlier draft gave it a `parse_string_value` of its own in `syntax/value.rs`,
+which is why the layout above no longer lists that file. Every caller either
+already knew it had a string or had to spell out the same three literal kinds to
+find out, so the function only ever moved a bump one level down and forced its
+callers to launder a `ParsedSyntax` that could not be `Absent`.
 
 ### 11.2 Phase 8 — Binary and unary operators (the Pratt core) — LANDED
 
@@ -1463,9 +1466,9 @@ here if it is not greedy.
 **Rank 18 appears in no lookup table.** Postfix is handled structurally in the
 loop and applies unconditionally, so it is never compared against a binding power,
 and the number survives only as `BindingPower::HIGHEST` — which exists to give the
-`debug_assert!` in `parse_expression_with_lhs` something to assert *against*. The
-assertion holds because the incoming power is `LOWEST` from `parse_expression` and
-`parse_argument`, a prefix power (max 14) from `parse_prefix_expression`, and
+`debug_assert!` in `parse_expression_with_binding_power` something to assert
+*against*. The assertion holds because the incoming power is `LOWEST` from
+`parse_expression`, a prefix power (max 14) from `parse_prefix_expression`, and
 otherwise the loop's own right-hand power, which is `bp + 1` for left
 associativity and tops out at 18 because the highest infix rank is `:::` at 17.
 Adding an infix operator at 18 or above breaks that, which is what the assertion
@@ -1624,16 +1627,18 @@ catch that — they leave only one `]` behind the `]]`. `x[[]]` in
 `expressions/subset2.md` pins the other half, where the join has to land on the
 bump of the `[[` itself.
 
-**`re_lex` against buffered lookahead** holds at the pinned rev, checked by
-reading it rather than by test. `TokenSourceWithBufferedLexer` caches lookahead
-tokens, and re-lexing the current token must invalidate that cache;
-`BufferedLexer::re_lex` rewinds the inner lexer and clears the lookahead whenever
-the kind changes, which is the contract `biome_js_parser` relies on for `>>`, and
-`RTokenSource::re_lex` delegates straight to it. Nothing pins that — no call site
-uses `nth()` yet — so re-check it on a fork rev bump and again when the first
-lookahead lands, because a stale cache here yields a wrong tree that still
-round-trips, which is precisely the class of bug no invariant in this project
-catches.
+**`re_lex` against buffered lookahead** is live, not hypothetical.
+`TokenSourceWithBufferedLexer` caches lookahead tokens, and re-lexing the current
+token must invalidate that cache; `BufferedLexer::re_lex` rewinds the inner lexer
+and clears the lookahead whenever the kind changes, which is the contract
+`biome_js_parser` relies on for `>>`, and `RTokenSource::re_lex` delegates
+straight to it. `parse_argument`'s lookahead (§11.3) meets it head-on: in
+`x[[a]]`, the token buffered past the name *is* the `]` the next bump asks to
+join. `test_re_lex_after_lookahead` in `src/token_source/tests.rs` pins the
+mechanism and `Lookahead For `=` Survives The `]]` Join` in
+`expressions/subset2.md` pins it end to end. Both matter on a fork rev bump,
+because a stale cache here yields a wrong tree that still round-trips, which is
+precisely the class of bug no invariant in this project catches.
 
 The mirror case (`x[[a]` — a `[[` that should have been two `[`) is a genuine
 syntax error in R, and gets a diagnostic and recovery rather than cleverness.
@@ -1675,30 +1680,55 @@ Four things about `parse_argument_list` are not obvious from reading it:
   the list. `parse_statement_list` (§11.7) has the same constraint and the same
   shape.
 
-**Parse optimistically, reshape with `precede`.** An argument name and the start
-of an argument value are the same tokens, so the decision cannot be made before
-parsing — but it does not need a rewind either. Parse the atom, then look at what
-follows: an `=` means wrap it in an `R_ARGUMENT_NAME_CLAUSE`, anything else means
-it was the head of the value all along and continues into the Pratt loop as its
-lhs. Nothing is ever unparsed. This is sound because R admits only a bare symbol,
-string, `...`, `..i`, or `NULL` as an argument name — `f(a$b = 1)` is not legal —
-so `parse_argument_name` can never consume more than the value would have.
+**One token of lookahead, and the clause owns the whole decision.** An argument
+name and the start of an argument value are the same tokens, so `p.cur()` alone
+cannot tell them apart. Every arm of `parse_argument_name_clause` is guarded on
+`p.nth_at(1, T![=])` and builds the entire `R_ARGUMENT_NAME_CLAUSE` — name, `=`,
+and all — so `parse_argument` reads as the two optional halves `r.ungram`
+declares:
 
-**No checkpoint, no `nth` offsets.** A one-token lookahead for `=` would work now
-that a string is one token, and it is still the wrong trade: `p.nth(1)` re-lexes
-the head of every argument of every call in the file to save one match arm, where
-parsing first lexes every token exactly once. `biome_js_parser` parses
-optimistically for the same ambiguity. All five name forms take one path either
-way.
+```rust
+fn parse_argument(p: &mut RParser) {
+    let m = p.start();
 
-`==` never reaches the `p.at(T![=])` test as two tokens: the lexer's maximal munch
-(§8.4) returns a single `==`, so `f(a == 1)` takes the `Present(lhs)` arm and the
-`==` is consumed by the Pratt loop as an ordinary infix operator.
+    parse_argument_name_clause(p).ok();
+    parse_expression(p).ok();
+
+    m.complete(p, R_ARGUMENT);
+}
+```
+
+Each arm repeats the guard, the two markers, and the `bump(T![=])`, and that is
+the deliberate half. Hoisting any of it means a token set naming the same five
+kinds a second time and a caller that has to re-derive what the callee already
+knew; what is left instead is one self-contained arm per name form, which cannot
+drift from the kind it guards. It is the same trade `parse_primary_expression`
+makes in §11.2, for the same reason.
+
+This is sound because R admits only a bare symbol, string, `...`, `..i`, or
+`NULL` as an argument name — `f(a$b = 1)` is not legal — so the name is always
+exactly one token. `nth` skips trivia, so `f(a\n= 1)` and `f(a # c\n= 1)` are name
+clauses too, which `A Newline Or Comment Between A Name And Its `=`` in
+`expressions/call.md` pins.
+
+**An earlier draft parsed the name unconditionally** and, when no `=` followed,
+handed it to the Pratt loop as an already-parsed lhs — on the grounds that
+`p.nth(1)` would re-lex the head of every argument of every call in the file. It
+does not: `BufferedLexer` caches the looked-ahead token and `next_token` pops it
+from that cache on the following bump, so each token is still lexed exactly once
+and the cost is one `LexerCheckpoint` clone per argument head. That fallback is
+what forced `parse_expression_with_lhs` to be `pub(crate)`, and removing it took
+the Pratt loop's only external entry point with it. `precede` survives, but only
+in its ordinary role of wrapping a node that is already known to be a name.
+
+`==` never reaches the lookahead as two tokens: the lexer's maximal munch (§8.4)
+returns a single `==`, so `f(a == 1)` finds no `=` at offset 1 and the `==` is
+consumed by the Pratt loop as an ordinary infix operator.
 
 `NULL`-as-a-name needed no special handling in the end. `AnyRArgumentName` reuses
-`R_NULL_EXPRESSION` rather than declaring a kind of its own, so the atom is valid
-in both positions and the fallback can hand it to the Pratt loop untouched — as it
-can for the other four forms.
+`R_NULL_EXPRESSION` rather than declaring a kind of its own, so the same atom is
+valid in both positions and `parse_expression` builds it either way — as it does
+for the other four forms.
 
 #### The diagnostics this phase adds
 
@@ -1742,8 +1772,8 @@ it separate for reviewability.
 
 `parse_selector` is the new function, and it is `AnyRSelector` — identifier,
 string, `...`, `..i` — with the same one-arm-per-kind shape as
-`parse_argument_name` in `call.rs`. Its string arm spells out the three string
-literal kinds, as that one does.
+`parse_argument_name_clause` in `call.rs`. Its string arm spells out the three
+string literal kinds, as that one does.
 
 #### The newline rule
 

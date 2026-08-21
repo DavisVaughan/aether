@@ -2151,3 +2151,103 @@ test.R:1:5 parse ━━━━━━━━━━━━━━━━━━━━━
 
   i Remove }
 ```
+
+## A Newline Or Comment Between A Name And Its `=`
+
+`parse_argument()` looks one token past the name to find the `=`, and that
+lookahead skips trivia to reach it
+
+```r
+f(a
+  = 1)
+
+f(a # c
+  = 1)
+
+f("a" # c
+  = 1)
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@0..1 "f" [] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@1..2 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RIdentifier {
+                                    name_token: IDENT@2..3 "a" [] [],
+                                },
+                                eq_token: EQUAL@3..8 "=" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                            },
+                            value: RDoubleValue {
+                                value_token: R_DOUBLE_LITERAL@8..9 "1" [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@9..10 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@10..13 "f" [Newline("\n"), Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@13..14 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RIdentifier {
+                                    name_token: IDENT@14..19 "a" [] [Whitespace(" "), Comments("# c")],
+                                },
+                                eq_token: EQUAL@19..24 "=" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                            },
+                            value: RDoubleValue {
+                                value_token: R_DOUBLE_LITERAL@24..25 "1" [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@25..26 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@26..29 "f" [Newline("\n"), Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@29..30 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RStringValue {
+                                    value: R_DOUBLE_QUOTED_STRING_LITERAL@30..37 "\"a\"" [] [Whitespace(" "), Comments("# c")],
+                                },
+                                eq_token: EQUAL@37..42 "=" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                            },
+                            value: RDoubleValue {
+                                value_token: R_DOUBLE_LITERAL@42..43 "1" [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@43..44 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@44..45 "" [Newline("\n")] [],
+}
+```

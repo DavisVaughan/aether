@@ -1,5 +1,5 @@
 use super::*;
-use aether_r_syntax::RSyntaxKind::R_DOUBLE_LITERAL;
+use aether_r_syntax::RSyntaxKind::{R_BRACK, R_BRACK2, R_DOUBLE_LITERAL};
 use biome_parser::prelude::NthToken;
 use biome_rowan::TextSize;
 
@@ -192,4 +192,18 @@ fn test_line_break_survives_lookahead() {
 
     source.bump();
     assert!(source.has_preceding_line_break());
+}
+
+/// `parse_argument()`'s lookahead buffers the token after an argument name,
+/// which inside `[[` is the `]` that the next bump asks to join
+#[test]
+fn test_re_lex_after_lookahead() {
+    let mut source = RTokenSource::from_str("a]]");
+    assert_eq!(source.nth(1), R_BRACK);
+
+    source.bump();
+    assert_eq!(source.current(), R_BRACK);
+
+    assert_eq!(source.re_lex(RReLexContext::JoinBrackets), R_BRACK2);
+    assert_eq!(source.current_range(), TextRange::new(1.into(), 3.into()));
 }

@@ -208,3 +208,19 @@ fn(}
 ```r
 fn(a}
 ```
+
+## A Newline Or Comment Between A Name And Its `=`
+
+`parse_argument()` looks one token past the name to find the `=`, and that
+lookahead skips trivia to reach it
+
+```r
+f(a
+  = 1)
+
+f(a # c
+  = 1)
+
+f("a" # c
+  = 1)
+```
