@@ -1677,37 +1677,46 @@ Four things about `parse_argument_list` are not obvious from reading it:
   the list. `parse_statement_list` (§11.7) has the same constraint and the same
   shape.
 
-**One token of lookahead, no reshaping.** An argument name and the start of an
-argument value are the same tokens, so the decision cannot be made from `p.cur()`
-alone. `p.nth_at(1, T![=])` settles it before anything is consumed, which is what
-lets the name clause open its own marker rather than `precede` one after the fact:
+**One token of lookahead, and the clause owns the whole decision.** An argument
+name and the start of an argument value are the same tokens, so `p.cur()` alone
+cannot tell them apart. Every arm of `parse_argument_name_clause` is guarded on
+`p.nth_at(1, T![=])` and builds the entire `R_ARGUMENT_NAME_CLAUSE` — name, `=`,
+and all — so `parse_argument` reads as the two optional halves `r.ungram`
+declares:
 
 ```rust
-if p.at_ts(ARGUMENT_NAMES) && p.nth_at(1, T![=]) {
-    let clause = p.start();
-    parse_argument_name(p).ok();
-    p.bump(T![=]);
-    clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
-}
+fn parse_argument(p: &mut RParser) {
+    let m = p.start();
 
-parse_expression(p).ok();
+    parse_argument_name_clause(p).ok();
+    parse_expression(p).ok();
+
+    m.complete(p, R_ARGUMENT);
+}
 ```
+
+Each arm repeats the guard, the two markers, and the `bump(T![=])`, and that is
+the deliberate half. Hoisting any of it means a token set naming the same five
+kinds a second time and a caller that has to re-derive what the callee already
+knew; what is left instead is one self-contained arm per name form, which cannot
+drift from the kind it guards. It is the same trade `parse_primary_expression`
+makes in §11.2, for the same reason.
 
 This is sound because R admits only a bare symbol, string, `...`, `..i`, or
 `NULL` as an argument name — `f(a$b = 1)` is not legal — so the name is always
-exactly one token and `ARGUMENT_NAMES` is exactly the set of kinds that can open
-one. `nth` skips trivia, so `f(a\n= 1)` and `f(a # c\n= 1)` are name clauses too,
-which `A Newline Or Comment Between A Name And Its `=`` in `expressions/call.md`
-pins.
+exactly one token. `nth` skips trivia, so `f(a\n= 1)` and `f(a # c\n= 1)` are name
+clauses too, which `A Newline Or Comment Between A Name And Its `=`` in
+`expressions/call.md` pins.
 
-**An earlier draft parsed optimistically and reshaped with `precede`**, on the
-grounds that `p.nth(1)` would re-lex the head of every argument of every call in
-the file. It does not: `BufferedLexer` caches the looked-ahead token and
-`next_token` pops it from that cache on the following bump, so each token is still
-lexed exactly once and the cost is one `LexerCheckpoint` clone per argument head.
-The optimistic version is what forced `parse_expression_with_lhs` to be
-`pub(crate)`, and removing it took the Pratt loop's only external entry point with
-it.
+**An earlier draft parsed the name unconditionally** and, when no `=` followed,
+handed it to the Pratt loop as an already-parsed lhs — on the grounds that
+`p.nth(1)` would re-lex the head of every argument of every call in the file. It
+does not: `BufferedLexer` caches the looked-ahead token and `next_token` pops it
+from that cache on the following bump, so each token is still lexed exactly once
+and the cost is one `LexerCheckpoint` clone per argument head. That fallback is
+what forced `parse_expression_with_lhs` to be `pub(crate)`, and removing it took
+the Pratt loop's only external entry point with it. `precede` survives, but only
+in its ordinary role of wrapping a node that is already known to be a name.
 
 `==` never reaches the lookahead as two tokens: the lexer's maximal munch (§8.4)
 returns a single `==`, so `f(a == 1)` finds no `=` at offset 1 and the `==` is
@@ -1760,8 +1769,8 @@ it separate for reviewability.
 
 `parse_selector` is the new function, and it is `AnyRSelector` — identifier,
 string, `...`, `..i` — with the same one-arm-per-kind shape as
-`parse_argument_name` in `call.rs`. Its string arm spells out the three string
-literal kinds, as that one does.
+`parse_argument_name_clause` in `call.rs`. Its string arm spells out the three
+string literal kinds, as that one does.
 
 #### The newline rule
 

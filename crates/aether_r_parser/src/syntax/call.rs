@@ -1,6 +1,6 @@
 use crate::parser::{RParser, Scope};
 use crate::syntax::expr::parse_expression;
-use crate::syntax::value::{STRING_LITERALS, parse_string_value};
+use crate::syntax::value::parse_string_value;
 use aether_r_syntax::RSyntaxKind::{
     self, DOTDOTI, DOTS, IDENT, R_ARGUMENT, R_ARGUMENT_LIST, R_ARGUMENT_NAME_CLAUSE,
     R_BOGUS_EXPRESSION, R_CALL_ARGUMENTS, R_DOT_DOT_I, R_DOTS, R_DOUBLE_QUOTED_STRING_LITERAL,
@@ -9,7 +9,6 @@ use aether_r_syntax::RSyntaxKind::{
 };
 use aether_r_syntax::T;
 use biome_parser::parse_recovery::ParseRecoveryTokenSet;
-use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
 use biome_parser::{Parser, ParserProgress, TokenSet, token_set};
 
 pub(crate) fn parse_call_arguments(p: &mut RParser) {
@@ -114,54 +113,62 @@ fn parse_argument_list(p: &mut RParser) {
 fn parse_argument(p: &mut RParser) {
     let m = p.start();
 
-    // One token of lookahead is what separates `foo` from `foo =`, and `=`
-    // means a name clause and nothing else at the head of an argument
-    if p.at_ts(ARGUMENT_NAMES) && p.nth_at(1, T![=]) {
-        let clause = p.start();
-        parse_argument_name(p).ok();
-        p.bump(T![=]);
-        clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
-    }
-
+    parse_argument_name_clause(p);
     parse_expression(p).ok();
 
     m.complete(p, R_ARGUMENT);
 }
 
-/// identifier | string | `...` | `..i` | `NULL`
+/// `name =`, where the name is an identifier, a string, `...`, `..i`, or `NULL`
+///
+/// `foo` and `foo =` start the same way, so one token of lookahead is what tells
+/// a name from the head of a value. Without the `=` there is no clause here at
+/// all, and the caller parses the whole argument as a value.
 ///
 /// `NULL` is accepted here and nowhere else, and has been since the
 /// beginning of R (r-lib/tree-sitter-r#164).
-const ARGUMENT_NAMES: TokenSet<RSyntaxKind> =
-    token_set![IDENT, DOTS, DOTDOTI, T![null]].union(STRING_LITERALS);
-
-fn parse_argument_name(p: &mut RParser) -> ParsedSyntax {
-    debug_assert!(p.at_ts(ARGUMENT_NAMES));
-
+fn parse_argument_name_clause(p: &mut RParser) {
     match p.cur() {
-        IDENT => {
-            let m = p.start();
+        IDENT if p.nth_at(1, T![=]) => {
+            let clause = p.start();
+            let name = p.start();
             p.bump_any();
-            Present(m.complete(p, R_IDENTIFIER))
+            name.complete(p, R_IDENTIFIER);
+            p.bump(T![=]);
+            clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
         }
-        DOTS => {
-            let m = p.start();
+        DOTS if p.nth_at(1, T![=]) => {
+            let clause = p.start();
+            let name = p.start();
             p.bump_any();
-            Present(m.complete(p, R_DOTS))
+            name.complete(p, R_DOTS);
+            p.bump(T![=]);
+            clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
         }
-        DOTDOTI => {
-            let m = p.start();
+        DOTDOTI if p.nth_at(1, T![=]) => {
+            let clause = p.start();
+            let name = p.start();
             p.bump_any();
-            Present(m.complete(p, R_DOT_DOT_I))
+            name.complete(p, R_DOT_DOT_I);
+            p.bump(T![=]);
+            clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
         }
-        T![null] => {
-            let m = p.start();
+        T![null] if p.nth_at(1, T![=]) => {
+            let clause = p.start();
+            let name = p.start();
             p.bump_any();
-            Present(m.complete(p, R_NULL_EXPRESSION))
+            name.complete(p, R_NULL_EXPRESSION);
+            p.bump(T![=]);
+            clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
         }
-        R_SINGLE_QUOTED_STRING_LITERAL | R_DOUBLE_QUOTED_STRING_LITERAL | R_RAW_STRING_LITERAL => {
-            parse_string_value(p)
+        R_SINGLE_QUOTED_STRING_LITERAL | R_DOUBLE_QUOTED_STRING_LITERAL | R_RAW_STRING_LITERAL
+            if p.nth_at(1, T![=]) =>
+        {
+            let clause = p.start();
+            parse_string_value(p).ok();
+            p.bump(T![=]);
+            clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
         }
-        _ => Absent,
+        _ => {}
     }
 }
