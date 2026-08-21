@@ -125,8 +125,7 @@ fn parse_argument(p: &mut RParser) {
 /// `name =`, where the `name` is an identifier, a string, `...`, `..i`, or `NULL`
 ///
 /// `foo` and `foo =` start the same way, so one token of lookahead is what tells
-/// a name from the head of a value. Without the `=` there is no clause here at
-/// all, and the caller parses the whole argument as a value.
+/// a name from the head of a value
 ///
 /// `NULL` is accepted here and nowhere else, and has been since the
 /// beginning of R (r-lib/tree-sitter-r#164).
