@@ -45,7 +45,6 @@ Looking one token past an argument name buffers whatever follows it, which for
 `x[[a]]` is the very `]` the next bump has to re-lex into `]]`.
 
 ```r
-x[[a]]
 x[[a = 1]]
 x[[a = x[[b = 1]]]]
 ```

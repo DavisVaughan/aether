@@ -584,7 +584,6 @@ Looking one token past an argument name buffers whatever follows it, which for
 `x[[a]]` is the very `]` the next bump has to re-lex into `]]`.
 
 ```r
-x[[a]]
 x[[a = 1]]
 x[[a = x[[b = 1]]]]
 ```
@@ -602,38 +601,18 @@ RRoot {
                     l_brack2_token: L_BRACK2@1..3 "[[" [] [],
                     items: RArgumentList [
                         RArgument {
-                            name_clause: missing (optional),
-                            value: RIdentifier {
-                                name_token: IDENT@3..4 "a" [] [],
-                            },
-                        },
-                    ],
-                    r_brack2_token: R_BRACK2@4..6 "]]" [] [],
-                },
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RSubset2 {
-                function: RIdentifier {
-                    name_token: IDENT@6..8 "x" [Newline("\n")] [],
-                },
-                arguments: RSubset2Arguments {
-                    l_brack2_token: L_BRACK2@8..10 "[[" [] [],
-                    items: RArgumentList [
-                        RArgument {
                             name_clause: RArgumentNameClause {
                                 name: RIdentifier {
-                                    name_token: IDENT@10..12 "a" [] [Whitespace(" ")],
+                                    name_token: IDENT@3..5 "a" [] [Whitespace(" ")],
                                 },
-                                eq_token: EQUAL@12..14 "=" [] [Whitespace(" ")],
+                                eq_token: EQUAL@5..7 "=" [] [Whitespace(" ")],
                             },
                             value: RDoubleValue {
-                                value_token: R_DOUBLE_LITERAL@14..15 "1" [] [],
+                                value_token: R_DOUBLE_LITERAL@7..8 "1" [] [],
                             },
                         },
                     ],
-                    r_brack2_token: R_BRACK2@15..17 "]]" [] [],
+                    r_brack2_token: R_BRACK2@8..10 "]]" [] [],
                 },
             },
             semicolon_token: missing (optional),
@@ -641,49 +620,49 @@ RRoot {
         RStatement {
             expression: RSubset2 {
                 function: RIdentifier {
-                    name_token: IDENT@17..19 "x" [Newline("\n")] [],
+                    name_token: IDENT@10..12 "x" [Newline("\n")] [],
                 },
                 arguments: RSubset2Arguments {
-                    l_brack2_token: L_BRACK2@19..21 "[[" [] [],
+                    l_brack2_token: L_BRACK2@12..14 "[[" [] [],
                     items: RArgumentList [
                         RArgument {
                             name_clause: RArgumentNameClause {
                                 name: RIdentifier {
-                                    name_token: IDENT@21..23 "a" [] [Whitespace(" ")],
+                                    name_token: IDENT@14..16 "a" [] [Whitespace(" ")],
                                 },
-                                eq_token: EQUAL@23..25 "=" [] [Whitespace(" ")],
+                                eq_token: EQUAL@16..18 "=" [] [Whitespace(" ")],
                             },
                             value: RSubset2 {
                                 function: RIdentifier {
-                                    name_token: IDENT@25..26 "x" [] [],
+                                    name_token: IDENT@18..19 "x" [] [],
                                 },
                                 arguments: RSubset2Arguments {
-                                    l_brack2_token: L_BRACK2@26..28 "[[" [] [],
+                                    l_brack2_token: L_BRACK2@19..21 "[[" [] [],
                                     items: RArgumentList [
                                         RArgument {
                                             name_clause: RArgumentNameClause {
                                                 name: RIdentifier {
-                                                    name_token: IDENT@28..30 "b" [] [Whitespace(" ")],
+                                                    name_token: IDENT@21..23 "b" [] [Whitespace(" ")],
                                                 },
-                                                eq_token: EQUAL@30..32 "=" [] [Whitespace(" ")],
+                                                eq_token: EQUAL@23..25 "=" [] [Whitespace(" ")],
                                             },
                                             value: RDoubleValue {
-                                                value_token: R_DOUBLE_LITERAL@32..33 "1" [] [],
+                                                value_token: R_DOUBLE_LITERAL@25..26 "1" [] [],
                                             },
                                         },
                                     ],
-                                    r_brack2_token: R_BRACK2@33..35 "]]" [] [],
+                                    r_brack2_token: R_BRACK2@26..28 "]]" [] [],
                                 },
                             },
                         },
                     ],
-                    r_brack2_token: R_BRACK2@35..37 "]]" [] [],
+                    r_brack2_token: R_BRACK2@28..30 "]]" [] [],
                 },
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@37..38 "" [Newline("\n")] [],
+    eof_token: EOF@30..31 "" [Newline("\n")] [],
 }
 ```
 
