@@ -1740,24 +1740,28 @@ share a constructor.
 
 ### 11.4 Phase 10 — Extract and namespace — LANDED
 
-`parse_infix_expression` in `src/syntax/expr.rs`, with `parse_selector` and
-`parse_namespace_left` alongside it. Small phase, but it is where aether's first
-user-visible deviation lands, so it stayed separate for reviewability.
+`src/syntax/expr.rs`. Small phase, but it is where aether's first user-visible
+deviation lands, so it stayed separate for reviewability.
 
 #### What changed in the Pratt loop
 
-Ranks 16 (`$`, `@`) and 17 (`::`, `:::`) sit above `^` and below postfix, both
-`Associativity::Left` (§11.2 on why left rather than tree-sitter-r's right). The
-associativity is inert for all four: the right operand is one `parse_selector`
-call rather than a recursive `parse_expression_with_binding_power`, so the bumped
-rank never reaches anything that compares it.
+**Three infix functions, not one with three branches.** `parse_infix_expression`
+is gone, replaced by `parse_infix_binary_expression`,
+`parse_infix_extract_expression`, and `parse_infix_namespace_expression`, each
+paired with its own binding power table and tried in turn by the loop. The three
+operator sets are disjoint, so branching inside one function bought nothing and
+cost a reader the ability to follow any one operator family top to bottom. Only
+the binary table carries `Associativity`: the other two take one `parse_selector`
+call on the right rather than a recursive `parse_expression_with_binding_power`,
+so a bumped rank would never reach anything that compares it.
 
-The operator kind and `p.cur_range()` are captured **before** `p.bump_any()`,
-because neither survives the bump and the diagnostics need both — the kind to
-name the operator in the message, the range for the secondary label. The operator
-then chooses the node kind: `R_EXTRACT_EXPRESSION` for `$` and `@`,
-`R_NAMESPACE_EXPRESSION` for `::` and `:::`, `R_BINARY_EXPRESSION` for everything
-else.
+Rank 16 (`$`, `@`) and rank 17 (`::`, `:::`) sit above `^` and below postfix
+(§11.2 on why left-associative rather than tree-sitter-r's right, for the table
+that still records it).
+
+Both selector functions capture the operator kind and `p.cur_range()` **before**
+`p.bump_any()`, because neither survives the bump and the diagnostics need both —
+the kind to name the operator in the message, the range for the secondary label.
 
 `parse_selector` is `AnyRSelector` — identifier, string, `...`, `..i` — with the
 same one-arm-per-kind shape as `parse_argument_name_clause` in `call.rs`.

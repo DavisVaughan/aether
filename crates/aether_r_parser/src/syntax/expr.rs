@@ -67,7 +67,17 @@ fn parse_expression_with_binding_power(
             continue;
         }
 
-        if let Present(new_lhs) = parse_infix_expression(p, &lhs, current_binding_power) {
+        if let Present(new_lhs) = parse_infix_binary_expression(p, &lhs, current_binding_power) {
+            lhs = new_lhs;
+            continue;
+        }
+
+        if let Present(new_lhs) = parse_infix_extract_expression(p, &lhs, current_binding_power) {
+            lhs = new_lhs;
+            continue;
+        }
+
+        if let Present(new_lhs) = parse_infix_namespace_expression(p, &lhs, current_binding_power) {
             lhs = new_lhs;
             continue;
         }
@@ -189,13 +199,13 @@ fn prefix_binding_power(kind: RSyntaxKind) -> Option<BindingPower> {
     })
 }
 
-/// Infix: `a + b`, `a <- b`, `a %in% b`, `a$b`, `a::b`
-fn parse_infix_expression(
+/// Infix: `a + b`, `a <- b`, `a %in% b`
+fn parse_infix_binary_expression(
     p: &mut RParser,
     lhs: &CompletedMarker,
     current_binding_power: BindingPower,
 ) -> ParsedSyntax {
-    let Some((new_binding_power, associativity)) = infix_binding_power(p.cur()) else {
+    let Some((new_binding_power, associativity)) = infix_binary_binding_power(p.cur()) else {
         // Not an infix operator
         return Absent;
     };
@@ -208,42 +218,103 @@ fn parse_infix_expression(
         Associativity::Right => new_binding_power,
     };
 
+    let m = lhs.clone().precede(p);
+    p.bump_any();
+    parse_expression_with_binding_power(p, new_binding_power)
+        .or_add_diagnostic(p, diagnostics::expected_expression);
+    Present(m.complete(p, R_BINARY_EXPRESSION))
+}
+
+/// Taken from R's `gram.y`
+fn infix_binary_binding_power(kind: RSyntaxKind) -> Option<(BindingPower, Associativity)> {
+    Some(match kind {
+        T![?] => (BindingPower(1), Associativity::Left),
+        T![<-] | T![<<-] | T![:=] => (BindingPower(2), Associativity::Right),
+        T![=] => (BindingPower(3), Associativity::Right),
+        T![->] | T![->>] => (BindingPower(4), Associativity::Left),
+        T![~] => (BindingPower(5), Associativity::Left),
+        T![|] | T![||] => (BindingPower(6), Associativity::Left),
+        T![&] | T![&&] => (BindingPower(7), Associativity::Left),
+        T![<] | T![<=] | T![>] | T![>=] | T![==] | T![!=] => (BindingPower(9), Associativity::Left),
+        T![+] | T![-] => (BindingPower(10), Associativity::Left),
+        T![*] | T![/] => (BindingPower(11), Associativity::Left),
+        SPECIAL | T![|>] => (BindingPower(12), Associativity::Left),
+        T![:] => (BindingPower(13), Associativity::Left),
+        T![^] | T![**] => (BindingPower(15), Associativity::Right),
+        _ => return None,
+    })
+}
+
+/// Infix: `a$b`, `a@b`
+fn parse_infix_extract_expression(
+    p: &mut RParser,
+    lhs: &CompletedMarker,
+    current_binding_power: BindingPower,
+) -> ParsedSyntax {
+    let Some(new_binding_power) = infix_extract_binding_power(p.cur()) else {
+        return Absent;
+    };
+    if new_binding_power < current_binding_power {
+        return Absent;
+    }
+
     let operator = p.cur();
     let operator_range = p.cur_range();
 
-    let lhs = match operator {
-        T![::] | T![:::] => parse_namespace_left(p, lhs, operator, operator_range),
-        _ => lhs.clone(),
-    };
+    let m = lhs.clone().precede(p);
+    p.bump_any();
+    parse_selector(p).or_add_diagnostic(p, |p, range| {
+        diagnostics::expected_selector(p, operator, operator_range, range)
+    });
+    Present(m.complete(p, R_EXTRACT_EXPRESSION))
+}
 
-    let m = lhs.precede(p);
+/// No associativity: the right operand is one selector, never a nested expression
+fn infix_extract_binding_power(kind: RSyntaxKind) -> Option<BindingPower> {
+    match kind {
+        T![$] | T![@] => Some(BindingPower(16)),
+        _ => None,
+    }
+}
+
+/// Infix: `a::b`, `a:::b`
+fn parse_infix_namespace_expression(
+    p: &mut RParser,
+    lhs: &CompletedMarker,
+    current_binding_power: BindingPower,
+) -> ParsedSyntax {
+    let Some(new_binding_power) = infix_namespace_binding_power(p.cur()) else {
+        return Absent;
+    };
+    if new_binding_power < current_binding_power {
+        return Absent;
+    }
+
+    let operator = p.cur();
+    let operator_range = p.cur_range();
+
+    let m = parse_namespace_left(p, lhs, operator, operator_range).precede(p);
     p.bump_any();
 
-    match operator {
-        T![$] | T![@] => {
-            parse_selector(p).or_add_diagnostic(p, |p, range| {
-                diagnostics::expected_selector(p, operator, operator_range, range)
-            });
-            Present(m.complete(p, R_EXTRACT_EXPRESSION))
-        }
-        T![::] | T![:::] => {
-            if p.scope().newlines_are_significant() && p.has_preceding_line_break() {
-                p.error(diagnostics::selector_after_line_break(
-                    operator,
-                    operator_range,
-                ));
-            } else {
-                parse_selector(p).or_add_diagnostic(p, |p, range| {
-                    diagnostics::expected_selector(p, operator, operator_range, range)
-                });
-            }
-            Present(m.complete(p, R_NAMESPACE_EXPRESSION))
-        }
-        _ => {
-            parse_expression_with_binding_power(p, new_binding_power)
-                .or_add_diagnostic(p, diagnostics::expected_expression);
-            Present(m.complete(p, R_BINARY_EXPRESSION))
-        }
+    if p.scope().newlines_are_significant() && p.has_preceding_line_break() {
+        p.error(diagnostics::selector_after_line_break(
+            operator,
+            operator_range,
+        ));
+    } else {
+        parse_selector(p).or_add_diagnostic(p, |p, range| {
+            diagnostics::expected_selector(p, operator, operator_range, range)
+        });
+    }
+
+    Present(m.complete(p, R_NAMESPACE_EXPRESSION))
+}
+
+/// No associativity: the right operand is one selector, never a nested expression
+fn infix_namespace_binding_power(kind: RSyntaxKind) -> Option<BindingPower> {
+    match kind {
+        T![::] | T![:::] => Some(BindingPower(17)),
+        _ => None,
     }
 }
 
@@ -293,28 +364,6 @@ fn parse_selector(p: &mut RParser) -> ParsedSyntax {
         }
         _ => Absent,
     }
-}
-
-/// Taken from R's `gram.y`
-fn infix_binding_power(kind: RSyntaxKind) -> Option<(BindingPower, Associativity)> {
-    Some(match kind {
-        T![?] => (BindingPower(1), Associativity::Left),
-        T![<-] | T![<<-] | T![:=] => (BindingPower(2), Associativity::Right),
-        T![=] => (BindingPower(3), Associativity::Right),
-        T![->] | T![->>] => (BindingPower(4), Associativity::Left),
-        T![~] => (BindingPower(5), Associativity::Left),
-        T![|] | T![||] => (BindingPower(6), Associativity::Left),
-        T![&] | T![&&] => (BindingPower(7), Associativity::Left),
-        T![<] | T![<=] | T![>] | T![>=] | T![==] | T![!=] => (BindingPower(9), Associativity::Left),
-        T![+] | T![-] => (BindingPower(10), Associativity::Left),
-        T![*] | T![/] => (BindingPower(11), Associativity::Left),
-        SPECIAL | T![|>] => (BindingPower(12), Associativity::Left),
-        T![:] => (BindingPower(13), Associativity::Left),
-        T![^] | T![**] => (BindingPower(15), Associativity::Right),
-        T![$] | T![@] => (BindingPower(16), Associativity::Left),
-        T![::] | T![:::] => (BindingPower(17), Associativity::Left),
-        _ => return None,
-    })
 }
 
 /// Postfix: `f(x)`, `x[i]`, `x[[i]]`
