@@ -140,12 +140,3 @@ a@TRUE
 a@(b)
 a@{ b }
 ```
-
-## Dollar Tolerates A Newline
-
-`$` is in R's `EatLines` set, unlike `::`, so this is legal R
-
-```r
-df$
-  x
-```

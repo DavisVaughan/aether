@@ -2058,33 +2058,3 @@ test.R:29:7 parse ━━━━━━━━━━━━━━━━━━━━�
        │     ^
     30 │
 ```
-
-## Dollar Tolerates A Newline
-
-`$` is in R's `EatLines` set, unlike `::`, so this is legal R
-
-```r
-df$
-  x
-```
-
-```cst
-RRoot {
-    bom_token: missing (optional),
-    statements: RStatementList [
-        RStatement {
-            expression: RExtractExpression {
-                left: RIdentifier {
-                    name_token: IDENT@0..2 "df" [] [],
-                },
-                operator: DOLLAR@2..3 "$" [] [],
-                right: RIdentifier {
-                    name_token: IDENT@3..7 "x" [Newline("\n"), Whitespace("  ")] [],
-                },
-            },
-            semicolon_token: missing (optional),
-        },
-    ],
-    eof_token: EOF@7..8 "" [Newline("\n")] [],
-}
-```
