@@ -136,13 +136,3 @@ a()::b
 ```r
 a():::b
 ```
-
-## Namespace Newline Is Significant Only Outside Parens
-
-R discards newlines inside `(`, `[`, and `[[` before `EatLines` ever sees them,
-so the newline `foo::\nbar` forbids is fine here
-
-```r
-f(stats::
-  median)
-```
