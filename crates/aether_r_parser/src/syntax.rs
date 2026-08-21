@@ -2,7 +2,6 @@ mod call;
 mod expr;
 mod parenthesized_expression;
 mod statement_list;
-mod value;
 
 use crate::parser::RParser;
 use crate::syntax::statement_list::parse_statement_list;

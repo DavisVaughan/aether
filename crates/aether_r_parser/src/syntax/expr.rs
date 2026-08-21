@@ -7,7 +7,6 @@ use crate::diagnostics;
 use crate::parser::RParser;
 use crate::syntax::call::{parse_call_arguments, parse_subset_arguments, parse_subset2_arguments};
 use crate::syntax::parenthesized_expression::parse_parenthesized_expression;
-use crate::syntax::value::parse_string_value;
 use aether_r_syntax::RSyntaxKind::{self, *};
 use aether_r_syntax::T;
 use biome_parser::CompletedMarker;
@@ -157,7 +156,9 @@ fn parse_primary_expression(p: &mut RParser) -> ParsedSyntax {
             Present(m.complete(p, R_BOGUS_EXPRESSION))
         }
         R_SINGLE_QUOTED_STRING_LITERAL | R_DOUBLE_QUOTED_STRING_LITERAL | R_RAW_STRING_LITERAL => {
-            parse_string_value(p)
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_STRING_VALUE))
         }
         T!['('] => parse_parenthesized_expression(p),
         _ => Absent,

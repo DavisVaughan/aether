@@ -201,8 +201,7 @@ aether/
     │           ├── parenthesized_expression.rs
     │           ├── function.rs    # ← Phase 11. defs, lambdas, parameters
     │           ├── control.rs     # ← Phase 12. if/else, for, while, repeat
-    │           ├── statement_list.rs # statement lists; braces and `;` in 13
-    │           └── value.rs       # strings, and the selector/name subsets
+    │           └── statement_list.rs # statement lists; braces and `;` in 13
     ├── aether_r_test_macros/      # proc-macro: `gen_corpus_tests!`
     │   └── src/lib.rs             #   modelled on air's `tests_macros`
     ├── aether_r_parser_tests/     # Every corpus test, plus the harness that
@@ -1372,8 +1371,8 @@ off the tests the feature enables, regenerate, review the diff.
 
 ### 11.1 Phase 7 — Literals, identifiers, program — LANDED
 
-`syntax.rs`, `syntax/statement_list.rs`, `syntax/value.rs`, and the one-token
-arms of `syntax/expr.rs`.
+`syntax.rs`, `syntax/statement_list.rs`, and the one-token arms of
+`syntax/expr.rs`.
 
 `parse_root` takes no scope helper, because the defaults *are* top-level
 behaviour — newlines are significant and `else` may not follow one (§9.2 on
@@ -1400,18 +1399,22 @@ was found instead as a secondary label. A string runs to EOF for the same reason
 a backticked name does (§8.4), and both are raised by the lexer, which is the
 only layer that still knows a delimiter was opened.
 
-`parse_string_value` is a bump. The lexer hands back one token, so the node has
-one slot and the function has nothing to decide:
+**A string is one more one-token arm.** The lexer hands back a single token, so
+`R_STRING_VALUE` has one slot and there is nothing to decide:
 
 ```rust
-pub(crate) fn parse_string_value(p: &mut RParser) -> ParsedSyntax {
-    debug_assert!(p.at_ts(STRING_LITERALS));
-
+R_SINGLE_QUOTED_STRING_LITERAL | R_DOUBLE_QUOTED_STRING_LITERAL | R_RAW_STRING_LITERAL => {
     let m = p.start();
     p.bump_any();
     Present(m.complete(p, R_STRING_VALUE))
 }
 ```
+
+An earlier draft gave it a `parse_string_value` of its own in `syntax/value.rs`,
+which is why the layout above no longer lists that file. Every caller either
+already knew it had a string or had to spell out the same three literal kinds to
+find out, so the function only ever moved a bump one level down and forced its
+callers to launder a `ParsedSyntax` that could not be `Absent`.
 
 ### 11.2 Phase 8 — Binary and unary operators (the Pratt core) — LANDED
 
