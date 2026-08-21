@@ -7,10 +7,8 @@ use biome_rowan::TextRange;
 
 /// A backtick-quoted name that runs to the end of the file
 pub(crate) fn unterminated_backtick_identifier(open: TextRange, eof: TextRange) -> ParseDiagnostic {
-    ParseDiagnostic::new("Unterminated backtick-quoted name.", open).with_detail(
-        eof,
-        "Reached the end of the file looking for a closing `` ` ``.",
-    )
+    ParseDiagnostic::new("Unterminated backtick-quoted name.", open)
+        .with_detail(eof, "Reached the end of the file looking for a closing `.")
 }
 
 /// A `%...%` operator cut short by a newline or the end of the file
