@@ -1,6 +1,6 @@
 use crate::parser::{RParser, Scope};
-use crate::syntax::expr::{BindingPower, parse_expression, parse_expression_with_lhs};
-use crate::syntax::value::parse_string_value;
+use crate::syntax::expr::parse_expression;
+use crate::syntax::value::{STRING_LITERALS, parse_string_value};
 use aether_r_syntax::RSyntaxKind::{
     self, DOTDOTI, DOTS, IDENT, R_ARGUMENT, R_ARGUMENT_LIST, R_ARGUMENT_NAME_CLAUSE,
     R_BOGUS_EXPRESSION, R_CALL_ARGUMENTS, R_DOT_DOT_I, R_DOTS, R_DOUBLE_QUOTED_STRING_LITERAL,
@@ -114,25 +114,16 @@ fn parse_argument_list(p: &mut RParser) {
 fn parse_argument(p: &mut RParser) {
     let m = p.start();
 
-    // We can't tell if we have `foo` or `foo =` up front, so we parse `foo`
-    // and check if we land at `=`. If so, we have a name clause, otherwise we
-    // have an argument value and we loop back through `parse_expression()` but
-    // with an already known LHS.
-    match parse_argument_name(p) {
-        Present(name) if p.at(T![=]) => {
-            let clause = name.precede(p);
-            p.bump(T![=]);
-            clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
-            parse_expression(p).ok();
-        }
-        // Not a name clause after all, use as lhs instead
-        Present(lhs) => {
-            parse_expression_with_lhs(p, lhs, BindingPower::LOWEST);
-        }
-        Absent => {
-            parse_expression(p).ok();
-        }
+    // One token of lookahead is what separates `foo` from `foo =`, and `=`
+    // means a name clause and nothing else at the head of an argument
+    if p.at_ts(ARGUMENT_NAMES) && p.nth_at(1, T![=]) {
+        let clause = p.start();
+        parse_argument_name(p).ok();
+        p.bump(T![=]);
+        clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
     }
+
+    parse_expression(p).ok();
 
     m.complete(p, R_ARGUMENT);
 }
@@ -141,7 +132,12 @@ fn parse_argument(p: &mut RParser) {
 ///
 /// `NULL` is accepted here and nowhere else, and has been since the
 /// beginning of R (r-lib/tree-sitter-r#164).
+const ARGUMENT_NAMES: TokenSet<RSyntaxKind> =
+    token_set![IDENT, DOTS, DOTDOTI, T![null]].union(STRING_LITERALS);
+
 fn parse_argument_name(p: &mut RParser) -> ParsedSyntax {
+    debug_assert!(p.at_ts(ARGUMENT_NAMES));
+
     match p.cur() {
         IDENT => {
             let m = p.start();

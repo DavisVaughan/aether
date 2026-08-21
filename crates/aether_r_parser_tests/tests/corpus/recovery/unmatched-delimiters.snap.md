@@ -299,3 +299,158 @@ test.R:1:8 parse ━━━━━━━━━━━━━━━━━━━━━
 
   i Remove ]
 ```
+
+## An Argument Name Cut Off By The End Of The File [error]
+
+Looking one token past the name runs into `EOF`, which is a token like any other
+and never a `=`, so each of these is a value rather than a name clause.
+
+```r
+f(a
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@0..1 "f" [] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@1..2 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIdentifier {
+                                name_token: IDENT@2..3 "a" [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: missing (required),
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@3..4 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `)` but instead the file ends
+
+    1 │ f(a
+  > 2 │
+      │
+
+  i the file ends here
+
+    1 │ f(a
+  > 2 │
+      │
+```
+
+```r
+f(a=
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@0..1 "f" [] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@1..2 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RIdentifier {
+                                    name_token: IDENT@2..3 "a" [] [],
+                                },
+                                eq_token: EQUAL@3..4 "=" [] [],
+                            },
+                            value: missing (optional),
+                        },
+                    ],
+                    r_paren_token: missing (required),
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@4..5 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `)` but instead the file ends
+
+    1 │ f(a=
+  > 2 │
+      │
+
+  i the file ends here
+
+    1 │ f(a=
+  > 2 │
+      │
+```
+
+```r
+x[[a
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RSubset2 {
+                function: RIdentifier {
+                    name_token: IDENT@0..1 "x" [] [],
+                },
+                arguments: RSubset2Arguments {
+                    l_brack2_token: L_BRACK2@1..3 "[[" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIdentifier {
+                                name_token: IDENT@3..4 "a" [] [],
+                            },
+                        },
+                    ],
+                    r_brack2_token: missing (required),
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@4..5 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `]]` but instead the file ends
+
+    1 │ x[[a
+  > 2 │
+      │
+
+  i the file ends here
+
+    1 │ x[[a
+  > 2 │
+      │
+```

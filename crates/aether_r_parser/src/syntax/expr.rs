@@ -16,10 +16,10 @@ use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
 
 /// How tightly an operator binds. Higher wins!
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct BindingPower(u8);
+struct BindingPower(u8);
 
 impl BindingPower {
-    pub(crate) const LOWEST: Self = Self(0);
+    const LOWEST: Self = Self(0);
 
     /// Technically would represent the binding power of postfix operations,
     /// like `f(...)`, `x[...]`, and `x[[...]]`. This mostly just falls out
@@ -38,27 +38,21 @@ pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
     parse_expression_with_binding_power(p, BindingPower::LOWEST)
 }
 
+/// The Pratt loop
 fn parse_expression_with_binding_power(
     p: &mut RParser,
     current_binding_power: BindingPower,
 ) -> ParsedSyntax {
-    let Present(lhs) = parse_prefix_expression(p).or_else(|| parse_primary_expression(p)) else {
-        return Absent;
-    };
-    Present(parse_expression_with_lhs(p, lhs, current_binding_power))
-}
-
-/// The Pratt loop, entered with an already-parsed left operand
-pub(crate) fn parse_expression_with_lhs(
-    p: &mut RParser,
-    mut lhs: CompletedMarker,
-    current_binding_power: BindingPower,
-) -> CompletedMarker {
     debug_assert!(
         current_binding_power <= BindingPower::HIGHEST,
         "{current_binding_power:?} exceeds {:?}. Postfix must stay the tightest-binding construct!",
         BindingPower::HIGHEST
     );
+
+    let Present(mut lhs) = parse_prefix_expression(p).or_else(|| parse_primary_expression(p))
+    else {
+        return Absent;
+    };
 
     loop {
         if p.scope().newlines_are_significant() && p.has_preceding_line_break() {
@@ -76,12 +70,12 @@ pub(crate) fn parse_expression_with_lhs(
         if let Present(new_lhs) = parse_infix_expression(p, &lhs, current_binding_power) {
             lhs = new_lhs;
             continue;
-        };
+        }
 
         break;
     }
 
-    lhs
+    Present(lhs)
 }
 
 fn parse_primary_expression(p: &mut RParser) -> ParsedSyntax {
