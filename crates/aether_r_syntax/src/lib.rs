@@ -2,10 +2,13 @@
 mod generated;
 pub mod argument_ext;
 pub mod call_ext;
+pub mod string_ext;
 mod syntax_node;
 
 pub use self::generated::*;
-pub use biome_rowan::{TextLen, TextRange, TextSize, TokenAtOffset, TriviaPieceKind, WalkEvent};
+pub use biome_rowan::{
+    TextLen, TextRange, TextSize, TokenAtOffset, TokenText, TriviaPieceKind, WalkEvent,
+};
 pub use syntax_node::*;
 
 use biome_rowan::{RawSyntaxKind, SyntaxKind};
@@ -71,14 +74,14 @@ impl biome_rowan::SyntaxKind for RSyntaxKind {
             | RSyntaxKind::R_INTEGER_LITERAL
             | RSyntaxKind::R_DOUBLE_LITERAL
             | RSyntaxKind::R_COMPLEX_LITERAL
+            | RSyntaxKind::R_SINGLE_QUOTED_STRING_LITERAL
+            | RSyntaxKind::R_DOUBLE_QUOTED_STRING_LITERAL
+            | RSyntaxKind::R_RAW_STRING_LITERAL
             | RSyntaxKind::NEWLINE
             | RSyntaxKind::WHITESPACE
             | RSyntaxKind::IDENT
             | RSyntaxKind::COMMENT
             | RSyntaxKind::BACKSLASH
-            | RSyntaxKind::STRING_OPEN
-            | RSyntaxKind::STRING_CONTENT
-            | RSyntaxKind::STRING_CLOSE
             | RSyntaxKind::ERROR_TOKEN
             | RSyntaxKind::R_ROOT
             | RSyntaxKind::R_DOTS
@@ -216,6 +219,9 @@ impl biome_rowan::SyntaxKind for RSyntaxKind {
             | RSyntaxKind::R_INTEGER_LITERAL
             | RSyntaxKind::R_DOUBLE_LITERAL
             | RSyntaxKind::R_COMPLEX_LITERAL
+            | RSyntaxKind::R_SINGLE_QUOTED_STRING_LITERAL
+            | RSyntaxKind::R_DOUBLE_QUOTED_STRING_LITERAL
+            | RSyntaxKind::R_RAW_STRING_LITERAL
             | RSyntaxKind::R_NEXT_EXPRESSION
             | RSyntaxKind::R_BREAK_EXPRESSION
             | RSyntaxKind::R_TRUE_EXPRESSION
@@ -229,9 +235,6 @@ impl biome_rowan::SyntaxKind for RSyntaxKind {
             | RSyntaxKind::IDENT
             | RSyntaxKind::COMMENT
             | RSyntaxKind::BACKSLASH
-            | RSyntaxKind::STRING_OPEN
-            | RSyntaxKind::STRING_CONTENT
-            | RSyntaxKind::STRING_CLOSE
             | RSyntaxKind::ERROR_TOKEN
             | RSyntaxKind::R_ROOT
             | RSyntaxKind::R_IDENTIFIER

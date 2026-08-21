@@ -1,27 +1,21 @@
-use crate::diagnostics;
-use crate::lexer::{RLexContext, RStringDelimiter};
 use crate::parser::RParser;
-use aether_r_syntax::RSyntaxKind::{R_STRING_VALUE, STRING_CLOSE, STRING_CONTENT, STRING_OPEN};
-use biome_parser::Parser;
+use aether_r_syntax::RSyntaxKind::{
+    self, R_DOUBLE_QUOTED_STRING_LITERAL, R_RAW_STRING_LITERAL, R_SINGLE_QUOTED_STRING_LITERAL,
+    R_STRING_VALUE,
+};
 use biome_parser::parsed_syntax::ParsedSyntax::{self, Present};
+use biome_parser::{Parser, TokenSet, token_set};
+
+pub(crate) const STRING_LITERALS: TokenSet<RSyntaxKind> = token_set![
+    R_SINGLE_QUOTED_STRING_LITERAL,
+    R_DOUBLE_QUOTED_STRING_LITERAL,
+    R_RAW_STRING_LITERAL,
+];
 
 pub(crate) fn parse_string_value(p: &mut RParser) -> ParsedSyntax {
-    debug_assert!(p.at(STRING_OPEN));
+    debug_assert!(p.at_ts(STRING_LITERALS));
 
     let m = p.start();
-
-    let delimiter = RStringDelimiter::from_open(p.cur_text());
-    let open_range = p.cur_range();
-
-    p.bump_with_context(STRING_OPEN, RLexContext::StringContent(delimiter));
-    // An empty body emits no `STRING_CONTENT` at all
-    if p.at(STRING_CONTENT) {
-        p.bump_with_context(STRING_CONTENT, RLexContext::StringEnd(delimiter));
-    }
-
-    if !p.eat(STRING_CLOSE) {
-        p.error(diagnostics::unterminated_string(open_range, p.cur_range()));
-    }
-
+    p.bump_any();
     Present(m.complete(p, R_STRING_VALUE))
 }

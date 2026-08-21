@@ -277,8 +277,10 @@ RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
         RStatement {
-            expression: RIdentifier {
-                name_token: IDENT@0..4 "`\\`\n" [] [],
+            expression: RBogusExpression {
+                items: [
+                    ERROR_TOKEN@0..4 "`\\`\n" [] [],
+                ],
             },
             semicolon_token: missing (optional),
         },

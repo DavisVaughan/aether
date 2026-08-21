@@ -1,4 +1,4 @@
-use crate::lexer::{RLexContext, RReLexContext};
+use crate::lexer::RReLexContext;
 use crate::options::RParserOptions;
 use crate::token_source::RTokenSource;
 use aether_r_syntax::{RSyntaxKind, T};
@@ -98,23 +98,15 @@ impl<'src> Parser for RParser<'src> {
         &mut self.source
     }
 
-    fn do_bump(&mut self, kind: Self::Kind) {
-        self.do_bump_with_context(kind, RLexContext::Regular);
-    }
-
     /// Overridden so that every bump checks for a potential `]]` re-lex
-    fn do_bump_with_context(
-        &mut self,
-        kind: Self::Kind,
-        context: <Self::Source as BumpWithContext>::Context,
-    ) {
+    fn do_bump(&mut self, kind: Self::Kind) {
         let end = self.cur_range().end();
         self.context_mut().push_token(kind, end);
 
         if self.context().is_skipping() {
-            self.source_mut().skip_as_trivia_with_context(context);
+            self.source_mut().skip_as_trivia();
         } else {
-            self.source_mut().bump_with_context(context);
+            self.source_mut().bump();
         }
 
         // Joins an adjacent `] ]` into the `]]` the lexer never emits

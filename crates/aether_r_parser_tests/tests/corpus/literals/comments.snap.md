@@ -19,17 +19,13 @@ RRoot {
     statements: RStatementList [
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@0..15 "'" [Comments("# a comment'"), Newline("\n"), Newline("\n")] [],
-                content_token: STRING_CONTENT@15..30 "# not a comment" [] [],
-                close_token: STRING_CLOSE@30..31 "'" [] [],
+                value: R_SINGLE_QUOTED_STRING_LITERAL@0..31 "'# not a comment'" [Comments("# a comment'"), Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@31..35 "'" [Newline("\n"), Newline("\n"), Newline("\n")] [],
-                content_token: STRING_CONTENT@35..57 "\n# still not a comment" [] [],
-                close_token: STRING_CLOSE@57..58 "'" [] [],
+                value: R_SINGLE_QUOTED_STRING_LITERAL@31..58 "'\n# still not a comment'" [Newline("\n"), Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },

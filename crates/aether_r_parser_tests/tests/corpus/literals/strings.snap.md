@@ -24,81 +24,61 @@ RRoot {
     statements: RStatementList [
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@0..1 "\"" [] [],
-                content_token: STRING_CONTENT@1..4 "foo" [] [],
-                close_token: STRING_CLOSE@4..5 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@0..5 "\"foo\"" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@5..7 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@7..14 "foo\nbar" [] [],
-                close_token: STRING_CLOSE@14..15 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@5..15 "\"foo\nbar\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@15..17 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@17..18 "#" [] [],
-                close_token: STRING_CLOSE@18..19 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@15..19 "\"#\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@19..21 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@21..22 "," [] [],
-                close_token: STRING_CLOSE@22..23 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@19..23 "\",\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@23..25 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@25..26 "}" [] [],
-                close_token: STRING_CLOSE@26..27 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@23..27 "\"}\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@27..29 "'" [Newline("\n")] [],
-                content_token: STRING_CONTENT@29..32 "foo" [] [],
-                close_token: STRING_CLOSE@32..33 "'" [] [],
+                value: R_SINGLE_QUOTED_STRING_LITERAL@27..33 "'foo'" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@33..35 "'" [Newline("\n")] [],
-                content_token: STRING_CONTENT@35..42 "foo\nbar" [] [],
-                close_token: STRING_CLOSE@42..43 "'" [] [],
+                value: R_SINGLE_QUOTED_STRING_LITERAL@33..43 "'foo\nbar'" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@43..45 "'" [Newline("\n")] [],
-                content_token: STRING_CONTENT@45..46 "#" [] [],
-                close_token: STRING_CLOSE@46..47 "'" [] [],
+                value: R_SINGLE_QUOTED_STRING_LITERAL@43..47 "'#'" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@47..49 "'" [Newline("\n")] [],
-                content_token: STRING_CONTENT@49..50 "," [] [],
-                close_token: STRING_CLOSE@50..51 "'" [] [],
+                value: R_SINGLE_QUOTED_STRING_LITERAL@47..51 "','" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@51..53 "'" [Newline("\n")] [],
-                content_token: STRING_CONTENT@53..54 "}" [] [],
-                close_token: STRING_CLOSE@54..55 "'" [] [],
+                value: R_SINGLE_QUOTED_STRING_LITERAL@51..55 "'}'" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
@@ -120,17 +100,13 @@ RRoot {
     statements: RStatementList [
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@0..1 "\"" [] [],
-                content_token: missing (optional),
-                close_token: STRING_CLOSE@1..2 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@0..2 "\"\"" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@2..4 "'" [Newline("\n")] [],
-                content_token: missing (optional),
-                close_token: STRING_CLOSE@4..5 "'" [] [],
+                value: R_SINGLE_QUOTED_STRING_LITERAL@2..5 "''" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
@@ -203,361 +179,271 @@ RRoot {
     statements: RStatementList [
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@0..1 "\"" [] [],
-                content_token: STRING_CONTENT@1..3 "\\\\" [] [],
-                close_token: STRING_CLOSE@3..4 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@0..4 "\"\\\\\"" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@4..6 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@6..8 "\\ " [] [],
-                close_token: STRING_CLOSE@8..9 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@4..9 "\"\\ \"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@9..11 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@11..13 "\\n" [] [],
-                close_token: STRING_CLOSE@13..14 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@9..14 "\"\\n\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@14..16 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@16..18 "\\t" [] [],
-                close_token: STRING_CLOSE@18..19 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@14..19 "\"\\t\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@19..21 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@21..23 "\\r" [] [],
-                close_token: STRING_CLOSE@23..24 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@19..24 "\"\\r\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@24..27 "\"" [Newline("\n"), Newline("\n")] [],
-                content_token: STRING_CONTENT@27..29 "\\0" [] [],
-                close_token: STRING_CLOSE@29..30 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@24..30 "\"\\0\"" [Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@30..32 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@32..34 "\\1" [] [],
-                close_token: STRING_CLOSE@34..35 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@30..35 "\"\\1\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@35..37 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@37..39 "\\7" [] [],
-                close_token: STRING_CLOSE@39..40 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@35..40 "\"\\7\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@40..42 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@42..45 "\\12" [] [],
-                close_token: STRING_CLOSE@45..46 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@40..46 "\"\\12\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@46..48 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@48..52 "\\123" [] [],
-                close_token: STRING_CLOSE@52..53 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@46..53 "\"\\123\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@53..55 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@55..60 "\\1234" [] [],
-                close_token: STRING_CLOSE@60..61 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@53..61 "\"\\1234\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@61..64 "\"" [Newline("\n"), Newline("\n")] [],
-                content_token: STRING_CONTENT@64..67 "\\x1" [] [],
-                close_token: STRING_CLOSE@67..68 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@61..68 "\"\\x1\"" [Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@68..70 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@70..74 "\\x01" [] [],
-                close_token: STRING_CLOSE@74..75 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@68..75 "\"\\x01\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@75..77 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@77..82 "\\x012" [] [],
-                close_token: STRING_CLOSE@82..83 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@75..83 "\"\\x012\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@83..86 "\"" [Newline("\n"), Newline("\n")] [],
-                content_token: STRING_CONTENT@86..89 "\\u1" [] [],
-                close_token: STRING_CLOSE@89..90 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@83..90 "\"\\u1\"" [Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@90..92 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@92..96 "\\u01" [] [],
-                close_token: STRING_CLOSE@96..97 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@90..97 "\"\\u01\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@97..99 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@99..104 "\\u001" [] [],
-                close_token: STRING_CLOSE@104..105 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@97..105 "\"\\u001\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@105..107 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@107..113 "\\u0001" [] [],
-                close_token: STRING_CLOSE@113..114 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@105..114 "\"\\u0001\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@114..116 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@116..123 "\\u00011" [] [],
-                close_token: STRING_CLOSE@123..124 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@114..124 "\"\\u00011\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@124..127 "\"" [Newline("\n"), Newline("\n")] [],
-                content_token: STRING_CONTENT@127..132 "\\u{1}" [] [],
-                close_token: STRING_CLOSE@132..133 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@124..133 "\"\\u{1}\"" [Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@133..135 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@135..141 "\\u{01}" [] [],
-                close_token: STRING_CLOSE@141..142 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@133..142 "\"\\u{01}\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@142..144 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@144..151 "\\u{001}" [] [],
-                close_token: STRING_CLOSE@151..152 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@142..152 "\"\\u{001}\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@152..154 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@154..162 "\\u{0001}" [] [],
-                close_token: STRING_CLOSE@162..163 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@152..163 "\"\\u{0001}\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@163..166 "\"" [Newline("\n"), Newline("\n")] [],
-                content_token: STRING_CONTENT@166..171 "\\U{1}" [] [],
-                close_token: STRING_CLOSE@171..172 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@163..172 "\"\\U{1}\"" [Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@172..174 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@174..180 "\\U{01}" [] [],
-                close_token: STRING_CLOSE@180..181 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@172..181 "\"\\U{01}\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@181..183 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@183..190 "\\U{001}" [] [],
-                close_token: STRING_CLOSE@190..191 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@181..191 "\"\\U{001}\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@191..193 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@193..201 "\\U{0001}" [] [],
-                close_token: STRING_CLOSE@201..202 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@191..202 "\"\\U{0001}\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@202..204 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@204..213 "\\U{00001}" [] [],
-                close_token: STRING_CLOSE@213..214 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@202..214 "\"\\U{00001}\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@214..216 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@216..226 "\\U{000001}" [] [],
-                close_token: STRING_CLOSE@226..227 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@214..227 "\"\\U{000001}\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@227..229 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@229..240 "\\U{0000001}" [] [],
-                close_token: STRING_CLOSE@240..241 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@227..241 "\"\\U{0000001}\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@241..243 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@243..255 "\\U{00000001}" [] [],
-                close_token: STRING_CLOSE@255..256 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@241..256 "\"\\U{00000001}\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@256..259 "\"" [Newline("\n"), Newline("\n")] [],
-                content_token: STRING_CONTENT@259..262 "\\U1" [] [],
-                close_token: STRING_CLOSE@262..263 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@256..263 "\"\\U1\"" [Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@263..265 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@265..269 "\\U01" [] [],
-                close_token: STRING_CLOSE@269..270 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@263..270 "\"\\U01\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@270..272 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@272..277 "\\U001" [] [],
-                close_token: STRING_CLOSE@277..278 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@270..278 "\"\\U001\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@278..280 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@280..286 "\\U0001" [] [],
-                close_token: STRING_CLOSE@286..287 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@278..287 "\"\\U0001\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@287..289 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@289..296 "\\U00001" [] [],
-                close_token: STRING_CLOSE@296..297 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@287..297 "\"\\U00001\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@297..299 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@299..307 "\\U000001" [] [],
-                close_token: STRING_CLOSE@307..308 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@297..308 "\"\\U000001\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@308..310 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@310..319 "\\U0000001" [] [],
-                close_token: STRING_CLOSE@319..320 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@308..320 "\"\\U0000001\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@320..322 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@322..332 "\\U00000001" [] [],
-                close_token: STRING_CLOSE@332..333 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@320..333 "\"\\U00000001\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@333..335 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@335..346 "\\U000000011" [] [],
-                close_token: STRING_CLOSE@346..347 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@333..347 "\"\\U000000011\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@347..350 "\"" [Newline("\n"), Newline("\n")] [],
-                content_token: STRING_CONTENT@350..358 "foo\\\"bar" [] [],
-                close_token: STRING_CLOSE@358..359 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@347..359 "\"foo\\\"bar\"" [Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@359..361 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@361..366 "foo\\ " [] [],
-                close_token: STRING_CLOSE@366..367 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@359..367 "\"foo\\ \"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@367..369 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@369..374 "foo\\\n" [] [],
-                close_token: STRING_CLOSE@374..375 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@367..375 "\"foo\\\n\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@375..377 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@377..379 "\\\"" [] [],
-                close_token: STRING_CLOSE@379..380 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@375..380 "\"\\\"\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@380..382 "'" [Newline("\n")] [],
-                content_token: STRING_CONTENT@382..384 "\\'" [] [],
-                close_token: STRING_CLOSE@384..385 "'" [] [],
+                value: R_SINGLE_QUOTED_STRING_LITERAL@380..385 "'\\''" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
@@ -624,193 +510,145 @@ RRoot {
     statements: RStatementList [
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@0..3 "r\"(" [] [],
-                content_token: STRING_CONTENT@3..13 "raw string" [] [],
-                close_token: STRING_CLOSE@13..15 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@0..15 "r\"(raw string)\"" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@15..19 "R\"{" [Newline("\n")] [],
-                content_token: STRING_CONTENT@19..37 "another raw string" [] [],
-                close_token: STRING_CLOSE@37..39 "}\"" [] [],
+                value: R_RAW_STRING_LITERAL@15..39 "R\"{another raw string}\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@39..45 "R\"--[" [Newline("\n")] [],
-                content_token: STRING_CONTENT@45..70 "yet another ]- raw string" [] [],
-                close_token: STRING_CLOSE@70..74 "]--\"" [] [],
+                value: R_RAW_STRING_LITERAL@39..74 "R\"--[yet another ]- raw string]--\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@74..79 "r\"(" [Newline("\n"), Newline("\n")] [],
-                content_token: STRING_CONTENT@79..80 "\"" [] [],
-                close_token: STRING_CLOSE@80..82 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@74..82 "r\"(\")\"" [Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@82..86 "r\"(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@86..88 "\"\"" [] [],
-                close_token: STRING_CLOSE@88..90 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@82..90 "r\"(\"\")\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@90..94 "r\"(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@94..95 "'" [] [],
-                close_token: STRING_CLOSE@95..97 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@90..97 "r\"(')\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@97..101 "r\"(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@101..103 "''" [] [],
-                close_token: STRING_CLOSE@103..105 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@97..105 "r\"('')\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@105..111 "r\"-(" [Newline("\n"), Newline("\n")] [],
-                content_token: STRING_CONTENT@111..112 "-" [] [],
-                close_token: STRING_CLOSE@112..115 ")-\"" [] [],
+                value: R_RAW_STRING_LITERAL@105..115 "r\"-(-)-\"" [Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@115..120 "r\"-(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@120..122 ")-" [] [],
-                close_token: STRING_CLOSE@122..125 ")-\"" [] [],
+                value: R_RAW_STRING_LITERAL@115..125 "r\"-()-)-\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@125..131 "r\"--(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@131..134 ")-\"" [] [],
-                close_token: STRING_CLOSE@134..138 ")--\"" [] [],
+                value: R_RAW_STRING_LITERAL@125..138 "r\"--()-\")--\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@138..143 "r\"(" [Newline("\n"), Newline("\n")] [],
-                content_token: STRING_CONTENT@143..147 " () " [] [],
-                close_token: STRING_CLOSE@147..149 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@138..149 "r\"( () )\"" [Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@149..153 "r\"(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@153..155 "()" [] [],
-                close_token: STRING_CLOSE@155..157 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@149..157 "r\"(())\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@157..161 "r\"(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@161..164 " ()" [] [],
-                close_token: STRING_CLOSE@164..166 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@157..166 "r\"( ())\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@166..170 "r\"(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@170..173 "() " [] [],
-                close_token: STRING_CLOSE@173..175 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@166..175 "r\"(() )\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@175..180 "r\"-(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@180..181 ")" [] [],
-                close_token: STRING_CLOSE@181..184 ")-\"" [] [],
+                value: R_RAW_STRING_LITERAL@175..184 "r\"-())-\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@184..189 "r\"-(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@189..193 "())-" [] [],
-                close_token: STRING_CLOSE@193..196 ")-\"" [] [],
+                value: R_RAW_STRING_LITERAL@184..196 "r\"-(())-)-\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@196..201 "r\"(" [Newline("\n"), Newline("\n")] [],
-                content_token: STRING_CONTENT@201..212 "raw\nstring\n" [] [],
-                close_token: STRING_CLOSE@212..214 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@196..214 "r\"(raw\nstring\n)\"" [Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@214..265 "r\"(" [Newline("\n"), Newline("\n"), Comments("# Empty strings with  ..."), Newline("\n")] [],
-                content_token: missing (optional),
-                close_token: STRING_CLOSE@265..267 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@214..267 "r\"()\"" [Newline("\n"), Newline("\n"), Comments("# Empty strings with  ..."), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@267..271 "r'(" [Newline("\n")] [],
-                content_token: missing (optional),
-                close_token: STRING_CLOSE@271..273 ")'" [] [],
+                value: R_RAW_STRING_LITERAL@267..273 "r'()'" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@273..277 "R\"{" [Newline("\n")] [],
-                content_token: missing (optional),
-                close_token: STRING_CLOSE@277..279 "}\"" [] [],
+                value: R_RAW_STRING_LITERAL@273..279 "R\"{}\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@279..285 "r\"--[" [Newline("\n")] [],
-                content_token: missing (optional),
-                close_token: STRING_CLOSE@285..289 "]--\"" [] [],
+                value: R_RAW_STRING_LITERAL@279..289 "r\"--[]--\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@289..339 "r\"(" [Newline("\n"), Newline("\n"), Comments("# Leading whitespace  ..."), Newline("\n")] [],
-                content_token: STRING_CONTENT@339..346 "  hello" [] [],
-                close_token: STRING_CLOSE@346..348 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@289..348 "r\"(  hello)\"" [Newline("\n"), Newline("\n"), Comments("# Leading whitespace  ..."), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@348..352 "r\"(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@352..359 "\\nhello" [] [],
-                close_token: STRING_CLOSE@359..361 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@348..361 "r\"(\\nhello)\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@361..365 "r\"(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@365..372 "\nhello\n" [] [],
-                close_token: STRING_CLOSE@372..374 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@361..374 "r\"(\nhello\n)\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
@@ -825,9 +663,7 @@ RRoot {
                         RArgument {
                             name_clause: missing (optional),
                             value: RStringValue {
-                                open_token: STRING_OPEN@377..380 "r\"(" [] [],
-                                content_token: STRING_CONTENT@380..389 "\\nhello\\n" [] [],
-                                close_token: STRING_CLOSE@389..391 ")\"" [] [],
+                                value: R_RAW_STRING_LITERAL@377..391 "r\"(\\nhello\\n)\"" [] [],
                             },
                         },
                     ],
@@ -847,9 +683,7 @@ RRoot {
                         RArgument {
                             name_clause: missing (optional),
                             value: RStringValue {
-                                open_token: STRING_OPEN@395..398 "r\"(" [] [],
-                                content_token: STRING_CONTENT@398..405 "\nhello\n" [] [],
-                                close_token: STRING_CLOSE@405..407 ")\"" [] [],
+                                value: R_RAW_STRING_LITERAL@395..407 "r\"(\nhello\n)\"" [] [],
                             },
                         },
                     ],
@@ -860,25 +694,19 @@ RRoot {
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@408..441 "r'(" [Newline("\n"), Newline("\n"), Comments("# Single quoted raw s ..."), Newline("\n")] [],
-                content_token: STRING_CONTENT@441..442 "a" [] [],
-                close_token: STRING_CLOSE@442..444 ")'" [] [],
+                value: R_RAW_STRING_LITERAL@408..444 "r'(a)'" [Newline("\n"), Newline("\n"), Comments("# Single quoted raw s ..."), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@444..448 "r'(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@448..449 "'" [] [],
-                close_token: STRING_CLOSE@449..451 ")'" [] [],
+                value: R_RAW_STRING_LITERAL@444..451 "r'(')'" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@451..455 "r'(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@455..456 "\"" [] [],
-                close_token: STRING_CLOSE@456..458 ")'" [] [],
+                value: R_RAW_STRING_LITERAL@451..458 "r'(\")'" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
@@ -911,10 +739,10 @@ RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
         RStatement {
-            expression: RStringValue {
-                open_token: STRING_OPEN@0..1 "\"" [] [],
-                content_token: STRING_CONTENT@1..4 "\\\"\n" [] [],
-                close_token: missing (required),
+            expression: RBogusExpression {
+                items: [
+                    ERROR_TOKEN@0..4 "\"\\\"\n" [] [],
+                ],
             },
             semicolon_token: missing (optional),
         },
@@ -950,10 +778,10 @@ RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
         RStatement {
-            expression: RStringValue {
-                open_token: STRING_OPEN@0..1 "'" [] [],
-                content_token: STRING_CONTENT@1..4 "\\'\n" [] [],
-                close_token: missing (required),
+            expression: RBogusExpression {
+                items: [
+                    ERROR_TOKEN@0..4 "'\\'\n" [] [],
+                ],
             },
             semicolon_token: missing (optional),
         },
@@ -990,10 +818,10 @@ RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
         RStatement {
-            expression: RStringValue {
-                open_token: STRING_OPEN@0..3 "r\"(" [] [],
-                content_token: STRING_CONTENT@3..6 "\n\"\n" [] [],
-                close_token: missing (required),
+            expression: RBogusExpression {
+                items: [
+                    ERROR_TOKEN@0..6 "r\"(\n\"\n" [] [],
+                ],
             },
             semicolon_token: missing (optional),
         },
@@ -1056,169 +884,127 @@ RRoot {
     statements: RStatementList [
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@0..1 "\"" [] [],
-                content_token: STRING_CONTENT@1..10 "hi there!" [] [],
-                close_token: STRING_CLOSE@10..11 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@0..11 "\"hi there!\"" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@11..13 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@13..15 "\\\"" [] [],
-                close_token: STRING_CLOSE@15..16 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@11..16 "\"\\\"\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@16..18 "'" [Newline("\n")] [],
-                content_token: STRING_CONTENT@18..27 "hi there!" [] [],
-                close_token: STRING_CLOSE@27..28 "'" [] [],
+                value: R_SINGLE_QUOTED_STRING_LITERAL@16..28 "'hi there!'" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@28..30 "'" [Newline("\n")] [],
-                content_token: STRING_CONTENT@30..32 "\\'" [] [],
-                close_token: STRING_CLOSE@32..33 "'" [] [],
+                value: R_SINGLE_QUOTED_STRING_LITERAL@28..33 "'\\''" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@33..35 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@35..36 "'" [] [],
-                close_token: STRING_CLOSE@36..37 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@33..37 "\"'\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@37..39 "\"" [Newline("\n")] [],
-                content_token: STRING_CONTENT@39..55 "multiline\nstring" [] [],
-                close_token: STRING_CLOSE@55..56 "\"" [] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@37..56 "\"multiline\nstring\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@56..60 "r\"(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@60..61 "\"" [] [],
-                close_token: STRING_CLOSE@61..63 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@56..63 "r\"(\")\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@63..67 "r\"(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@67..69 "\"\"" [] [],
-                close_token: STRING_CLOSE@69..71 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@63..71 "r\"(\"\")\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@71..75 "r\"(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@75..76 "'" [] [],
-                close_token: STRING_CLOSE@76..78 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@71..78 "r\"(')\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@78..82 "r\"(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@82..84 "''" [] [],
-                close_token: STRING_CLOSE@84..86 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@78..86 "r\"('')\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@86..91 "r\"-(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@91..92 "-" [] [],
-                close_token: STRING_CLOSE@92..95 ")-\"" [] [],
+                value: R_RAW_STRING_LITERAL@86..95 "r\"-(-)-\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@95..100 "r\"-(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@100..102 ")-" [] [],
-                close_token: STRING_CLOSE@102..105 ")-\"" [] [],
+                value: R_RAW_STRING_LITERAL@95..105 "r\"-()-)-\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@105..111 "r\"--(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@111..114 ")-\"" [] [],
-                close_token: STRING_CLOSE@114..118 ")--\"" [] [],
+                value: R_RAW_STRING_LITERAL@105..118 "r\"--()-\")--\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@118..122 "r\"(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@122..126 " () " [] [],
-                close_token: STRING_CLOSE@126..128 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@118..128 "r\"( () )\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@128..132 "r\"(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@132..134 "()" [] [],
-                close_token: STRING_CLOSE@134..136 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@128..136 "r\"(())\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@136..140 "r\"(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@140..143 " ()" [] [],
-                close_token: STRING_CLOSE@143..145 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@136..145 "r\"( ())\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@145..149 "r\"(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@149..152 "() " [] [],
-                close_token: STRING_CLOSE@152..154 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@145..154 "r\"(() )\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@154..159 "r\"-(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@159..160 ")" [] [],
-                close_token: STRING_CLOSE@160..163 ")-\"" [] [],
+                value: R_RAW_STRING_LITERAL@154..163 "r\"-())-\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@163..168 "r\"-(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@168..172 "())-" [] [],
-                close_token: STRING_CLOSE@172..175 ")-\"" [] [],
+                value: R_RAW_STRING_LITERAL@163..175 "r\"-(())-)-\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@175..179 "r\"(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@179..190 "raw\nstring\n" [] [],
-                close_token: STRING_CLOSE@190..192 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@175..192 "r\"(raw\nstring\n)\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                open_token: STRING_OPEN@192..196 "r\"(" [Newline("\n")] [],
-                content_token: STRING_CONTENT@196..222 "\"some raw string\nbusiness\"" [] [],
-                close_token: STRING_CLOSE@222..224 ")\"" [] [],
+                value: R_RAW_STRING_LITERAL@192..224 "r\"(\"some raw string\nbusiness\")\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },

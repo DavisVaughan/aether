@@ -48,14 +48,11 @@ fn a_trailing_comment_does_not_set_it() {
     );
 }
 
-/// A string is three tokens, and only the first of them can carry the break
 #[test]
-fn strings_report_the_break_on_the_open() {
+fn strings_report_the_break() {
     assert_line_breaks!(
         "1\n\"a\"",
         R_DOUBLE_LITERAL: false,
-        STRING_OPEN: true,
-        STRING_CONTENT: false,
-        STRING_CLOSE: false,
+        R_DOUBLE_QUOTED_STRING_LITERAL: true,
     );
 }
