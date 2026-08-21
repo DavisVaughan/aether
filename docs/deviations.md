@@ -27,10 +27,10 @@ them, since the ledger runs ahead of the parser.
 | 1 | Semicolons | trivia, invisible | `SEMICOLON` token in `RStatement`; formatter removes it and hard-breaks the line, so `1;2` → two lines |
 | 1b | Statement list | `R_EXPRESSION_LIST` of expressions | `R_STATEMENT_LIST` of `R_STATEMENT` |
 | 1c | Braces | `R_BRACED_EXPRESSIONS` | `R_BRACED_STATEMENTS` |
-| 2 | Extract RHS | `optional()`, silent | required, diagnostic + bogus |
-| 3 | Namespace RHS | `optional()`, silent | required, diagnostic + bogus |
+| 2 | Extract RHS | `optional()`, silent | required, diagnostic, slot left missing |
+| 3 | Namespace RHS and LHS | `optional()` RHS, silent | required, diagnostic, slot left missing; a non-name LHS is contained in an `RBogusSelector` |
 | 4 | Error recovery | whole-file bogus node | localized bogus nodes, tree still walkable |
-| 5 | `AnyRSelector` | 4 variants, no bogus | new `RBogusSelector` kind added as a fifth variant, so a malformed RHS is contained in the `right` slot instead of collapsing the whole expression |
+| 5 | `AnyRSelector` | 4 variants, no bogus | new `RBogusSelector` kind added as a fifth variant, so a malformed operand is contained in its slot instead of collapsing the whole expression |
 | 6 | Text no production can take: a character that starts no token, an unterminated string, an unterminated backtick-quoted name | `ERROR` node | new `ERROR_TOKEN` kind added, reported by the lexer and wrapped in a bogus node by the parser |
 | 7 | `L` and `i` suffixes | tokens of their own, so `1 L` is one `integer` and `1Li` is `1` and `Li` | part of the literal, taken whatever follows, as R takes them |
 | 8 | Unterminated numbers | `0x`, `0x1p`, `1e` re-split or accepted, all silently | one literal token carrying `Unterminated hexadecimal literal.`, `Unterminated binary exponent.`, or `Unterminated exponent.` |
@@ -138,7 +138,7 @@ body moves across by hand.
 
 ### 2. Extract RHS is required
 
-Lands in Phase 10.
+Landed in Phase 10.
 
 Example:
 
@@ -166,19 +166,27 @@ in the parser:
   and `:::` each read differently:
 
   ```
-  × Expected an identifier, a string, `...` or `..i` but instead found the end of the file.
+  × Expected an identifier, a string, a `...`, or a `..i` but instead found the end of the file.
 
     1 │ dplyr::
-      │      ── `::` requires a name on the right
-      │        ▲
-      │        ╰── Expected an identifier, a string, `...` or `..i` here.
+    2 │
+      │
+
+  i Expected an identifier, a string, a `...`, or a `..i` here.
+
+  i `::` requires a name on the right.
+
+  > 1 │ dplyr::
+      │      ^^
   ```
 
 - `a$1`, `a$NA`, `a$NULL`, `a$TRUE`, `a$(b)`, `a${b}`, `a$if` → identical
   treatment. The RHS is present but is not a valid selector, so the slot is left
   missing and `expected_selector` labels it. **Nothing is consumed**, so the `1`,
-  the `(b)`, or the whole `if` statement goes on to be parsed as the next
-  statement, exactly as under tree-sitter.
+  the `{b}`, or the whole `if` statement goes on to be parsed as the next
+  statement, exactly as under tree-sitter. `a$(b)` is the one that does not become
+  a sibling: `(` is postfix, so both parsers read a call whose function is the
+  incomplete extract expression.
 
 Why: `missing (required)` with no diagnostic is a silent hole in the tree. The
 completions argument that motivates tree-sitter's `optional()` is served just as
@@ -197,21 +205,35 @@ So this deviation is diagnostics only, never shape. Aether's tree for `a$1` is
 what air already builds: `RExtractExpression` with `right: missing (required)`,
 then `RDoubleValue` as a sibling.
 
-Corpus tests: `Dollar No RHS`, `Slot No RHS`, and `Extract With A Literal RHS` in
-`expressions/extract.md`. All three carry `[deviation]` today, and the shape
-matches, so expect the marker to come off once the oracle confirms it — leaving
-`[error]`.
+Corpus tests: `Dollar No RHS`, `Slot No RHS`, `Extract With A Literal RHS`, and
+`Dollar, At, Namespace, Namespace Internal With Expression RHS` in
+`expressions/extract.md`, all `[error]`. The first three carried `[deviation]`
+until the shape stopped changing.
 
-### 3. Namespace RHS is required
+### 3. Namespace RHS is required, and so is the LHS
 
-Lands in Phase 10.
+Landed in Phase 10.
 
-Identical to deviation 2, for `::` and `:::`. Split out because tree-sitter-r
-models namespace as its own rule with its own `optional()`.
+The RHS half is deviation 2, for `::` and `:::`. Split out because tree-sitter-r
+models namespace as its own rule with its own `optional()`. A newline counts as a
+missing RHS here and nowhere else — `::` and `:::` are the only operators absent
+from R's `EatLines` switch, so `foo::\nbar` is two expressions rather than one,
+and aether says so where tree-sitter-r stays quiet. The restriction lifts inside
+`(`, `[`, and `[[`, where R discards newlines before `EatLines` ever runs, so
+`f(stats::\nmedian)` is one clean namespace expression in both parsers.
 
-Corpus tests: `Namespace With Missing RHS` and `Namespace With A Literal RHS` in
-`expressions/namespace.md`, both carrying `[deviation]` today and both expected
-to shed it for the reason given in deviation 2.
+The LHS half has no counterpart in deviation 2, because `RExtractExpression`
+takes any expression on the left while `RNamespaceExpression` takes an
+`AnyRSelector`. `a::b::c` and `a()::b` are errors under R and under tree-sitter-r
+too, so the deviation is only in the recovery: air collapses the file to one bogus
+node (deviation 4), and aether wraps the offending operand in an `RBogusSelector`
+and keeps the namespace node, its operator, and its right-hand name.
+
+Corpus tests: `Namespace get`, `Namespace get internal`, `Namespace With Missing
+RHS`, `Namespace With A Literal RHS`, `Chained ::`, `Chained :::`, `Call On The
+Left Of ::`, and `Call On The Left Of :::` in `expressions/namespace.md`, all
+`[error]`. `Namespace Newline Is Significant Only Outside Parens` is the clean
+half, and it is compared against tree-sitter-r rather than marked.
 
 ### 4. Recovery is localized
 
@@ -256,11 +278,11 @@ pub enum AnyRSelector {
 ```
 
 Without a bogus variant the generated factory does not panic on a failed cast, it
-does something quieter and worse — `R_EXTRACT_EXPRESSION.to_bogus()` is
-`R_BOGUS_EXPRESSION`, so `a$1` collapses the entire extract expression into one
-bogus node instead of containing the damage in the `right` slot. Round-trip still
-passes, so nothing in the harness would catch it; it would only show up by reading
-the snapshot.
+does something quieter and worse — `R_NAMESPACE_EXPRESSION.to_bogus()` is
+`R_BOGUS_EXPRESSION`, so `a::b::c` collapses the entire namespace expression into
+one bogus node instead of containing the damage in the `left` slot. Round-trip
+still passes, so nothing in the harness would catch it; it would only show up by
+reading the snapshot.
 
 `R_BOGUS_SELECTOR` is a new node kind, added as the last kind before `__LAST` so
 nothing renumbers. `is_bogus()` returns true for it and `to_bogus()` is
@@ -278,12 +300,21 @@ Why a new kind rather than reusing `RBogusValue`:
 - The kind alone identifies the position. A tree walker seeing `R_BOGUS_SELECTOR`
   knows a selector was malformed without inspecting the parent.
 
-**Nothing constructs one.** Phase 10 was going to, by consuming a non-selector RHS
-into a bogus node; deviation 2 settles that it diagnoses and consumes nothing, so
-the kind is unproduced. It stays because the argument above does not depend on
-having a producer, and because removing it means renumbering nothing but churning
-codegen for no gain — but do not read its presence as evidence that some path
-builds one.
+**One path constructs one, and it is the `left` slot, not the `right`.** Phase 10
+was going to use the `right` slot, by consuming a non-selector RHS into a bogus
+node; deviation 2 settles that it diagnoses and consumes nothing. The LHS of `::`
+and `:::` is an `AnyRSelector` too, and there the operand is already parsed by the
+time the operator is read, so containing it costs no tokens:
+
+```
+a::b::c
+
+RNamespaceExpression {
+    left: RBogusSelector { RNamespaceExpression { a::b } },
+    operator: COLON2,
+    right: RIdentifier { c },
+}
+```
 
 Swap-in cost: air's `RSyntaxKind`, `nodes.rs`, and both factories are generated,
 so they follow from air's own codegen. The hand-written touch points are

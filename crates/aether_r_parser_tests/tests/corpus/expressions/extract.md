@@ -1,4 +1,4 @@
-## Dollar [pending]
+## Dollar
 
 ```r
 foo$bar
@@ -11,7 +11,7 @@ foo$...
 foo$..1
 ```
 
-## Slot [pending]
+## Slot
 
 ```r
 foo@bar
@@ -22,7 +22,7 @@ foo@...
 foo@..1
 ```
 
-## Dollar, At, Namespace, Namespace Internal With Expression RHS [pending]
+## Dollar, At, Namespace, Namespace Internal With Expression RHS [error]
 
 ```r
 # These nodes allows an optional RHS, and the RHS must be a string/identifier,
@@ -34,19 +34,19 @@ foo::{bar}
 foo:::{bar}
 ```
 
-## Dollar No RHS [pending, error, deviation]
+## Dollar No RHS [error]
 
 ```r
 foo$
 ```
 
-## Slot No RHS [pending, error, deviation]
+## Slot No RHS [error]
 
 ```r
 foo@
 ```
 
-## Dollar, At, Namespace, Namespace Internal With `if` RHS [pending, error]
+## Dollar, At, Namespace, Namespace Internal With `if` RHS [error]
 
 ```r
 # The RHS's of these nodes are restricted to strings and identifiers, and the RHS
@@ -59,7 +59,7 @@ foo::if
 foo:::if
 ```
 
-## Dollar, At, Namespace, Namespace Internal With Newline Before Operator [pending, error]
+## Dollar, At, Namespace, Namespace Internal With Newline Before Operator [error]
 
 ```r
 # Newlines are not allowed before the operator, so none of these are valid
@@ -76,7 +76,7 @@ x
 :::y
 ```
 
-## Extract Operators [pending]
+## Extract Operators
 
 ```r
 a$b
@@ -107,7 +107,7 @@ a$..10
 a@..10
 ```
 
-## Extract With A Literal RHS [pending, error, deviation]
+## Extract With A Literal RHS [error]
 
 ```r
 # TODO: tree-sitter-r currently allows an `optional()` RHS, but our grammar
@@ -139,4 +139,13 @@ a@NULL
 a@TRUE
 a@(b)
 a@{ b }
+```
+
+## Dollar Tolerates A Newline
+
+`$` is in R's `EatLines` set, unlike `::`, so this is legal R
+
+```r
+df$
+  x
 ```

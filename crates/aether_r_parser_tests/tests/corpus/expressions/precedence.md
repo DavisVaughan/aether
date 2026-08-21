@@ -10,7 +10,7 @@ a && b(c) && d
 val <- foo %>% bar(1) %>% baz()
 ```
 
-## Precedence Tests [pending]
+## Precedence Tests
 
 ```r
 A$"B"^NA

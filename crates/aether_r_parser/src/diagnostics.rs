@@ -1,8 +1,12 @@
 //! Constructors for every diagnostic aether emits
 
 use crate::parser::RParser;
-use biome_parser::diagnostic::{ParseDiagnostic, expected_node};
+use aether_r_syntax::RSyntaxKind;
+use biome_parser::diagnostic::{ParseDiagnostic, expected_any, expected_node};
 use biome_rowan::TextRange;
+
+/// What `AnyRSelector` accepts
+const SELECTORS: &[&str] = &["identifier", "string", "`...`", "`..i`"];
 
 /// A backtick-quoted name that runs to the end of the file
 pub(crate) fn unterminated_backtick_identifier(open: TextRange, eof: TextRange) -> ParseDiagnostic {
@@ -49,6 +53,52 @@ pub(crate) fn unterminated_string(open: TextRange, eof: TextRange) -> ParseDiagn
 
 pub(crate) fn expected_expression(p: &RParser, range: TextRange) -> ParseDiagnostic {
     expected_node("expression", range, p)
+}
+
+/// The name on the right of `$`, `@`, `::`, or `:::` is missing
+pub(crate) fn expected_selector(
+    p: &RParser,
+    operator: RSyntaxKind,
+    operator_range: TextRange,
+    range: TextRange,
+) -> ParseDiagnostic {
+    expected_any(SELECTORS, range, p).with_detail(
+        operator_range,
+        format!("`{}` requires a name on the right.", text_of(operator)),
+    )
+}
+
+/// The name on the left of `::` or `:::` is not a name
+pub(crate) fn expected_selector_on_the_left(
+    p: &RParser,
+    operator: RSyntaxKind,
+    operator_range: TextRange,
+    range: TextRange,
+) -> ParseDiagnostic {
+    expected_any(SELECTORS, range, p).with_detail(
+        operator_range,
+        format!("`{}` requires a name on the left.", text_of(operator)),
+    )
+}
+
+/// A newline between `::` or `:::` and the name it needs
+pub(crate) fn selector_after_line_break(
+    operator: RSyntaxKind,
+    operator_range: TextRange,
+) -> ParseDiagnostic {
+    let operator = text_of(operator);
+
+    ParseDiagnostic::new(
+        format!("A newline is not allowed between `{operator}` and the name that follows."),
+        operator_range,
+    )
+    .with_hint(format!(
+        "`{operator}` and its name must be on the same line."
+    ))
+}
+
+fn text_of(operator: RSyntaxKind) -> &'static str {
+    operator.to_string().unwrap_or("operator")
 }
 
 /// Two expressions with nothing between them, as in `1 2`

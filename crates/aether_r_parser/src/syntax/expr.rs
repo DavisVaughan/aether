@@ -8,10 +8,11 @@ use crate::parser::RParser;
 use crate::syntax::call::{parse_call_arguments, parse_subset_arguments, parse_subset2_arguments};
 use crate::syntax::parenthesized_expression::parse_parenthesized_expression;
 use aether_r_syntax::RSyntaxKind::{self, *};
-use aether_r_syntax::T;
+use aether_r_syntax::{AnyRSelector, T};
 use biome_parser::CompletedMarker;
 use biome_parser::Parser;
 use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
+use biome_rowan::{AstNode, TextRange};
 
 /// How tightly an operator binds. Higher wins!
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -188,7 +189,7 @@ fn prefix_binding_power(kind: RSyntaxKind) -> Option<BindingPower> {
     })
 }
 
-/// Infix: `a + b`, `a <- b`, `a %in% b`
+/// Infix: `a + b`, `a <- b`, `a %in% b`, `a$b`, `a::b`
 fn parse_infix_expression(
     p: &mut RParser,
     lhs: &CompletedMarker,
@@ -207,17 +208,94 @@ fn parse_infix_expression(
         Associativity::Right => new_binding_power,
     };
 
-    let m = lhs.clone().precede(p);
+    let operator = p.cur();
+    let operator_range = p.cur_range();
+
+    let lhs = match operator {
+        T![::] | T![:::] => parse_namespace_left(p, lhs, operator, operator_range),
+        _ => lhs.clone(),
+    };
+
+    let m = lhs.precede(p);
     p.bump_any();
-    parse_expression_with_binding_power(p, new_binding_power)
-        .or_add_diagnostic(p, diagnostics::expected_expression);
-    Present(m.complete(p, R_BINARY_EXPRESSION))
+
+    match operator {
+        T![$] | T![@] => {
+            parse_selector(p).or_add_diagnostic(p, |p, range| {
+                diagnostics::expected_selector(p, operator, operator_range, range)
+            });
+            Present(m.complete(p, R_EXTRACT_EXPRESSION))
+        }
+        T![::] | T![:::] => {
+            if p.scope().newlines_are_significant() && p.has_preceding_line_break() {
+                p.error(diagnostics::selector_after_line_break(
+                    operator,
+                    operator_range,
+                ));
+            } else {
+                parse_selector(p).or_add_diagnostic(p, |p, range| {
+                    diagnostics::expected_selector(p, operator, operator_range, range)
+                });
+            }
+            Present(m.complete(p, R_NAMESPACE_EXPRESSION))
+        }
+        _ => {
+            parse_expression_with_binding_power(p, new_binding_power)
+                .or_add_diagnostic(p, diagnostics::expected_expression);
+            Present(m.complete(p, R_BINARY_EXPRESSION))
+        }
+    }
+}
+
+/// `::` and `:::` restrict their left operand as well, and it is already parsed
+fn parse_namespace_left(
+    p: &mut RParser,
+    lhs: &CompletedMarker,
+    operator: RSyntaxKind,
+    operator_range: TextRange,
+) -> CompletedMarker {
+    if AnyRSelector::can_cast(lhs.kind(p)) {
+        return lhs.clone();
+    }
+
+    p.error(diagnostics::expected_selector_on_the_left(
+        p,
+        operator,
+        operator_range,
+        lhs.range(p),
+    ));
+
+    lhs.clone().precede(p).complete(p, R_BOGUS_SELECTOR)
+}
+
+/// identifier | string | `...` | `..i`
+fn parse_selector(p: &mut RParser) -> ParsedSyntax {
+    match p.cur() {
+        IDENT => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_IDENTIFIER))
+        }
+        DOTS => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_DOTS))
+        }
+        DOTDOTI => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_DOT_DOT_I))
+        }
+        R_SINGLE_QUOTED_STRING_LITERAL | R_DOUBLE_QUOTED_STRING_LITERAL | R_RAW_STRING_LITERAL => {
+            let m = p.start();
+            p.bump_any();
+            Present(m.complete(p, R_STRING_VALUE))
+        }
+        _ => Absent,
+    }
 }
 
 /// Taken from R's `gram.y`
-///
-/// `$`, `@`, `::`, and `:::` are missing until Phase 10 gives them a right-hand
-/// side of their own
 fn infix_binding_power(kind: RSyntaxKind) -> Option<(BindingPower, Associativity)> {
     Some(match kind {
         T![?] => (BindingPower(1), Associativity::Left),
@@ -233,6 +311,8 @@ fn infix_binding_power(kind: RSyntaxKind) -> Option<(BindingPower, Associativity
         SPECIAL | T![|>] => (BindingPower(12), Associativity::Left),
         T![:] => (BindingPower(13), Associativity::Left),
         T![^] | T![**] => (BindingPower(15), Associativity::Right),
+        T![$] | T![@] => (BindingPower(16), Associativity::Left),
+        T![::] | T![:::] => (BindingPower(17), Associativity::Left),
         _ => return None,
     })
 }
