@@ -1,11 +1,10 @@
 use crate::parser::{RParser, Scope};
 use crate::syntax::expr::parse_expression;
-use crate::syntax::value::parse_string_value;
 use aether_r_syntax::RSyntaxKind::{
     self, DOTDOTI, DOTS, IDENT, R_ARGUMENT, R_ARGUMENT_LIST, R_ARGUMENT_NAME_CLAUSE,
     R_BOGUS_EXPRESSION, R_CALL_ARGUMENTS, R_DOT_DOT_I, R_DOTS, R_DOUBLE_QUOTED_STRING_LITERAL,
     R_IDENTIFIER, R_NULL_EXPRESSION, R_RAW_STRING_LITERAL, R_SINGLE_QUOTED_STRING_LITERAL,
-    R_SUBSET_ARGUMENTS, R_SUBSET2_ARGUMENTS,
+    R_STRING_VALUE, R_SUBSET_ARGUMENTS, R_SUBSET2_ARGUMENTS,
 };
 use aether_r_syntax::T;
 use biome_parser::parse_recovery::ParseRecoveryTokenSet;
@@ -167,7 +166,9 @@ fn parse_argument_name_clause(p: &mut RParser) {
             if p.nth_at(1, T![=]) =>
         {
             let clause = p.start();
-            parse_string_value(p).ok();
+            let name = p.start();
+            p.bump_any();
+            name.complete(p, R_STRING_VALUE);
             p.bump(T![=]);
             clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
         }
