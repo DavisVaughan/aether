@@ -56,7 +56,7 @@ pub(crate) fn expected_expression(p: &RParser, range: TextRange) -> ParseDiagnos
 }
 
 /// The name on the right of `$`, `@`, `::`, or `:::` is missing
-pub(crate) fn expected_selector(
+pub(crate) fn expected_rhs_selector(
     p: &RParser,
     operator: RSyntaxKind,
     operator_range: TextRange,
@@ -69,7 +69,7 @@ pub(crate) fn expected_selector(
 }
 
 /// The name on the left of `::` or `:::` is not a name
-pub(crate) fn expected_selector_on_the_left(
+pub(crate) fn expected_lhs_selector(
     p: &RParser,
     operator: RSyntaxKind,
     operator_range: TextRange,

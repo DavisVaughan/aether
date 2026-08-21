@@ -264,7 +264,7 @@ fn parse_infix_extract_expression(
     let m = lhs.clone().precede(p);
     p.bump_any();
     parse_selector(p).or_add_diagnostic(p, |p, range| {
-        diagnostics::expected_selector(p, operator, operator_range, range)
+        diagnostics::expected_rhs_selector(p, operator, operator_range, range)
     });
     Present(m.complete(p, R_EXTRACT_EXPRESSION))
 }
@@ -296,7 +296,7 @@ fn parse_infix_namespace_expression(
     // `::` and `:::` restrict their left operand as well, and it is already parsed
     let mut lhs = lhs.clone();
     if !AnyRSelector::can_cast(lhs.kind(p)) {
-        p.error(diagnostics::expected_selector_on_the_left(
+        p.error(diagnostics::expected_lhs_selector(
             p,
             operator,
             operator_range,
@@ -315,7 +315,7 @@ fn parse_infix_namespace_expression(
         ));
     } else {
         parse_selector(p).or_add_diagnostic(p, |p, range| {
-            diagnostics::expected_selector(p, operator, operator_range, range)
+            diagnostics::expected_rhs_selector(p, operator, operator_range, range)
         });
     }
 

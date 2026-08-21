@@ -883,7 +883,7 @@ specified in that phase's section rather than here:
 |---|---|---|
 | `expected_expression` | §11.1, Phase 7 | `parse_statement_list`, then the Pratt loop's two sites in Phase 8 |
 | `expected_statement_separator` | §11.1, Phase 7 | `parse_statement_list` |
-| `expected_selector`, `expected_selector_on_the_left`, `selector_after_line_break` | §11.4, Phase 10 | the `$`, `@`, `::`, `:::` arms of the Pratt loop |
+| `expected_rhs_selector`, `expected_lhs_selector`, `selector_after_line_break` | §11.4, Phase 10 | the `$`, `@`, `::`, `:::` arms of the Pratt loop |
 | `expected_parameters`, `expected_parameter` | §11.5, Phase 11 | `parse_function_definition` |
 | `expected_condition` | §11.6, Phase 12 | the `if` and `while` headers |
 
@@ -1087,7 +1087,7 @@ Three things about step 4 that the code states without explaining:
   be explained by a diagnostic anchored on only the first of them.
 
 - **Only primary ranges count.** `with_detail` labels live in the diagnostic's
-  advices, not in `location()`, so `expected_selector`'s secondary label on the
+  advices, not in `location()`, so `expected_rhs_selector`'s secondary label on the
   operator does not contribute to overlap. That is the conservative reading and it
   is intentional; do not "fix" it by walking advices, or a diagnostic that merely
   gestures at a bogus node will start counting as an explanation of it.
@@ -1095,7 +1095,7 @@ Three things about step 4 that the code states without explaining:
 - **Empty slots are out of scope.** A missing required slot is not a node and has
   no range to overlap, so it cannot participate. Step 3 rejects it on every clean
   block, and the designed error paths emit a diagnostic alongside it — `a$`
-  produces a missing `right` slot *and* `expected_selector` (§11.4).
+  produces a missing `right` slot *and* `expected_rhs_selector` (§11.4).
 
 Step 3's detection is one predicate: the AST dump contains `missing (required)`,
 or some descendant node's kind `is_bogus()`. Air's `has_bogus_nodes_or_empty_slots`
@@ -1810,7 +1810,7 @@ agrees on both, so nothing moved into the inherited **"tree-sitter-r vs. R"**
 heading (§8.4).
 
 The `foo::\nbar` row is the one place the guard's diagnostic is not
-`expected_selector`. Reporting "expected a name" at the parser's position names
+`expected_rhs_selector`. Reporting "expected a name" at the parser's position names
 the *next* line's first token, which is usually a perfectly good name, so the
 message accuses the wrong thing. `selector_after_line_break` names the newline
 instead and anchors on the operator.
@@ -1818,7 +1818,7 @@ instead and anchors on the operator.
 #### Recovery: diagnose, leave the slot missing, consume nothing
 
 One rule, and it is the same one for `a$`, `a$1`, `a${b}`, `a$if`, and `a$)`.
-`parse_selector(p).or_add_diagnostic(…)` raises `expected_selector` at the
+`parse_selector(p).or_add_diagnostic(…)` raises `expected_rhs_selector` at the
 offending token and leaves `right` empty. Whatever follows is not the selector's
 problem — the Pratt loop finds no infix operator at `1`, breaks, and `1` becomes
 the next statement. `a$1 + 2` follows from that: the `+ 2` reattaches to the
@@ -1841,7 +1841,7 @@ these rows were never compared and dropping their `[deviation]` markers does not
 change what runs. It records that the tree is air's.
 
 **The cascading diagnostic this was expected to cost does not happen.** `a$1`
-looked like it would raise `expected_selector` and then
+looked like it would raise `expected_rhs_selector` and then
 `expected_statement_separator`, since `parse_statement_list`'s check fires when
 there is no line break between the two statements (§11.1). Both would land on the
 `1`, and `Parser::error` drops a diagnostic that starts where the previous one
@@ -1876,7 +1876,7 @@ air's own output inline, and it is what aether produces: `RExtractExpression` wi
 *`Dollar, At, Namespace, Namespace Internal With Expression RHS` gained
 `[error]`.* It was plain `[pending]` because `foo${bar}` is clean under
 tree-sitter's `optional()` RHS. Deviation 2 makes the RHS required, so aether
-raises `expected_selector` and the test says so. Its shape still matches, so it
+raises `expected_rhs_selector` and the test says so. Its shape still matches, so it
 needs no `deviation`.
 
 *`Namespace get` and `Namespace get internal` gained `[error]` too*, which this
@@ -1886,7 +1886,7 @@ its own — the newline row above, and an error in aether where tree-sitter's
 
 #### The diagnostics this phase adds
 
-`$`, `@`, `::`, and `:::` all funnel through `expected_selector`, so it names the
+`$`, `@`, `::`, and `:::` all funnel through `expected_rhs_selector`, so it names the
 operator that was actually written — a message listing all four tells the reader
 nothing about which one they typed. The secondary label points at the operator,
 which is what capturing `cur_range()` before the bump exists for.
@@ -1896,7 +1896,7 @@ which is what capturing `cur_range()` before the bump exists for.
 const SELECTORS: &[&str] = &["identifier", "string", "`...`", "`..i`"];
 
 /// The name on the right of `$`, `@`, `::`, or `:::` is missing
-pub(crate) fn expected_selector(
+pub(crate) fn expected_rhs_selector(
     p: &RParser,
     operator: RSyntaxKind,
     operator_range: TextRange,
@@ -1909,7 +1909,7 @@ pub(crate) fn expected_selector(
 }
 ```
 
-`expected_selector_on_the_left` is its mirror, for the operand
+`expected_lhs_selector` is its mirror, for the operand
 `parse_namespace_left` rejects, and shares `SELECTORS` with it.
 `selector_after_line_break` is the third, for the newline row. `text_of` is
 `operator.to_string().unwrap_or("operator")` — punctuation kinds render as their

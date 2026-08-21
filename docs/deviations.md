@@ -161,7 +161,7 @@ in the parser:
 - `a$b`, `a$"b"`, `a$...`, `a$..1` → `R_EXTRACT_EXPRESSION`, clean.
 
 - `a$` → `R_EXTRACT_EXPRESSION` with a missing `right` slot and an
-  `expected_selector` diagnostic pointing just past the operator, with a secondary
+  `expected_rhs_selector` diagnostic pointing just past the operator, with a secondary
   label on the operator itself. The message names the operator, so `$`, `@`, `::`
   and `:::` each read differently:
 
@@ -182,7 +182,7 @@ in the parser:
 
 - `a$1`, `a$NA`, `a$NULL`, `a$TRUE`, `a$(b)`, `a${b}`, `a$if` → identical
   treatment. The RHS is present but is not a valid selector, so the slot is left
-  missing and `expected_selector` labels it. **Nothing is consumed**, so the `1`,
+  missing and `expected_rhs_selector` labels it. **Nothing is consumed**, so the `1`,
   the `{b}`, or the whole `if` statement goes on to be parsed as the next
   statement, exactly as under tree-sitter. `a$(b)` is the one that does not become
   a sibling: `(` is postfix, so both parsers read a call whose function is the
