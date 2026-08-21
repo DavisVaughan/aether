@@ -232,8 +232,8 @@ and keeps the namespace node, its operator, and its right-hand name.
 Corpus tests: `Namespace get`, `Namespace get internal`, `Namespace With Missing
 RHS`, `Namespace With A Literal RHS`, `Chained ::`, `Chained :::`, `Call On The
 Left Of ::`, and `Call On The Left Of :::` in `expressions/namespace.md`, all
-`[error]`. `Namespace Newline Is Significant Only Outside Parens` is the clean
-half, and it is compared against tree-sitter-r rather than marked.
+`[error]`. The clean half — `f(stats::\nmedian)`, where the restriction is
+suspended — has no test; §11.4 records why.
 
 ### 4. Recovery is localized
 
