@@ -12,7 +12,7 @@ use aether_r_syntax::{AnyRSelector, T};
 use biome_parser::CompletedMarker;
 use biome_parser::Parser;
 use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
-use biome_rowan::{AstNode, TextRange};
+use biome_rowan::AstNode;
 
 /// How tightly an operator binds. Higher wins!
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -293,7 +293,18 @@ fn parse_infix_namespace_expression(
     let operator = p.cur();
     let operator_range = p.cur_range();
 
-    let lhs = parse_namespace_left(p, lhs, operator, operator_range);
+    // `::` and `:::` restrict their left operand as well, and it is already parsed
+    let mut lhs = lhs.clone();
+    if !AnyRSelector::can_cast(lhs.kind(p)) {
+        p.error(diagnostics::expected_selector_on_the_left(
+            p,
+            operator,
+            operator_range,
+            lhs.range(p),
+        ));
+        lhs = lhs.precede(p).complete(p, R_BOGUS_SELECTOR);
+    }
+
     let m = lhs.precede(p);
     p.bump_any();
 
@@ -317,27 +328,6 @@ fn infix_namespace_binding_power(kind: RSyntaxKind) -> Option<BindingPower> {
         T![::] | T![:::] => Some(BindingPower(17)),
         _ => None,
     }
-}
-
-/// `::` and `:::` restrict their left operand as well, and it is already parsed
-fn parse_namespace_left(
-    p: &mut RParser,
-    lhs: &CompletedMarker,
-    operator: RSyntaxKind,
-    operator_range: TextRange,
-) -> CompletedMarker {
-    if AnyRSelector::can_cast(lhs.kind(p)) {
-        return lhs.clone();
-    }
-
-    p.error(diagnostics::expected_selector_on_the_left(
-        p,
-        operator,
-        operator_range,
-        lhs.range(p),
-    ));
-
-    lhs.clone().precede(p).complete(p, R_BOGUS_SELECTOR)
 }
 
 /// identifier | string | `...` | `..i`
