@@ -122,7 +122,7 @@ fn parse_argument(p: &mut RParser) {
     m.complete(p, R_ARGUMENT);
 }
 
-/// `name =`, where the name is an identifier, a string, `...`, `..i`, or `NULL`
+/// `name =`, where the `name` is an identifier, a string, `...`, `..i`, or `NULL`
 ///
 /// `foo` and `foo =` start the same way, so one token of lookahead is what tells
 /// a name from the head of a value. Without the `=` there is no clause here at
