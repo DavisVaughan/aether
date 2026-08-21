@@ -140,3 +140,10 @@ a@TRUE
 a@(b)
 a@{ b }
 ```
+
+## Dollar Tolerates A Newline
+
+```r
+df$
+  x
+```
