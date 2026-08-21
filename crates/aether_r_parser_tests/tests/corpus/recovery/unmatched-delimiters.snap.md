@@ -302,9 +302,6 @@ test.R:1:8 parse ━━━━━━━━━━━━━━━━━━━━━
 
 ## An Argument Name Cut Off By The End Of The File [error]
 
-Looking one token past the name runs into `EOF`, which is a token like any other
-and never a `=`, so each of these is a value rather than a name clause.
-
 ```r
 f(a
 ```
