@@ -12,8 +12,8 @@ use biome_parser::CompletedMarker;
 use biome_parser::parse_recovery::ParseRecoveryTokenSet;
 use biome_parser::{Parser, ParserProgress, TokenSet, token_set};
 
-pub(crate) fn parse_call_expression(p: &mut RParser, lhs: &CompletedMarker) -> CompletedMarker {
-    let m = lhs.clone().precede(p);
+pub(crate) fn parse_call_expression(p: &mut RParser, lhs: CompletedMarker) -> CompletedMarker {
+    let m = lhs.precede(p);
 
     let arguments = p.start();
     p.with_scope(Scope::Parenthesis, |p| {
@@ -26,8 +26,8 @@ pub(crate) fn parse_call_expression(p: &mut RParser, lhs: &CompletedMarker) -> C
     m.complete(p, R_CALL)
 }
 
-pub(crate) fn parse_subset_expression(p: &mut RParser, lhs: &CompletedMarker) -> CompletedMarker {
-    let m = lhs.clone().precede(p);
+pub(crate) fn parse_subset_expression(p: &mut RParser, lhs: CompletedMarker) -> CompletedMarker {
+    let m = lhs.precede(p);
 
     let arguments = p.start();
     p.with_scope(Scope::Bracket, |p| {
@@ -40,8 +40,8 @@ pub(crate) fn parse_subset_expression(p: &mut RParser, lhs: &CompletedMarker) ->
     m.complete(p, R_SUBSET)
 }
 
-pub(crate) fn parse_subset2_expression(p: &mut RParser, lhs: &CompletedMarker) -> CompletedMarker {
-    let m = lhs.clone().precede(p);
+pub(crate) fn parse_subset2_expression(p: &mut RParser, lhs: CompletedMarker) -> CompletedMarker {
+    let m = lhs.precede(p);
 
     let arguments = p.start();
     p.with_scope(Scope::Bracket2, |p| {

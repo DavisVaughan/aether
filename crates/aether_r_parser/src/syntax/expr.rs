@@ -176,113 +176,110 @@ fn parse_expression_with_binding_power(
             break;
         }
 
-        let new_lhs = match p.cur() {
-            T!['('] => Present(parse_call_expression(p, &lhs)),
-            T!['['] => Present(parse_subset_expression(p, &lhs)),
-            T!["[["] => Present(parse_subset2_expression(p, &lhs)),
-            T![$] | T![@] => Present(parse_extract_expression(p, &lhs)),
-            T![::] | T![:::] => Present(parse_namespace_expression(p, &lhs)),
-            T![?] => parse_binary_expression(
+        lhs = match p.cur() {
+            T!['('] => parse_call_expression(p, lhs),
+            T!['['] => parse_subset_expression(p, lhs),
+            T!["[["] => parse_subset2_expression(p, lhs),
+            T![$] | T![@] => parse_extract_expression(p, lhs),
+            T![::] | T![:::] => parse_namespace_expression(p, lhs),
+            T![?] if BINARY_HELP_BINDING_POWER >= current_binding_power => parse_binary_expression(
                 p,
-                &lhs,
-                current_binding_power,
+                lhs,
                 BINARY_HELP_BINDING_POWER,
                 BINARY_HELP_ASSOCIATIVITY,
             ),
-            T![<-] | T![<<-] | T![:=] => parse_binary_expression(
-                p,
-                &lhs,
-                current_binding_power,
-                BINARY_LEFT_ASSIGN_BINDING_POWER,
-                BINARY_LEFT_ASSIGN_ASSOCIATIVITY,
-            ),
-            T![=] => parse_binary_expression(
-                p,
-                &lhs,
-                current_binding_power,
-                BINARY_EQUALS_ASSIGN_BINDING_POWER,
-                BINARY_EQUALS_ASSIGN_ASSOCIATIVITY,
-            ),
-            T![->] | T![->>] => parse_binary_expression(
-                p,
-                &lhs,
-                current_binding_power,
-                BINARY_RIGHT_ASSIGN_BINDING_POWER,
-                BINARY_RIGHT_ASSIGN_ASSOCIATIVITY,
-            ),
-            T![~] => parse_binary_expression(
-                p,
-                &lhs,
-                current_binding_power,
-                BINARY_TILDE_BINDING_POWER,
-                BINARY_TILDE_ASSOCIATIVITY,
-            ),
-            T![|] | T![||] => parse_binary_expression(
-                p,
-                &lhs,
-                current_binding_power,
-                BINARY_OR_BINDING_POWER,
-                BINARY_OR_ASSOCIATIVITY,
-            ),
-            T![&] | T![&&] => parse_binary_expression(
-                p,
-                &lhs,
-                current_binding_power,
-                BINARY_AND_BINDING_POWER,
-                BINARY_AND_ASSOCIATIVITY,
-            ),
-            T![<] | T![<=] | T![>] | T![>=] | T![==] | T![!=] => parse_binary_expression(
-                p,
-                &lhs,
-                current_binding_power,
-                BINARY_COMPARISON_BINDING_POWER,
-                BINARY_COMPARISON_ASSOCIATIVITY,
-            ),
-            T![+] | T![-] => parse_binary_expression(
-                p,
-                &lhs,
-                current_binding_power,
-                BINARY_PLUS_MINUS_BINDING_POWER,
-                BINARY_PLUS_MINUS_ASSOCIATIVITY,
-            ),
-            T![*] | T![/] => parse_binary_expression(
-                p,
-                &lhs,
-                current_binding_power,
-                BINARY_MULTIPLY_DIVIDE_BINDING_POWER,
-                BINARY_MULTIPLY_DIVIDE_ASSOCIATIVITY,
-            ),
-            SPECIAL | T![|>] => parse_binary_expression(
-                p,
-                &lhs,
-                current_binding_power,
-                BINARY_SPECIAL_OR_PIPE_BINDING_POWER,
-                BINARY_SPECIAL_OR_PIPE_ASSOCIATIVITY,
-            ),
-            T![:] => parse_binary_expression(
-                p,
-                &lhs,
-                current_binding_power,
-                BINARY_COLON_BINDING_POWER,
-                BINARY_COLON_ASSOCIATIVITY,
-            ),
-            T![^] | T![**] => parse_binary_expression(
-                p,
-                &lhs,
-                current_binding_power,
-                BINARY_EXPONENTIATE_BINDING_POWER,
-                BINARY_EXPONENTIATE_ASSOCIATIVITY,
-            ),
-            _ => Absent,
-        };
-
-        match new_lhs {
-            Present(new_lhs) => {
-                lhs = new_lhs;
-                continue;
+            T![<-] | T![<<-] | T![:=]
+                if BINARY_LEFT_ASSIGN_BINDING_POWER >= current_binding_power =>
+            {
+                parse_binary_expression(
+                    p,
+                    lhs,
+                    BINARY_LEFT_ASSIGN_BINDING_POWER,
+                    BINARY_LEFT_ASSIGN_ASSOCIATIVITY,
+                )
             }
-            Absent => break,
-        }
+            T![=] if BINARY_EQUALS_ASSIGN_BINDING_POWER >= current_binding_power => {
+                parse_binary_expression(
+                    p,
+                    lhs,
+                    BINARY_EQUALS_ASSIGN_BINDING_POWER,
+                    BINARY_EQUALS_ASSIGN_ASSOCIATIVITY,
+                )
+            }
+            T![->] | T![->>] if BINARY_RIGHT_ASSIGN_BINDING_POWER >= current_binding_power => {
+                parse_binary_expression(
+                    p,
+                    lhs,
+                    BINARY_RIGHT_ASSIGN_BINDING_POWER,
+                    BINARY_RIGHT_ASSIGN_ASSOCIATIVITY,
+                )
+            }
+            T![~] if BINARY_TILDE_BINDING_POWER >= current_binding_power => {
+                parse_binary_expression(
+                    p,
+                    lhs,
+                    BINARY_TILDE_BINDING_POWER,
+                    BINARY_TILDE_ASSOCIATIVITY,
+                )
+            }
+            T![|] | T![||] if BINARY_OR_BINDING_POWER >= current_binding_power => {
+                parse_binary_expression(p, lhs, BINARY_OR_BINDING_POWER, BINARY_OR_ASSOCIATIVITY)
+            }
+            T![&] | T![&&] if BINARY_AND_BINDING_POWER >= current_binding_power => {
+                parse_binary_expression(p, lhs, BINARY_AND_BINDING_POWER, BINARY_AND_ASSOCIATIVITY)
+            }
+            T![<] | T![<=] | T![>] | T![>=] | T![==] | T![!=]
+                if BINARY_COMPARISON_BINDING_POWER >= current_binding_power =>
+            {
+                parse_binary_expression(
+                    p,
+                    lhs,
+                    BINARY_COMPARISON_BINDING_POWER,
+                    BINARY_COMPARISON_ASSOCIATIVITY,
+                )
+            }
+            T![+] | T![-] if BINARY_PLUS_MINUS_BINDING_POWER >= current_binding_power => {
+                parse_binary_expression(
+                    p,
+                    lhs,
+                    BINARY_PLUS_MINUS_BINDING_POWER,
+                    BINARY_PLUS_MINUS_ASSOCIATIVITY,
+                )
+            }
+            T![*] | T![/] if BINARY_MULTIPLY_DIVIDE_BINDING_POWER >= current_binding_power => {
+                parse_binary_expression(
+                    p,
+                    lhs,
+                    BINARY_MULTIPLY_DIVIDE_BINDING_POWER,
+                    BINARY_MULTIPLY_DIVIDE_ASSOCIATIVITY,
+                )
+            }
+            SPECIAL | T![|>] if BINARY_SPECIAL_OR_PIPE_BINDING_POWER >= current_binding_power => {
+                parse_binary_expression(
+                    p,
+                    lhs,
+                    BINARY_SPECIAL_OR_PIPE_BINDING_POWER,
+                    BINARY_SPECIAL_OR_PIPE_ASSOCIATIVITY,
+                )
+            }
+            T![:] if BINARY_COLON_BINDING_POWER >= current_binding_power => {
+                parse_binary_expression(
+                    p,
+                    lhs,
+                    BINARY_COLON_BINDING_POWER,
+                    BINARY_COLON_ASSOCIATIVITY,
+                )
+            }
+            T![^] | T![**] if BINARY_EXPONENTIATE_BINDING_POWER >= current_binding_power => {
+                parse_binary_expression(
+                    p,
+                    lhs,
+                    BINARY_EXPONENTIATE_BINDING_POWER,
+                    BINARY_EXPONENTIATE_ASSOCIATIVITY,
+                )
+            }
+            _ => break,
+        };
     }
 
     Present(lhs)
@@ -299,33 +296,28 @@ fn parse_unary_expression(p: &mut RParser, binding_power: BindingPower) -> Compl
 /// Infix: `a + b`, `a <- b`, `a %in% b`
 fn parse_binary_expression(
     p: &mut RParser,
-    lhs: &CompletedMarker,
-    current_binding_power: BindingPower,
+    lhs: CompletedMarker,
     binding_power: BindingPower,
     associativity: Associativity,
-) -> ParsedSyntax {
-    if binding_power < current_binding_power {
-        // New operator binds too loosely
-        return Absent;
-    }
+) -> CompletedMarker {
     let binding_power = match associativity {
         Associativity::Left => BindingPower(binding_power.0 + 1),
         Associativity::Right => binding_power,
     };
 
-    let m = lhs.clone().precede(p);
+    let m = lhs.precede(p);
     p.bump_any();
     parse_expression_with_binding_power(p, binding_power)
         .or_add_diagnostic(p, diagnostics::expected_expression);
-    Present(m.complete(p, R_BINARY_EXPRESSION))
+    m.complete(p, R_BINARY_EXPRESSION)
 }
 
 /// Infix: `a$b`, `a@b`
-fn parse_extract_expression(p: &mut RParser, lhs: &CompletedMarker) -> CompletedMarker {
+fn parse_extract_expression(p: &mut RParser, lhs: CompletedMarker) -> CompletedMarker {
     let operator = p.cur();
     let operator_range = p.cur_range();
 
-    let m = lhs.clone().precede(p);
+    let m = lhs.precede(p);
     p.bump_any();
     parse_selector(p).or_add_diagnostic(p, |_, range| {
         diagnostics::expected_rhs_selector(operator, operator_range, range)
@@ -334,12 +326,11 @@ fn parse_extract_expression(p: &mut RParser, lhs: &CompletedMarker) -> Completed
 }
 
 /// Infix: `a::b`, `a:::b`
-fn parse_namespace_expression(p: &mut RParser, lhs: &CompletedMarker) -> CompletedMarker {
+fn parse_namespace_expression(p: &mut RParser, mut lhs: CompletedMarker) -> CompletedMarker {
     let operator = p.cur();
     let operator_range = p.cur_range();
 
     // `::` and `:::` restrict their left operand as well, and it is already parsed
-    let mut lhs = lhs.clone();
     if !AnyRSelector::can_cast(lhs.kind(p)) {
         p.error(diagnostics::expected_lhs_selector(
             operator,
