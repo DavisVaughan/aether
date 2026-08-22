@@ -22,7 +22,6 @@ struct BindingPower(u8);
 
 impl BindingPower {
     const LOWEST: Self = Self(0);
-    const HIGHEST: Self = Self(16);
 
     // Taken from R's `gram.y`
     const BINARY_HELP: Self = Self(1);
@@ -42,6 +41,8 @@ impl BindingPower {
     const BINARY_COLON: Self = Self(13);
     const UNARY_PLUS_MINUS: Self = Self(14);
     const BINARY_EXPONENTIATE: Self = Self(15);
+
+    const HIGHEST: Self = Self(16);
 }
 
 #[derive(Debug, Clone, Copy)]
