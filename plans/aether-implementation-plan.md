@@ -1767,14 +1767,27 @@ the kind to name the operator in the message, the range for the secondary label.
 same one-arm-per-kind shape as `parse_argument_name_clause` in `call.rs`.
 
 **`::` and `:::` restrict their left operand as well**, which this section did not
-originally account for and the four imported error tests demand. It cannot be a
-`parse_` call: by the time the operator is in hand, the operand is already a
-`CompletedMarker`. `parse_namespace_left` tests it with `AnyRSelector::can_cast`
-and, when it fails, diagnoses and wraps it in an `R_BOGUS_SELECTOR` before the
-namespace node is preceded. `a::b::c` and `a()::b` keep their operator and their
-right-hand name that way. Leaving the bad slot for the factory to notice is the
-alternative, and it collapses the whole expression into one
-`R_BOGUS_EXPRESSION` — the failure mode §7 added the kind to avoid.
+originally account for and the four imported error tests demand. It is not a
+`parse_` call, because by the time the operator is in hand the operand is already
+a `CompletedMarker` — so it is one branch inside
+`parse_infix_namespace_expression`, testing `AnyRSelector::can_cast` and, when
+that fails, diagnosing and wrapping the operand in an `R_BOGUS_SELECTOR` before
+the namespace node is preceded:
+
+```rust
+let mut lhs = lhs.clone();
+if !AnyRSelector::can_cast(lhs.kind(p)) {
+    p.error(diagnostics::expected_lhs_selector(…));
+    lhs = lhs.precede(p).complete(p, R_BOGUS_SELECTOR);
+}
+
+let m = lhs.precede(p);
+```
+
+`a::b::c` and `a()::b` keep their operator and their right-hand name that way.
+Leaving the bad slot for the factory to notice is the alternative, and it
+collapses the whole expression into one `R_BOGUS_EXPRESSION` — the failure mode §7
+added the kind to avoid.
 
 #### The newline rule
 
@@ -1909,8 +1922,8 @@ pub(crate) fn expected_rhs_selector(
 }
 ```
 
-`expected_lhs_selector` is its mirror, for the operand
-`parse_namespace_left` rejects, and shares `SELECTORS` with it.
+`expected_lhs_selector` is its mirror, for the operand the `can_cast` branch
+above rejects, and shares `SELECTORS` with it.
 `selector_after_line_break` is the third, for the newline row. `text_of` is
 `operator.to_string().unwrap_or("operator")` — punctuation kinds render as their
 own text, so all three stay correct if the token set changes.
