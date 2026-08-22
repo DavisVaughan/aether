@@ -73,6 +73,11 @@ pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
     parse_expression_with_binding_power(p, BindingPower::LOWEST)
 }
 
+/// Parse a function body
+///
+/// Generally treated like a normal expression, but R's precedence table puts
+/// `?` at a lower binding power than a function body, so `function() a ? b`
+/// needs to parse as `(function () a) ? b`.
 pub(crate) fn parse_function_body(p: &mut RParser) -> ParsedSyntax {
     parse_expression_with_binding_power(p, BindingPower(BindingPower::FUNCTION_OR_LOOP.0 + 1))
 }
