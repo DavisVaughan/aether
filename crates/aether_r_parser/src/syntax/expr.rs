@@ -185,7 +185,7 @@ fn parse_expression_with_binding_power(
     };
 
     loop {
-        if at_statement_break(p) {
+        if p.scope().newlines_are_significant() && p.has_preceding_line_break() {
             break;
         }
 
@@ -311,10 +311,6 @@ fn parse_expression_with_binding_power(
     }
 
     Present(lhs)
-}
-
-fn at_statement_break(p: &RParser) -> bool {
-    p.scope().newlines_are_significant() && p.has_preceding_line_break()
 }
 
 fn parse_unary_expression(p: &mut RParser, binding_power: BindingPower) -> CompletedMarker {
