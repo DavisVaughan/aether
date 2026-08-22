@@ -48,32 +48,18 @@ fn parse_expression_with_binding_power(
         BindingPower::HIGHEST
     );
 
-    let Present(mut lhs) = parse_lhs_expression(p) else {
-        return Absent;
-    };
-
-    loop {
-        if at_statement_break(p) {
-            break;
+    let mut lhs = match prefix_binding_power(p.cur()) {
+        Some(binding_power) => {
+            let m = p.start();
+            p.bump_any();
+            parse_expression_with_binding_power(p, binding_power)
+                .or_add_diagnostic(p, diagnostics::expected_expression);
+            m.complete(p, R_UNARY_EXPRESSION)
         }
-
-        let Present(new_lhs) = parse_infix_binary_expression(p, &lhs, current_binding_power) else {
-            break;
-        };
-
-        lhs = new_lhs;
-    }
-
-    Present(lhs)
-}
-
-fn parse_lhs_expression(p: &mut RParser) -> ParsedSyntax {
-    if let Present(unary) = parse_prefix_expression(p) {
-        return Present(unary);
-    }
-
-    let Present(mut lhs) = parse_primary_expression(p) else {
-        return Absent;
+        None => match parse_primary_expression(p) {
+            Present(lhs) => lhs,
+            Absent => return Absent,
+        },
     };
 
     loop {
@@ -99,7 +85,27 @@ fn parse_lhs_expression(p: &mut RParser) -> ParsedSyntax {
             }
             T![$] | T![@] => parse_extract_expression(p, lhs),
             T![::] | T![:::] => parse_namespace_expression(p, lhs),
-            _ => break,
+            _ => {
+                let Some((binding_power, associativity)) = infix_binary_binding_power(p.cur())
+                else {
+                    // Not an infix binary operator
+                    break;
+                };
+                if binding_power < current_binding_power {
+                    // New operator binds too loosely
+                    break;
+                }
+                let binding_power = match associativity {
+                    Associativity::Left => BindingPower(binding_power.0 + 1),
+                    Associativity::Right => binding_power,
+                };
+
+                let m = lhs.precede(p);
+                p.bump_any();
+                parse_expression_with_binding_power(p, binding_power)
+                    .or_add_diagnostic(p, diagnostics::expected_expression);
+                m.complete(p, R_BINARY_EXPRESSION)
+            }
         };
     }
 
@@ -198,19 +204,6 @@ fn parse_primary_expression(p: &mut RParser) -> ParsedSyntax {
     }
 }
 
-fn parse_prefix_expression(p: &mut RParser) -> ParsedSyntax {
-    let Some(binding_power) = prefix_binding_power(p.cur()) else {
-        // Not a prefix operator
-        return Absent;
-    };
-
-    let m = p.start();
-    p.bump_any();
-    parse_expression_with_binding_power(p, binding_power)
-        .or_add_diagnostic(p, diagnostics::expected_expression);
-    Present(m.complete(p, R_UNARY_EXPRESSION))
-}
-
 fn prefix_binding_power(kind: RSyntaxKind) -> Option<BindingPower> {
     Some(match kind {
         T![?] => BindingPower(1),
@@ -222,31 +215,7 @@ fn prefix_binding_power(kind: RSyntaxKind) -> Option<BindingPower> {
 }
 
 /// Infix: `a + b`, `a <- b`, `a %in% b`
-fn parse_infix_binary_expression(
-    p: &mut RParser,
-    lhs: &CompletedMarker,
-    current_binding_power: BindingPower,
-) -> ParsedSyntax {
-    let Some((new_binding_power, associativity)) = infix_binary_binding_power(p.cur()) else {
-        // Not an infix binary operator
-        return Absent;
-    };
-    if new_binding_power < current_binding_power {
-        // New operator binds too loosely
-        return Absent;
-    }
-    let new_binding_power = match associativity {
-        Associativity::Left => BindingPower(new_binding_power.0 + 1),
-        Associativity::Right => new_binding_power,
-    };
-
-    let m = lhs.clone().precede(p);
-    p.bump_any();
-    parse_expression_with_binding_power(p, new_binding_power)
-        .or_add_diagnostic(p, diagnostics::expected_expression);
-    Present(m.complete(p, R_BINARY_EXPRESSION))
-}
-
+///
 /// Taken from R's `gram.y`
 fn infix_binary_binding_power(kind: RSyntaxKind) -> Option<(BindingPower, Associativity)> {
     Some(match kind {

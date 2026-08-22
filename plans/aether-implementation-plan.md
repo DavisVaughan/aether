@@ -636,9 +636,9 @@ termination and `else` attachment.
   exactly as `JsTokenSource` does (§9.1).
 
 - `RParser` reads the flag only in conjunction with the current `Scope` (§9.2).
-  Three sites do so: `at_statement_break()`, which both loops in `expr.rs` share
-  (§11.2), the `::` arm it gained in Phase 10 (§11.4), and `parse_else_clause()`
-  (§11.6). Nothing else reads the raw flag.
+  Three sites do so: `at_statement_break()` at the top of the Pratt loop (§11.2),
+  the `::` arm it gained in Phase 10 (§11.4), and `parse_else_clause()` (§11.6).
+  Nothing else reads the raw flag.
 
 Do not replicate tree-sitter's scope-stack approach of conditionally swallowing
 newlines in the lexer. In a recursive-descent parser the equivalent information
@@ -883,7 +883,7 @@ specified in that phase's section rather than here:
 |---|---|---|
 | `expected_expression` | §11.1, Phase 7 | `parse_statement_list`, then the Pratt loop's two sites in Phase 8 |
 | `expected_statement_separator` | §11.1, Phase 7 | `parse_statement_list` |
-| `expected_rhs_selector`, `expected_lhs_selector`, `selector_after_line_break` | §11.4, Phase 10 | the `$`, `@`, `::`, `:::` arms of the suffix match |
+| `expected_rhs_selector`, `expected_lhs_selector`, `selector_after_line_break` | §11.4, Phase 10 | the `$`, `@`, `::`, `:::` arms of the Pratt loop |
 | `expected_parameters`, `expected_parameter` | §11.5, Phase 11 | `parse_function_definition` |
 | `expected_condition` | §11.6, Phase 12 | the `if` and `while` headers |
 
@@ -1448,12 +1448,12 @@ Taken from R's `src/main/gram.y`. Higher binds tighter.
 **The last three rows are shape, not precedence.** Each of the seven takes one
 selector or one argument list on its right, never a nested expression, so there is
 no *how far right does this extend?* for a rank or an associativity to answer.
-A loop applies them straight to the atom, before any numbered rank can reach it,
-and that phase ordering rather than a number is what makes `-a$b` and `a^b$c`
-group correctly. R's `gram.y` agrees: it writes all four selector operators as
-productions over `SYMBOL` and `STR_CONST`, not as operators with a precedence.
-Extract and namespace did carry ranks 16 and 17 between Phase 10 and the split
-that introduced `parse_lhs_expression`.
+The loop takes them wherever it stands, with no comparison against the caller's
+binding power at all, and that unconditional arm rather than a number is what
+makes `-a$b` and `a^b$c` group correctly. R's `gram.y` agrees: it writes all four
+selector operators as productions over `SYMBOL` and `STR_CONST`, not as operators
+with a precedence. Extract and namespace did carry ranks 16 and 17 between Phase
+10 and the pass that retired them.
 
 **`function`, `while`, `for`, `repeat`, and `if` get no rank.** R's grammar gives
 them one, and it does one job there: make the body greedy, i.e. say how far right
@@ -1471,55 +1471,54 @@ here if it is not greedy.
 **`BindingPower::HIGHEST` is 16, and 16 exactly.** No suffix is ever compared
 against a binding power, so the constant exists only to give the `debug_assert!`
 in `parse_expression_with_binding_power` something to assert *against*, and what
-it asserts is that no caller passes more than the table can produce. The
-incoming power is `LOWEST` from `parse_expression`, a prefix power (max 14) from
-`parse_prefix_expression`, and otherwise the binary loop's own right-hand power,
-which is the rank itself for right associativity and `rank + 1` for left. The top
-rank is `^` at 15, so the ceiling is 16 — one above the table, because that is
-what a left-associative operator at the top rank would pass. Adding an infix rank
-at 16 breaks the assertion, and the fix is to renumber so suffixes stay tightest,
-not to relax it.
+it asserts is that no caller passes more than the table can produce. The incoming
+power is `LOWEST` from `parse_expression`, a prefix power (max 14) from
+`prefix_binding_power`, and otherwise the loop's own right-hand power, which is
+the rank itself for right associativity and `rank + 1` for left. The top rank is
+`^` at 15, so the ceiling is 16 — one above the table, because that is what a
+left-associative operator at the top rank would pass. Adding an infix rank at 16
+breaks the assertion, and the fix is to renumber so suffixes stay tightest, not to
+relax it.
 
 **Associativity of `$` `@` `::` `:::`.** tree-sitter-r forces these **right**
 associative and explains why in a long comment: it is a workaround for the
 `optional()` RHS, so that `foo::bar` prefers the longer match `[foo::bar]` over
 `[foo::][bar]`. Since aether makes the RHS **required** (deviation 2), that
-workaround is unnecessary, and the suffix loop leaves nothing to decide: it
-applies one operator after the next to the operand already in hand, which nests to
-the left, as R's `gram.y` does. The resulting trees should be identical — the RHS
-is restricted to a selector, so `a$b$c` can only nest one way — but say so in the
-PR and let the oracle confirm it.
+workaround is unnecessary, and the loop leaves nothing to decide: it applies one
+operator after the next to the operand already in hand, which nests to the left,
+as R's `gram.y` does. The resulting trees should be identical — the RHS is
+restricted to a selector, so `a$b$c` can only nest one way — but say so in the PR
+and let the oracle confirm it.
 
 #### What the loop is shaped like, and why
 
-**Two phases, not one loop.** `parse_lhs_expression` is a prefix expression, or an
-atom followed by any number of suffixes — `(…)`, `[…]`, `[[…]]`, and the four
-selector operators, chosen by a `match` on the token with no binding power
-anywhere in it. `parse_expression_with_binding_power` is that, and then the binary
-loop. R's grammar is two layers, and this is that written out:
+**One loop, dispatched by a `match` on the current token.** The suffix arms come
+first — `(…)`, `[…]`, `[[…]]`, and the four selector operators — and none of them
+looks at a binding power, because none of them can lose to one. The binary case is
+the `_` arm, and it is the only one that compares a rank against the caller's, so
+it is also the only one that can end the loop with an operator still unconsumed.
+Prefix operators are handled once, above the loop, by a `match` on
+`prefix_binding_power` whose operand is a recursive parse at that rank.
 
-```
-expression := prefix* primary (binop expression)*
-primary    := atom suffix*
-suffix     := '(' args ')' | '[' … ']' | '[[' … ']]' | ('$' | '@' | '::' | ':::') selector
-```
+**The arms are inline, not one function each.**
+`parse_expression_with_binding_power` holds the prefix head, all three postfix
+arms, and the binary arm in its body; only `parse_primary_expression`, the
+selector family, and the two binding power tables sit outside it. The four-way
+`if let Present(…) { continue; }` chain it replaced tried each family in turn on
+every iteration, which read as four independent decisions when the token already
+decides all of them.
 
-A suffix therefore cannot apply to a finished binary or unary expression, and that
-is a restriction rather than a restatement. It only ever bites where the operand
-is *missing*: `a * [b]` once parsed as a subset of `a * <missing>`, and now the
-`*` takes its `expected_expression` and the `[b]` is left to
-`parse_statement_list`, which is the same consume-nothing rule §11.4 settles on
-for `a$1`. Where the right operand does arrive nothing changes, because that
-operand's own recursive parse consumed the suffix first.
+**The suffix arms apply to whatever the loop is holding**, not only to an atom, so
+they reach a unary or binary node whose operand never arrived: `a * [b]` is a
+subset of `a * <missing>`, and `a$(b)` a call on an incomplete extract
+(`docs/deviations.md` entry 2 spells that one out). Only error inputs can produce
+such an lhs — where the right operand does arrive, that operand's own recursive
+parse consumed the suffix first.
 
-**The prefix arm returns without running the suffix loop.** `-a[1]` is `-(a[1])`
-either way, since the recursive parse inside `parse_prefix_expression` has already
-taken the `[1]`, so the early exit costs nothing and makes a dead path unreachable
-rather than merely unused.
-
-**Both loops break on `at_statement_break`**, one definition and two call sites
-rather than two copies of the subtlest line in the file. It is what makes `f\n(x)`
-two statements in the suffix loop, and `a\n+ b` two statements in the binary loop.
+**The loop breaks on `at_statement_break`**, which is the subtlest line in the
+file: `newlines_are_significant() && has_preceding_line_break()`. It is what makes
+`f\n(x)` two statements rather than a call, and `a\n+ b` two statements rather
+than a sum.
 
 **Every arm of `parse_primary_expression` returns, and none falls through to a
 shared tail.** The one-token arms repeat `start`/`bump_any`/`complete` rather than
@@ -1579,15 +1578,15 @@ statement that turns out to be only a `;` all mean the same thing to the reader.
 
 ### 11.3 Phase 9 — Calls, subset, subset2 — LANDED
 
-`src/syntax/call.rs`, `src/syntax/parenthesized_expression.rs`, and the suffix
-loop in `expr.rs`.
+`src/syntax/call.rs`, `src/syntax/parenthesized_expression.rs`, and three arms of
+the Pratt loop in `expr.rs`.
 
 **`(` is the one token in this phase with two jobs**, and the Pratt structure
-separates them with no lookahead at all. The suffix loop meets it with an operand
-already to its left and builds an `R_CALL`; `parse_primary_expression` (§11.2)
-meets it where an operand is due and builds a group. `f(x)` and `f (x)` are both
-calls; `f\n(x)` is neither, because the statement break ends the suffix loop
-before the `(` is reached, and it becomes two statements exactly as R reads it.
+separates them with no lookahead at all. The loop's `(` arm meets it with an
+operand already to its left and builds an `R_CALL`; `parse_primary_expression`
+(§11.2) meets it where an operand is due and builds a group. `f(x)` and `f (x)`
+are both calls; `f\n(x)` is neither, because the statement break ends the loop
+before the arm is reached, and it becomes two statements exactly as R reads it.
 
 The body of a group is a full `parse_expression`, not one restricted to §11.2's
 table: R's `'(' expr_or_assign_or_help ')'` admits `=` and `?`, so `(a = 1)` is an
@@ -1782,19 +1781,19 @@ deviation lands, so it stayed separate for reviewability.
 
 #### What changed in the Pratt loop
 
-**Three infix functions, not one with three branches.** `parse_infix_expression`
-is gone, replaced by `parse_infix_binary_expression` in the binary loop, and
-`parse_extract_expression` and `parse_namespace_expression` as two arms of the
-suffix match. The three operator sets are disjoint, so branching inside one
+**One arm per operator family, not one function with three branches.**
+`parse_infix_expression` is gone. `$` and `@` are `parse_extract_expression`,
+`::` and `:::` are `parse_namespace_expression`, and the binary operators are the
+loop's `_` arm (§11.2). The three sets are disjoint, so branching inside one
 function bought nothing and cost a reader the ability to follow any one operator
-family top to bottom. Only the binary one consults a binding power at all: the
-other two take a single `parse_selector` call on the right rather than a recursive
+family top to bottom. Only the binary arm consults a binding power: the selector
+operators take a single `parse_selector` call on the right rather than a recursive
 `parse_expression_with_binding_power`, so a rank would never reach anything that
-compares it (§11.2 for why the four selector operators carry none).
+compares it (§11.2 for why they carry none).
 
-Both take their operand by value and return a `CompletedMarker` rather than a
-`ParsedSyntax`, because the `match` has already committed by the time either runs
-and neither can decline.
+They take their operand by value and return a `CompletedMarker` rather than a
+`ParsedSyntax`, because the `match` arm has already committed by the time either
+runs and neither can decline.
 
 Both selector functions capture the operator kind and `p.cur_range()` **before**
 `p.bump_any()`, because neither survives the bump and the diagnostics need both —
