@@ -1147,7 +1147,7 @@ RRoot {
 }
 ```
 
-## `return` Is Just An Identifier [pending]
+## `return` Is Just An Identifier
 
 ```r
 # `return` is a regular symbol in R, not a keyword (#189). A `return()`
@@ -1159,7 +1159,75 @@ return(x)
 return
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@0..210 "function" [Comments("# `return` is a regul ..."), Newline("\n"), Comments("# call is parsed the  ..."), Newline("\n"), Comments("# identifier. A bare  ..."), Newline("\n"), Newline("\n")] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@210..211 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@211..212 "x" [] [],
+                            },
+                            default: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@212..214 ")" [] [Whitespace(" ")],
+                },
+                body: RCall {
+                    function: RIdentifier {
+                        name_token: IDENT@214..220 "return" [] [],
+                    },
+                    arguments: RCallArguments {
+                        l_paren_token: L_PAREN@220..221 "(" [] [],
+                        items: RArgumentList [
+                            RArgument {
+                                name_clause: missing (optional),
+                                value: RIdentifier {
+                                    name_token: IDENT@221..222 "x" [] [],
+                                },
+                            },
+                        ],
+                        r_paren_token: R_PAREN@222..223 ")" [] [],
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@223..230 "return" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@230..231 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIdentifier {
+                                name_token: IDENT@231..232 "x" [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@232..233 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RIdentifier {
+                name_token: IDENT@233..240 "return" [Newline("\n")] [],
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@240..241 "" [Newline("\n")] [],
+}
+```
 
 ## Switch
 

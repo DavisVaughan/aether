@@ -65,7 +65,7 @@ switch(
 )
 ```
 
-## `return` Is Just An Identifier [pending]
+## `return` Is Just An Identifier
 
 ```r
 # `return` is a regular symbol in R, not a keyword (#189). A `return()`

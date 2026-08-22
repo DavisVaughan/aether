@@ -36,6 +36,7 @@ RBogus = SyntaxElement*
 RBogusValue = SyntaxElement*
 RBogusExpression = SyntaxElement*
 RBogusSelector = SyntaxElement*
+RBogusParameterName = SyntaxElement*
 
 // ----------------------------------------------------------------
 // Root
@@ -137,6 +138,7 @@ AnyRParameterName =
 	RIdentifier
 	| RDots
 	| RDotDotI
+	| RBogusParameterName
 
 // ----------------------------------------------------------------
 // If statement

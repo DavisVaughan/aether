@@ -46,21 +46,125 @@ function() for(i in 1:5) i
 
 *Not yet supported.*
 
-## Function No Body [pending]
+## Function No Body [error]
 
 ```r
 function(x, y)
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@0..8 "function" [] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@8..9 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@9..10 "x" [] [],
+                            },
+                            default: missing (optional),
+                        },
+                        COMMA@10..12 "," [] [Whitespace(" ")],
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@12..13 "y" [] [],
+                            },
+                            default: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@13..14 ")" [] [],
+                },
+                body: missing (required),
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@14..15 "" [Newline("\n")] [],
+}
+```
 
-## Function No Body With Assignment [pending, error]
+```diagnostics
+test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected an expression but instead found the end of the file.
+
+    1 │ function(x, y)
+  > 2 │
+      │
+
+  i Expected an expression here.
+
+    1 │ function(x, y)
+  > 2 │
+      │
+```
+
+## Function No Body With Assignment [error]
 
 ```r
 x <- function(x, y)
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RBinaryExpression {
+                left: RIdentifier {
+                    name_token: IDENT@0..2 "x" [] [Whitespace(" ")],
+                },
+                operator: ASSIGN@2..5 "<-" [] [Whitespace(" ")],
+                right: RFunctionDefinition {
+                    name: FUNCTION_KW@5..13 "function" [] [],
+                    parameters: RParameters {
+                        l_paren_token: L_PAREN@13..14 "(" [] [],
+                        items: RParameterList [
+                            RParameter {
+                                name: RIdentifier {
+                                    name_token: IDENT@14..15 "x" [] [],
+                                },
+                                default: missing (optional),
+                            },
+                            COMMA@15..17 "," [] [Whitespace(" ")],
+                            RParameter {
+                                name: RIdentifier {
+                                    name_token: IDENT@17..18 "y" [] [],
+                                },
+                                default: missing (optional),
+                            },
+                        ],
+                        r_paren_token: R_PAREN@18..19 ")" [] [],
+                    },
+                    body: missing (required),
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@19..20 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected an expression but instead found the end of the file.
+
+    1 │ x <- function(x, y)
+  > 2 │
+      │
+
+  i Expected an expression here.
+
+    1 │ x <- function(x, y)
+  > 2 │
+      │
+```
 
 ## Function No Body Inside Another Function [pending, error]
 
@@ -70,7 +174,7 @@ function(x = function()) {}
 
 *Not yet supported.*
 
-## Function Definitions [pending]
+## Function Definitions
 
 ```r
 function() 1
@@ -92,4 +196,659 @@ function(
 \(x, y) 1
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@0..8 "function" [] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@8..9 "(" [] [],
+                    items: RParameterList [],
+                    r_paren_token: R_PAREN@9..11 ")" [] [Whitespace(" ")],
+                },
+                body: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@11..12 "1" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@12..21 "function" [Newline("\n")] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@21..22 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@22..23 "a" [] [],
+                            },
+                            default: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@23..25 ")" [] [Whitespace(" ")],
+                },
+                body: RIdentifier {
+                    name_token: IDENT@25..26 "a" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@26..35 "function" [Newline("\n")] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@35..36 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@36..37 "a" [] [],
+                            },
+                            default: missing (optional),
+                        },
+                        COMMA@37..39 "," [] [Whitespace(" ")],
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@39..40 "b" [] [],
+                            },
+                            default: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@40..42 ")" [] [Whitespace(" ")],
+                },
+                body: RBinaryExpression {
+                    left: RIdentifier {
+                        name_token: IDENT@42..44 "a" [] [Whitespace(" ")],
+                    },
+                    operator: PLUS@44..46 "+" [] [Whitespace(" ")],
+                    right: RIdentifier {
+                        name_token: IDENT@46..47 "b" [] [],
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@47..56 "function" [Newline("\n")] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@56..57 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@57..74 "a" [Newline("\n"), Whitespace("  ")] [Whitespace(" "), Comments("# important!")],
+                            },
+                            default: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@74..77 ")" [Newline("\n")] [Whitespace(" ")],
+                },
+                body: RIdentifier {
+                    name_token: IDENT@77..78 "a" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@78..87 "function" [Newline("\n")] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@87..88 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RDots {
+                                value_token: DOTS@88..91 "..." [] [],
+                            },
+                            default: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@91..93 ")" [] [Whitespace(" ")],
+                },
+                body: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@93..94 "1" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@94..103 "function" [Newline("\n")] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@103..104 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@104..105 "a" [] [],
+                            },
+                            default: missing (optional),
+                        },
+                        COMMA@105..107 "," [] [Whitespace(" ")],
+                        RParameter {
+                            name: RDots {
+                                value_token: DOTS@107..110 "..." [] [],
+                            },
+                            default: missing (optional),
+                        },
+                        COMMA@110..112 "," [] [Whitespace(" ")],
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@112..113 "b" [] [],
+                            },
+                            default: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@113..115 ")" [] [Whitespace(" ")],
+                },
+                body: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@115..116 "1" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@116..125 "function" [Newline("\n")] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@125..126 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@126..128 "a" [] [Whitespace(" ")],
+                            },
+                            default: RParameterDefault {
+                                eq_token: EQUAL@128..130 "=" [] [Whitespace(" ")],
+                                value: RDoubleValue {
+                                    value_token: R_DOUBLE_LITERAL@130..131 "1" [] [],
+                                },
+                            },
+                        },
+                        COMMA@131..133 "," [] [Whitespace(" ")],
+                        RParameter {
+                            name: RDots {
+                                value_token: DOTS@133..136 "..." [] [],
+                            },
+                            default: missing (optional),
+                        },
+                        COMMA@136..138 "," [] [Whitespace(" ")],
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@138..140 "b" [] [Whitespace(" ")],
+                            },
+                            default: RParameterDefault {
+                                eq_token: EQUAL@140..142 "=" [] [Whitespace(" ")],
+                                value: RDoubleValue {
+                                    value_token: R_DOUBLE_LITERAL@142..143 "2" [] [],
+                                },
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@143..145 ")" [] [Whitespace(" ")],
+                },
+                body: RIdentifier {
+                    name_token: IDENT@145..146 "a" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@146..155 "function" [Newline("\n")] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@155..156 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RDotDotI {
+                                value_token: DOTDOTI@156..159 "..1" [] [],
+                            },
+                            default: missing (optional),
+                        },
+                        COMMA@159..161 "," [] [Whitespace(" ")],
+                        RParameter {
+                            name: RDotDotI {
+                                value_token: DOTDOTI@161..164 "..2" [] [],
+                            },
+                            default: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@164..166 ")" [] [Whitespace(" ")],
+                },
+                body: RBinaryExpression {
+                    left: RCall {
+                        function: RIdentifier {
+                            name_token: IDENT@166..169 "get" [] [],
+                        },
+                        arguments: RCallArguments {
+                            l_paren_token: L_PAREN@169..170 "(" [] [],
+                            items: RArgumentList [
+                                RArgument {
+                                    name_clause: missing (optional),
+                                    value: RStringValue {
+                                        value: R_DOUBLE_QUOTED_STRING_LITERAL@170..175 "\"..1\"" [] [],
+                                    },
+                                },
+                            ],
+                            r_paren_token: R_PAREN@175..177 ")" [] [Whitespace(" ")],
+                        },
+                    },
+                    operator: PLUS@177..179 "+" [] [Whitespace(" ")],
+                    right: RCall {
+                        function: RIdentifier {
+                            name_token: IDENT@179..182 "get" [] [],
+                        },
+                        arguments: RCallArguments {
+                            l_paren_token: L_PAREN@182..183 "(" [] [],
+                            items: RArgumentList [
+                                RArgument {
+                                    name_clause: missing (optional),
+                                    value: RStringValue {
+                                        value: R_DOUBLE_QUOTED_STRING_LITERAL@183..188 "\"..2\"" [] [],
+                                    },
+                                },
+                            ],
+                            r_paren_token: R_PAREN@188..189 ")" [] [],
+                        },
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@189..198 "function" [Newline("\n")] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@198..199 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RDotDotI {
+                                value_token: DOTDOTI@199..203 "..1" [] [Whitespace(" ")],
+                            },
+                            default: RParameterDefault {
+                                eq_token: EQUAL@203..205 "=" [] [Whitespace(" ")],
+                                value: RDoubleValue {
+                                    value_token: R_DOUBLE_LITERAL@205..206 "1" [] [],
+                                },
+                            },
+                        },
+                        COMMA@206..208 "," [] [Whitespace(" ")],
+                        RParameter {
+                            name: RDotDotI {
+                                value_token: DOTDOTI@208..212 "..2" [] [Whitespace(" ")],
+                            },
+                            default: RParameterDefault {
+                                eq_token: EQUAL@212..214 "=" [] [Whitespace(" ")],
+                                value: RDoubleValue {
+                                    value_token: R_DOUBLE_LITERAL@214..215 "2" [] [],
+                                },
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@215..217 ")" [] [Whitespace(" ")],
+                },
+                body: RBinaryExpression {
+                    left: RCall {
+                        function: RIdentifier {
+                            name_token: IDENT@217..220 "get" [] [],
+                        },
+                        arguments: RCallArguments {
+                            l_paren_token: L_PAREN@220..221 "(" [] [],
+                            items: RArgumentList [
+                                RArgument {
+                                    name_clause: missing (optional),
+                                    value: RStringValue {
+                                        value: R_DOUBLE_QUOTED_STRING_LITERAL@221..226 "\"..1\"" [] [],
+                                    },
+                                },
+                            ],
+                            r_paren_token: R_PAREN@226..228 ")" [] [Whitespace(" ")],
+                        },
+                    },
+                    operator: PLUS@228..230 "+" [] [Whitespace(" ")],
+                    right: RCall {
+                        function: RIdentifier {
+                            name_token: IDENT@230..233 "get" [] [],
+                        },
+                        arguments: RCallArguments {
+                            l_paren_token: L_PAREN@233..234 "(" [] [],
+                            items: RArgumentList [
+                                RArgument {
+                                    name_clause: missing (optional),
+                                    value: RStringValue {
+                                        value: R_DOUBLE_QUOTED_STRING_LITERAL@234..239 "\"..2\"" [] [],
+                                    },
+                                },
+                            ],
+                            r_paren_token: R_PAREN@239..240 ")" [] [],
+                        },
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@240..249 "function" [Newline("\n")] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@249..250 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@250..255 "x" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                            },
+                            default: RParameterDefault {
+                                eq_token: EQUAL@255..269 "=" [] [Whitespace(" "), Comments("# important!")],
+                                value: RDoubleValue {
+                                    value_token: R_DOUBLE_LITERAL@269..273 "4" [Newline("\n"), Whitespace("  ")] [],
+                                },
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@273..276 ")" [Newline("\n")] [Whitespace(" ")],
+                },
+                body: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@276..277 "1" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RFunctionDefinition {
+                name: BACKSLASH@277..280 "\\" [Newline("\n"), Newline("\n")] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@280..281 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@281..282 "x" [] [],
+                            },
+                            default: missing (optional),
+                        },
+                        COMMA@282..284 "," [] [Whitespace(" ")],
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@284..285 "y" [] [],
+                            },
+                            default: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@285..287 ")" [] [Whitespace(" ")],
+                },
+                body: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@287..288 "1" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@288..289 "" [Newline("\n")] [],
+}
+```
+
+## A Body Stops At The Binary `?`
+
+R's grammar gives the rule `%prec LOW`, which is looser than every operator
+except `?`, so the help operator takes the whole definition as its left operand
+while an assignment ends up inside the body.
+
+```r
+function() a ? b
+function() a ? b ? c
+?function() a
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RBinaryExpression {
+                left: RFunctionDefinition {
+                    name: FUNCTION_KW@0..8 "function" [] [],
+                    parameters: RParameters {
+                        l_paren_token: L_PAREN@8..9 "(" [] [],
+                        items: RParameterList [],
+                        r_paren_token: R_PAREN@9..11 ")" [] [Whitespace(" ")],
+                    },
+                    body: RIdentifier {
+                        name_token: IDENT@11..13 "a" [] [Whitespace(" ")],
+                    },
+                },
+                operator: WAT@13..15 "?" [] [Whitespace(" ")],
+                right: RIdentifier {
+                    name_token: IDENT@15..16 "b" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBinaryExpression {
+                left: RBinaryExpression {
+                    left: RFunctionDefinition {
+                        name: FUNCTION_KW@16..25 "function" [Newline("\n")] [],
+                        parameters: RParameters {
+                            l_paren_token: L_PAREN@25..26 "(" [] [],
+                            items: RParameterList [],
+                            r_paren_token: R_PAREN@26..28 ")" [] [Whitespace(" ")],
+                        },
+                        body: RIdentifier {
+                            name_token: IDENT@28..30 "a" [] [Whitespace(" ")],
+                        },
+                    },
+                    operator: WAT@30..32 "?" [] [Whitespace(" ")],
+                    right: RIdentifier {
+                        name_token: IDENT@32..34 "b" [] [Whitespace(" ")],
+                    },
+                },
+                operator: WAT@34..36 "?" [] [Whitespace(" ")],
+                right: RIdentifier {
+                    name_token: IDENT@36..37 "c" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RUnaryExpression {
+                operator: WAT@37..39 "?" [Newline("\n")] [],
+                argument: RFunctionDefinition {
+                    name: FUNCTION_KW@39..47 "function" [] [],
+                    parameters: RParameters {
+                        l_paren_token: L_PAREN@47..48 "(" [] [],
+                        items: RParameterList [],
+                        r_paren_token: R_PAREN@48..50 ")" [] [Whitespace(" ")],
+                    },
+                    body: RIdentifier {
+                        name_token: IDENT@50..51 "a" [] [],
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@51..52 "" [Newline("\n")] [],
+}
+```
+
+```r
+function() a <- b
+function() a = b
+1 + function(x) x + 2
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@0..8 "function" [] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@8..9 "(" [] [],
+                    items: RParameterList [],
+                    r_paren_token: R_PAREN@9..11 ")" [] [Whitespace(" ")],
+                },
+                body: RBinaryExpression {
+                    left: RIdentifier {
+                        name_token: IDENT@11..13 "a" [] [Whitespace(" ")],
+                    },
+                    operator: ASSIGN@13..16 "<-" [] [Whitespace(" ")],
+                    right: RIdentifier {
+                        name_token: IDENT@16..17 "b" [] [],
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@17..26 "function" [Newline("\n")] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@26..27 "(" [] [],
+                    items: RParameterList [],
+                    r_paren_token: R_PAREN@27..29 ")" [] [Whitespace(" ")],
+                },
+                body: RBinaryExpression {
+                    left: RIdentifier {
+                        name_token: IDENT@29..31 "a" [] [Whitespace(" ")],
+                    },
+                    operator: EQUAL@31..33 "=" [] [Whitespace(" ")],
+                    right: RIdentifier {
+                        name_token: IDENT@33..34 "b" [] [],
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBinaryExpression {
+                left: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@34..37 "1" [Newline("\n")] [Whitespace(" ")],
+                },
+                operator: PLUS@37..39 "+" [] [Whitespace(" ")],
+                right: RFunctionDefinition {
+                    name: FUNCTION_KW@39..47 "function" [] [],
+                    parameters: RParameters {
+                        l_paren_token: L_PAREN@47..48 "(" [] [],
+                        items: RParameterList [
+                            RParameter {
+                                name: RIdentifier {
+                                    name_token: IDENT@48..49 "x" [] [],
+                                },
+                                default: missing (optional),
+                            },
+                        ],
+                        r_paren_token: R_PAREN@49..51 ")" [] [Whitespace(" ")],
+                    },
+                    body: RBinaryExpression {
+                        left: RIdentifier {
+                            name_token: IDENT@51..53 "x" [] [Whitespace(" ")],
+                        },
+                        operator: PLUS@53..55 "+" [] [Whitespace(" ")],
+                        right: RDoubleValue {
+                            value_token: R_DOUBLE_LITERAL@55..56 "2" [] [],
+                        },
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@56..57 "" [Newline("\n")] [],
+}
+```
+
+## A Definition With No Parameter List [error]
+
+```r
+function 1
+\ 1
+function
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@0..9 "function" [] [Whitespace(" ")],
+                parameters: missing (required),
+                body: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@9..10 "1" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RFunctionDefinition {
+                name: BACKSLASH@10..13 "\\" [Newline("\n")] [Whitespace(" ")],
+                parameters: missing (required),
+                body: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@13..14 "1" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@14..23 "function" [Newline("\n")] [],
+                parameters: missing (required),
+                body: missing (required),
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@23..24 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:1:10 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a parameter list but instead found '1'.
+
+  > 1 │ function 1
+      │          ^
+    2 │ \ 1
+    3 │ function
+
+  i Expected a parameter list here.
+
+  > 1 │ function 1
+      │          ^
+    2 │ \ 1
+    3 │ function
+
+test.R:2:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a parameter list but instead found '1'.
+
+    1 │ function 1
+  > 2 │ \ 1
+      │   ^
+    3 │ function
+    4 │
+
+  i Expected a parameter list here.
+
+    1 │ function 1
+  > 2 │ \ 1
+      │   ^
+    3 │ function
+    4 │
+
+test.R:4:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a parameter list but instead found the end of the file.
+
+    2 │ \ 1
+    3 │ function
+  > 4 │
+      │
+
+  i Expected a parameter list here.
+
+    2 │ \ 1
+    3 │ function
+  > 4 │
+      │
+```

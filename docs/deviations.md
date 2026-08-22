@@ -38,6 +38,7 @@ them, since the ledger runs ahead of the parser.
 | 10 | Whitespace attachment | air's walker: leading of the following token, with a second rule for whitespace before a newline | `JsTokenSource`'s rule — trailing of the preceding token until a newline, leading from the newline on. Comment and newline attachment are unchanged |
 | 11 | Two expressions on one line | accepted silently, since `program` needs no separator | an error, as R requires |
 | 12 | Strings | `string` node over an open, an optional content, and a close | one literal token per quote style, delimiters included, with the body reachable through `RStringValue::inner_string_text()` |
+| 13 | `AnyRParameterName` | 3 variants, no bogus | new `RBogusParameterName` kind added as a fourth variant, so a parameter that is not a name is contained in its slot instead of collapsing the list around it |
 
 ### 1. Semicolons are real tokens
 
@@ -848,6 +849,76 @@ internal boundaries no longer exist on aether's side, so there is nothing there
 to lose.
 
 Unterminated strings are deviation 6's business, not this entry's.
+
+### 13. `AnyRParameterName` gains `RBogusParameterName`
+
+Landed in Phase 11.
+
+`AnyRParameterName` had three variants and no bogus one:
+
+```rust
+pub enum AnyRParameterName {
+    RDotDotI(RDotDotI),
+    RDots(RDots),
+    RIdentifier(RIdentifier),
+}
+```
+
+Example:
+
+```r
+function(1, b) x
+```
+
+This is deviation 5 one level deeper, and the collapse it prevents is worse.
+`RParameterList` is a separated list generated with `RParameter::can_cast`, so a
+child that is not an `RParameter` makes the whole list invalid. Without a bogus
+name the chain runs: the bogus node fails the `name` slot, so `R_PARAMETER`
+degrades to `R_BOGUS`; `R_BOGUS` is not an `RParameter`, so `R_PARAMETER_LIST`
+degrades to `R_BOGUS`; that is not an `RParameterList`, so `R_PARAMETERS` goes
+too, and one bad token takes the entire definition with it — parameters, body,
+and all.
+
+With the kind, the damage stops at the name:
+
+```
+RFunctionDefinition {
+    name: FUNCTION_KW,
+    parameters: RParameters {
+        items: RParameterList [
+            RParameter { name: RBogusParameterName { 1 } },
+            RParameter { name: RIdentifier { b } },
+        ],
+    },
+    body: RIdentifier { x },
+}
+```
+
+`R_BOGUS_PARAMETER_NAME` is a new node kind, added after `R_BOGUS_SELECTOR` so
+nothing renumbers. `is_bogus()` returns true for it and `to_bogus()` is
+idempotent; the three real name kinds keep their existing mappings, for the reason
+deviation 5 gives.
+
+Why a new kind rather than reusing `RBogusSelector`, which `AnyRSelector` already
+has and which is nearly the same set of tokens: the two positions accept
+different things — a string is a selector and is not a parameter name — and
+Biome's convention is one bogus kind per restricted position. A tree walker that
+sees `R_BOGUS_PARAMETER_NAME` knows a parameter was malformed without looking at
+its parent.
+
+**One path constructs one**, in `parse_parameter`: a name that is absent where the
+list has not ended is diagnosed with `expected_parameter` and the tokens up to the
+next boundary are recovered into it. A name that is absent *at* a boundary is the
+hole case, `function(a,,b)`, which is diagnosed the same way and consumes nothing,
+so the empty `RParameter` stays empty.
+
+Swap-in cost is deviation 5's, one entry down: `RSyntaxKind`, `nodes.rs`, and both
+factories are generated, leaving `is_bogus()`, `to_bogus()`, one empty formatter
+rule, and a fourth arm in `FormatAnyRParameterName`.
+
+Corpus tests: `functions/parameters.md`'s `A Parameter That Is Not A Name` and
+`A Missing Comma Between Parameters`. Neither carries `[deviation]` — both are
+`[error]`, and the oracle already skips any block that does not parse cleanly.
 
 ## tree-sitter-r vs. R
 

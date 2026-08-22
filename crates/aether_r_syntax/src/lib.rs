@@ -35,7 +35,8 @@ impl biome_rowan::SyntaxKind for RSyntaxKind {
             RSyntaxKind::R_BOGUS
             | RSyntaxKind::R_BOGUS_VALUE
             | RSyntaxKind::R_BOGUS_EXPRESSION
-            | RSyntaxKind::R_BOGUS_SELECTOR => true,
+            | RSyntaxKind::R_BOGUS_SELECTOR
+            | RSyntaxKind::R_BOGUS_PARAMETER_NAME => true,
 
             RSyntaxKind::TOMBSTONE
             | RSyntaxKind::EOF
@@ -180,6 +181,9 @@ impl biome_rowan::SyntaxKind for RSyntaxKind {
 
             // Bogus selector
             RSyntaxKind::R_BOGUS_SELECTOR => RSyntaxKind::R_BOGUS_SELECTOR,
+
+            // Bogus parameter name
+            RSyntaxKind::R_BOGUS_PARAMETER_NAME => RSyntaxKind::R_BOGUS_PARAMETER_NAME,
 
             // Bogus
             RSyntaxKind::TOMBSTONE

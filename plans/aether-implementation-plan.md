@@ -433,6 +433,12 @@ that it diagnoses and consumes nothing instead. What builds one is the `left` sl
 of `::` and `:::`, which is an `AnyRSelector` too — there the operand is already
 parsed, so wrapping it costs no tokens and keeps the namespace node whole.
 
+**`R_BOGUS_PARAMETER_NAME` is a fourth `AnyRParameterName` variant**, added in
+Phase 11 for the same reason and against a longer collapse: `RParameterList` is a
+separated list over `RParameter`, so a bogus name takes the parameter, then the
+list, then the `RParameters` node, then the whole definition. `docs/deviations.md`
+entry 13 has the chain.
+
 `R_STATEMENT_LIST` is recognised as a list kind, so `SyntaxKind::is_list()`
 returns true for it. This was decided so that air's `has_bogus_nodes_or_empty_slots`
 would cover it; the harness as landed does not use that helper, and §10.2 records
@@ -884,7 +890,8 @@ specified in that phase's section rather than here:
 | `expected_expression` | §11.1, Phase 7 | `parse_statement_list`, then the Pratt loop's two sites in Phase 8 |
 | `expected_statement_separator` | §11.1, Phase 7 | `parse_statement_list` |
 | `expected_rhs_selector`, `expected_lhs_selector`, `namespace_rhs_selector_after_line_break` | §11.4, Phase 10 | the `$`, `@`, `::`, `:::` arms of the Pratt loop |
-| `expected_parameters`, `expected_parameter` | §11.5, Phase 11 | `parse_function_definition` |
+| `expected_parameters` | §11.5, Phase 11 | `parse_function_definition` |
+| `expected_parameter` | §11.5, Phase 11 | `parse_parameter` |
 | `expected_condition` | §11.6, Phase 12 | the `if` and `while` headers |
 
 Three rules hold across all of them, and the split above does not weaken any:
@@ -1159,8 +1166,9 @@ instead**, roughly mirroring `src/syntax/`, and files may be as small as one tes
   construct together.
 
 - **Turning on a feature is usually one directory.** Phase 11 flips the markers in
-  `functions/*.md` and nothing else. The phase-to-directory correspondence below is
-  deliberate.
+  `functions/*.md`, and, as it turned out, one heading in `expressions/call.md`
+  that was waiting on a `function(x)` in its first line. The phase-to-directory
+  correspondence below is deliberate but not a rule the harness enforces.
 
 #### 10.3.2 Where the imported tests landed
 
@@ -1423,27 +1431,28 @@ it.
 #### The precedence table
 
 Taken from R's `src/main/gram.y`. Higher binds tighter. The Name column is the
-constant: rank 11 is `BindingPower::BINARY_MULTIPLY_DIVIDE`, rank 14 is
+constant: rank 12 is `BindingPower::BINARY_MULTIPLY_DIVIDE`, rank 15 is
 `BindingPower::UNARY_PLUS_MINUS`, and every binary row has an `Associativity`
 constant of the same name.
 
 | Rank | Name | Operators | Assoc |
 |---|---|---|---|
 | 1 | HELP | `?` (binary) | left |
-| 2 | LEFT_ASSIGN | `<-` `<<-` `:=` | **right** |
-| 3 | EQUALS_ASSIGN | `=` | **right** |
-| 4 | RIGHT_ASSIGN | `->` `->>` | left |
-| 5 | TILDE | `~` | left |
-| 6 | OR | `\|` `\|\|` | left |
-| 7 | AND | `&` `&&` | left |
-| 8 | UNARY_NOT | `!` (unary) | left |
-| 9 | COMPARISON | `<` `<=` `>` `>=` `==` `!=` | left (nonassoc in R) |
-| 10 | PLUS_MINUS | `+` `-` (binary) | left |
-| 11 | MULTIPLY_DIVIDE | `*` `/` | left |
-| 12 | SPECIAL_OR_PIPE | `%...%` `\|>` | left |
-| 13 | COLON | `:` | left |
-| 14 | UNARY_PLUS_MINUS | `+` `-` (unary) | left |
-| 15 | EXPONENTIATE | `^` `**` | **right** |
+| 2 | FUNCTION_OR_LOOP | `function` `while` `for` `repeat` | left |
+| 3 | LEFT_ASSIGN | `<-` `<<-` `:=` | **right** |
+| 4 | EQUALS_ASSIGN | `=` | **right** |
+| 5 | RIGHT_ASSIGN | `->` `->>` | left |
+| 6 | TILDE | `~` | left |
+| 7 | OR | `\|` `\|\|` | left |
+| 8 | AND | `&` `&&` | left |
+| 9 | UNARY_NOT | `!` (unary) | left |
+| 10 | COMPARISON | `<` `<=` `>` `>=` `==` `!=` | left (nonassoc in R) |
+| 11 | PLUS_MINUS | `+` `-` (binary) | left |
+| 12 | MULTIPLY_DIVIDE | `*` `/` | left |
+| 13 | SPECIAL_OR_PIPE | `%...%` `\|>` | left |
+| 14 | COLON | `:` | left |
+| 15 | UNARY_PLUS_MINUS | `+` `-` (unary) | left |
+| 16 | EXPONENTIATE | `^` `**` | **right** |
 | — | EXTRACT | `$` `@` | — (suffix) |
 | — | NAMESPACE | `::` `:::` | — (suffix) |
 | — | CALL | `f(…)` `x[…]` `x[[…]]` | — (suffix) |
@@ -1455,33 +1464,39 @@ The loop takes them wherever it stands, with no comparison against the caller's
 binding power at all, and that unconditional arm rather than a number is what
 makes `-a$b` and `a^b$c` group correctly. R's `gram.y` agrees: it writes all four
 selector operators as productions over `SYMBOL` and `STR_CONST`, not as operators
-with a precedence. Extract and namespace did carry ranks 16 and 17 between Phase
+with a precedence. Extract and namespace did carry ranks 17 and 18 between Phase
 10 and the pass that retired them.
 
-**`function`, `while`, `for`, `repeat`, and `if` get no rank.** R's grammar gives
-them one, and it does one job there: make the body greedy, i.e. say how far right
-`function(x) …` or `if (c) …` extends. A recursive-descent parser answers that by
-construction — the body is a plain `parse_expression` call that runs to its
-natural terminator (§11.5, §11.6).
+**`FUNCTION_OR_LOOP` at rank 2 is a rank no arm of the loop ever compares.** This
+section originally said `function`, `while`, `for`, `repeat`, and `if` get no rank
+at all, on the grounds that a recursive-descent parser makes a body greedy by
+construction. Phase 11 found that wrong, and the case it turns on is the one
+predicted: the binary `?` at rank 1. R and tree-sitter-r agree, and R 4.6.0
+settles it directly —
 
-The one case where a greedy body and a body parsed at the lowest binding power
-would differ is the binary `?` at rank 1: `function() a ? b` could group either
-way. R's grammar makes a function body `expr_or_assign_or_help`, which includes
-help and so points at greedy, but do not take that on faith: let the oracle settle
-it the first time it runs against `functions/definition.md`, and record the answer
-here if it is not greedy.
+```
+function() a ? b     =>  `?`(function() a, b)
+while (a) b ? c      =>  `?`(while (a) b, c)
+function() a = b     =>  function() (a = b)
+```
 
-**`BindingPower::HIGHEST` is 16, and 16 exactly.** No suffix is ever compared
+— so the body takes every operator from `<-` up and stops short of `?`, which is
+exactly what `%prec LOW` buys R's grammar. That is one rank between HELP and
+LEFT_ASSIGN, and the whole table below it shifted up by one to make room. §11.5
+has the one line it is spent on; §11.6 spends it again on the loops, which share
+the row.
+
+**`BindingPower::HIGHEST` is 17, and 17 exactly.** No suffix is ever compared
 against a binding power, so the constant exists only to give the `debug_assert!`
 in `parse_expression_with_binding_power` something to assert *against*, and what
 it asserts is that no caller passes more than the table can produce. The incoming
-power is `LOWEST` from `parse_expression`, a prefix rank (max 14) from one of the
-four unary arms, and otherwise the loop's own right-hand power, which is the rank
-itself for right associativity and `rank + 1` for left. The top rank is
-`^` at 15, so the ceiling is 16 — one above the table, because that is what a
-left-associative operator at the top rank would pass. Adding an infix rank at 16
-breaks the assertion, and the fix is to renumber so suffixes stay tightest, not to
-relax it.
+power is `LOWEST` from `parse_expression`, a prefix rank (max 15) from one of the
+four unary arms, `FUNCTION_OR_LOOP + 1` from `parse_function_body`, and otherwise
+the loop's own right-hand power, which is the rank itself for right associativity
+and `rank + 1` for left. The top rank is `^` at 16, so the ceiling is 17 — one
+above the table, because that is what a left-associative operator at the top rank
+would pass. Adding an infix rank at 17 breaks the assertion, and the fix is to
+renumber so suffixes stay tightest, not to relax it.
 
 **Associativity of `$` `@` `::` `:::`.** tree-sitter-r forces these **right**
 associative and explains why in a long comment: it is a workaround for the
@@ -1563,12 +1578,12 @@ does not, because the lexer has already pointed at the character (§11.1).
 **Precedence facts the corpus pins**, in `Operator precedence` and
 `Precedence Tests`:
 
-- `-1^2` → `-(1^2)` — unary minus (14) binds looser than `^` (15).
+- `-1^2` → `-(1^2)` — unary minus (15) binds looser than `^` (16).
 
-- `!a & b` → `(!a) & b` — `!` (8) binds tighter than `&` (7).
+- `!a & b` → `(!a) & b` — `!` (9) binds tighter than `&` (8).
 
-- `-2:3` → `-(2:3)`? **No** — unary `-` is 14 and `:` is 13, so it is `(-2):3`,
-  the sequence from -2 to 3. Contrast `-1^2` above: `^` (15) outranks unary `-`,
+- `-2:3` → `-(2:3)`? **No** — unary `-` is 15 and `:` is 14, so it is `(-2):3`,
+  the sequence from -2 to 3. Contrast `-1^2` above: `^` (16) outranks unary `-`,
   `:` does not.
 
 - `a <- b <- c` → `a <- (b <- c)` — right assoc.
@@ -1577,7 +1592,7 @@ does not, because the lexer has already pointed at the character (§11.1).
 
 - `2^3^2` → `2^(3^2)` — right assoc.
 
-- `a %in% b + c` → `a %in% (b + c)`? **No** — `%in%` is 12, `+` is 10, so
+- `a %in% b + c` → `a %in% (b + c)`? **No** — `%in%` is 13, `+` is 11, so
   `(a %in% b) + c`. This one trips people up.
 
 The newline behaviour of the operator table is a separate axis: every operator
@@ -2010,43 +2025,228 @@ These are the constructors `docs/deviations.md` entries 2 and 3 lean on — ever
 row where air produces no error and aether produces one is a row where one of them
 fires.
 
-### 11.5 Phase 11 — Function definitions
+### 11.5 Phase 11 — Function definitions — LANDED
 
-`src/syntax/function.rs`.
+`src/syntax/function.rs`, reached from one arm of the lhs match in `expr.rs`.
 
 ```rust
-fn parse_function_definition(p: &mut RParser) -> ParsedSyntax {
+pub(crate) fn parse_function_definition(p: &mut RParser) -> CompletedMarker {
     debug_assert!(p.at(T![function]) || p.at(T!["\\"]));
 
     let m = p.start();
-    p.bump_any();                       // `function` or `\`
-    // Newlines between `function` and `(` are insignificant. tree-sitter-r has
-    // `repeat($._newline)` here and a corpus test with `function\n\n() 1 + 1`
-    // and even `function\n\n# comment\n\n() 1 + 1`.
+    p.bump_any();
     parse_parameters(p).or_add_diagnostic(p, diagnostics::expected_parameters);
-    // Newlines between `)` and the body are also insignificant.
-    parse_expression(p).or_add_diagnostic(p, diagnostics::expected_expression);
-    Present(m.complete(p, R_FUNCTION_DEFINITION))
+    parse_function_body(p).or_add_diagnostic(p, diagnostics::expected_expression);
+
+    m.complete(p, R_FUNCTION_DEFINITION)
 }
 ```
 
-**The newline subtlety.** A statement break would normally stop us. Here it must
-not: after `function`, after `)`, and after the parameter list, newlines carry no
-meaning. The clean way is to *not test* for one in these positions at all — the
-only tests live in the Pratt loop and in `parse_else_clause`. Since
-`parse_function_definition` calls `parse_expression` unconditionally for the body,
-newlines are naturally skipped. Verify against the `Functions` corpus test, which
-contains all four spacing variants.
+It returns a `CompletedMarker` rather than the `ParsedSyntax` this section first
+drafted, because the arm that calls it has already matched on `function` or `\`
+and it cannot decline — the same rule §11.2 states for every builder the loop
+reaches, and the same shape `parse_parenthesized_expression` already had.
 
-Parameters use `Scope::Parenthesis` (newlines eaten) and a comma-separated list where each
-`RParameter` is `name` + optional `RParameterDefault`. Names may be `IDENT`,
-`DOTS`, or `DOTDOTI` — note `return` is a plain identifier in R and is a valid
-parameter name (`Functions With return As Parameter Name`).
+`function` and `\` share one arm and one function. They differ in nothing but the
+token, `name: ('function' | '\\')` is a single slot, and `p.bump_any()` fills it
+either way.
 
-**Enable:** all 8 imported tests across `corpus/functions/` — `definition.md`,
-`lambda.md`, `parameters.md` — two of them `[error]`. Air's merged
-`ok/function_definition.R` comes with them only if it stays within function
-syntax; check it rather than assuming (§10.3.4).
+#### The body is not greedy, and the table grew a rank
+
+**This is the one thing in the phase that a reader should not skim.** §11.2 said
+these constructs get no rank, that a recursive-descent parser makes a body greedy
+by construction, and that the binary `?` was the only case where a greedy body and
+a body at the lowest binding power could differ. The last part was right and the
+first two were wrong. R 4.6.0, asked directly:
+
+```
+function() a ? b      =>  `?`(function() a, b)
+function() a ? b ? c  =>  `?`(`?`(function() a, b), c)
+?function() a         =>  `?`(function() a)
+function() a = b      =>  function() (a = b)
+function() a -> b     =>  function() (b <- a)
+1 + function(x) x + 2 =>  1 + (function(x) (x + 2))
+```
+
+So the body swallows every operator from `<-` upward and stops short of `?`. That
+is `%prec LOW` in `gram.y`: the function rule's own precedence sits above `'?'` and
+below `LEFT_ASSIGN`, so a `?` in the lookahead reduces the definition instead of
+shifting into the body. tree-sitter-r reaches the same answer from the other
+direction, with `FUNCTION_OR_LOOP` at rank 2 and `HELP` at rank 1 — and it was
+worth checking R rather than trusting it, because a shared answer between two
+grammars that both descend from `gram.y` is not independent evidence.
+
+The rank is real, so the table has it: `FUNCTION_OR_LOOP` at 2, everything from
+`LEFT_ASSIGN` up shifted by one, `HIGHEST` now 17. It is the only rank in the table
+no arm of the loop ever compares against — nothing infix carries it — so it is
+spent in exactly one place:
+
+```rust
+/// The body of a `function`, which takes every operator but the binary `?`
+pub(crate) fn parse_function_body(p: &mut RParser) -> ParsedSyntax {
+    parse_expression_with_binding_power(p, BindingPower(BindingPower::FUNCTION_OR_LOOP.0 + 1))
+}
+```
+
+**That function lives in `expr.rs`, not here.** `BindingPower` is private to the
+Pratt module and stays private; exporting the type and the generic entry point
+would hand every caller the ability to parse at an arbitrary power, which is the
+thing §11.3 was pleased to have removed. One named export costs less and says
+what it is for. The `+ 1` is the left-associative adjustment
+`parse_binary_expression` already makes for the same reason.
+
+The loops in §11.6 share the row — `while (a) b ? c` is `` `?`(while (a) b, c) ``
+in R too — so `parse_function_body` is likely to be renamed rather than
+duplicated. `if` sits one rank higher in `gram.y` and lands on the same body
+power, since it is `%right`; that is §11.6's to confirm.
+
+#### The newline subtlety
+
+A statement break would normally stop us. Here it must not: after `function` or
+`\`, and after `)`, newlines carry no meaning. The clean way is to *not test* for
+one in these positions, and that is what landed — nothing in `function.rs` reads
+`has_preceding_line_break()`, so `function\n\n# c\n\n() 1 + 1` and
+`function()\n\n1` both parse as one definition. The three tests that do read it
+are the top of the Pratt loop, the `::` arm, and (in §11.6) `parse_else_clause`.
+
+`Scope::Parenthesis` covers the inside of the parameter list, so newlines between
+parameters, around a `=`, and before the `)` are eaten by the same rule that
+already covers argument lists.
+
+**`\` accepts a newline before its `(` and R does not.** R's `EatLines` switch
+lists `FUNCTION` and not `'\\'`, which the imported `Lambda Function` test calls
+out as an oversight upstream rather than a rule. Nothing pins the behaviour today,
+because that heading is still `[pending]` on its braces; when Phase 13 turns it on,
+either aether follows R here or the block splits, and the choice wants a line in
+`docs/deviations.md`.
+
+#### Parameters
+
+`RParameters` is `(`, an `RParameterList`, `)`, and each `RParameter` is a name
+plus an optional `RParameterDefault`. Names are `IDENT`, `DOTS`, or `DOTDOTI` —
+`parse_parameter_name` is `parse_selector` minus strings, one arm per kind, for the
+reason §11.3 gives. `return` needs nothing at all: it is not in `?Reserved`, so it
+arrives as an `IDENT` like any other name.
+
+**The list loop is six lines where the argument list's is twenty**, and the
+difference is not carelessness:
+
+```rust
+loop {
+    progress.assert_progressing(p);
+    parse_parameter(p);
+
+    if p.at_ts(PARAMETER_LIST_ENDS) {
+        break;
+    }
+
+    p.expect(T![,]);
+}
+```
+
+`p.expect(T![,])` bumps a separator that is there and reports one that is not
+without consuming anything, so both cases are the same line, and the next
+iteration starts where we already stand. `function(a b)` therefore keeps *both*
+parameters and says only that the comma is missing, where `f(a b)` recovers `b`
+into a bogus argument. A parameter name is one token, so the token after a
+complete parameter is very often a perfectly good next parameter; an argument
+value is a full `parse_expression` that has already taken everything it could.
+`parse_argument_list` could adopt this shape and probably should, but not in a
+phase whose diff is meant to be about functions.
+
+The loop cannot stall, and the argument is worth stating because the guard is the
+only thing that would catch it: every iteration either consumes inside
+`parse_parameter` or bumps the `,`. A parameter that consumes nothing has an
+absent name at a boundary, and a boundary is either an end (we break) or the `,`
+that `expect` bumps.
+
+`PARAMETER_LIST_ENDS` names every closing delimiter rather than the one the caller
+opened, for the reason §11.3 spells out, and `PARAMETER_LIST_BOUNDARIES` derives
+from it. Both are local to `function.rs` rather than shared with `call.rs`: the
+sets are equal today and there is no rule that keeps them equal, and a construct's
+terminators belong with the construct.
+
+#### The hole and the non-name are two different failures
+
+They look alike and the code treats them differently, which is the whole content
+of `parse_parameter`:
+
+```rust
+if parse_parameter_name(p).is_absent() {
+    p.error(diagnostics::expected_parameter(p, p.cur_range()));
+
+    if !p.at_ts(PARAMETER_LIST_BOUNDARIES) {
+        ParseRecoveryTokenSet::new(R_BOGUS_PARAMETER_NAME, PARAMETER_LIST_BOUNDARIES).recover(p);
+    }
+}
+```
+
+A name absent **at** a boundary is `function(a,,b)` — a hole. It is diagnosed and
+consumes nothing, leaving an `RParameter` with both slots empty, which is the
+technique `r.ungram` documents and what makes the hole representable at all.
+
+A name absent **before** a boundary is `function(1)` — something is there and it
+is not a name. It is diagnosed at the same place and the tokens up to the next
+boundary are recovered into an `R_BOGUS_PARAMETER_NAME`, the kind
+`docs/deviations.md` entry 13 adds. Without that kind the failure cascades further
+than deviation 5's did: bogus name → bogus `RParameter` → bogus `RParameterList`,
+because the list is generated over `RParameter::can_cast` → bogus `RParameters` →
+one `R_BOGUS_EXPRESSION` for the entire definition. One bad token would cost the
+body and every good parameter beside it.
+
+`function(a$b)` shows both mechanisms in one line: `a` is a complete parameter, the
+`expect(T![,])` reports the missing separator, and `$b` recovers into a bogus name.
+A name is one token, so this really is a name followed by rubbish rather than one
+bad name, and the tree says so.
+
+**The default is required once an `=` is written.** `function(x = ) 1` is not valid
+R (r-lib/tree-sitter-r#161), so `parse_parameter_default` reuses
+`expected_expression` rather than wording a third diagnostic. The default is parsed
+even when the name was absent, which costs nothing and keeps `function(= 1)` from
+losing its `1`.
+
+#### Corpus
+
+**Four of the eight imported headings shed `[pending]`, not all eight.** This
+section claimed all eight, and it could not have: `Functions`, `Lambda Function`,
+`Function Dots And Dot Dot I`, and `Function No Body Inside Another Function` all
+contain `{ }`, and the first also a `for`, which are §11.6 and §11.7. A heading's
+markers apply to every block under it, so a heading cannot be half enabled. The
+four wait for Phase 13.
+
+What did land: `Function Definitions` (air's merged `ok/function_definition.R`,
+which does stay within function syntax) and `Functions With return As Parameter
+Name` are clean parses compared against the oracle, and `Function No Body` and
+`Function No Body With Assignment` are `[error]`.
+
+**`Function No Body` moved from `[pending]` to `[error]`**, which is a marker
+change worth noticing. It arrives from `expressions.txt` rather than the errors
+corpus, because tree-sitter recovers `function(x, y)` into a `function_definition`
+with `body: (MISSING identifier)` and calls it a parse. Aether builds the same
+shape and says `expected_expression` about it, so the block errors where
+tree-sitter is quiet — the same class of difference deviation 2 and 3 already
+record, and the shape is identical, so no `[deviation]`.
+
+**A ninth heading came along.** `` `return` Is Just An Identifier `` in
+`expressions/call.md` was `[pending]` on its first line, `function(x) return(x)`,
+and nothing else. It is a clean parse now.
+
+**Five aether-authored headings**, none of them in `MANIFEST.toml`, so the count
+of 89 does not move:
+
+- `A Body Stops At The Binary ?` in `definition.md`, the only one that is a clean
+  parse and therefore the only one the oracle compares. It is what pins the rank
+  above; nothing in the imported corpus touches the `?` interaction.
+
+- `A Definition With No Parameter List` in `definition.md`, for
+  `expected_parameters`. `function` alone at end of file is in it, and it raises
+  one diagnostic rather than two — `Parser::error` drops a diagnostic that starts
+  where the previous one starts, and the missing parameter list and the missing
+  body both start at EOF.
+
+- `A Hole In A Parameter List`, `A Parameter That Is Not A Name`,
+  `A Missing Comma Between Parameters`, and `A Default With No Value` in
+  `parameters.md`, which are the four paragraphs above turned into blocks.
 
 #### The diagnostics this phase adds
 
@@ -2068,7 +2268,8 @@ pub(crate) fn expected_parameter(p: &RParser, range: TextRange) -> ParseDiagnost
 `expected_parameter` is the asymmetry with §11.3 worth remembering: R accepts
 `f(a,,b)` and rejects `function(a,,b)`, so the identical shape is a hole in an
 argument list and an error in a parameter list. That is why the two lists do not
-share a constructor even though they share a separator.
+share a constructor even though they share a separator — and, as it turned out,
+why they do not share a loop either.
 
 ### 11.6 Phase 12 — Control flow
 

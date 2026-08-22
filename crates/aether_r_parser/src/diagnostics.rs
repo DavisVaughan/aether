@@ -96,6 +96,16 @@ fn text_of(operator: RSyntaxKind) -> &'static str {
     operator.to_string().unwrap_or("operator")
 }
 
+/// The whole `(…)` group of a function definition is missing, as in `function 1`
+pub(crate) fn expected_parameters(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("parameter list", range, p)
+}
+
+/// A hole in a parameter list, as in `function(a,,b)`
+pub(crate) fn expected_parameter(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("parameter", range, p)
+}
+
 /// Two expressions with nothing between them, as in `1 2`
 pub(crate) fn expected_statement_separator(
     previous: TextRange,

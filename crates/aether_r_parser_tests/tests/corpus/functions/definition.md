@@ -41,13 +41,13 @@ function(x = function() {}) {}
 function() for(i in 1:5) i
 ```
 
-## Function No Body [pending]
+## Function No Body [error]
 
 ```r
 function(x, y)
 ```
 
-## Function No Body With Assignment [pending, error]
+## Function No Body With Assignment [error]
 
 ```r
 x <- function(x, y)
@@ -59,7 +59,7 @@ x <- function(x, y)
 function(x = function()) {}
 ```
 
-## Function Definitions [pending]
+## Function Definitions
 
 ```r
 function() 1
@@ -79,4 +79,30 @@ function(
 ) 1
 
 \(x, y) 1
+```
+
+## A Body Stops At The Binary `?`
+
+R's grammar gives the rule `%prec LOW`, which is looser than every operator
+except `?`, so the help operator takes the whole definition as its left operand
+while an assignment ends up inside the body.
+
+```r
+function() a ? b
+function() a ? b ? c
+?function() a
+```
+
+```r
+function() a <- b
+function() a = b
+1 + function(x) x + 2
+```
+
+## A Definition With No Parameter List [error]
+
+```r
+function 1
+\ 1
+function
 ```

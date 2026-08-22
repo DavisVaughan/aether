@@ -8,6 +8,7 @@ use crate::parser::RParser;
 use crate::syntax::call::{
     parse_call_expression, parse_subset_expression, parse_subset2_expression,
 };
+use crate::syntax::function::parse_function_definition;
 use crate::syntax::parenthesized_expression::parse_parenthesized_expression;
 use aether_r_syntax::RSyntaxKind::*;
 use aether_r_syntax::{AnyRSelector, T};
@@ -26,23 +27,24 @@ impl BindingPower {
     // Taken from R's `gram.y`
     const BINARY_HELP: Self = Self(1);
     const UNARY_HELP: Self = Self(1);
-    const BINARY_LEFT_ASSIGN: Self = Self(2);
-    const BINARY_EQUALS_ASSIGN: Self = Self(3);
-    const BINARY_RIGHT_ASSIGN: Self = Self(4);
-    const BINARY_TILDE: Self = Self(5);
-    const UNARY_TILDE: Self = Self(5);
-    const BINARY_OR: Self = Self(6);
-    const BINARY_AND: Self = Self(7);
-    const UNARY_NOT: Self = Self(8);
-    const BINARY_COMPARISON: Self = Self(9);
-    const BINARY_PLUS_MINUS: Self = Self(10);
-    const BINARY_MULTIPLY_DIVIDE: Self = Self(11);
-    const BINARY_SPECIAL_OR_PIPE: Self = Self(12);
-    const BINARY_COLON: Self = Self(13);
-    const UNARY_PLUS_MINUS: Self = Self(14);
-    const BINARY_EXPONENTIATE: Self = Self(15);
+    const FUNCTION_OR_LOOP: Self = Self(2);
+    const BINARY_LEFT_ASSIGN: Self = Self(3);
+    const BINARY_EQUALS_ASSIGN: Self = Self(4);
+    const BINARY_RIGHT_ASSIGN: Self = Self(5);
+    const BINARY_TILDE: Self = Self(6);
+    const UNARY_TILDE: Self = Self(6);
+    const BINARY_OR: Self = Self(7);
+    const BINARY_AND: Self = Self(8);
+    const UNARY_NOT: Self = Self(9);
+    const BINARY_COMPARISON: Self = Self(10);
+    const BINARY_PLUS_MINUS: Self = Self(11);
+    const BINARY_MULTIPLY_DIVIDE: Self = Self(12);
+    const BINARY_SPECIAL_OR_PIPE: Self = Self(13);
+    const BINARY_COLON: Self = Self(14);
+    const UNARY_PLUS_MINUS: Self = Self(15);
+    const BINARY_EXPONENTIATE: Self = Self(16);
 
-    const HIGHEST: Self = Self(16);
+    const HIGHEST: Self = Self(17);
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -69,6 +71,10 @@ impl Associativity {
 
 pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
     parse_expression_with_binding_power(p, BindingPower::LOWEST)
+}
+
+pub(crate) fn parse_function_body(p: &mut RParser) -> ParsedSyntax {
+    parse_expression_with_binding_power(p, BindingPower(BindingPower::FUNCTION_OR_LOOP.0 + 1))
 }
 
 /// The Pratt loop
@@ -168,6 +174,7 @@ fn parse_expression_with_binding_power(
             p.bump_any();
             m.complete(p, R_STRING_VALUE)
         }
+        T![function] | T!["\\"] => parse_function_definition(p),
         T!['('] => parse_parenthesized_expression(p),
         // Doesn't start an expression
         _ => return Absent,
