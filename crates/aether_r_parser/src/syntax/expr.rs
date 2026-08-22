@@ -5,7 +5,9 @@
 
 use crate::diagnostics;
 use crate::parser::RParser;
-use crate::syntax::call::{parse_call_arguments, parse_subset_arguments, parse_subset2_arguments};
+use crate::syntax::call::{
+    parse_call_expression, parse_subset_expression, parse_subset2_expression,
+};
 use crate::syntax::parenthesized_expression::parse_parenthesized_expression;
 use aether_r_syntax::RSyntaxKind::*;
 use aether_r_syntax::{AnyRSelector, T};
@@ -175,11 +177,11 @@ fn parse_expression_with_binding_power(
         }
 
         let new_lhs = match p.cur() {
-            T!['('] => parse_call_expression(p, &lhs),
-            T!['['] => parse_subset_expression(p, &lhs),
-            T!["[["] => parse_subset2_expression(p, &lhs),
-            T![$] | T![@] => parse_extract_expression(p, &lhs),
-            T![::] | T![:::] => parse_namespace_expression(p, &lhs),
+            T!['('] => Present(parse_call_expression(p, &lhs)),
+            T!['['] => Present(parse_subset_expression(p, &lhs)),
+            T!["[["] => Present(parse_subset2_expression(p, &lhs)),
+            T![$] | T![@] => Present(parse_extract_expression(p, &lhs)),
+            T![::] | T![:::] => Present(parse_namespace_expression(p, &lhs)),
             T![?] => parse_binary_expression(
                 p,
                 &lhs,
@@ -318,26 +320,8 @@ fn parse_binary_expression(
     Present(m.complete(p, R_BINARY_EXPRESSION))
 }
 
-fn parse_call_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedSyntax {
-    let m = lhs.clone().precede(p);
-    parse_call_arguments(p);
-    Present(m.complete(p, R_CALL))
-}
-
-fn parse_subset_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedSyntax {
-    let m = lhs.clone().precede(p);
-    parse_subset_arguments(p);
-    Present(m.complete(p, R_SUBSET))
-}
-
-fn parse_subset2_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedSyntax {
-    let m = lhs.clone().precede(p);
-    parse_subset2_arguments(p);
-    Present(m.complete(p, R_SUBSET2))
-}
-
 /// Infix: `a$b`, `a@b`
-fn parse_extract_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedSyntax {
+fn parse_extract_expression(p: &mut RParser, lhs: &CompletedMarker) -> CompletedMarker {
     let operator = p.cur();
     let operator_range = p.cur_range();
 
@@ -346,11 +330,11 @@ fn parse_extract_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedSyn
     parse_selector(p).or_add_diagnostic(p, |_, range| {
         diagnostics::expected_rhs_selector(operator, operator_range, range)
     });
-    Present(m.complete(p, R_EXTRACT_EXPRESSION))
+    m.complete(p, R_EXTRACT_EXPRESSION)
 }
 
 /// Infix: `a::b`, `a:::b`
-fn parse_namespace_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedSyntax {
+fn parse_namespace_expression(p: &mut RParser, lhs: &CompletedMarker) -> CompletedMarker {
     let operator = p.cur();
     let operator_range = p.cur_range();
 
@@ -379,7 +363,7 @@ fn parse_namespace_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedS
         });
     }
 
-    Present(m.complete(p, R_NAMESPACE_EXPRESSION))
+    m.complete(p, R_NAMESPACE_EXPRESSION)
 }
 
 /// identifier | string | `...` | `..i`
