@@ -21,11 +21,10 @@ struct BindingPower(u8);
 impl BindingPower {
     const LOWEST: Self = Self(0);
 
-    /// Technically would represent the binding power of postfix operations,
-    /// like `f(...)`, `x[...]`, and `x[[...]]`. This mostly just falls out
-    /// structurally, but we have a debug assertion that uses this just to be
-    /// sure.
-    const HIGHEST: Self = Self(18);
+    /// One above `^`, the top rank in the table, because that is what a
+    /// left-associative operator there would pass along. Suffixes carry no rank at
+    /// all, but we have a debug assertion that uses this just to be sure.
+    const HIGHEST: Self = Self(16);
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -45,47 +44,70 @@ fn parse_expression_with_binding_power(
 ) -> ParsedSyntax {
     debug_assert!(
         current_binding_power <= BindingPower::HIGHEST,
-        "{current_binding_power:?} exceeds {:?}. Postfix must stay the tightest-binding construct!",
+        "{current_binding_power:?} exceeds {:?}. Suffixes must bind tighter than every rank in the table!",
         BindingPower::HIGHEST
     );
 
-    let Present(mut lhs) = parse_prefix_expression(p).or_else(|| parse_primary_expression(p))
-    else {
+    let Present(mut lhs) = parse_lhs_expression(p) else {
         return Absent;
     };
 
     loop {
-        if p.scope().newlines_are_significant() && p.has_preceding_line_break() {
-            // Finish current expression due to line break
+        if at_statement_break(p) {
             break;
         }
 
-        // No need for binding power here. Postfix operations all share the
-        // maximum binding power.
-        if let Present(new_lhs) = parse_postfix_expression(p, &lhs) {
-            lhs = new_lhs;
-            continue;
-        }
+        let Present(new_lhs) = parse_infix_binary_expression(p, &lhs, current_binding_power) else {
+            break;
+        };
 
-        if let Present(new_lhs) = parse_infix_binary_expression(p, &lhs, current_binding_power) {
-            lhs = new_lhs;
-            continue;
-        }
-
-        if let Present(new_lhs) = parse_infix_extract_expression(p, &lhs, current_binding_power) {
-            lhs = new_lhs;
-            continue;
-        }
-
-        if let Present(new_lhs) = parse_infix_namespace_expression(p, &lhs, current_binding_power) {
-            lhs = new_lhs;
-            continue;
-        }
-
-        break;
+        lhs = new_lhs;
     }
 
     Present(lhs)
+}
+
+fn parse_lhs_expression(p: &mut RParser) -> ParsedSyntax {
+    if let Present(unary) = parse_prefix_expression(p) {
+        return Present(unary);
+    }
+
+    let Present(mut lhs) = parse_primary_expression(p) else {
+        return Absent;
+    };
+
+    loop {
+        if at_statement_break(p) {
+            break;
+        }
+
+        lhs = match p.cur() {
+            T!['('] => {
+                let m = lhs.precede(p);
+                parse_call_arguments(p);
+                m.complete(p, R_CALL)
+            }
+            T!['['] => {
+                let m = lhs.precede(p);
+                parse_subset_arguments(p);
+                m.complete(p, R_SUBSET)
+            }
+            T!["[["] => {
+                let m = lhs.precede(p);
+                parse_subset2_arguments(p);
+                m.complete(p, R_SUBSET2)
+            }
+            T![$] | T![@] => parse_extract_expression(p, lhs),
+            T![::] | T![:::] => parse_namespace_expression(p, lhs),
+            _ => break,
+        };
+    }
+
+    Present(lhs)
+}
+
+fn at_statement_break(p: &RParser) -> bool {
+    p.scope().newlines_are_significant() && p.has_preceding_line_break()
 }
 
 fn parse_primary_expression(p: &mut RParser) -> ParsedSyntax {
@@ -246,55 +268,24 @@ fn infix_binary_binding_power(kind: RSyntaxKind) -> Option<(BindingPower, Associ
 }
 
 /// Infix: `a$b`, `a@b`
-fn parse_infix_extract_expression(
-    p: &mut RParser,
-    lhs: &CompletedMarker,
-    current_binding_power: BindingPower,
-) -> ParsedSyntax {
-    let Some(new_binding_power) = infix_extract_binding_power(p.cur()) else {
-        return Absent;
-    };
-    if new_binding_power < current_binding_power {
-        return Absent;
-    }
-
+fn parse_extract_expression(p: &mut RParser, lhs: CompletedMarker) -> CompletedMarker {
     let operator = p.cur();
     let operator_range = p.cur_range();
 
-    let m = lhs.clone().precede(p);
+    let m = lhs.precede(p);
     p.bump_any();
     parse_selector(p).or_add_diagnostic(p, |p, range| {
         diagnostics::expected_rhs_selector(p, operator, operator_range, range)
     });
-    Present(m.complete(p, R_EXTRACT_EXPRESSION))
-}
-
-/// No associativity required. The RHS is a simple selector, never a nested expression.
-fn infix_extract_binding_power(kind: RSyntaxKind) -> Option<BindingPower> {
-    match kind {
-        T![$] | T![@] => Some(BindingPower(16)),
-        _ => None,
-    }
+    m.complete(p, R_EXTRACT_EXPRESSION)
 }
 
 /// Infix: `a::b`, `a:::b`
-fn parse_infix_namespace_expression(
-    p: &mut RParser,
-    lhs: &CompletedMarker,
-    current_binding_power: BindingPower,
-) -> ParsedSyntax {
-    let Some(new_binding_power) = infix_namespace_binding_power(p.cur()) else {
-        return Absent;
-    };
-    if new_binding_power < current_binding_power {
-        return Absent;
-    }
-
+fn parse_namespace_expression(p: &mut RParser, mut lhs: CompletedMarker) -> CompletedMarker {
     let operator = p.cur();
     let operator_range = p.cur_range();
 
     // `::` and `:::` restrict their left operand as well, and it is already parsed
-    let mut lhs = lhs.clone();
     if !AnyRSelector::can_cast(lhs.kind(p)) {
         p.error(diagnostics::expected_lhs_selector(
             p,
@@ -319,15 +310,7 @@ fn parse_infix_namespace_expression(
         });
     }
 
-    Present(m.complete(p, R_NAMESPACE_EXPRESSION))
-}
-
-/// No associativity required. The RHS is a simple selector, never a nested expression.
-fn infix_namespace_binding_power(kind: RSyntaxKind) -> Option<BindingPower> {
-    match kind {
-        T![::] | T![:::] => Some(BindingPower(17)),
-        _ => None,
-    }
+    m.complete(p, R_NAMESPACE_EXPRESSION)
 }
 
 /// identifier | string | `...` | `..i`
@@ -352,28 +335,6 @@ fn parse_selector(p: &mut RParser) -> ParsedSyntax {
             let m = p.start();
             p.bump_any();
             Present(m.complete(p, R_STRING_VALUE))
-        }
-        _ => Absent,
-    }
-}
-
-/// Postfix: `f(x)`, `x[i]`, `x[[i]]`
-fn parse_postfix_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedSyntax {
-    match p.cur() {
-        T!['('] => {
-            let m = lhs.clone().precede(p);
-            parse_call_arguments(p);
-            Present(m.complete(p, R_CALL))
-        }
-        T!['['] => {
-            let m = lhs.clone().precede(p);
-            parse_subset_arguments(p);
-            Present(m.complete(p, R_SUBSET))
-        }
-        T!["[["] => {
-            let m = lhs.clone().precede(p);
-            parse_subset2_arguments(p);
-            Present(m.complete(p, R_SUBSET2))
         }
         _ => Absent,
     }
