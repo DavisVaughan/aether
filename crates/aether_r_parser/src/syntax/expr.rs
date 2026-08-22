@@ -46,7 +46,7 @@ impl BindingPower {
 
     const HIGHEST: Self = Self(17);
 
-    /// What a left-associative rank hands to its right operand
+    /// Used by left associative constructs
     pub(crate) fn increment(self) -> Self {
         Self(self.0 + 1)
     }
