@@ -68,3 +68,25 @@ The default is required once an `=` is written (r-lib/tree-sitter-r#161).
 ```r
 function(x = ) 1
 ```
+
+## A Parameter List With No Closing Parenthesis [error]
+
+The list runs to the end of the file and the `)` is reported missing, leaving
+`RParameters` and the definition around it whole.
+
+```r
+function(a
+```
+
+```r
+\(x
+```
+
+A closer that belongs to someone else ends the list without being consumed, so
+the list keeps its own terminator missing and the stray closer survives as a
+statement of its own rather than being swallowed here.
+
+```r
+function(a} 1
+function(a] 1
+```

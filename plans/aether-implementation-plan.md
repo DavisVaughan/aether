@@ -2231,7 +2231,7 @@ record, and the shape is identical, so no `[deviation]`.
 `expressions/call.md` was `[pending]` on its first line, `function(x) return(x)`,
 and nothing else. It is a clean parse now.
 
-**Five aether-authored headings**, none of them in `MANIFEST.toml`, so the count
+**Six aether-authored headings**, none of them in `MANIFEST.toml`, so the count
 of 89 does not move:
 
 - `A Body Stops At The Binary ?` in `definition.md`, the only one that is a clean
@@ -2248,13 +2248,19 @@ of 89 does not move:
   `A Missing Comma Between Parameters`, and `A Default With No Value` in
   `parameters.md`, which are the four paragraphs above turned into blocks.
 
+- `A Parameter List With No Closing Parenthesis` in `parameters.md`, for the
+  `expect(T![')'])` that nothing else reaches. `function(a` leaves the `)` and the
+  body missing and raises one diagnostic, and `function(a} 1` is the §11.3 rule
+  seen from this side: the foreign closer ends the list without being consumed, so
+  it survives as a statement of its own instead of costing the list its terminator.
+
 #### The diagnostics this phase adds
 
-Two, and the pair is easy to conflate. One is the whole `(…)` group going
+Two, and the pair is easy to conflate. One is the whole `(...)` group going
 missing; the other is a hole inside a group that is present.
 
 ```rust
-/// The whole `(…)` group of a function definition is missing, as in `function 1`
+/// The whole `(...)` group of a function definition is missing, as in `function 1`
 pub(crate) fn expected_parameters(p: &RParser, range: TextRange) -> ParseDiagnostic {
     expected_node("parameter list", range, p)
 }

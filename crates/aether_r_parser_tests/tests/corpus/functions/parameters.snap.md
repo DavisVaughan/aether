@@ -525,3 +525,212 @@ test.R:1:14 parse ━━━━━━━━━━━━━━━━━━━━�
       │              ^
     2 │
 ```
+
+## A Parameter List With No Closing Parenthesis [error]
+
+The list runs to the end of the file and the `)` is reported missing, leaving
+`RParameters` and the definition around it whole.
+
+```r
+function(a
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@0..8 "function" [] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@8..9 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@9..10 "a" [] [],
+                            },
+                            default: missing (optional),
+                        },
+                    ],
+                    r_paren_token: missing (required),
+                },
+                body: missing (required),
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@10..11 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `)` but instead the file ends
+
+    1 │ function(a
+  > 2 │
+      │
+
+  i the file ends here
+
+    1 │ function(a
+  > 2 │
+      │
+```
+
+```r
+\(x
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RFunctionDefinition {
+                name: BACKSLASH@0..1 "\\" [] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@1..2 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@2..3 "x" [] [],
+                            },
+                            default: missing (optional),
+                        },
+                    ],
+                    r_paren_token: missing (required),
+                },
+                body: missing (required),
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@3..4 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `)` but instead the file ends
+
+    1 │ \(x
+  > 2 │
+      │
+
+  i the file ends here
+
+    1 │ \(x
+  > 2 │
+      │
+```
+
+A closer that belongs to someone else ends the list without being consumed, so
+the list keeps its own terminator missing and the stray closer survives as a
+statement of its own rather than being swallowed here.
+
+```r
+function(a} 1
+function(a] 1
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@0..8 "function" [] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@8..9 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@9..10 "a" [] [],
+                            },
+                            default: missing (optional),
+                        },
+                    ],
+                    r_paren_token: missing (required),
+                },
+                body: missing (required),
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBogusExpression {
+                items: [
+                    R_CURLY@10..12 "}" [] [Whitespace(" ")],
+                ],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RDoubleValue {
+                value_token: R_DOUBLE_LITERAL@12..13 "1" [] [],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@13..22 "function" [Newline("\n")] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@22..23 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@23..24 "a" [] [],
+                            },
+                            default: missing (optional),
+                        },
+                    ],
+                    r_paren_token: missing (required),
+                },
+                body: missing (required),
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBogusExpression {
+                items: [
+                    R_BRACK@24..26 "]" [] [Whitespace(" ")],
+                ],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RDoubleValue {
+                value_token: R_DOUBLE_LITERAL@26..27 "1" [] [],
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@27..28 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:1:11 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `)` but instead found `}`
+
+  > 1 │ function(a} 1
+      │           ^
+    2 │ function(a] 1
+    3 │
+
+  i Remove }
+
+test.R:2:11 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `)` but instead found `]`
+
+    1 │ function(a} 1
+  > 2 │ function(a] 1
+      │           ^
+    3 │
+
+  i Remove ]
+```
