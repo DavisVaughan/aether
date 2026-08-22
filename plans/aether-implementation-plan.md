@@ -2178,27 +2178,28 @@ terminators belong with the construct.
 
 #### The hole and the non-name are two different failures
 
-They look alike and the code treats them differently, which is the whole content
-of `parse_parameter`:
+They look alike, and one combinator tells them apart:
 
 ```rust
-if parse_parameter_name(p).is_absent() {
-    p.error(diagnostics::expected_parameter(p, p.cur_range()));
-
-    if !p.at_ts(PARAMETER_LIST_BOUNDARIES) {
-        ParseRecoveryTokenSet::new(R_BOGUS_PARAMETER_NAME, PARAMETER_LIST_BOUNDARIES).recover(p);
-    }
-}
+parse_parameter_name(p)
+    .or_recover_with_token_set(
+        p,
+        &ParseRecoveryTokenSet::new(R_BOGUS_PARAMETER_NAME, PARAMETER_LIST_BOUNDARIES),
+        diagnostics::expected_parameter,
+    )
+    .ok();
 ```
 
-A name absent **at** a boundary is `function(a,,b)` — a hole. It is diagnosed and
-consumes nothing, leaving an `RParameter` with both slots empty, which is the
-technique `r.ungram` documents and what makes the hole representable at all.
+A name absent **at** a boundary is `function(a,,b)` — a hole. `recover` finds the
+parser already sitting on a recovery token and returns `RecoveryError::AlreadyRecovered`,
+so nothing is consumed and the diagnostic lands on the current token, leaving an
+`RParameter` with both slots empty. That is the technique `r.ungram` documents and
+what makes the hole representable at all.
 
 A name absent **before** a boundary is `function(1)` — something is there and it
-is not a name. It is diagnosed at the same place and the tokens up to the next
-boundary are recovered into an `R_BOGUS_PARAMETER_NAME`, the kind
-`docs/deviations.md` entry 13 adds. Without that kind the failure cascades further
+is not a name. `recover` takes the tokens up to the next boundary into an
+`R_BOGUS_PARAMETER_NAME`, the kind `docs/deviations.md` entry 13 adds, and the
+diagnostic lands on the range it consumed. Without that kind the failure cascades further
 than deviation 5's did: bogus name → bogus `RParameter` → bogus `RParameterList`,
 because the list is generated over `RParameter::can_cast` → bogus `RParameters` →
 one `R_BOGUS_EXPRESSION` for the entire definition. One bad token would cost the
@@ -2209,11 +2210,53 @@ body and every good parameter beside it.
 A name is one token, so this really is a name followed by rubbish rather than one
 bad name, and the tree says so.
 
+**An earlier draft spelled the combinator out by hand**, testing `is_absent()`,
+raising the diagnostic, and guarding the `recover` call on `!p.at_ts(PARAMETER_LIST_BOUNDARIES)`.
+Every one of those pieces is already inside `or_recover_with_token_set`: the guard
+is `recover`'s own `AlreadyRecovered` check and the `debug_assert!` beside it was
+restating its `Eof` check. Swapping in the combinator changed no snapshot in the
+corpus, which is the evidence that the hand-rolled version was reimplementing it
+rather than differing from it.
+
 **The default is required once an `=` is written.** `function(x = ) 1` is not valid
 R (r-lib/tree-sitter-r#161), so `parse_parameter_default` reuses
 `expected_expression` rather than wording a third diagnostic. The default is parsed
 even when the name was absent, which costs nothing and keeps `function(= 1)` from
 losing its `1`.
+
+#### Two roles for a token set, and why they are merged here
+
+Biome keeps them apart. `is_at_list_end` is one token — the list's own closer,
+15 times `}` and 4 times `)` across `biome_js_parser` — and the *recovery* set is
+the broad one that carries foreign delimiters, `EXPR_RECOVERY_SET` being
+`VAR_KW, R_PAREN, L_PAREN, L_BRACK, R_BRACK`. The two meet at `AlreadyRecovered`:
+a foreign closer in the recovery set makes `recover` return `Err`, and every
+biome list loop breaks on `Err`, so the closer survives for its owner. Same
+outcome as §11.3's rule, reached from the other end.
+
+The cost of the split is a redundant diagnostic. `[a )` in JS runs
+`expect_separator` before it can discover that `)` is not a list end, so it reports
+both a missing `,` and a missing `]`. `PARAMETER_LIST_ENDS` carrying every closer
+ends the loop before `p.expect(T![,])` is reached, so `function(a} 1` reports only
+the missing `)`.
+
+The merged form is not an aether invention either — `biome_css_parser` writes the
+same pair, down to the `union`:
+
+```rust
+const LAYER_NAME_LIST_END_SET: TokenSet<CssSyntaxKind> = token_set!(T![')'], T![,], T!['{'], T![;]);
+const LAYER_NAME_LIST_RECOVERY_SET: TokenSet<CssSyntaxKind> =
+    LAYER_NAME_LIST_END_SET.union(token_set!(T![.]));
+```
+
+**`ParseSeparatedList` was considered and does not fit.** Biome's own JS parameter
+list is hand-rolled for what looks like the same reason: the trait treats an absent
+element at a separator as *a missing element* and `continue`s, producing neither a
+node nor a diagnostic. R needs both — an empty `RParameter`, as `RArgument` already
+does, and `expected_parameter`, because R rejects `function(a,,b)`. Returning
+`Present` for the hole to get the node would mean `parse_element` never returns
+`Absent`, so the trait's `recover` would never run and nothing would be left of it
+but ceremony.
 
 #### Corpus
 

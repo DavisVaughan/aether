@@ -82,19 +82,13 @@ fn parse_parameter_list(p: &mut RParser) {
 fn parse_parameter(p: &mut RParser) {
     let m = p.start();
 
-    if parse_parameter_name(p).is_absent() {
-        p.error(diagnostics::expected_parameter(p, p.cur_range()));
-
-        if !p.at_ts(PARAMETER_LIST_BOUNDARIES) {
-            let recovered =
-                ParseRecoveryTokenSet::new(R_BOGUS_PARAMETER_NAME, PARAMETER_LIST_BOUNDARIES)
-                    .recover(p);
-            debug_assert!(
-                recovered.is_ok(),
-                "not at a boundary, so not at `EOF` either"
-            );
-        }
-    }
+    parse_parameter_name(p)
+        .or_recover_with_token_set(
+            p,
+            &ParseRecoveryTokenSet::new(R_BOGUS_PARAMETER_NAME, PARAMETER_LIST_BOUNDARIES),
+            diagnostics::expected_parameter,
+        )
+        .ok();
 
     // Optional (hence the `ok()`)
     parse_parameter_default(p).ok();
