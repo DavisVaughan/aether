@@ -175,21 +175,9 @@ fn parse_expression_with_binding_power(
         }
 
         let new_lhs = match p.cur() {
-            T!['('] => {
-                let m = lhs.clone().precede(p);
-                parse_call_arguments(p);
-                Present(m.complete(p, R_CALL))
-            }
-            T!['['] => {
-                let m = lhs.clone().precede(p);
-                parse_subset_arguments(p);
-                Present(m.complete(p, R_SUBSET))
-            }
-            T!["[["] => {
-                let m = lhs.clone().precede(p);
-                parse_subset2_arguments(p);
-                Present(m.complete(p, R_SUBSET2))
-            }
+            T!['('] => parse_call_expression(p, &lhs),
+            T!['['] => parse_subset_expression(p, &lhs),
+            T!["[["] => parse_subset2_expression(p, &lhs),
             T![$] | T![@] => parse_extract_expression(p, &lhs),
             T![::] | T![:::] => parse_namespace_expression(p, &lhs),
             T![?] => parse_binary_expression(
@@ -328,6 +316,24 @@ fn parse_binary_expression(
     parse_expression_with_binding_power(p, binding_power)
         .or_add_diagnostic(p, diagnostics::expected_expression);
     Present(m.complete(p, R_BINARY_EXPRESSION))
+}
+
+fn parse_call_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedSyntax {
+    let m = lhs.clone().precede(p);
+    parse_call_arguments(p);
+    Present(m.complete(p, R_CALL))
+}
+
+fn parse_subset_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedSyntax {
+    let m = lhs.clone().precede(p);
+    parse_subset_arguments(p);
+    Present(m.complete(p, R_SUBSET))
+}
+
+fn parse_subset2_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedSyntax {
+    let m = lhs.clone().precede(p);
+    parse_subset2_arguments(p);
+    Present(m.complete(p, R_SUBSET2))
 }
 
 /// Infix: `a$b`, `a@b`
