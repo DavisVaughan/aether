@@ -25,6 +25,7 @@ pub(crate) fn parse_function_definition(p: &mut RParser) -> CompletedMarker {
 
 fn parse_parameters(p: &mut RParser) -> ParsedSyntax {
     if !p.at(T!['(']) {
+        // Caller will report a diagnostic
         return Absent;
     }
 
