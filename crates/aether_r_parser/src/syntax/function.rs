@@ -49,6 +49,7 @@ fn parse_parameter_list(p: &mut RParser) {
     let parameter_list = p.start();
     let mut progress = ParserProgress::default();
 
+    // Account for empty parameter list
     if !p.at_ts(PARAMETER_LIST_ENDS) {
         loop {
             progress.assert_progressing(p);
