@@ -1,6 +1,6 @@
 use crate::diagnostics;
 use crate::parser::{RParser, Scope};
-use crate::syntax::expr::{BindingPower, parse_expression, parse_expression_with_binding_power};
+use crate::syntax::expr::{parse_body, parse_expression};
 use aether_r_syntax::RSyntaxKind::{
     self, DOTDOTI, DOTS, IDENT, R_BOGUS_PARAMETER_NAME, R_DOT_DOT_I, R_DOTS, R_FUNCTION_DEFINITION,
     R_IDENTIFIER, R_PARAMETER, R_PARAMETER_DEFAULT, R_PARAMETER_LIST, R_PARAMETERS,
@@ -127,15 +127,4 @@ fn parse_parameter_default(p: &mut RParser) -> ParsedSyntax {
     parse_expression(p).or_add_diagnostic(p, diagnostics::expected_expression);
 
     Present(m.complete(p, R_PARAMETER_DEFAULT))
-}
-
-/// Parse a function body
-///
-/// Generally treated like a normal expression, but R's precedence table puts
-/// `?` at a lower binding power than a function body, so `function() a ? b`
-/// needs to parse as `(function () a) ? b`.
-fn parse_body(p: &mut RParser) -> ParsedSyntax {
-    // Treated as left associative
-    let binding_power = BindingPower::FUNCTION_OR_LOOP.increment();
-    parse_expression_with_binding_power(p, binding_power)
 }

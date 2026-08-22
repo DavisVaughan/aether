@@ -19,7 +19,7 @@ use biome_rowan::AstNode;
 
 /// How tightly an operator binds. Higher wins!
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct BindingPower(u8);
+struct BindingPower(u8);
 
 impl BindingPower {
     const LOWEST: Self = Self(0);
@@ -27,7 +27,7 @@ impl BindingPower {
     // Taken from R's `gram.y`
     const BINARY_HELP: Self = Self(1);
     const UNARY_HELP: Self = Self(1);
-    pub(crate) const FUNCTION_OR_LOOP: Self = Self(2);
+    const FUNCTION_OR_LOOP: Self = Self(2);
     const BINARY_LEFT_ASSIGN: Self = Self(3);
     const BINARY_EQUALS_ASSIGN: Self = Self(4);
     const BINARY_RIGHT_ASSIGN: Self = Self(5);
@@ -47,7 +47,7 @@ impl BindingPower {
     const HIGHEST: Self = Self(17);
 
     /// Used by left associative constructs
-    pub(crate) fn increment(self) -> Self {
+    fn increment(self) -> Self {
         Self(self.0 + 1)
     }
 }
@@ -78,8 +78,19 @@ pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
     parse_expression_with_binding_power(p, BindingPower::LOWEST)
 }
 
+/// Parse a function body
+///
+/// Generally treated like a normal expression, but R's precedence table puts
+/// `?` at a lower binding power than a function body, so `function() a ? b`
+/// needs to parse as `(function () a) ? b`.
+pub(crate) fn parse_body(p: &mut RParser) -> ParsedSyntax {
+    // Treated as left associative
+    let binding_power = BindingPower::FUNCTION_OR_LOOP.increment();
+    parse_expression_with_binding_power(p, binding_power)
+}
+
 /// The Pratt loop
-pub(crate) fn parse_expression_with_binding_power(
+fn parse_expression_with_binding_power(
     p: &mut RParser,
     current_binding_power: BindingPower,
 ) -> ParsedSyntax {

@@ -2082,33 +2082,29 @@ no arm of the loop ever compares against — nothing infix carries it — so it 
 spent in exactly one place:
 
 ```rust
-fn parse_body(p: &mut RParser) -> ParsedSyntax {
+pub(crate) fn parse_body(p: &mut RParser) -> ParsedSyntax {
     // Treated as left associative
     let binding_power = BindingPower::FUNCTION_OR_LOOP.increment();
     parse_expression_with_binding_power(p, binding_power)
 }
 ```
 
-**That function lives in `function.rs`, beside the node it belongs to**, so
-`BindingPower`, its `FUNCTION_OR_LOOP` rank, and `parse_expression_with_binding_power`
-are all `pub(crate)`. The first draft kept it in `expr.rs` to leave the Pratt
-internals private, on the grounds that §11.3 was pleased to have removed the
-loop's external entry point. That reading was too literal: what §11.3 removed was
-a *fallback* that re-entered the loop with an already-parsed lhs, and the
-`pub(crate)` surface here is the ordinary one — a construct that parses its body
-at a rank the table names. Keeping the function next to its rank in `expr.rs`
-would have split `parse_function_definition` from the one line that decides how
-far its body extends.
+**That function lives in `expr.rs`, beside the table it reads**, and `function.rs`
+imports one name from it. `BindingPower`, its ranks, `increment`, and
+`parse_expression_with_binding_power` all stay private to the Pratt module, which
+is what §11.3 was pleased to have arrived at: the loop has exactly one entry point
+per *kind* of caller, not a generic one. A detour through the alternative — moving
+`parse_body` next to `parse_function_definition` — is what proved the point, since
+it required making the type, its field, the rank, and the loop entry all
+`pub(crate)` to buy nothing but adjacency.
 
-The rank is bumped with `BindingPower::increment()`, which is the
-left-associative adjustment `parse_binary_expression` already made inline, now
-named once and shared. It also keeps `BindingPower`'s field private: the type and
-its `FUNCTION_OR_LOOP` rank are the only things `function.rs` needs, and the
-representation stays inside `expr.rs` where the table is.
+The rank is bumped with `BindingPower::increment()`, the left-associative
+adjustment `parse_binary_expression` already made inline, now named once and
+shared by both callers inside the module.
 
 The loops in §11.6 share the row — `while (a) b ? c` is `` `?`(while (a) b, c) ``
-in R too — so `parse_body` carries no construct in its name: what §11.6 has to do
-is move it somewhere both files can reach, not rename it or write a second one.
+in R too — so `parse_body` carries no construct in its name, and it already sits
+where `control.rs` can reach it: §11.6 adds callers, not a second body rule.
 `if` sits one rank higher in `gram.y` and lands on the same body power, since it
 is `%right`; that is §11.6's to confirm.
 
