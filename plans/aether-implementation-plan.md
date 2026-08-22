@@ -2088,12 +2088,19 @@ pub(crate) fn parse_function_body(p: &mut RParser) -> ParsedSyntax {
 }
 ```
 
-**That function lives in `expr.rs`, not here.** `BindingPower` is private to the
-Pratt module and stays private; exporting the type and the generic entry point
-would hand every caller the ability to parse at an arbitrary power, which is the
-thing §11.3 was pleased to have removed. One named export costs less and says
-what it is for. The `+ 1` is the left-associative adjustment
-`parse_binary_expression` already makes for the same reason.
+**That function lives in `function.rs`, beside the node it belongs to**, so
+`BindingPower`, its `FUNCTION_OR_LOOP` rank, and `parse_expression_with_binding_power`
+are all `pub(crate)`. The first draft kept it in `expr.rs` to leave the Pratt
+internals private, on the grounds that §11.3 was pleased to have removed the
+loop's external entry point. That reading was too literal: what §11.3 removed was
+a *fallback* that re-entered the loop with an already-parsed lhs, and the
+`pub(crate)` surface here is the ordinary one — a construct that parses its body
+at a rank the table names. Keeping the function next to its rank in `expr.rs`
+would have split `parse_function_definition` from the one line that decides how
+far its body extends.
+
+The `+ 1` is the left-associative adjustment `parse_binary_expression` already
+makes for the same reason, and it is a named local so it says so.
 
 The loops in §11.6 share the row — `while (a) b ? c` is `` `?`(while (a) b, c) ``
 in R too — so `parse_function_body` is likely to be renamed rather than
