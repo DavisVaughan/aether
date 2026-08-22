@@ -83,6 +83,7 @@ fn parse_parameter(p: &mut RParser) {
         }
     }
 
+    // Optional (hence the `ok()`)
     parse_parameter_default(p).ok();
 
     m.complete(p, R_PARAMETER);
