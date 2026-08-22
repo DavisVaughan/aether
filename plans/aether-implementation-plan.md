@@ -636,9 +636,9 @@ termination and `else` attachment.
   exactly as `JsTokenSource` does (§9.1).
 
 - `RParser` reads the flag only in conjunction with the current `Scope` (§9.2).
-  Three sites do so: `at_statement_break()` at the top of the Pratt loop (§11.2),
-  the `::` arm it gained in Phase 10 (§11.4), and `parse_else_clause()` (§11.6).
-  Nothing else reads the raw flag.
+  Three sites do so: the top of the Pratt loop (§11.2), the `::` arm it gained in
+  Phase 10 (§11.4), and `parse_else_clause()` (§11.6). Nothing else reads the raw
+  flag.
 
 Do not replicate tree-sitter's scope-stack approach of conditionally swallowing
 newlines in the lexer. In a recursive-descent parser the equivalent information
@@ -1385,7 +1385,7 @@ recovery branch, and the **statement separator rule** — R separates statements
 a newline or a `;` and by nothing else. Deferring that would have let `1 2` parse
 clean through Phase 8, where `statements/newlines.md` goes green.
 
-**`ERROR_TOKEN` is an arm of `parse_primary_expression` rather than a job for
+**`ERROR_TOKEN` is an arm of the Pratt loop's lhs match rather than a job for
 statement-list recovery**, and that is what keeps the damage to one token:
 recovery would skip to the next statement boundary and swallow whatever followed
 the stray character on the same line. It needs no entry in any recovery set,
@@ -1422,7 +1422,10 @@ it.
 
 #### The precedence table
 
-Taken from R's `src/main/gram.y`. Higher binds tighter.
+Taken from R's `src/main/gram.y`. Higher binds tighter. The Name column is the
+constant: rank 11 is `BindingPower::BINARY_MULTIPLY_DIVIDE`, rank 14 is
+`BindingPower::UNARY_PLUS_MINUS`, and every binary row has an `Associativity`
+constant of the same name.
 
 | Rank | Name | Operators | Assoc |
 |---|---|---|---|
@@ -1472,9 +1475,9 @@ here if it is not greedy.
 against a binding power, so the constant exists only to give the `debug_assert!`
 in `parse_expression_with_binding_power` something to assert *against*, and what
 it asserts is that no caller passes more than the table can produce. The incoming
-power is `LOWEST` from `parse_expression`, a prefix power (max 14) from
-`prefix_binding_power`, and otherwise the loop's own right-hand power, which is
-the rank itself for right associativity and `rank + 1` for left. The top rank is
+power is `LOWEST` from `parse_expression`, a prefix rank (max 14) from one of the
+four unary arms, and otherwise the loop's own right-hand power, which is the rank
+itself for right associativity and `rank + 1` for left. The top rank is
 `^` at 15, so the ceiling is 16 — one above the table, because that is what a
 left-associative operator at the top rank would pass. Adding an infix rank at 16
 breaks the assertion, and the fix is to renumber so suffixes stay tightest, not to
@@ -1492,21 +1495,49 @@ and let the oracle confirm it.
 
 #### What the loop is shaped like, and why
 
-**One loop, dispatched by a `match` on the current token.** The suffix arms come
-first — `(…)`, `[…]`, `[[…]]`, and the four selector operators — and none of them
-looks at a binding power, because none of them can lose to one. The binary case is
-the `_` arm, and it is the only one that compares a rank against the caller's, so
-it is also the only one that can end the loop with an operator still unconsumed.
-Prefix operators are handled once, above the loop, by a `match` on
-`prefix_binding_power` whose operand is a recursive parse at that rank.
+**Two matches on `p.cur()`, one per position.** The first answers *what starts an
+expression* — the four prefix operators, then every atom — and the second, inside
+the loop, answers *what continues one*: the five suffixes, then the binary
+operators. Both live in `parse_expression_with_binding_power`, which is the parser
+for expressions: beside it sit `parse_unary_expression`, `parse_binary_expression`,
+`parse_extract_expression`, `parse_namespace_expression`, and `parse_selector`,
+and the other three suffix builders are in `call.rs` (§11.3).
 
-**The arms are inline, not one function each.**
-`parse_expression_with_binding_power` holds the prefix head, all three postfix
-arms, and the binary arm in its body; only `parse_primary_expression`, the
-selector family, and the two binding power tables sit outside it. The four-way
-`if let Present(…) { continue; }` chain it replaced tried each family in turn on
-every iteration, which read as four independent decisions when the token already
-decides all of them.
+**No token is looked up twice.** A rank is written into the arm that matches the
+token — `parse_unary_expression(p, BindingPower::UNARY_NOT)` — rather than fetched
+from a table keyed by that same token. The two lookup functions this replaced
+named every operator twice, once in the lookup's own `match` and once in the arm
+that called it, and the arms in between said nothing about precedence at all.
+
+**The binary arms carry their rank as a guard:**
+
+```rust
+T![+] | T![-] if BindingPower::BINARY_PLUS_MINUS >= current_binding_power => {
+    parse_binary_expression(
+        p,
+        lhs,
+        BindingPower::BINARY_PLUS_MINUS,
+        Associativity::BINARY_PLUS_MINUS,
+    )
+}
+```
+
+An operator that binds too loosely fails its guard and falls to `_ => break`,
+which is Pratt's *stop here and let my caller have it*. No token appears in two
+arms of that `match`, so a failed guard can never be caught by a later one. The
+five suffix arms carry no guard at all, because they bind tighter than every rank
+in the table and so can never lose to one.
+
+**Nothing can decline, so nothing borrows.** Every builder takes its operand by
+value and hands back a `CompletedMarker`, which is what lets the loop be a single
+`lhs = match p.cur()`. An arm that could return `Absent` would have to give `lhs`
+back on the way out, and that is why an earlier shape had every arm take `&lhs`
+and `precede` a clone of it.
+
+**The loop breaks on `newlines_are_significant() && has_preceding_line_break()`**,
+the subtlest line in the file. It is what makes `f\n(x)` two statements rather
+than a call, and `a\n+ b` two statements rather than a sum. The `::` arm tests
+the same pair for a different reason (§11.4).
 
 **The suffix arms apply to whatever the loop is holding**, not only to an atom, so
 they reach a unary or binary node whose operand never arrived: `a * [b]` is a
@@ -1515,24 +1546,19 @@ subset of `a * <missing>`, and `a$(b)` a call on an incomplete extract
 such an lhs — where the right operand does arrive, that operand's own recursive
 parse consumed the suffix first.
 
-**The loop breaks on `at_statement_break`**, which is the subtlest line in the
-file: `newlines_are_significant() && has_preceding_line_break()`. It is what makes
-`f\n(x)` two statements rather than a call, and `a\n+ b` two statements rather
-than a sum.
+**Every arm of the lhs match returns, and none falls through to a shared tail.**
+The one-token arms repeat `start`/`bump_any`/`complete` rather than naming a kind
+for a tail below the `match`, and that is the point: an arm can be read on its
+own, and the `match` is uniform — token in, `CompletedMarker` out, once per arm.
+Hoisting the tail would save about fifty lines and buy back a two-tier read where
+some arms produce a value and others produce a node.
 
-**Every arm of `parse_primary_expression` returns, and none falls through to a
-shared tail.** The one-token arms repeat `start`/`bump_any`/`complete` rather than
-naming a kind for a tail below the `match`, and that is the point: an arm can be
-read on its own, and the `match` is uniform — token in, `ParsedSyntax` out, once
-per arm. Hoisting the tail would save about fifty lines and buy back a two-tier
-read where some arms produce a value and others produce a node.
-
-**`Absent` from `parse_primary_expression` is a result, not a failure.** It is how
-`f(,,)` gets its empty arguments, how `f(a = )` gets its empty value, and how
-`parse_statement_list` knows to recover. Only the caller knows whether an operand
-was required, so the function raises no diagnostic of its own — `ERROR_TOKEN` is
-the one arm that could and deliberately does not, because the lexer has already
-pointed at the character (§11.1).
+**`Absent` is a result, not a failure.** The lhs match ends in
+`_ => return Absent`, and that is how `f(,,)` gets its empty arguments, how
+`f(a = )` gets its empty value, and how `parse_statement_list` knows to recover.
+Only the caller knows whether an operand was required, so nothing on that path
+raises a diagnostic — `ERROR_TOKEN` is the one arm that could and deliberately
+does not, because the lexer has already pointed at the character (§11.1).
 
 **Precedence facts the corpus pins**, in `Operator precedence` and
 `Precedence Tests`:
@@ -1578,15 +1604,22 @@ statement that turns out to be only a `;` all mean the same thing to the reader.
 
 ### 11.3 Phase 9 — Calls, subset, subset2 — LANDED
 
-`src/syntax/call.rs`, `src/syntax/parenthesized_expression.rs`, and three arms of
-the Pratt loop in `expr.rs`.
+`src/syntax/call.rs` and `src/syntax/parenthesized_expression.rs`, reached from
+three arms of the Pratt loop in `expr.rs`.
 
 **`(` is the one token in this phase with two jobs**, and the Pratt structure
 separates them with no lookahead at all. The loop's `(` arm meets it with an
-operand already to its left and builds an `R_CALL`; `parse_primary_expression`
+operand already to its left and builds an `R_CALL`; the lhs match's `(` arm
 (§11.2) meets it where an operand is due and builds a group. `f(x)` and `f (x)`
 are both calls; `f\n(x)` is neither, because the statement break ends the loop
 before the arm is reached, and it becomes two statements exactly as R reads it.
+
+**Each of the three is one function in `call.rs`.** `parse_call_expression` opens
+the outer node with `lhs.precede(p)` and the arguments node with `p.start()`
+before handing off to `parse_argument_list`, and its two siblings do the same with
+their own kinds and scopes. A construct's node and the delimiters that define it
+are never split across two files, which is also why
+`parse_parenthesized_expression` is a file of its own rather than an arm.
 
 The body of a group is a full `parse_expression`, not one restricted to §11.2's
 table: R's `'(' expr_or_assign_or_help ')'` admits `=` and `?`, so `(a = 1)` is an
@@ -1612,7 +1645,7 @@ method for its keyword-escape check. The join fires only inside a `[[`, where th
 both brackets, and only on brackets that are adjacent, so `x[[a] ]` and `x[[a]\n]`
 stay errors. §9.2's placement rule is what makes one site sufficient: because a
 bump lexes the *next* token, the opener is consumed inside the scope and the
-closer outside it, which is why `parse_subset2_arguments` bumps `[[` inside
+closer outside it, which is why `parse_subset2_expression` bumps `[[` inside
 `with_scope` and `expect`s `]]` outside it.
 
 So a terminator check is a plain predicate. `ARGUMENT_LIST_ENDS` names every
@@ -1736,8 +1769,8 @@ Each arm repeats the guard, the two markers, and the `bump(T![=])`, and that is
 the deliberate half. Hoisting any of it means a token set naming the same five
 kinds a second time and a caller that has to re-derive what the callee already
 knew; what is left instead is one self-contained arm per name form, which cannot
-drift from the kind it guards. It is the same trade `parse_primary_expression`
-makes in §11.2, for the same reason.
+drift from the kind it guards. It is the same trade the lhs match makes in §11.2,
+for the same reason.
 
 This is sound because R admits only a bare symbol, string, `...`, `..i`, or
 `NULL` as an argument name — `f(a$b = 1)` is not legal — so the name is always
@@ -1782,12 +1815,13 @@ deviation lands, so it stayed separate for reviewability.
 #### What changed in the Pratt loop
 
 **One arm per operator family, not one function with three branches.**
-`parse_infix_expression` is gone. `$` and `@` are `parse_extract_expression`,
-`::` and `:::` are `parse_namespace_expression`, and the binary operators are the
-loop's `_` arm (§11.2). The three sets are disjoint, so branching inside one
-function bought nothing and cost a reader the ability to follow any one operator
-family top to bottom. Only the binary arm consults a binding power: the selector
-operators take a single `parse_selector` call on the right rather than a recursive
+`parse_infix_expression` is gone. `$` and `@` are one arm calling
+`parse_extract_expression`, `::` and `:::` are another calling
+`parse_namespace_expression`, and the binary operators are thirteen arms of their
+own (§11.2). The three sets are disjoint, so branching inside one function bought
+nothing and cost a reader the ability to follow any one operator family top to
+bottom. Only the binary arms name a binding power: the selector operators take a
+single `parse_selector` call on the right rather than a recursive
 `parse_expression_with_binding_power`, so a rank would never reach anything that
 compares it (§11.2 for why they carry none).
 
@@ -1939,28 +1973,34 @@ nothing about which one they typed. The secondary label points at the operator,
 which is what capturing `cur_range()` before the bump exists for.
 
 ```rust
-/// What `AnyRSelector` accepts
-const SELECTORS: &[&str] = &["identifier", "string", "`...`", "`..i`"];
-
 /// The name on the right of `$`, `@`, `::`, or `:::` is missing
 pub(crate) fn expected_rhs_selector(
-    p: &RParser,
     operator: RSyntaxKind,
     operator_range: TextRange,
     range: TextRange,
 ) -> ParseDiagnostic {
-    expected_any(SELECTORS, range, p).with_detail(
+    ParseDiagnostic::new("Expected a name.", range).with_detail(
         operator_range,
         format!("`{}` requires a name on the right.", text_of(operator)),
     )
 }
 ```
 
-`expected_lhs_selector` is its mirror, for the operand the `can_cast` branch
-above rejects, and shares `SELECTORS` with it.
-`namespace_rhs_selector_after_line_break` is the third, for the newline row. `text_of` is
-`operator.to_string().unwrap_or("operator")` — punctuation kinds render as their
-own text, so all three stay correct if the token set changes.
+**The message is a plain `Expected a name.`**, not `expected_any` over the four
+forms `AnyRSelector` accepts. `expected_any` spelled that list into the message
+and then again into a second advice frame that repeated the same source lines, for
+a diagnostic twice the height that said nothing the detail below it does not — the
+detail names the operator and which side wants the name, which is the part a
+reader cannot work out. Dropping `expected_any` drops the `&RParser` argument with
+it, since the parser was only there to render the token that was found.
+
+`expected_lhs_selector` is its mirror, for the operand the `can_cast` branch above
+rejects, and shares that message with it.
+`namespace_rhs_selector_after_line_break` is the third, for the newline row, and
+names in full what it is for: only `::` and `:::` raise it, and only for their
+right-hand side. `text_of` is `operator.to_string().unwrap_or("operator")` —
+punctuation kinds render as their own text, so all three stay correct if the token
+set changes.
 
 `format!` rather than `markup!`: `with_detail` takes a `biome_console::fmt::Display`,
 which `String` already satisfies, and `biome_parser` builds its own details the

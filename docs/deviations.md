@@ -332,7 +332,7 @@ in the same generated pass.
 ### 6. Text no production can take becomes an `ERROR_TOKEN`
 
 Landed in Phase 4 as a new token kind in `r_kinds_src.rs`; Phase 7 added the
-`parse_primary_expression` arm that wraps it. Unterminated strings and
+`ERROR_TOKEN` arm of the lhs match that wraps it. Unterminated strings and
 unterminated backtick-quoted names joined it in the string simplification pass.
 
 Example:
@@ -408,7 +408,7 @@ Recovery does not suffer. These tokens eat the rest of the file, so there is
 nothing after them to recover into.
 
 What it costs, recorded honestly: the tree stops recording *which* construct
-broke, because `parse_primary_expression()`'s `ERROR_TOKEN` arm builds
+broke, because the lhs match's `ERROR_TOKEN` arm builds
 `R_BOGUS_EXPRESSION` and not `R_BOGUS_VALUE`. The diagnostic still names it, so a
 human loses nothing and a tree walker does. Nothing downstream is affected today
 — air refuses to format any file with parse errors, and ark reads tree-sitter
