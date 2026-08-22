@@ -1739,12 +1739,11 @@ Not allowed:  fn(a b)
 
 Four things about `parse_argument_list` are not obvious from reading it:
 
-- **Progress is asserted across the whole iteration, not per argument.**
+- **Progress is asserted after the separator, not at the top of the iteration.**
   `fn(,,a,,b,,)` means an iteration may legitimately consume only a comma, and an
-  empty argument consumes nothing at all, so per-argument is not an assertion the
-  loop can make. As written the loop cannot stall — every iteration that does not
-  break bumps at least the `,` — but the guard is what keeps that true of the
-  next edit, since the earlier shape of this loop *could* stall.
+  empty argument consumes nothing at all, so an iteration that begins and ends on a
+  hole has not moved. Reading the separator first is what makes the guard sound;
+  §11.5 has the argument in full, since both lists now share the shape.
 
 - **The recovery branch is reached by `fn(a b)`, not by `fn(a}`.** A foreign
   closer is in `ARGUMENT_LIST_ENDS`, so it ends the list cleanly; only a token
@@ -2169,8 +2168,14 @@ parameters and says only that the comma is missing, where `f(a b)` recovers `b`
 into a bogus argument. A parameter name is one token, so the token after a
 complete parameter is very often a perfectly good next parameter; an argument
 value is a full `parse_expression` that has already taken everything it could.
-`parse_argument_list` could adopt this shape and probably should, but not in a
-phase whose diff is meant to be about functions.
+`parse_argument_list` took the same loop shape in this phase, verified against a
+probe of 24 inputs plus the corpus with no change to a single tree or diagnostic.
+It keeps its recovery branch, though, and that is the one part of the two lists
+that genuinely differs: an empty argument is *legal*, so `parse_argument` can
+return having consumed nothing on input that is not an error, and the loop needs a
+way to make progress over a token that starts no expression at all — `f(* 1)`.
+`parse_parameter` has no such case, because a name that is absent anywhere but a
+boundary is always an error and always recovers.
 
 **`assert_progressing` sits after the separator, not at the top**, and the order
 is load-bearing rather than stylistic. A hole consumes nothing — `function(,)`

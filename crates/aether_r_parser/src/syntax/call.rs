@@ -76,42 +76,37 @@ const ARGUMENT_LIST_BOUNDARIES: TokenSet<RSyntaxKind> = ARGUMENT_LIST_ENDS.union
 fn parse_argument_list(p: &mut RParser) {
     let argument_list = p.start();
     let mut progress = ParserProgress::default();
+    let mut first = true;
 
-    // Handle empty list before looping
-    if !p.at_ts(ARGUMENT_LIST_ENDS) {
-        loop {
-            progress.assert_progressing(p);
-            parse_argument(p);
+    while !p.at_ts(ARGUMENT_LIST_ENDS) {
+        if first {
+            first = false;
+        } else {
+            // Either a `,` that introduces the next argument, or a missing one
+            // that we report without consuming and let the next argument start
+            // where we already are
+            p.expect(T![,]);
+        }
 
-            if !p.at_ts(ARGUMENT_LIST_BOUNDARIES) {
-                // We know there is a missing separator, so here's where we get
-                // to report that. Since the comma is missing, this doesn't
-                // bump, it just reports a diagnostic and we continue sitting
-                // where we are.
-                p.expect(T![,]);
+        progress.assert_progressing(p);
+        parse_argument(p);
 
-                let argument = p.start();
-                // Opens a marker, bumps repeatedly until we hit a boundary,
-                // closes as R_BOGUS_EXPRESSION
-                let recovered =
-                    ParseRecoveryTokenSet::new(R_BOGUS_EXPRESSION, ARGUMENT_LIST_BOUNDARIES)
-                        .recover(p);
-                debug_assert!(
-                    recovered.is_ok(),
-                    "not at a boundary, so not at `EOF` either"
-                );
-                argument.complete(p, R_ARGUMENT);
-            }
+        if !p.at_ts(ARGUMENT_LIST_BOUNDARIES) {
+            // We know there is a missing separator, so here's where we get to
+            // report that. Since the comma is missing, this doesn't bump, it
+            // just reports a diagnostic and we continue sitting where we are.
+            p.expect(T![,]);
 
-            // We are at a boundary, either because the argument ended at one or
-            // because we just recovered to one. A comma means another argument
-            // follows, so consume it and loop. Anything else ends the list, and
-            // we leave it where it is.
-            if !p.at(T![,]) {
-                break;
-            }
-
-            p.bump(T![,]);
+            let argument = p.start();
+            // Opens a marker, bumps repeatedly until we hit a boundary,
+            // closes as R_BOGUS_EXPRESSION
+            let recovered =
+                ParseRecoveryTokenSet::new(R_BOGUS_EXPRESSION, ARGUMENT_LIST_BOUNDARIES).recover(p);
+            debug_assert!(
+                recovered.is_ok(),
+                "not at a boundary, so not at `EOF` either"
+            );
+            argument.complete(p, R_ARGUMENT);
         }
     }
 
