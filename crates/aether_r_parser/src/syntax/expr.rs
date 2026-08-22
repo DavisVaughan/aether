@@ -79,7 +79,10 @@ pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
 /// `?` at a lower binding power than a function body, so `function() a ? b`
 /// needs to parse as `(function () a) ? b`.
 pub(crate) fn parse_function_body(p: &mut RParser) -> ParsedSyntax {
-    parse_expression_with_binding_power(p, BindingPower(BindingPower::FUNCTION_OR_LOOP.0 + 1))
+    // Treated as left associative
+    let binding_power = BindingPower(BindingPower::FUNCTION_OR_LOOP.0 + 1);
+
+    parse_expression_with_binding_power(p, binding_power)
 }
 
 /// The Pratt loop
