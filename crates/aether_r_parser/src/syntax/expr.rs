@@ -297,7 +297,6 @@ fn parse_unary_expression(p: &mut RParser, binding_power: BindingPower) -> Compl
     m.complete(p, R_UNARY_EXPRESSION)
 }
 
-/// Infix: `a + b`, `a <- b`, `a %in% b`
 fn parse_binary_expression(
     p: &mut RParser,
     lhs: CompletedMarker,
@@ -316,7 +315,6 @@ fn parse_binary_expression(
     m.complete(p, R_BINARY_EXPRESSION)
 }
 
-/// Infix: `a$b`, `a@b`
 fn parse_extract_expression(p: &mut RParser, lhs: CompletedMarker) -> CompletedMarker {
     let operator = p.cur();
     let operator_range = p.cur_range();
@@ -329,7 +327,6 @@ fn parse_extract_expression(p: &mut RParser, lhs: CompletedMarker) -> CompletedM
     m.complete(p, R_EXTRACT_EXPRESSION)
 }
 
-/// Infix: `a::b`, `a:::b`
 fn parse_namespace_expression(p: &mut RParser, mut lhs: CompletedMarker) -> CompletedMarker {
     let operator = p.cur();
     let operator_range = p.cur_range();
