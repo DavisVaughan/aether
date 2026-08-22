@@ -19,7 +19,7 @@ use biome_rowan::AstNode;
 
 /// How tightly an operator binds. Higher wins!
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct BindingPower(pub(crate) u8);
+pub(crate) struct BindingPower(u8);
 
 impl BindingPower {
     const LOWEST: Self = Self(0);
@@ -45,6 +45,11 @@ impl BindingPower {
     const BINARY_EXPONENTIATE: Self = Self(16);
 
     const HIGHEST: Self = Self(17);
+
+    /// What a left-associative rank hands to its right operand
+    pub(crate) fn increment(self) -> Self {
+        Self(self.0 + 1)
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -307,7 +312,7 @@ fn parse_binary_expression(
     associativity: Associativity,
 ) -> CompletedMarker {
     let binding_power = match associativity {
-        Associativity::Left => BindingPower(binding_power.0 + 1),
+        Associativity::Left => binding_power.increment(),
         Associativity::Right => binding_power,
     };
 

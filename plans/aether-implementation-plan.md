@@ -2099,8 +2099,11 @@ at a rank the table names. Keeping the function next to its rank in `expr.rs`
 would have split `parse_function_definition` from the one line that decides how
 far its body extends.
 
-The `+ 1` is the left-associative adjustment `parse_binary_expression` already
-makes for the same reason, and it is a named local so it says so.
+The rank is bumped with `BindingPower::increment()`, which is the
+left-associative adjustment `parse_binary_expression` already made inline, now
+named once and shared. It also keeps `BindingPower`'s field private: the type and
+its `FUNCTION_OR_LOOP` rank are the only things `function.rs` needs, and the
+representation stays inside `expr.rs` where the table is.
 
 The loops in §11.6 share the row — `while (a) b ? c` is `` `?`(while (a) b, c) ``
 in R too — so `parse_function_body` is likely to be renamed rather than
