@@ -32,48 +32,35 @@ enum Associativity {
 
 // Taken from R's `gram.y`
 const BINARY_HELP_BINDING_POWER: BindingPower = BindingPower(1);
-const BINARY_HELP_ASSOCIATIVITY: Associativity = Associativity::Left;
 const UNARY_HELP_BINDING_POWER: BindingPower = BindingPower(1);
-
 const BINARY_LEFT_ASSIGN_BINDING_POWER: BindingPower = BindingPower(2);
-const BINARY_LEFT_ASSIGN_ASSOCIATIVITY: Associativity = Associativity::Right;
-
 const BINARY_EQUALS_ASSIGN_BINDING_POWER: BindingPower = BindingPower(3);
-const BINARY_EQUALS_ASSIGN_ASSOCIATIVITY: Associativity = Associativity::Right;
-
 const BINARY_RIGHT_ASSIGN_BINDING_POWER: BindingPower = BindingPower(4);
-const BINARY_RIGHT_ASSIGN_ASSOCIATIVITY: Associativity = Associativity::Left;
-
 const BINARY_TILDE_BINDING_POWER: BindingPower = BindingPower(5);
-const BINARY_TILDE_ASSOCIATIVITY: Associativity = Associativity::Left;
 const UNARY_TILDE_BINDING_POWER: BindingPower = BindingPower(5);
-
 const BINARY_OR_BINDING_POWER: BindingPower = BindingPower(6);
-const BINARY_OR_ASSOCIATIVITY: Associativity = Associativity::Left;
-
 const BINARY_AND_BINDING_POWER: BindingPower = BindingPower(7);
-const BINARY_AND_ASSOCIATIVITY: Associativity = Associativity::Left;
-
 const UNARY_NOT_BINDING_POWER: BindingPower = BindingPower(8);
-
 const BINARY_COMPARISON_BINDING_POWER: BindingPower = BindingPower(9);
-const BINARY_COMPARISON_ASSOCIATIVITY: Associativity = Associativity::Left;
-
 const BINARY_PLUS_MINUS_BINDING_POWER: BindingPower = BindingPower(10);
-const BINARY_PLUS_MINUS_ASSOCIATIVITY: Associativity = Associativity::Left;
-
 const BINARY_MULTIPLY_DIVIDE_BINDING_POWER: BindingPower = BindingPower(11);
-const BINARY_MULTIPLY_DIVIDE_ASSOCIATIVITY: Associativity = Associativity::Left;
-
 const BINARY_SPECIAL_OR_PIPE_BINDING_POWER: BindingPower = BindingPower(12);
-const BINARY_SPECIAL_OR_PIPE_ASSOCIATIVITY: Associativity = Associativity::Left;
-
 const BINARY_COLON_BINDING_POWER: BindingPower = BindingPower(13);
-const BINARY_COLON_ASSOCIATIVITY: Associativity = Associativity::Left;
-
 const UNARY_PLUS_MINUS_BINDING_POWER: BindingPower = BindingPower(14);
-
 const BINARY_EXPONENTIATE_BINDING_POWER: BindingPower = BindingPower(15);
+
+const BINARY_HELP_ASSOCIATIVITY: Associativity = Associativity::Left;
+const BINARY_LEFT_ASSIGN_ASSOCIATIVITY: Associativity = Associativity::Right;
+const BINARY_EQUALS_ASSIGN_ASSOCIATIVITY: Associativity = Associativity::Right;
+const BINARY_RIGHT_ASSIGN_ASSOCIATIVITY: Associativity = Associativity::Left;
+const BINARY_TILDE_ASSOCIATIVITY: Associativity = Associativity::Left;
+const BINARY_OR_ASSOCIATIVITY: Associativity = Associativity::Left;
+const BINARY_AND_ASSOCIATIVITY: Associativity = Associativity::Left;
+const BINARY_COMPARISON_ASSOCIATIVITY: Associativity = Associativity::Left;
+const BINARY_PLUS_MINUS_ASSOCIATIVITY: Associativity = Associativity::Left;
+const BINARY_MULTIPLY_DIVIDE_ASSOCIATIVITY: Associativity = Associativity::Left;
+const BINARY_SPECIAL_OR_PIPE_ASSOCIATIVITY: Associativity = Associativity::Left;
+const BINARY_COLON_ASSOCIATIVITY: Associativity = Associativity::Left;
 const BINARY_EXPONENTIATE_ASSOCIATIVITY: Associativity = Associativity::Right;
 
 pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
