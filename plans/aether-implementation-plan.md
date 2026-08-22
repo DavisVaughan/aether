@@ -2140,25 +2140,35 @@ plus an optional `RParameterDefault`. Names are `IDENT`, `DOTS`, or `DOTDOTI` �
 reason §11.3 gives. `return` needs nothing at all: it is not in `?Reserved`, so it
 arrives as an `IDENT` like any other name.
 
-**The list loop is six lines where the argument list's is twenty**, and the
+**The list loop is nine lines where the argument list's is twenty**, and the
 difference is not carelessness:
 
 ```rust
-loop {
-    progress.assert_progressing(p);
-    parse_parameter(p);
-
-    if p.at_ts(PARAMETER_LIST_ENDS) {
-        break;
+while !p.at_ts(PARAMETER_LIST_ENDS) {
+    if first {
+        first = false;
+    } else {
+        p.expect(T![,]);
     }
 
-    p.expect(T![,]);
+    progress.assert_progressing(p);
+    parse_parameter(p);
 }
 ```
 
+**The separator is consumed at the top of every iteration but the first**, which
+is what leaves a single end test in the whole function. An earlier shape parsed
+the element first and tested for the end afterwards, and that needs the test
+twice — once inside the loop before `expect`, and once as an `if` wrapped around
+the whole loop so that `function()` does not report a missing parameter. Moving
+the separator to the front folds the empty list, the token after the last
+parameter, and the foreign-closer exit into the same `while` condition. The cost
+is a `first` flag, which is what `ParseSeparatedList::parse_list` and
+`biome_js_parser`'s own `parse_parameters_list` both carry for this reason.
+
 `p.expect(T![,])` bumps a separator that is there and reports one that is not
-without consuming anything, so both cases are the same line, and the next
-iteration starts where we already stand. `function(a b)` therefore keeps *both*
+without consuming anything, so both cases are the same line, and the parameter
+that follows starts where we already stand. `function(a b)` therefore keeps *both*
 parameters and says only that the comma is missing, where `f(a b)` recovers `b`
 into a bogus argument. A parameter name is one token, so the token after a
 complete parameter is very often a perfectly good next parameter; an argument
@@ -2166,11 +2176,16 @@ value is a full `parse_expression` that has already taken everything it could.
 `parse_argument_list` could adopt this shape and probably should, but not in a
 phase whose diff is meant to be about functions.
 
-The loop cannot stall, and the argument is worth stating because the guard is the
-only thing that would catch it: every iteration either consumes inside
-`parse_parameter` or bumps the `,`. A parameter that consumes nothing has an
-absent name at a boundary, and a boundary is either an end (we break) or the `,`
-that `expect` bumps.
+**`assert_progressing` sits after the separator, not at the top**, and the order
+is load-bearing rather than stylistic. A hole consumes nothing — `function(,)`
+leaves the parser on the `,` it was already on — so an iteration that begins on a
+hole and ends on one has not moved, and a guard at the top of the *next* iteration
+would fire on valid-to-parse input. Reading the separator first means every
+iteration that reaches the guard has just bumped a `,` or is about to consume
+inside `parse_parameter`: the only way `parse_parameter` consumes nothing is an
+absent name at a boundary, and a boundary is either an end, which the `while`
+already caught, or the `,` the next iteration bumps ahead of the guard.
+`ParseSeparatedList::parse_list` orders it the same way.
 
 `PARAMETER_LIST_ENDS` names every closing delimiter rather than the one the caller
 opened, for the reason §11.3 spells out, and `PARAMETER_LIST_BOUNDARIES` derives

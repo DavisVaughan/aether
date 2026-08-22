@@ -53,22 +53,20 @@ const PARAMETER_LIST_BOUNDARIES: TokenSet<RSyntaxKind> =
 fn parse_parameter_list(p: &mut RParser) {
     let parameter_list = p.start();
     let mut progress = ParserProgress::default();
+    let mut first = true;
 
-    // Account for empty parameter list
-    if !p.at_ts(PARAMETER_LIST_ENDS) {
-        loop {
-            progress.assert_progressing(p);
-            parse_parameter(p);
-
-            if p.at_ts(PARAMETER_LIST_ENDS) {
-                break;
-            }
-
+    while !p.at_ts(PARAMETER_LIST_ENDS) {
+        if first {
+            first = false;
+        } else {
             // Either a `,` that introduces the next parameter, or a missing one
             // that we report without consuming and let the next parameter start
             // where we already are
             p.expect(T![,]);
         }
+
+        progress.assert_progressing(p);
+        parse_parameter(p);
     }
 
     parameter_list.complete(p, R_PARAMETER_LIST);
