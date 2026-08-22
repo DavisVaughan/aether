@@ -280,6 +280,8 @@ fn parse_expression_with_binding_power(
                     Associativity::BINARY_EXPONENTIATE,
                 )
             }
+            // No expression to continue, or upcoming one binds looser than
+            // current binding power
             _ => break,
         };
     }
