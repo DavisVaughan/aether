@@ -82,7 +82,7 @@ pub(crate) fn expected_lhs_selector(
 }
 
 /// A newline between `::` or `:::` and the name it needs
-pub(crate) fn selector_after_line_break(
+pub(crate) fn namespace_rhs_selector_after_line_break(
     operator: RSyntaxKind,
     operator_range: TextRange,
 ) -> ParseDiagnostic {

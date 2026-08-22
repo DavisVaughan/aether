@@ -883,7 +883,7 @@ specified in that phase's section rather than here:
 |---|---|---|
 | `expected_expression` | §11.1, Phase 7 | `parse_statement_list`, then the Pratt loop's two sites in Phase 8 |
 | `expected_statement_separator` | §11.1, Phase 7 | `parse_statement_list` |
-| `expected_rhs_selector`, `expected_lhs_selector`, `selector_after_line_break` | §11.4, Phase 10 | the `$`, `@`, `::`, `:::` arms of the Pratt loop |
+| `expected_rhs_selector`, `expected_lhs_selector`, `namespace_rhs_selector_after_line_break` | §11.4, Phase 10 | the `$`, `@`, `::`, `:::` arms of the Pratt loop |
 | `expected_parameters`, `expected_parameter` | §11.5, Phase 11 | `parse_function_definition` |
 | `expected_condition` | §11.6, Phase 12 | the `if` and `while` headers |
 
@@ -1859,7 +1859,7 @@ heading (§8.4).
 The `foo::\nbar` row is the one place the guard's diagnostic is not
 `expected_rhs_selector`. Reporting "expected a name" at the parser's position names
 the *next* line's first token, which is usually a perfectly good name, so the
-message accuses the wrong thing. `selector_after_line_break` names the newline
+message accuses the wrong thing. `namespace_rhs_selector_after_line_break` names the newline
 instead and anchors on the operator.
 
 #### Recovery: diagnose, leave the slot missing, consume nothing
@@ -1958,7 +1958,7 @@ pub(crate) fn expected_rhs_selector(
 
 `expected_lhs_selector` is its mirror, for the operand the `can_cast` branch
 above rejects, and shares `SELECTORS` with it.
-`selector_after_line_break` is the third, for the newline row. `text_of` is
+`namespace_rhs_selector_after_line_break` is the third, for the newline row. `text_of` is
 `operator.to_string().unwrap_or("operator")` — punctuation kinds render as their
 own text, so all three stay correct if the token set changes.
 

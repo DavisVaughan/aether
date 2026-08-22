@@ -370,7 +370,7 @@ fn parse_namespace_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedS
     p.bump_any();
 
     if p.scope().newlines_are_significant() && p.has_preceding_line_break() {
-        p.error(diagnostics::selector_after_line_break(
+        p.error(diagnostics::namespace_rhs_selector_after_line_break(
             operator,
             operator_range,
         ));
