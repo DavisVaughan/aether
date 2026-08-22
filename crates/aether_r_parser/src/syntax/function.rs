@@ -17,6 +17,8 @@ pub(crate) fn parse_function_definition(p: &mut RParser) -> CompletedMarker {
     let m = p.start();
     p.bump_any();
 
+    // Nothing here tests for a line break, which is what makes the newlines in
+    // `function\n() 1` and `function()\n1` insignificant
     parse_parameters(p).or_add_diagnostic(p, diagnostics::expected_parameters);
     parse_function_body(p).or_add_diagnostic(p, diagnostics::expected_expression);
 
@@ -39,9 +41,14 @@ fn parse_parameters(p: &mut RParser) -> ParsedSyntax {
     Present(m.complete(p, R_PARAMETERS))
 }
 
+/// What ends a parameter list
+///
+/// Any closing delimiter, not just the one the caller opened, for the reason
+/// [crate::syntax::call]'s `ARGUMENT_LIST_ENDS` gives.
 const PARAMETER_LIST_ENDS: TokenSet<RSyntaxKind> =
     token_set![T![EOF], T![')'], T![']'], T!["]]"], T!['}']];
 
+/// Where a parameter may stop: at the `,` that starts the next one, or at an end
 const PARAMETER_LIST_BOUNDARIES: TokenSet<RSyntaxKind> =
     PARAMETER_LIST_ENDS.union(token_set![T![,]]);
 
@@ -59,6 +66,9 @@ fn parse_parameter_list(p: &mut RParser) {
                 break;
             }
 
+            // Either a `,` that introduces the next parameter, or a missing one
+            // that we report without consuming and let the next parameter start
+            // where we already are
             p.expect(T![,]);
         }
     }
@@ -66,6 +76,11 @@ fn parse_parameter_list(p: &mut RParser) {
     parameter_list.complete(p, R_PARAMETER_LIST);
 }
 
+/// One parameter: `name [= default]`
+///
+/// An empty parameter opens and immediately closes its marker, pushing no
+/// children, which is what makes `function(a,,b)` representable. Unlike an
+/// argument it is never legal, so it always comes with a diagnostic.
 fn parse_parameter(p: &mut RParser) {
     let m = p.start();
 
@@ -89,6 +104,10 @@ fn parse_parameter(p: &mut RParser) {
     m.complete(p, R_PARAMETER);
 }
 
+/// An identifier, `...`, or `..i`
+///
+/// A string is a valid argument name but not a valid parameter name, and `return`
+/// is not a reserved word in R, so it arrives as an `IDENT` and needs nothing.
 fn parse_parameter_name(p: &mut RParser) -> ParsedSyntax {
     match p.cur() {
         IDENT => {
@@ -110,6 +129,7 @@ fn parse_parameter_name(p: &mut RParser) -> ParsedSyntax {
     }
 }
 
+/// `= value`, where the value is required (r-lib/tree-sitter-r#161)
 fn parse_parameter_default(p: &mut RParser) -> ParsedSyntax {
     if !p.at(T![=]) {
         return Absent;
