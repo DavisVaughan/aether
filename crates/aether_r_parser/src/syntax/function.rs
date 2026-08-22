@@ -145,6 +145,5 @@ fn parse_parameter_default(p: &mut RParser) -> ParsedSyntax {
 fn parse_function_body(p: &mut RParser) -> ParsedSyntax {
     // Treated as left associative
     let binding_power = BindingPower::FUNCTION_OR_LOOP.increment();
-
     parse_expression_with_binding_power(p, binding_power)
 }
