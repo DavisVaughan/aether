@@ -2,11 +2,8 @@
 
 use crate::parser::RParser;
 use aether_r_syntax::RSyntaxKind;
-use biome_parser::diagnostic::{ParseDiagnostic, expected_any, expected_node};
+use biome_parser::diagnostic::{ParseDiagnostic, expected_node};
 use biome_rowan::TextRange;
-
-/// What `AnyRSelector` accepts
-const SELECTORS: &[&str] = &["identifier", "string", "`...`", "`..i`"];
 
 /// A backtick-quoted name that runs to the end of the file
 pub(crate) fn unterminated_backtick_identifier(open: TextRange, eof: TextRange) -> ParseDiagnostic {
@@ -57,12 +54,11 @@ pub(crate) fn expected_expression(p: &RParser, range: TextRange) -> ParseDiagnos
 
 /// The name on the right of `$`, `@`, `::`, or `:::` is missing
 pub(crate) fn expected_rhs_selector(
-    p: &RParser,
     operator: RSyntaxKind,
     operator_range: TextRange,
     range: TextRange,
 ) -> ParseDiagnostic {
-    expected_any(SELECTORS, range, p).with_detail(
+    ParseDiagnostic::new("Expected a name.", range).with_detail(
         operator_range,
         format!("`{}` requires a name on the right.", text_of(operator)),
     )
@@ -70,12 +66,11 @@ pub(crate) fn expected_rhs_selector(
 
 /// The name on the left of `::` or `:::` is not a name
 pub(crate) fn expected_lhs_selector(
-    p: &RParser,
     operator: RSyntaxKind,
     operator_range: TextRange,
     range: TextRange,
 ) -> ParseDiagnostic {
-    expected_any(SELECTORS, range, p).with_detail(
+    ParseDiagnostic::new("Expected a name.", range).with_detail(
         operator_range,
         format!("`{}` requires a name on the left.", text_of(operator)),
     )

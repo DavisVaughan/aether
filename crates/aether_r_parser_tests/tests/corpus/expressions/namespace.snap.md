@@ -396,16 +396,7 @@ RRoot {
 ```diagnostics
 test.R:5:16 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found ')'.
-
-    3 │ # invalid R code.
-    4 │ # https://github.com/r-lib/tree-sitter-r/issues/65
-  > 5 │ library(dplyr::)
-      │                ^
-    6 │
-    7 │ library()
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     3 │ # invalid R code.
     4 │ # https://github.com/r-lib/tree-sitter-r/issues/65
@@ -1060,16 +1051,7 @@ RRoot {
 ```diagnostics
 test.R:17:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found '1'.
-
-    15 │ #> },
-    16 │
-  > 17 │ a::1
-       │    ^
-    18 │ a::NA
-    19 │ a::NULL
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     15 │ #> },
     16 │
@@ -1089,15 +1071,7 @@ test.R:17:4 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:18:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'NA'.
-
-    17 │ a::1
-  > 18 │ a::NA
-       │    ^^
-    19 │ a::NULL
-    20 │ a::TRUE
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     17 │ a::1
   > 18 │ a::NA
@@ -1115,16 +1089,7 @@ test.R:18:4 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:19:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'NULL'.
-
-    17 │ a::1
-    18 │ a::NA
-  > 19 │ a::NULL
-       │    ^^^^
-    20 │ a::TRUE
-    21 │ a::(b)
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     17 │ a::1
     18 │ a::NA
@@ -1144,16 +1109,7 @@ test.R:19:4 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:20:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'TRUE'.
-
-    18 │ a::NA
-    19 │ a::NULL
-  > 20 │ a::TRUE
-       │    ^^^^
-    21 │ a::(b)
-    22 │ a::{ b }
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     18 │ a::NA
     19 │ a::NULL
@@ -1173,16 +1129,7 @@ test.R:20:4 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:21:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found '('.
-
-    19 │ a::NULL
-    20 │ a::TRUE
-  > 21 │ a::(b)
-       │    ^
-    22 │ a::{ b }
-    23 │
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     19 │ a::NULL
     20 │ a::TRUE
@@ -1202,16 +1149,7 @@ test.R:21:4 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:22:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found '{'.
-
-    20 │ a::TRUE
-    21 │ a::(b)
-  > 22 │ a::{ b }
-       │    ^
-    23 │
-    24 │ a:::1
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     20 │ a::TRUE
     21 │ a::(b)
@@ -1251,16 +1189,7 @@ test.R:22:8 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:24:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found '1'.
-
-    22 │ a::{ b }
-    23 │
-  > 24 │ a:::1
-       │     ^
-    25 │ a:::NA
-    26 │ a:::NULL
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     22 │ a::{ b }
     23 │
@@ -1280,15 +1209,7 @@ test.R:24:5 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:25:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'NA'.
-
-    24 │ a:::1
-  > 25 │ a:::NA
-       │     ^^
-    26 │ a:::NULL
-    27 │ a:::TRUE
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     24 │ a:::1
   > 25 │ a:::NA
@@ -1306,16 +1227,7 @@ test.R:25:5 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:26:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'NULL'.
-
-    24 │ a:::1
-    25 │ a:::NA
-  > 26 │ a:::NULL
-       │     ^^^^
-    27 │ a:::TRUE
-    28 │ a:::(b)
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     24 │ a:::1
     25 │ a:::NA
@@ -1335,16 +1247,7 @@ test.R:26:5 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:27:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'TRUE'.
-
-    25 │ a:::NA
-    26 │ a:::NULL
-  > 27 │ a:::TRUE
-       │     ^^^^
-    28 │ a:::(b)
-    29 │ a:::{ b }
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     25 │ a:::NA
     26 │ a:::NULL
@@ -1364,16 +1267,7 @@ test.R:27:5 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:28:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found '('.
-
-    26 │ a:::NULL
-    27 │ a:::TRUE
-  > 28 │ a:::(b)
-       │     ^
-    29 │ a:::{ b }
-    30 │
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     26 │ a:::NULL
     27 │ a:::TRUE
@@ -1393,15 +1287,7 @@ test.R:28:5 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:29:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found '{'.
-
-    27 │ a:::TRUE
-    28 │ a:::(b)
-  > 29 │ a:::{ b }
-       │     ^
-    30 │
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     27 │ a:::TRUE
     28 │ a:::(b)
@@ -1476,13 +1362,7 @@ RRoot {
 ```diagnostics
 test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'a::b'.
-
-  > 1 │ a::b::c
-      │ ^^^^
-    2 │
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
   > 1 │ a::b::c
       │ ^^^^
@@ -1535,13 +1415,7 @@ RRoot {
 ```diagnostics
 test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'a:::b'.
-
-  > 1 │ a:::b:::c
-      │ ^^^^^
-    2 │
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
   > 1 │ a:::b:::c
       │ ^^^^^
@@ -1595,13 +1469,7 @@ RRoot {
 ```diagnostics
 test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'a()'.
-
-  > 1 │ a()::b
-      │ ^^^
-    2 │
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
   > 1 │ a()::b
       │ ^^^
@@ -1655,13 +1523,7 @@ RRoot {
 ```diagnostics
 test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'a()'.
-
-  > 1 │ a():::b
-      │ ^^^
-    2 │
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
   > 1 │ a():::b
       │ ^^^

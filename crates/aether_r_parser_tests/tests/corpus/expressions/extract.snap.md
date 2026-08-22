@@ -428,16 +428,7 @@ RRoot {
 ```diagnostics
 test.R:4:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found '{'.
-
-    2 │ # so we nicely get a true node here alongside the braces. Even if that's not
-    3 │ # parsable R code, it's useful for completions and highlighting.
-  > 4 │ foo${bar}
-      │     ^
-    5 │ foo@{bar}
-    6 │ foo::{bar}
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     2 │ # so we nicely get a true node here alongside the braces. Even if that's not
     3 │ # parsable R code, it's useful for completions and highlighting.
@@ -477,16 +468,7 @@ test.R:4:9 parse ━━━━━━━━━━━━━━━━━━━━━
 
 test.R:5:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found '{'.
-
-    3 │ # parsable R code, it's useful for completions and highlighting.
-    4 │ foo${bar}
-  > 5 │ foo@{bar}
-      │     ^
-    6 │ foo::{bar}
-    7 │ foo:::{bar}
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     3 │ # parsable R code, it's useful for completions and highlighting.
     4 │ foo${bar}
@@ -526,16 +508,7 @@ test.R:5:9 parse ━━━━━━━━━━━━━━━━━━━━━
 
 test.R:6:6 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found '{'.
-
-    4 │ foo${bar}
-    5 │ foo@{bar}
-  > 6 │ foo::{bar}
-      │      ^
-    7 │ foo:::{bar}
-    8 │
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     4 │ foo${bar}
     5 │ foo@{bar}
@@ -575,15 +548,7 @@ test.R:6:10 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:7:7 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found '{'.
-
-    5 │ foo@{bar}
-    6 │ foo::{bar}
-  > 7 │ foo:::{bar}
-      │       ^
-    8 │
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     5 │ foo@{bar}
     6 │ foo::{bar}
@@ -646,13 +611,7 @@ RRoot {
 ```diagnostics
 test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found the end of the file.
-
-    1 │ foo$
-  > 2 │
-      │
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     1 │ foo$
   > 2 │
@@ -693,13 +652,7 @@ RRoot {
 ```diagnostics
 test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found the end of the file.
-
-    1 │ foo@
-  > 2 │
-      │
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     1 │ foo@
   > 2 │
@@ -809,16 +762,7 @@ RRoot {
 ```diagnostics
 test.R:5:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'if'.
-
-    3 │ # empty, and then the `if_statement` node errors because it doesn't have a `(`. This
-    4 │ # is actually pretty decent behavior.
-  > 5 │ foo$if
-      │     ^^
-    6 │ foo@if
-    7 │ foo::if
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     3 │ # empty, and then the `if_statement` node errors because it doesn't have a `(`. This
     4 │ # is actually pretty decent behavior.
@@ -838,16 +782,7 @@ test.R:5:5 parse ━━━━━━━━━━━━━━━━━━━━━
 
 test.R:6:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'if'.
-
-    4 │ # is actually pretty decent behavior.
-    5 │ foo$if
-  > 6 │ foo@if
-      │     ^^
-    7 │ foo::if
-    8 │ foo:::if
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     4 │ # is actually pretty decent behavior.
     5 │ foo$if
@@ -867,16 +802,7 @@ test.R:6:5 parse ━━━━━━━━━━━━━━━━━━━━━
 
 test.R:7:6 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'if'.
-
-    5 │ foo$if
-    6 │ foo@if
-  > 7 │ foo::if
-      │      ^^
-    8 │ foo:::if
-    9 │
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     5 │ foo$if
     6 │ foo@if
@@ -896,15 +822,7 @@ test.R:7:6 parse ━━━━━━━━━━━━━━━━━━━━━
 
 test.R:8:7 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'if'.
-
-    6 │ foo@if
-    7 │ foo::if
-  > 8 │ foo:::if
-      │       ^^
-    9 │
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     6 │ foo@if
     7 │ foo::if
@@ -1683,16 +1601,7 @@ RRoot {
 ```diagnostics
 test.R:17:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found '1'.
-
-    15 │ #> },
-    16 │
-  > 17 │ a$1
-       │   ^
-    18 │ a$NA
-    19 │ a$NULL
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     15 │ #> },
     16 │
@@ -1712,15 +1621,7 @@ test.R:17:3 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:18:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'NA'.
-
-    17 │ a$1
-  > 18 │ a$NA
-       │   ^^
-    19 │ a$NULL
-    20 │ a$TRUE
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     17 │ a$1
   > 18 │ a$NA
@@ -1738,16 +1639,7 @@ test.R:18:3 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:19:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'NULL'.
-
-    17 │ a$1
-    18 │ a$NA
-  > 19 │ a$NULL
-       │   ^^^^
-    20 │ a$TRUE
-    21 │ a$(b)
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     17 │ a$1
     18 │ a$NA
@@ -1767,16 +1659,7 @@ test.R:19:3 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:20:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'TRUE'.
-
-    18 │ a$NA
-    19 │ a$NULL
-  > 20 │ a$TRUE
-       │   ^^^^
-    21 │ a$(b)
-    22 │ a${ b }
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     18 │ a$NA
     19 │ a$NULL
@@ -1796,16 +1679,7 @@ test.R:20:3 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:21:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found '('.
-
-    19 │ a$NULL
-    20 │ a$TRUE
-  > 21 │ a$(b)
-       │   ^
-    22 │ a${ b }
-    23 │
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     19 │ a$NULL
     20 │ a$TRUE
@@ -1825,16 +1699,7 @@ test.R:21:3 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:22:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found '{'.
-
-    20 │ a$TRUE
-    21 │ a$(b)
-  > 22 │ a${ b }
-       │   ^
-    23 │
-    24 │ a@1
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     20 │ a$TRUE
     21 │ a$(b)
@@ -1874,16 +1739,7 @@ test.R:22:7 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:24:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found '1'.
-
-    22 │ a${ b }
-    23 │
-  > 24 │ a@1
-       │   ^
-    25 │ a@NA
-    26 │ a@NULL
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     22 │ a${ b }
     23 │
@@ -1903,15 +1759,7 @@ test.R:24:3 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:25:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'NA'.
-
-    24 │ a@1
-  > 25 │ a@NA
-       │   ^^
-    26 │ a@NULL
-    27 │ a@TRUE
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     24 │ a@1
   > 25 │ a@NA
@@ -1929,16 +1777,7 @@ test.R:25:3 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:26:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'NULL'.
-
-    24 │ a@1
-    25 │ a@NA
-  > 26 │ a@NULL
-       │   ^^^^
-    27 │ a@TRUE
-    28 │ a@(b)
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     24 │ a@1
     25 │ a@NA
@@ -1958,16 +1797,7 @@ test.R:26:3 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:27:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found 'TRUE'.
-
-    25 │ a@NA
-    26 │ a@NULL
-  > 27 │ a@TRUE
-       │   ^^^^
-    28 │ a@(b)
-    29 │ a@{ b }
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     25 │ a@NA
     26 │ a@NULL
@@ -1987,16 +1817,7 @@ test.R:27:3 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:28:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found '('.
-
-    26 │ a@NULL
-    27 │ a@TRUE
-  > 28 │ a@(b)
-       │   ^
-    29 │ a@{ b }
-    30 │
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     26 │ a@NULL
     27 │ a@TRUE
@@ -2016,15 +1837,7 @@ test.R:28:3 parse ━━━━━━━━━━━━━━━━━━━━�
 
 test.R:29:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an identifier, a string, a `...`, or a `..i` but instead found '{'.
-
-    27 │ a@TRUE
-    28 │ a@(b)
-  > 29 │ a@{ b }
-       │   ^
-    30 │
-
-  i Expected an identifier, a string, a `...`, or a `..i` here.
+  × Expected a name.
 
     27 │ a@TRUE
     28 │ a@(b)

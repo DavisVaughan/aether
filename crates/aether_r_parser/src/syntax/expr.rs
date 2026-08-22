@@ -343,8 +343,8 @@ fn parse_extract_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedSyn
 
     let m = lhs.clone().precede(p);
     p.bump_any();
-    parse_selector(p).or_add_diagnostic(p, |p, range| {
-        diagnostics::expected_rhs_selector(p, operator, operator_range, range)
+    parse_selector(p).or_add_diagnostic(p, |_, range| {
+        diagnostics::expected_rhs_selector(operator, operator_range, range)
     });
     Present(m.complete(p, R_EXTRACT_EXPRESSION))
 }
@@ -358,7 +358,6 @@ fn parse_namespace_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedS
     let mut lhs = lhs.clone();
     if !AnyRSelector::can_cast(lhs.kind(p)) {
         p.error(diagnostics::expected_lhs_selector(
-            p,
             operator,
             operator_range,
             lhs.range(p),
@@ -375,8 +374,8 @@ fn parse_namespace_expression(p: &mut RParser, lhs: &CompletedMarker) -> ParsedS
             operator_range,
         ));
     } else {
-        parse_selector(p).or_add_diagnostic(p, |p, range| {
-            diagnostics::expected_rhs_selector(p, operator, operator_range, range)
+        parse_selector(p).or_add_diagnostic(p, |_, range| {
+            diagnostics::expected_rhs_selector(operator, operator_range, range)
         });
     }
 
