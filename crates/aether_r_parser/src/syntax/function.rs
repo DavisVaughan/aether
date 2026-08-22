@@ -18,7 +18,7 @@ pub(crate) fn parse_function_definition(p: &mut RParser) -> CompletedMarker {
     p.bump_any();
 
     parse_parameters(p).or_add_diagnostic(p, diagnostics::expected_parameters);
-    parse_function_body(p).or_add_diagnostic(p, diagnostics::expected_expression);
+    parse_body(p).or_add_diagnostic(p, diagnostics::expected_expression);
 
     m.complete(p, R_FUNCTION_DEFINITION)
 }
@@ -136,7 +136,7 @@ fn parse_parameter_default(p: &mut RParser) -> ParsedSyntax {
 /// Generally treated like a normal expression, but R's precedence table puts
 /// `?` at a lower binding power than a function body, so `function() a ? b`
 /// needs to parse as `(function () a) ? b`.
-fn parse_function_body(p: &mut RParser) -> ParsedSyntax {
+fn parse_body(p: &mut RParser) -> ParsedSyntax {
     // Treated as left associative
     let binding_power = BindingPower::FUNCTION_OR_LOOP.increment();
     parse_expression_with_binding_power(p, binding_power)

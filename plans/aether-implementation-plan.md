@@ -1491,7 +1491,7 @@ against a binding power, so the constant exists only to give the `debug_assert!`
 in `parse_expression_with_binding_power` something to assert *against*, and what
 it asserts is that no caller passes more than the table can produce. The incoming
 power is `LOWEST` from `parse_expression`, a prefix rank (max 15) from one of the
-four unary arms, `FUNCTION_OR_LOOP + 1` from `parse_function_body`, and otherwise
+four unary arms, `FUNCTION_OR_LOOP + 1` from `parse_body`, and otherwise
 the loop's own right-hand power, which is the rank itself for right associativity
 and `rank + 1` for left. The top rank is `^` at 16, so the ceiling is 17 — one
 above the table, because that is what a left-associative operator at the top rank
@@ -2036,7 +2036,7 @@ pub(crate) fn parse_function_definition(p: &mut RParser) -> CompletedMarker {
     let m = p.start();
     p.bump_any();
     parse_parameters(p).or_add_diagnostic(p, diagnostics::expected_parameters);
-    parse_function_body(p).or_add_diagnostic(p, diagnostics::expected_expression);
+    parse_body(p).or_add_diagnostic(p, diagnostics::expected_expression);
 
     m.complete(p, R_FUNCTION_DEFINITION)
 }
@@ -2082,9 +2082,10 @@ no arm of the loop ever compares against — nothing infix carries it — so it 
 spent in exactly one place:
 
 ```rust
-/// The body of a `function`, which takes every operator but the binary `?`
-pub(crate) fn parse_function_body(p: &mut RParser) -> ParsedSyntax {
-    parse_expression_with_binding_power(p, BindingPower(BindingPower::FUNCTION_OR_LOOP.0 + 1))
+fn parse_body(p: &mut RParser) -> ParsedSyntax {
+    // Treated as left associative
+    let binding_power = BindingPower::FUNCTION_OR_LOOP.increment();
+    parse_expression_with_binding_power(p, binding_power)
 }
 ```
 
@@ -2106,9 +2107,10 @@ its `FUNCTION_OR_LOOP` rank are the only things `function.rs` needs, and the
 representation stays inside `expr.rs` where the table is.
 
 The loops in §11.6 share the row — `while (a) b ? c` is `` `?`(while (a) b, c) ``
-in R too — so `parse_function_body` is likely to be renamed rather than
-duplicated. `if` sits one rank higher in `gram.y` and lands on the same body
-power, since it is `%right`; that is §11.6's to confirm.
+in R too — so `parse_body` carries no construct in its name: what §11.6 has to do
+is move it somewhere both files can reach, not rename it or write a second one.
+`if` sits one rank higher in `gram.y` and lands on the same body power, since it
+is `%right`; that is §11.6's to confirm.
 
 #### The newline subtlety
 
