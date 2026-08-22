@@ -74,7 +74,7 @@ fn parse_expression_with_binding_power(
 ) -> ParsedSyntax {
     debug_assert!(
         current_binding_power <= BindingPower::HIGHEST,
-        "{current_binding_power:?} exceeds {:?}. Suffixes must bind tighter than every rank in the table!",
+        "{current_binding_power:?} must not exceed {:?}.",
         BindingPower::HIGHEST
     );
 
