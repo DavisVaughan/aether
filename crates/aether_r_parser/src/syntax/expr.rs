@@ -21,9 +21,6 @@ struct BindingPower(u8);
 impl BindingPower {
     const LOWEST: Self = Self(0);
 
-    /// One above `^`, the top rank in the table, because that is what a
-    /// left-associative operator there would pass along. Suffixes carry no rank at
-    /// all, but we have a debug assertion that uses this just to be sure.
     const HIGHEST: Self = Self(16);
 }
 
