@@ -22,8 +22,26 @@ struct BindingPower(u8);
 
 impl BindingPower {
     const LOWEST: Self = Self(0);
-
     const HIGHEST: Self = Self(16);
+
+    // Taken from R's `gram.y`
+    const BINARY_HELP: Self = Self(1);
+    const UNARY_HELP: Self = Self(1);
+    const BINARY_LEFT_ASSIGN: Self = Self(2);
+    const BINARY_EQUALS_ASSIGN: Self = Self(3);
+    const BINARY_RIGHT_ASSIGN: Self = Self(4);
+    const BINARY_TILDE: Self = Self(5);
+    const UNARY_TILDE: Self = Self(5);
+    const BINARY_OR: Self = Self(6);
+    const BINARY_AND: Self = Self(7);
+    const UNARY_NOT: Self = Self(8);
+    const BINARY_COMPARISON: Self = Self(9);
+    const BINARY_PLUS_MINUS: Self = Self(10);
+    const BINARY_MULTIPLY_DIVIDE: Self = Self(11);
+    const BINARY_SPECIAL_OR_PIPE: Self = Self(12);
+    const BINARY_COLON: Self = Self(13);
+    const UNARY_PLUS_MINUS: Self = Self(14);
+    const BINARY_EXPONENTIATE: Self = Self(15);
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -32,38 +50,21 @@ enum Associativity {
     Right,
 }
 
-// Taken from R's `gram.y`
-const BINARY_HELP_BINDING_POWER: BindingPower = BindingPower(1);
-const UNARY_HELP_BINDING_POWER: BindingPower = BindingPower(1);
-const BINARY_LEFT_ASSIGN_BINDING_POWER: BindingPower = BindingPower(2);
-const BINARY_EQUALS_ASSIGN_BINDING_POWER: BindingPower = BindingPower(3);
-const BINARY_RIGHT_ASSIGN_BINDING_POWER: BindingPower = BindingPower(4);
-const BINARY_TILDE_BINDING_POWER: BindingPower = BindingPower(5);
-const UNARY_TILDE_BINDING_POWER: BindingPower = BindingPower(5);
-const BINARY_OR_BINDING_POWER: BindingPower = BindingPower(6);
-const BINARY_AND_BINDING_POWER: BindingPower = BindingPower(7);
-const UNARY_NOT_BINDING_POWER: BindingPower = BindingPower(8);
-const BINARY_COMPARISON_BINDING_POWER: BindingPower = BindingPower(9);
-const BINARY_PLUS_MINUS_BINDING_POWER: BindingPower = BindingPower(10);
-const BINARY_MULTIPLY_DIVIDE_BINDING_POWER: BindingPower = BindingPower(11);
-const BINARY_SPECIAL_OR_PIPE_BINDING_POWER: BindingPower = BindingPower(12);
-const BINARY_COLON_BINDING_POWER: BindingPower = BindingPower(13);
-const UNARY_PLUS_MINUS_BINDING_POWER: BindingPower = BindingPower(14);
-const BINARY_EXPONENTIATE_BINDING_POWER: BindingPower = BindingPower(15);
-
-const BINARY_HELP_ASSOCIATIVITY: Associativity = Associativity::Left;
-const BINARY_LEFT_ASSIGN_ASSOCIATIVITY: Associativity = Associativity::Right;
-const BINARY_EQUALS_ASSIGN_ASSOCIATIVITY: Associativity = Associativity::Right;
-const BINARY_RIGHT_ASSIGN_ASSOCIATIVITY: Associativity = Associativity::Left;
-const BINARY_TILDE_ASSOCIATIVITY: Associativity = Associativity::Left;
-const BINARY_OR_ASSOCIATIVITY: Associativity = Associativity::Left;
-const BINARY_AND_ASSOCIATIVITY: Associativity = Associativity::Left;
-const BINARY_COMPARISON_ASSOCIATIVITY: Associativity = Associativity::Left;
-const BINARY_PLUS_MINUS_ASSOCIATIVITY: Associativity = Associativity::Left;
-const BINARY_MULTIPLY_DIVIDE_ASSOCIATIVITY: Associativity = Associativity::Left;
-const BINARY_SPECIAL_OR_PIPE_ASSOCIATIVITY: Associativity = Associativity::Left;
-const BINARY_COLON_ASSOCIATIVITY: Associativity = Associativity::Left;
-const BINARY_EXPONENTIATE_ASSOCIATIVITY: Associativity = Associativity::Right;
+impl Associativity {
+    const BINARY_HELP: Self = Self::Left;
+    const BINARY_LEFT_ASSIGN: Self = Self::Right;
+    const BINARY_EQUALS_ASSIGN: Self = Self::Right;
+    const BINARY_RIGHT_ASSIGN: Self = Self::Left;
+    const BINARY_TILDE: Self = Self::Left;
+    const BINARY_OR: Self = Self::Left;
+    const BINARY_AND: Self = Self::Left;
+    const BINARY_COMPARISON: Self = Self::Left;
+    const BINARY_PLUS_MINUS: Self = Self::Left;
+    const BINARY_MULTIPLY_DIVIDE: Self = Self::Left;
+    const BINARY_SPECIAL_OR_PIPE: Self = Self::Left;
+    const BINARY_COLON: Self = Self::Left;
+    const BINARY_EXPONENTIATE: Self = Self::Right;
+}
 
 pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
     parse_expression_with_binding_power(p, BindingPower::LOWEST)
@@ -81,10 +82,10 @@ fn parse_expression_with_binding_power(
     );
 
     let mut lhs = match p.cur() {
-        T![?] => parse_unary_expression(p, UNARY_HELP_BINDING_POWER),
-        T![~] => parse_unary_expression(p, UNARY_TILDE_BINDING_POWER),
-        T![!] => parse_unary_expression(p, UNARY_NOT_BINDING_POWER),
-        T![+] | T![-] => parse_unary_expression(p, UNARY_PLUS_MINUS_BINDING_POWER),
+        T![?] => parse_unary_expression(p, BindingPower::UNARY_HELP),
+        T![~] => parse_unary_expression(p, BindingPower::UNARY_TILDE),
+        T![!] => parse_unary_expression(p, BindingPower::UNARY_NOT),
+        T![+] | T![-] => parse_unary_expression(p, BindingPower::UNARY_PLUS_MINUS),
         R_INTEGER_LITERAL => {
             let m = p.start();
             p.bump_any();
@@ -182,100 +183,100 @@ fn parse_expression_with_binding_power(
             T!["[["] => parse_subset2_expression(p, lhs),
             T![$] | T![@] => parse_extract_expression(p, lhs),
             T![::] | T![:::] => parse_namespace_expression(p, lhs),
-            T![?] if BINARY_HELP_BINDING_POWER >= current_binding_power => parse_binary_expression(
+            T![?] if BindingPower::BINARY_HELP >= current_binding_power => parse_binary_expression(
                 p,
                 lhs,
-                BINARY_HELP_BINDING_POWER,
-                BINARY_HELP_ASSOCIATIVITY,
+                BindingPower::BINARY_HELP,
+                Associativity::BINARY_HELP,
             ),
             T![<-] | T![<<-] | T![:=]
-                if BINARY_LEFT_ASSIGN_BINDING_POWER >= current_binding_power =>
+                if BindingPower::BINARY_LEFT_ASSIGN >= current_binding_power =>
             {
                 parse_binary_expression(
                     p,
                     lhs,
-                    BINARY_LEFT_ASSIGN_BINDING_POWER,
-                    BINARY_LEFT_ASSIGN_ASSOCIATIVITY,
+                    BindingPower::BINARY_LEFT_ASSIGN,
+                    Associativity::BINARY_LEFT_ASSIGN,
                 )
             }
-            T![=] if BINARY_EQUALS_ASSIGN_BINDING_POWER >= current_binding_power => {
+            T![=] if BindingPower::BINARY_EQUALS_ASSIGN >= current_binding_power => {
                 parse_binary_expression(
                     p,
                     lhs,
-                    BINARY_EQUALS_ASSIGN_BINDING_POWER,
-                    BINARY_EQUALS_ASSIGN_ASSOCIATIVITY,
+                    BindingPower::BINARY_EQUALS_ASSIGN,
+                    Associativity::BINARY_EQUALS_ASSIGN,
                 )
             }
-            T![->] | T![->>] if BINARY_RIGHT_ASSIGN_BINDING_POWER >= current_binding_power => {
+            T![->] | T![->>] if BindingPower::BINARY_RIGHT_ASSIGN >= current_binding_power => {
                 parse_binary_expression(
                     p,
                     lhs,
-                    BINARY_RIGHT_ASSIGN_BINDING_POWER,
-                    BINARY_RIGHT_ASSIGN_ASSOCIATIVITY,
+                    BindingPower::BINARY_RIGHT_ASSIGN,
+                    Associativity::BINARY_RIGHT_ASSIGN,
                 )
             }
-            T![~] if BINARY_TILDE_BINDING_POWER >= current_binding_power => {
+            T![~] if BindingPower::BINARY_TILDE >= current_binding_power => {
                 parse_binary_expression(
                     p,
                     lhs,
-                    BINARY_TILDE_BINDING_POWER,
-                    BINARY_TILDE_ASSOCIATIVITY,
+                    BindingPower::BINARY_TILDE,
+                    Associativity::BINARY_TILDE,
                 )
             }
-            T![|] | T![||] if BINARY_OR_BINDING_POWER >= current_binding_power => {
-                parse_binary_expression(p, lhs, BINARY_OR_BINDING_POWER, BINARY_OR_ASSOCIATIVITY)
+            T![|] | T![||] if BindingPower::BINARY_OR >= current_binding_power => {
+                parse_binary_expression(p, lhs, BindingPower::BINARY_OR, Associativity::BINARY_OR)
             }
-            T![&] | T![&&] if BINARY_AND_BINDING_POWER >= current_binding_power => {
-                parse_binary_expression(p, lhs, BINARY_AND_BINDING_POWER, BINARY_AND_ASSOCIATIVITY)
+            T![&] | T![&&] if BindingPower::BINARY_AND >= current_binding_power => {
+                parse_binary_expression(p, lhs, BindingPower::BINARY_AND, Associativity::BINARY_AND)
             }
             T![<] | T![<=] | T![>] | T![>=] | T![==] | T![!=]
-                if BINARY_COMPARISON_BINDING_POWER >= current_binding_power =>
+                if BindingPower::BINARY_COMPARISON >= current_binding_power =>
             {
                 parse_binary_expression(
                     p,
                     lhs,
-                    BINARY_COMPARISON_BINDING_POWER,
-                    BINARY_COMPARISON_ASSOCIATIVITY,
+                    BindingPower::BINARY_COMPARISON,
+                    Associativity::BINARY_COMPARISON,
                 )
             }
-            T![+] | T![-] if BINARY_PLUS_MINUS_BINDING_POWER >= current_binding_power => {
+            T![+] | T![-] if BindingPower::BINARY_PLUS_MINUS >= current_binding_power => {
                 parse_binary_expression(
                     p,
                     lhs,
-                    BINARY_PLUS_MINUS_BINDING_POWER,
-                    BINARY_PLUS_MINUS_ASSOCIATIVITY,
+                    BindingPower::BINARY_PLUS_MINUS,
+                    Associativity::BINARY_PLUS_MINUS,
                 )
             }
-            T![*] | T![/] if BINARY_MULTIPLY_DIVIDE_BINDING_POWER >= current_binding_power => {
+            T![*] | T![/] if BindingPower::BINARY_MULTIPLY_DIVIDE >= current_binding_power => {
                 parse_binary_expression(
                     p,
                     lhs,
-                    BINARY_MULTIPLY_DIVIDE_BINDING_POWER,
-                    BINARY_MULTIPLY_DIVIDE_ASSOCIATIVITY,
+                    BindingPower::BINARY_MULTIPLY_DIVIDE,
+                    Associativity::BINARY_MULTIPLY_DIVIDE,
                 )
             }
-            SPECIAL | T![|>] if BINARY_SPECIAL_OR_PIPE_BINDING_POWER >= current_binding_power => {
+            SPECIAL | T![|>] if BindingPower::BINARY_SPECIAL_OR_PIPE >= current_binding_power => {
                 parse_binary_expression(
                     p,
                     lhs,
-                    BINARY_SPECIAL_OR_PIPE_BINDING_POWER,
-                    BINARY_SPECIAL_OR_PIPE_ASSOCIATIVITY,
+                    BindingPower::BINARY_SPECIAL_OR_PIPE,
+                    Associativity::BINARY_SPECIAL_OR_PIPE,
                 )
             }
-            T![:] if BINARY_COLON_BINDING_POWER >= current_binding_power => {
+            T![:] if BindingPower::BINARY_COLON >= current_binding_power => {
                 parse_binary_expression(
                     p,
                     lhs,
-                    BINARY_COLON_BINDING_POWER,
-                    BINARY_COLON_ASSOCIATIVITY,
+                    BindingPower::BINARY_COLON,
+                    Associativity::BINARY_COLON,
                 )
             }
-            T![^] | T![**] if BINARY_EXPONENTIATE_BINDING_POWER >= current_binding_power => {
+            T![^] | T![**] if BindingPower::BINARY_EXPONENTIATE >= current_binding_power => {
                 parse_binary_expression(
                     p,
                     lhs,
-                    BINARY_EXPONENTIATE_BINDING_POWER,
-                    BINARY_EXPONENTIATE_ASSOCIATIVITY,
+                    BindingPower::BINARY_EXPONENTIATE,
+                    Associativity::BINARY_EXPONENTIATE,
                 )
             }
             _ => break,
