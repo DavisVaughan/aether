@@ -165,6 +165,7 @@ fn parse_expression_with_binding_power(
             m.complete(p, R_STRING_VALUE)
         }
         T!['('] => parse_parenthesized_expression(p),
+        // Doesn't start an expression
         _ => return Absent,
     };
 
