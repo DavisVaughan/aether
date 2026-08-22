@@ -102,10 +102,7 @@ fn parse_parameter(p: &mut RParser) {
     m.complete(p, R_PARAMETER);
 }
 
-/// An identifier, `...`, or `..i`
-///
-/// A string is a valid argument name but not a valid parameter name, and `return`
-/// is not a reserved word in R, so it arrives as an `IDENT` and needs nothing.
+/// identifier | `...` | `..i`
 fn parse_parameter_name(p: &mut RParser) -> ParsedSyntax {
     match p.cur() {
         IDENT => {
