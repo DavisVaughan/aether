@@ -1,4 +1,4 @@
-## Namespace get [pending]
+## Namespace get [error]
 
 ```r
 foo::
@@ -12,7 +12,7 @@ foo::..1
 ..1::..1
 ```
 
-## Namespace get internal [pending]
+## Namespace get internal [error]
 
 ```r
 foo:::
@@ -26,7 +26,7 @@ foo:::..1
 ..1:::..1
 ```
 
-## Namespace With Missing RHS [pending, error, deviation]
+## Namespace With Missing RHS [error]
 
 ```r
 # It's nice that `::` allows an optional RHS and enforces that it can only be a
@@ -42,7 +42,7 @@ library()
 3
 ```
 
-## Namespace Operators [pending]
+## Namespace Operators
 
 ```r
 a::b
@@ -79,7 +79,7 @@ a:::..1
 ..1:::..1
 ```
 
-## Namespace With A Literal RHS [pending, error, deviation]
+## Namespace With A Literal RHS [error]
 
 ```r
 # TODO: tree-sitter-r currently allows an `optional()` RHS, but our grammar
@@ -113,26 +113,33 @@ a:::(b)
 a:::{ b }
 ```
 
-## Chained `::` [pending, error]
+## Chained `::` [error]
 
 ```r
 a::b::c
 ```
 
-## Chained `:::` [pending, error]
+## Chained `:::` [error]
 
 ```r
 a:::b:::c
 ```
 
-## Call On The Left Of `::` [pending, error]
+## Call On The Left Of `::` [error]
 
 ```r
 a()::b
 ```
 
-## Call On The Left Of `:::` [pending, error]
+## Call On The Left Of `:::` [error]
 
 ```r
 a():::b
+```
+
+## Namespace Newline Is Significant Only Outside Parens
+
+```r
+f(stats::
+  median)
 ```

@@ -256,7 +256,7 @@ intentional and earns a `[deviation]` marker and a line in `docs/deviations.md`.
 phase.** Nothing else in the project depends on it, so it shipped separately
 rather than doubling the size of the phase everything else was waiting on.
 
-Phases 1–9 have landed. Their sections below are compressed to the decisions
+Phases 1–10 have landed. Their sections below are compressed to the decisions
 later phases depend on; the repo, `docs/deviations.md`, and the code's own
 comments are the source of truth for everything else.
 
@@ -271,7 +271,7 @@ comments are the source of truth for everything else.
 | 7 | Literals, identifiers, program | `1`, `"a"`, `foo`, `TRUE`, `NA_integer_`, `..1`, `...` |✅ |
 | 8 | Binary & unary operators | The Pratt core, precedence table, newline sensitivity |✅ |
 | 9 | Calls, subset, subset2 | `f(a, b=1)`, `x[i]`, `x[[i]]`, hole arguments |✅ |
-| 10 | Extract & namespace | `$`, `@`, `::`, `:::` and the deviation from tree-sitter | |
+| 10 | Extract & namespace | `$`, `@`, `::`, `:::` and the deviation from tree-sitter |✅ |
 | 11 | Functions | `function(x) y`, `\(x) y`, parameters, defaults | |
 | 12 | Control flow | `if`/`else` (incl. the newline rule), `for`, `while`, `repeat` | |
 | 13 | Blocks, statements, semicolons | `{}`, `R_STATEMENT_LIST`, real semicolon tokens | |
@@ -427,12 +427,11 @@ generated factory does not panic on a failed cast of the `right` slot — it map
 into one bogus node. Round-trip still passes, so nothing in the harness would
 catch it.
 
-**Nothing constructs one.** Phase 10 was to be its first user, by consuming a
-non-selector RHS into a bogus node; §11.4 settles that it diagnoses and consumes
-nothing instead, so the kind is unproduced. It stays because a union of selectors
-having a bogus variant is defensible on its own and because removing it is codegen
-churn for no gain — but do not read its presence as evidence that some path builds
-one.
+**One path constructs one, and it is not the `right` slot.** Phase 10 was to be
+its first user by consuming a non-selector RHS into a bogus node; §11.4 settles
+that it diagnoses and consumes nothing instead. What builds one is the `left` slot
+of `::` and `:::`, which is an `AnyRSelector` too — there the operand is already
+parsed, so wrapping it costs no tokens and keeps the namespace node whole.
 
 `R_STATEMENT_LIST` is recognised as a list kind, so `SyntaxKind::is_list()`
 returns true for it. This was decided so that air's `has_bogus_nodes_or_empty_slots`
@@ -637,9 +636,9 @@ termination and `else` attachment.
   exactly as `JsTokenSource` does (§9.1).
 
 - `RParser` reads the flag only in conjunction with the current `Scope` (§9.2).
-  Three sites do so: the Pratt loop's statement break (§11.2), the `::` arm it
-  gains in Phase 10 (§11.4), and `parse_else_clause()` (§11.6). Nothing else
-  reads the raw flag.
+  Three sites do so: the top of the Pratt loop (§11.2), the `::` arm it gained in
+  Phase 10 (§11.4), and `parse_else_clause()` (§11.6). Nothing else reads the raw
+  flag.
 
 Do not replicate tree-sitter's scope-stack approach of conditionally swallowing
 newlines in the lexer. In a recursive-descent parser the equivalent information
@@ -884,7 +883,7 @@ specified in that phase's section rather than here:
 |---|---|---|
 | `expected_expression` | §11.1, Phase 7 | `parse_statement_list`, then the Pratt loop's two sites in Phase 8 |
 | `expected_statement_separator` | §11.1, Phase 7 | `parse_statement_list` |
-| `expected_selector` | §11.4, Phase 10 | the `$`, `@`, `::`, `:::` arm of the Pratt loop |
+| `expected_rhs_selector`, `expected_lhs_selector`, `namespace_rhs_selector_after_line_break` | §11.4, Phase 10 | the `$`, `@`, `::`, `:::` arms of the Pratt loop |
 | `expected_parameters`, `expected_parameter` | §11.5, Phase 11 | `parse_function_definition` |
 | `expected_condition` | §11.6, Phase 12 | the `if` and `while` headers |
 
@@ -1088,7 +1087,7 @@ Three things about step 4 that the code states without explaining:
   be explained by a diagnostic anchored on only the first of them.
 
 - **Only primary ranges count.** `with_detail` labels live in the diagnostic's
-  advices, not in `location()`, so `expected_selector`'s secondary label on the
+  advices, not in `location()`, so `expected_rhs_selector`'s secondary label on the
   operator does not contribute to overlap. That is the conservative reading and it
   is intentional; do not "fix" it by walking advices, or a diagnostic that merely
   gestures at a bogus node will start counting as an explanation of it.
@@ -1096,7 +1095,7 @@ Three things about step 4 that the code states without explaining:
 - **Empty slots are out of scope.** A missing required slot is not a node and has
   no range to overlap, so it cannot participate. Step 3 rejects it on every clean
   block, and the designed error paths emit a diagnostic alongside it — `a$`
-  produces a missing `right` slot *and* `expected_selector` (§11.4).
+  produces a missing `right` slot *and* `expected_rhs_selector` (§11.4).
 
 Step 3's detection is one predicate: the AST dump contains `missing (required)`,
 or some descendant node's kind `is_bogus()`. Air's `has_bogus_nodes_or_empty_slots`
@@ -1386,7 +1385,7 @@ recovery branch, and the **statement separator rule** — R separates statements
 a newline or a `;` and by nothing else. Deferring that would have let `1 2` parse
 clean through Phase 8, where `statements/newlines.md` goes green.
 
-**`ERROR_TOKEN` is an arm of `parse_primary_expression` rather than a job for
+**`ERROR_TOKEN` is an arm of the Pratt loop's lhs match rather than a job for
 statement-list recovery**, and that is what keeps the damage to one token:
 recovery would skip to the next statement boundary and swallow whatever followed
 the stray character on the same line. It needs no entry in any recovery set,
@@ -1423,7 +1422,10 @@ it.
 
 #### The precedence table
 
-Taken from R's `src/main/gram.y`. Higher binds tighter.
+Taken from R's `src/main/gram.y`. Higher binds tighter. The Name column is the
+constant: rank 11 is `BindingPower::BINARY_MULTIPLY_DIVIDE`, rank 14 is
+`BindingPower::UNARY_PLUS_MINUS`, and every binary row has an `Associativity`
+constant of the same name.
 
 | Rank | Name | Operators | Assoc |
 |---|---|---|---|
@@ -1442,13 +1444,19 @@ Taken from R's `src/main/gram.y`. Higher binds tighter.
 | 13 | COLON | `:` | left |
 | 14 | UNARY_PLUS_MINUS | `+` `-` (unary) | left |
 | 15 | EXPONENTIATE | `^` `**` | **right** |
-| 16 | EXTRACT | `$` `@` | left (see below) |
-| 17 | NAMESPACE | `::` `:::` | left (see below) |
-| 18 | CALL | `f(…)` `x[…]` `x[[…]]` | — (postfix) |
+| — | EXTRACT | `$` `@` | — (suffix) |
+| — | NAMESPACE | `::` `:::` | — (suffix) |
+| — | CALL | `f(…)` `x[…]` `x[[…]]` | — (suffix) |
 
-**Ranks 16 and 17 are absent from the landed table.** `$`, `@`, `::`, and `:::`
-need a right-hand side of their own, which is Phase 10 (§11.4);
-`infix_binding_power` says so in a doc-comment.
+**The last three rows are shape, not precedence.** Each of the seven takes one
+selector or one argument list on its right, never a nested expression, so there is
+no *how far right does this extend?* for a rank or an associativity to answer.
+The loop takes them wherever it stands, with no comparison against the caller's
+binding power at all, and that unconditional arm rather than a number is what
+makes `-a$b` and `a^b$c` group correctly. R's `gram.y` agrees: it writes all four
+selector operators as productions over `SYMBOL` and `STR_CONST`, not as operators
+with a precedence. Extract and namespace did carry ranks 16 and 17 between Phase
+10 and the pass that retired them.
 
 **`function`, `while`, `for`, `repeat`, and `if` get no rank.** R's grammar gives
 them one, and it does one job there: make the body greedy, i.e. say how far right
@@ -1463,42 +1471,94 @@ help and so points at greedy, but do not take that on faith: let the oracle sett
 it the first time it runs against `functions/definition.md`, and record the answer
 here if it is not greedy.
 
-**Rank 18 appears in no lookup table.** Postfix is handled structurally in the
-loop and applies unconditionally, so it is never compared against a binding power,
-and the number survives only as `BindingPower::HIGHEST` — which exists to give the
-`debug_assert!` in `parse_expression_with_binding_power` something to assert
-*against*. The assertion holds because the incoming power is `LOWEST` from
-`parse_expression`, a prefix power (max 14) from `parse_prefix_expression`, and
-otherwise the loop's own right-hand power, which is `bp + 1` for left
-associativity and tops out at 18 because the highest infix rank is `:::` at 17.
-Adding an infix operator at 18 or above breaks that, which is what the assertion
-catches; the fix is to renumber so postfix stays tightest, not to relax the
-assertion.
+**`BindingPower::HIGHEST` is 16, and 16 exactly.** No suffix is ever compared
+against a binding power, so the constant exists only to give the `debug_assert!`
+in `parse_expression_with_binding_power` something to assert *against*, and what
+it asserts is that no caller passes more than the table can produce. The incoming
+power is `LOWEST` from `parse_expression`, a prefix rank (max 14) from one of the
+four unary arms, and otherwise the loop's own right-hand power, which is the rank
+itself for right associativity and `rank + 1` for left. The top rank is
+`^` at 15, so the ceiling is 16 — one above the table, because that is what a
+left-associative operator at the top rank would pass. Adding an infix rank at 16
+breaks the assertion, and the fix is to renumber so suffixes stay tightest, not to
+relax it.
 
 **Associativity of `$` `@` `::` `:::`.** tree-sitter-r forces these **right**
 associative and explains why in a long comment: it is a workaround for the
 `optional()` RHS, so that `foo::bar` prefers the longer match `[foo::bar]` over
 `[foo::][bar]`. Since aether makes the RHS **required** (deviation 2), that
-workaround is unnecessary and we use **left** associativity, matching R's
-`gram.y`. The resulting trees should be identical — the RHS is restricted to a
-selector, so `a$b$c` can only nest one way — but say so in the PR and let the
-oracle confirm it.
+workaround is unnecessary, and the loop leaves nothing to decide: it applies one
+operator after the next to the operand already in hand, which nests to the left,
+as R's `gram.y` does. The resulting trees should be identical — the RHS is
+restricted to a selector, so `a$b$c` can only nest one way — but say so in the PR
+and let the oracle confirm it.
 
 #### What the loop is shaped like, and why
 
-**Every arm of `parse_primary_expression` returns, and none falls through to a
-shared tail.** The one-token arms repeat `start`/`bump_any`/`complete` rather than
-naming a kind for a tail below the `match`, and that is the point: an arm can be
-read on its own, and the `match` is uniform — token in, `ParsedSyntax` out, once
-per arm. Hoisting the tail would save about fifty lines and buy back a two-tier
-read where some arms produce a value and others produce a node.
+**Two matches on `p.cur()`, one per position.** The first answers *what starts an
+expression* — the four prefix operators, then every atom — and the second, inside
+the loop, answers *what continues one*: the five suffixes, then the binary
+operators. Both live in `parse_expression_with_binding_power`, which is the parser
+for expressions: beside it sit `parse_unary_expression`, `parse_binary_expression`,
+`parse_extract_expression`, `parse_namespace_expression`, and `parse_selector`,
+and the other three suffix builders are in `call.rs` (§11.3).
 
-**`Absent` from `parse_primary_expression` is a result, not a failure.** It is how
-`f(,,)` gets its empty arguments, how `f(a = )` gets its empty value, and how
-`parse_statement_list` knows to recover. Only the caller knows whether an operand
-was required, so the function raises no diagnostic of its own — `ERROR_TOKEN` is
-the one arm that could and deliberately does not, because the lexer has already
-pointed at the character (§11.1).
+**No token is looked up twice.** A rank is written into the arm that matches the
+token — `parse_unary_expression(p, BindingPower::UNARY_NOT)` — rather than fetched
+from a table keyed by that same token. The two lookup functions this replaced
+named every operator twice, once in the lookup's own `match` and once in the arm
+that called it, and the arms in between said nothing about precedence at all.
+
+**The binary arms carry their rank as a guard:**
+
+```rust
+T![+] | T![-] if BindingPower::BINARY_PLUS_MINUS >= current_binding_power => {
+    parse_binary_expression(
+        p,
+        lhs,
+        BindingPower::BINARY_PLUS_MINUS,
+        Associativity::BINARY_PLUS_MINUS,
+    )
+}
+```
+
+An operator that binds too loosely fails its guard and falls to `_ => break`,
+which is Pratt's *stop here and let my caller have it*. No token appears in two
+arms of that `match`, so a failed guard can never be caught by a later one. The
+five suffix arms carry no guard at all, because they bind tighter than every rank
+in the table and so can never lose to one.
+
+**Nothing can decline, so nothing borrows.** Every builder takes its operand by
+value and hands back a `CompletedMarker`, which is what lets the loop be a single
+`lhs = match p.cur()`. An arm that could return `Absent` would have to give `lhs`
+back on the way out, and that is why an earlier shape had every arm take `&lhs`
+and `precede` a clone of it.
+
+**The loop breaks on `newlines_are_significant() && has_preceding_line_break()`**,
+the subtlest line in the file. It is what makes `f\n(x)` two statements rather
+than a call, and `a\n+ b` two statements rather than a sum. The `::` arm tests
+the same pair for a different reason (§11.4).
+
+**The suffix arms apply to whatever the loop is holding**, not only to an atom, so
+they reach a unary or binary node whose operand never arrived: `a * [b]` is a
+subset of `a * <missing>`, and `a$(b)` a call on an incomplete extract
+(`docs/deviations.md` entry 2 spells that one out). Only error inputs can produce
+such an lhs — where the right operand does arrive, that operand's own recursive
+parse consumed the suffix first.
+
+**Every arm of the lhs match returns, and none falls through to a shared tail.**
+The one-token arms repeat `start`/`bump_any`/`complete` rather than naming a kind
+for a tail below the `match`, and that is the point: an arm can be read on its
+own, and the `match` is uniform — token in, `CompletedMarker` out, once per arm.
+Hoisting the tail would save about fifty lines and buy back a two-tier read where
+some arms produce a value and others produce a node.
+
+**`Absent` is a result, not a failure.** The lhs match ends in
+`_ => return Absent`, and that is how `f(,,)` gets its empty arguments, how
+`f(a = )` gets its empty value, and how `parse_statement_list` knows to recover.
+Only the caller knows whether an operand was required, so nothing on that path
+raises a diagnostic — `ERROR_TOKEN` is the one arm that could and deliberately
+does not, because the lexer has already pointed at the character (§11.1).
 
 **Precedence facts the corpus pins**, in `Operator precedence` and
 `Precedence Tests`:
@@ -1522,7 +1582,7 @@ pointed at the character (§11.1).
 
 The newline behaviour of the operator table is a separate axis: every operator
 here eats a following newline except `::` and `:::`, and that exception is itself
-suspended inside `(`/`[`/`[[`. Both belong to Phase 10, and §11.4 has the rule and
+suspended inside `(`/`[`/`[[`. Both landed in Phase 10, and §11.4 has the rule and
 the two tests that pin it.
 
 **A construct split across a newline settled without a deviation.**
@@ -1544,15 +1604,22 @@ statement that turns out to be only a `;` all mean the same thing to the reader.
 
 ### 11.3 Phase 9 — Calls, subset, subset2 — LANDED
 
-`src/syntax/call.rs`, `src/syntax/parenthesized_expression.rs`, and
-`parse_postfix_expression` in `expr.rs`.
+`src/syntax/call.rs` and `src/syntax/parenthesized_expression.rs`, reached from
+three arms of the Pratt loop in `expr.rs`.
 
 **`(` is the one token in this phase with two jobs**, and the Pratt structure
-separates them with no lookahead at all. `parse_postfix_expression` meets it with
-an operand already to its left and builds an `R_CALL`; `parse_primary_expression`
+separates them with no lookahead at all. The loop's `(` arm meets it with an
+operand already to its left and builds an `R_CALL`; the lhs match's `(` arm
 (§11.2) meets it where an operand is due and builds a group. `f(x)` and `f (x)`
 are both calls; `f\n(x)` is neither, because the statement break ends the loop
-before postfix is reached, and it becomes two statements exactly as R reads it.
+before the arm is reached, and it becomes two statements exactly as R reads it.
+
+**Each of the three is one function in `call.rs`.** `parse_call_expression` opens
+the outer node with `lhs.precede(p)` and the arguments node with `p.start()`
+before handing off to `parse_argument_list`, and its two siblings do the same with
+their own kinds and scopes. A construct's node and the delimiters that define it
+are never split across two files, which is also why
+`parse_parenthesized_expression` is a file of its own rather than an arm.
 
 The body of a group is a full `parse_expression`, not one restricted to §11.2's
 table: R's `'(' expr_or_assign_or_help ')'` admits `=` and `?`, so `(a = 1)` is an
@@ -1578,7 +1645,7 @@ method for its keyword-escape check. The join fires only inside a `[[`, where th
 both brackets, and only on brackets that are adjacent, so `x[[a] ]` and `x[[a]\n]`
 stay errors. §9.2's placement rule is what makes one site sufficient: because a
 bump lexes the *next* token, the opener is consumed inside the scope and the
-closer outside it, which is why `parse_subset2_arguments` bumps `[[` inside
+closer outside it, which is why `parse_subset2_expression` bumps `[[` inside
 `with_scope` and `expect`s `]]` outside it.
 
 So a terminator check is a plain predicate. `ARGUMENT_LIST_ENDS` names every
@@ -1702,8 +1769,8 @@ Each arm repeats the guard, the two markers, and the `bump(T![=])`, and that is
 the deliberate half. Hoisting any of it means a token set naming the same five
 kinds a second time and a caller that has to re-derive what the callee already
 knew; what is left instead is one self-contained arm per name form, which cannot
-drift from the kind it guards. It is the same trade `parse_primary_expression`
-makes in §11.2, for the same reason.
+drift from the kind it guards. It is the same trade the lhs match makes in §11.2,
+for the same reason.
 
 This is sound because R admits only a bare symbol, string, `...`, `..i`, or
 `NULL` as an argument name — `f(a$b = 1)` is not legal — so the name is always
@@ -1740,40 +1807,55 @@ overlapped by that same diagnostic. §11.5's `expected_parameter` still lands,
 because R rejects `function(a,,b)` — that asymmetry is why the two lists do not
 share a constructor.
 
-### 11.4 Phase 10 — Extract and namespace
+### 11.4 Phase 10 — Extract and namespace — LANDED
 
-Small phase, but it is where aether's first user-visible deviation lands, so keep
-it separate for reviewability.
+`src/syntax/expr.rs`. Small phase, but it is where aether's first user-visible
+deviation lands, so it stayed separate for reviewability.
 
-#### What changes in the Pratt loop
+#### What changed in the Pratt loop
 
-`parse_infix_expression` completes `R_BINARY_EXPRESSION` unconditionally today and
-`infix_binding_power` stops at rank 15. Four edits, all in `expr.rs`:
+**One arm per operator family, not one function with three branches.**
+`parse_infix_expression` is gone. `$` and `@` are one arm calling
+`parse_extract_expression`, `::` and `:::` are another calling
+`parse_namespace_expression`, and the binary operators are thirteen arms of their
+own (§11.2). The three sets are disjoint, so branching inside one function bought
+nothing and cost a reader the ability to follow any one operator family top to
+bottom. Only the binary arms name a binding power: the selector operators take a
+single `parse_selector` call on the right rather than a recursive
+`parse_expression_with_binding_power`, so a rank would never reach anything that
+compares it (§11.2 for why they carry none).
 
-1. Add ranks 16 and 17 to `infix_binding_power` — `T![$] | T![@]` at 16 and
-   `T![::] | T![:::]` at 17, both `Associativity::Left` (see §11.2 on why left
-   rather than tree-sitter-r's right). Delete the doc-comment saying they are
-   missing until Phase 10.
+They take their operand by value and return a `CompletedMarker` rather than a
+`ParsedSyntax`, because the `match` arm has already committed by the time either
+runs and neither can decline.
 
-2. Capture the operator kind and `p.cur_range()` **before** `p.bump_any()`.
-   Neither survives the bump, and `expected_selector` needs both: the kind to name
-   the operator in its message, the range for its secondary label.
+Both selector functions capture the operator kind and `p.cur_range()` **before**
+`p.bump_any()`, because neither survives the bump and the diagnostics need both —
+the kind to name the operator in the message, the range for the secondary label.
 
-3. Branch on the operator to choose the node kind — `R_EXTRACT_EXPRESSION` for
-   `$` and `@`, `R_NAMESPACE_EXPRESSION` for `::` and `:::`, `R_BINARY_EXPRESSION`
-   for everything else. The selector operators call `parse_selector` in place of
-   the recursive `parse_expression_with_binding_power`, so the right-hand side is
-   a selector rather than a full expression.
+`parse_selector` is `AnyRSelector` — identifier, string, `...`, `..i` — with the
+same one-arm-per-kind shape as `parse_argument_name_clause` in `call.rs`.
 
-4. Add the newline guard, which fires before any of the above: at `::` or `:::`
-   with `p.scope().newlines_are_significant() && p.has_preceding_line_break()`,
-   raise `expected_selector` and complete `R_NAMESPACE_EXPRESSION` with `right`
-   left missing, consuming nothing further.
+**`::` and `:::` restrict their left operand as well**, which this section did not
+originally account for and the four imported error tests demand. It is not a
+`parse_` call, because by the time the operator is in hand the operand is already
+a `CompletedMarker` — so it is one branch inside `parse_namespace_expression`,
+testing `AnyRSelector::can_cast` and, when that fails, diagnosing and wrapping the
+operand in an `R_BOGUS_SELECTOR` before the namespace node is preceded:
 
-`parse_selector` is the new function, and it is `AnyRSelector` — identifier,
-string, `...`, `..i` — with the same one-arm-per-kind shape as
-`parse_argument_name_clause` in `call.rs`. Its string arm spells out the three
-string literal kinds, as that one does.
+```rust
+if !AnyRSelector::can_cast(lhs.kind(p)) {
+    p.error(diagnostics::expected_lhs_selector(…));
+    lhs = lhs.precede(p).complete(p, R_BOGUS_SELECTOR);
+}
+
+let m = lhs.precede(p);
+```
+
+`a::b::c` and `a()::b` keep their operator and their right-hand name that way.
+Leaving the bad slot for the factory to notice is the alternative, and it
+collapses the whole expression into one `R_BOGUS_EXPRESSION` — the failure mode §7
+added the kind to avoid.
 
 #### The newline rule
 
@@ -1793,43 +1875,31 @@ inferred from tree-sitter-r:
   `LBRACE` and does not get this, so `foo::\nbar` inside braces is still an error.
 
 `newlines_are_significant()` draws the line in exactly that place, which is why
-step 4 above is one guard clause rather than a scope walk.
+the guard is one clause in the `::` arm rather than a scope walk.
 
 | Source | tree-sitter-r | aether |
 |---|---|---|
-| `foo::\nbar` | error, no newlines allowed | error, matched |
-| `f(foo::\nbar)` | *(unverified)* | **clean**, matching R |
+| `foo::\nbar` | two expressions, no error, since the RHS is `optional()` | error, same shape (deviation 3) |
+| `f(foo::\nbar)` | clean | **clean**, matching R |
 | `a$\nb` | clean | clean, matching R |
 
-Add both of the aether cases as aether-authored tests, in
-`expressions/namespace.md` and `expressions/extract.md`:
+Both aether cases are aether-authored tests: `Namespace Newline Is Significant
+Only Outside Parens` in `expressions/namespace.md` and `Dollar Tolerates A
+Newline` in `expressions/extract.md`. Neither carries a marker — they are *clean*
+parses, which is the surprising half, and the oracle confirms tree-sitter-r
+agrees on both, so nothing moved into the inherited **"tree-sitter-r vs. R"**
+heading (§8.4).
 
-````markdown
-## Namespace Newline Is Significant Only Outside Parens
-
-```r
-f(stats::
-  median)
-```
-
-## Dollar Tolerates A Newline
-
-```r
-df$
-  x
-```
-````
-
-The first needs no marker — it is a *clean* parse, which is the surprising half.
-Whether tree-sitter-r agrees is worth checking rather than assuming when the
-oracle first runs against it; if it errors, it becomes a real deviation and moves
-into `docs/deviations.md` under the inherited **"tree-sitter-r vs. R"** heading
-(§8.4), not aether's own list.
+The `foo::\nbar` row is the one place the guard's diagnostic is not
+`expected_rhs_selector`. Reporting "expected a name" at the parser's position names
+the *next* line's first token, which is usually a perfectly good name, so the
+message accuses the wrong thing. `namespace_rhs_selector_after_line_break` names the newline
+instead and anchors on the operator.
 
 #### Recovery: diagnose, leave the slot missing, consume nothing
 
 One rule, and it is the same one for `a$`, `a$1`, `a${b}`, `a$if`, and `a$)`.
-`parse_selector(p).or_add_diagnostic(…)` raises `expected_selector` at the
+`parse_selector(p).or_add_diagnostic(…)` raises `expected_rhs_selector` at the
 offending token and leaves `right` empty. Whatever follows is not the selector's
 problem — the Pratt loop finds no infix operator at `1`, breaks, and `1` becomes
 the next statement. `a$1 + 2` follows from that: the `+ 2` reattaches to the
@@ -1842,93 +1912,103 @@ version: an earlier draft consumed one atom into an `R_BOGUS_SELECTOR` to stop t
 imported corpus explicitly calls useful — `foo${bar}` would lose a braced block
 and `foo$if` an entire if-statement.
 
-**Not consuming also shrinks the deviation**, which is the mechanical payoff.
-Consuming makes those rows differ from tree-sitter in *shape*, so they need
-`[deviation]` and drop out of oracle coverage. Leaving the slot missing makes the
-shape identical — sibling and all — and the oracle compares shape, not diagnostics
-(`aether_r_oracle/src/shape.rs`). Empty slots are invisible to `shape_of`, which
-walks `children_with_tokens()`.
+**Not consuming keeps the shape identical**, which is the mechanical payoff.
+Consuming makes those rows differ from tree-sitter in *shape*; leaving the slot
+missing makes it identical, sibling and all, since empty slots are invisible to
+`shape_of`, which walks `children_with_tokens()`
+(`aether_r_oracle/src/shape.rs`). What that buys is reviewability rather than
+oracle coverage — `check()` skips the oracle for any block that has errors, so
+these rows were never compared and dropping their `[deviation]` markers does not
+change what runs. It records that the tree is air's.
 
-**The cost is a cascading diagnostic on same-line cases**, and it is worth stating
-rather than discovering. `a$1` raises `expected_selector` and then
-`expected_statement_separator`, because `parse_statement_list`'s check fires when
-there is no line break between the two statements (§11.1).
+**The cascading diagnostic this was expected to cost does not happen.** `a$1`
+looked like it would raise `expected_rhs_selector` and then
+`expected_statement_separator`, since `parse_statement_list`'s check fires when
+there is no line break between the two statements (§11.1). Both would land on the
+`1`, and `Parser::error` drops a diagnostic that starts where the previous one
+starts. So `a$1` reads as one complaint, and the pair only appears when the two
+positions genuinely differ, as in `a${ b }`.
 
-It is bounded: that check is guarded on `!p.has_preceding_line_break()`, so the
-`df$`-then-next-line shapes raise one diagnostic and produce two clean statements.
-Only same-line typos like `df$2020` — a real class, since column names beginning
-with a digit need backticks — get the pair.
-
-Do not pre-solve it. These tests exist and their `.snap.md` prints every
-diagnostic, so Phase 10 shows exactly how the cascade reads. If it reads badly,
-suppressing a separator complaint at a position that already carries a diagnostic
-is a targeted fix, and one worth designing against real output.
-
-**`R_BOGUS_SELECTOR` is left unproduced.** §7 added it and expected Phase 10 to be
-its first user; no code path builds one now. The kind stays — `AnyRSelector`
-having a bogus variant is defensible on its own, and removing it means a codegen
-churn for nothing — but §7 records that nothing constructs it.
+**`R_BOGUS_SELECTOR` has exactly one producer**, and it is not the one §7
+predicted. The RHS never builds one, for the reason above. The LHS of `::` does:
+there the tokens are already consumed, so containment costs nothing and a bogus
+`left` is strictly better than a bogus everything.
 
 #### Corpus
 
-**Enable:** `expressions/extract.md` and `expressions/namespace.md` in full — 18
-headings between them, currently 5 `[error, deviation]`, 6 `[error]`, and 7 plain
+**Enabled:** `expressions/extract.md` and `expressions/namespace.md` in full — 18
+headings between them, which were 5 `[error, deviation]`, 6 `[error]`, and 7 plain
 `[pending]`. Air's `undefined/extract_expression_error.R` and
 `undefined/namespace_expression_error.R` live in these two files as well. The two
 newline tests above are aether-authored, so they are absent from `MANIFEST.toml`
-and do not move the 89 count.
+and do not move the 89 count. `Precedence Tests` in `expressions/precedence.md`
+also shed its `[pending]`; `A$"B"^NA` and `a::b$c` were the only things it was
+waiting on.
 
-**Two marker changes fall out of the recovery decision, and both are the point of
-making it.**
+**Four marker changes, two of them the point of the recovery decision.**
 
-*Expect the five `[deviation]` markers to come off.* `Dollar No RHS`,
-`Slot No RHS`, `Extract With A Literal RHS`, `Namespace With Missing RHS`, and
-`Namespace With A Literal RHS` all carry `[error, deviation]` because an earlier
-draft's bogus RHS changed the shape. It no longer does. `Extract With A Literal
-RHS` even carries air's own output inline, and it is what aether will now
-produce: `RExtractExpression` with `right: missing (required)`, then
-`RDoubleValue` as a sibling. Drop `deviation` from each as the oracle confirms it,
-one at a time; five tests regaining oracle coverage is the concrete payoff for not
-consuming.
+*The five `[deviation]` markers came off.* `Dollar No RHS`, `Slot No RHS`,
+`Extract With A Literal RHS`, `Namespace With Missing RHS`, and `Namespace With A
+Literal RHS` all carried `[error, deviation]` because an earlier draft's bogus RHS
+changed the shape. It no longer does. `Extract With A Literal RHS` even carries
+air's own output inline, and it is what aether produces: `RExtractExpression` with
+`right: missing (required)`, then `RDoubleValue` as a sibling.
 
-*`Dollar, At, Namespace, Namespace Internal With Expression RHS` has to gain
-`[error]`.* It is plain `[pending]` today because `foo${bar}` is clean under
+*`Dollar, At, Namespace, Namespace Internal With Expression RHS` gained
+`[error]`.* It was plain `[pending]` because `foo${bar}` is clean under
 tree-sitter's `optional()` RHS. Deviation 2 makes the RHS required, so aether
-raises `expected_selector` and the test must say so. Its shape still matches, so
-it needs no `deviation`.
+raises `expected_rhs_selector` and the test says so. Its shape still matches, so it
+needs no `deviation`.
 
-#### The diagnostic this phase adds
+*`Namespace get` and `Namespace get internal` gained `[error]` too*, which this
+section did not anticipate. Both open with a bare `foo::` or `foo:::` on a line of
+its own — the newline row above, and an error in aether where tree-sitter's
+`optional()` RHS keeps it quiet. Same shape either way, so again no `deviation`.
 
-`$`, `@`, `::`, and `:::` all funnel through one constructor, so it names the
+#### The diagnostics this phase adds
+
+`$`, `@`, `::`, and `:::` all funnel through `expected_rhs_selector`, so it names the
 operator that was actually written — a message listing all four tells the reader
 nothing about which one they typed. The secondary label points at the operator,
-which is what step 2 above exists for.
+which is what capturing `cur_range()` before the bump exists for.
 
 ```rust
 /// The name on the right of `$`, `@`, `::`, or `:::` is missing
-pub(crate) fn expected_selector(
-    p: &RParser,
+pub(crate) fn expected_rhs_selector(
     operator: RSyntaxKind,
     operator_range: TextRange,
     range: TextRange,
 ) -> ParseDiagnostic {
-    // Punctuation kinds render as their own text, so this stays correct if the
-    // token set changes
-    let operator = operator.to_string().unwrap_or("operator");
-
-    expected_any(&["identifier", "string", "`...`", "`..i`"], range, p).with_detail(
+    ParseDiagnostic::new("Expected a name.", range).with_detail(
         operator_range,
-        format!("`{operator}` requires a name on the right."),
+        format!("`{}` requires a name on the right.", text_of(operator)),
     )
 }
 ```
+
+**The message is a plain `Expected a name.`**, not `expected_any` over the four
+forms `AnyRSelector` accepts. `expected_any` spelled that list into the message
+and then again into a second advice frame that repeated the same source lines, for
+a diagnostic twice the height that said nothing the detail below it does not — the
+detail names the operator and which side wants the name, which is the part a
+reader cannot work out. Dropping `expected_any` drops the `&RParser` argument with
+it, since the parser was only there to render the token that was found.
+
+`expected_lhs_selector` is its mirror, for the operand the `can_cast` branch above
+rejects, and shares that message with it.
+`namespace_rhs_selector_after_line_break` is the third, for the newline row, and
+names in full what it is for: only `::` and `:::` raise it, and only for their
+right-hand side. `text_of` is `operator.to_string().unwrap_or("operator")` —
+punctuation kinds render as their own text, so all three stay correct if the token
+set changes.
 
 `format!` rather than `markup!`: `with_detail` takes a `biome_console::fmt::Display`,
 which `String` already satisfies, and `biome_parser` builds its own details the
 same way. It keeps `biome_console` out of the crate's dependency list.
 
-This is the constructor `docs/deviations.md` entries 2 and 3 lean on — every row
-where air produces no error and aether produces one is a row where this fires.
+These are the constructors `docs/deviations.md` entries 2 and 3 lean on — every
+row where air produces no error and aether produces one is a row where one of them
+fires.
 
 ### 11.5 Phase 11 — Function definitions
 

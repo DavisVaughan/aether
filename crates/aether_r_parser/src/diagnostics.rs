@@ -1,6 +1,7 @@
 //! Constructors for every diagnostic aether emits
 
 use crate::parser::RParser;
+use aether_r_syntax::RSyntaxKind;
 use biome_parser::diagnostic::{ParseDiagnostic, expected_node};
 use biome_rowan::TextRange;
 
@@ -49,6 +50,50 @@ pub(crate) fn unterminated_string(open: TextRange, eof: TextRange) -> ParseDiagn
 
 pub(crate) fn expected_expression(p: &RParser, range: TextRange) -> ParseDiagnostic {
     expected_node("expression", range, p)
+}
+
+/// The name on the right of `$`, `@`, `::`, or `:::` is missing
+pub(crate) fn expected_rhs_selector(
+    operator: RSyntaxKind,
+    operator_range: TextRange,
+    range: TextRange,
+) -> ParseDiagnostic {
+    ParseDiagnostic::new("Expected a name.", range).with_detail(
+        operator_range,
+        format!("`{}` requires a name on the right.", text_of(operator)),
+    )
+}
+
+/// The name on the left of `::` or `:::` is not a name
+pub(crate) fn expected_lhs_selector(
+    operator: RSyntaxKind,
+    operator_range: TextRange,
+    range: TextRange,
+) -> ParseDiagnostic {
+    ParseDiagnostic::new("Expected a name.", range).with_detail(
+        operator_range,
+        format!("`{}` requires a name on the left.", text_of(operator)),
+    )
+}
+
+/// A newline between `::` or `:::` and the name it needs
+pub(crate) fn namespace_rhs_selector_after_line_break(
+    operator: RSyntaxKind,
+    operator_range: TextRange,
+) -> ParseDiagnostic {
+    let operator = text_of(operator);
+
+    ParseDiagnostic::new(
+        format!("A newline is not allowed between `{operator}` and the name that follows."),
+        operator_range,
+    )
+    .with_hint(format!(
+        "`{operator}` and its name must be on the same line."
+    ))
+}
+
+fn text_of(operator: RSyntaxKind) -> &'static str {
+    operator.to_string().unwrap_or("operator")
 }
 
 /// Two expressions with nothing between them, as in `1 2`

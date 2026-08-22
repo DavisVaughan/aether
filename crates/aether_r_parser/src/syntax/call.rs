@@ -2,36 +2,48 @@ use crate::parser::{RParser, Scope};
 use crate::syntax::expr::parse_expression;
 use aether_r_syntax::RSyntaxKind::{
     self, DOTDOTI, DOTS, IDENT, R_ARGUMENT, R_ARGUMENT_LIST, R_ARGUMENT_NAME_CLAUSE,
-    R_BOGUS_EXPRESSION, R_CALL_ARGUMENTS, R_DOT_DOT_I, R_DOTS, R_DOUBLE_QUOTED_STRING_LITERAL,
-    R_IDENTIFIER, R_NULL_EXPRESSION, R_RAW_STRING_LITERAL, R_SINGLE_QUOTED_STRING_LITERAL,
-    R_STRING_VALUE, R_SUBSET_ARGUMENTS, R_SUBSET2_ARGUMENTS,
+    R_BOGUS_EXPRESSION, R_CALL, R_CALL_ARGUMENTS, R_DOT_DOT_I, R_DOTS,
+    R_DOUBLE_QUOTED_STRING_LITERAL, R_IDENTIFIER, R_NULL_EXPRESSION, R_RAW_STRING_LITERAL,
+    R_SINGLE_QUOTED_STRING_LITERAL, R_STRING_VALUE, R_SUBSET, R_SUBSET_ARGUMENTS, R_SUBSET2,
+    R_SUBSET2_ARGUMENTS,
 };
 use aether_r_syntax::T;
+use biome_parser::CompletedMarker;
 use biome_parser::parse_recovery::ParseRecoveryTokenSet;
 use biome_parser::{Parser, ParserProgress, TokenSet, token_set};
 
-pub(crate) fn parse_call_arguments(p: &mut RParser) {
-    let m = p.start();
+pub(crate) fn parse_call_expression(p: &mut RParser, lhs: CompletedMarker) -> CompletedMarker {
+    let m = lhs.precede(p);
+
+    let arguments = p.start();
     p.with_scope(Scope::Parenthesis, |p| {
         p.bump(T!['(']);
         parse_argument_list(p);
     });
     p.expect(T![')']);
-    m.complete(p, R_CALL_ARGUMENTS);
+    arguments.complete(p, R_CALL_ARGUMENTS);
+
+    m.complete(p, R_CALL)
 }
 
-pub(crate) fn parse_subset_arguments(p: &mut RParser) {
-    let m = p.start();
+pub(crate) fn parse_subset_expression(p: &mut RParser, lhs: CompletedMarker) -> CompletedMarker {
+    let m = lhs.precede(p);
+
+    let arguments = p.start();
     p.with_scope(Scope::Bracket, |p| {
         p.bump(T!['[']);
         parse_argument_list(p);
     });
     p.expect(T![']']);
-    m.complete(p, R_SUBSET_ARGUMENTS);
+    arguments.complete(p, R_SUBSET_ARGUMENTS);
+
+    m.complete(p, R_SUBSET)
 }
 
-pub(crate) fn parse_subset2_arguments(p: &mut RParser) {
-    let m = p.start();
+pub(crate) fn parse_subset2_expression(p: &mut RParser, lhs: CompletedMarker) -> CompletedMarker {
+    let m = lhs.precede(p);
+
+    let arguments = p.start();
     p.with_scope(Scope::Bracket2, |p| {
         // Purposefully bump inside `with_scope()`. Bumping lexes the next
         // token after this one, and the context for how two back to back `]`
@@ -44,7 +56,9 @@ pub(crate) fn parse_subset2_arguments(p: &mut RParser) {
     // Similarly, we `expect()` (bump + assert) outside the scope so that a
     // potential future `]` can't be affected by a now closed Bracket2 scope
     p.expect(T!["]]"]);
-    m.complete(p, R_SUBSET2_ARGUMENTS);
+    arguments.complete(p, R_SUBSET2_ARGUMENTS);
+
+    m.complete(p, R_SUBSET2)
 }
 
 /// What ends an argument list

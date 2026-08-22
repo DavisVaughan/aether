@@ -3,10 +3,10 @@ use crate::parser::{RParser, Scope};
 use crate::syntax::expr::parse_expression;
 use aether_r_syntax::RSyntaxKind::R_PARENTHESIZED_EXPRESSION;
 use aether_r_syntax::T;
+use biome_parser::CompletedMarker;
 use biome_parser::Parser;
-use biome_parser::parsed_syntax::ParsedSyntax::{self, Present};
 
-pub(crate) fn parse_parenthesized_expression(p: &mut RParser) -> ParsedSyntax {
+pub(crate) fn parse_parenthesized_expression(p: &mut RParser) -> CompletedMarker {
     debug_assert!(p.at(T!['(']));
 
     let m = p.start();
@@ -16,5 +16,5 @@ pub(crate) fn parse_parenthesized_expression(p: &mut RParser) -> ParsedSyntax {
     });
     p.expect(T![')']);
 
-    Present(m.complete(p, R_PARENTHESIZED_EXPRESSION))
+    m.complete(p, R_PARENTHESIZED_EXPRESSION)
 }

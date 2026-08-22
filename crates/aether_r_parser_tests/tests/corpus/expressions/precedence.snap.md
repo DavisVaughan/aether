@@ -209,7 +209,7 @@ RRoot {
 }
 ```
 
-## Precedence Tests [pending]
+## Precedence Tests
 
 ```r
 A$"B"^NA
@@ -217,7 +217,68 @@ a::b$c
 a$b?c
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RBinaryExpression {
+                left: RExtractExpression {
+                    left: RIdentifier {
+                        name_token: IDENT@0..1 "A" [] [],
+                    },
+                    operator: DOLLAR@1..2 "$" [] [],
+                    right: RStringValue {
+                        value: R_DOUBLE_QUOTED_STRING_LITERAL@2..5 "\"B\"" [] [],
+                    },
+                },
+                operator: EXPONENTIATE@5..6 "^" [] [],
+                right: RNaExpression {
+                    value: NA_LOGICAL_KW@6..8 "NA" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RExtractExpression {
+                left: RNamespaceExpression {
+                    left: RIdentifier {
+                        name_token: IDENT@8..10 "a" [Newline("\n")] [],
+                    },
+                    operator: COLON2@10..12 "::" [] [],
+                    right: RIdentifier {
+                        name_token: IDENT@12..13 "b" [] [],
+                    },
+                },
+                operator: DOLLAR@13..14 "$" [] [],
+                right: RIdentifier {
+                    name_token: IDENT@14..15 "c" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBinaryExpression {
+                left: RExtractExpression {
+                    left: RIdentifier {
+                        name_token: IDENT@15..17 "a" [Newline("\n")] [],
+                    },
+                    operator: DOLLAR@17..18 "$" [] [],
+                    right: RIdentifier {
+                        name_token: IDENT@18..19 "b" [] [],
+                    },
+                },
+                operator: WAT@19..20 "?" [] [],
+                right: RIdentifier {
+                    name_token: IDENT@20..21 "c" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@21..22 "" [Newline("\n")] [],
+}
+```
 
 ## Complex Expressions [pending]
 
