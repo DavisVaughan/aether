@@ -17,8 +17,6 @@ pub(crate) fn parse_function_definition(p: &mut RParser) -> CompletedMarker {
     let m = p.start();
     p.bump_any();
 
-    // Nothing here tests for a line break, which is what makes the newlines in
-    // `function\n() 1` and `function()\n1` insignificant
     parse_parameters(p).or_add_diagnostic(p, diagnostics::expected_parameters);
     parse_function_body(p).or_add_diagnostic(p, diagnostics::expected_expression);
 
