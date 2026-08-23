@@ -123,6 +123,5 @@ fn parse_parameter_default(p: &mut RParser) -> ParsedSyntax {
     let m = p.start();
     p.bump(T![=]);
     parse_expression(p).or_add_diagnostic(p, diagnostics::expected_expression);
-
     Present(m.complete(p, R_PARAMETER_DEFAULT))
 }
