@@ -907,7 +907,7 @@ sees `R_BOGUS_PARAMETER_NAME` knows a parameter was malformed without looking at
 its parent.
 
 **One path constructs one**, in `parse_parameter`: a name that is absent where the
-list has not ended is diagnosed with `expected_parameter` and the tokens up to the
+list has not ended is diagnosed with `expected_parameter_name` and the tokens up to the
 next boundary are recovered into it. A name that is absent *at* a boundary is the
 hole case, `function(a,,b)`, which is diagnosed the same way and consumes nothing,
 so the empty `RParameter` stays empty.

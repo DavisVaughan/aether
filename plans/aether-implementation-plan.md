@@ -891,7 +891,7 @@ specified in that phase's section rather than here:
 | `expected_statement_separator` | §11.1, Phase 7 | `parse_statement_list` |
 | `expected_rhs_selector`, `expected_lhs_selector`, `namespace_rhs_selector_after_line_break` | §11.4, Phase 10 | the `$`, `@`, `::`, `:::` arms of the Pratt loop |
 | `expected_parameters` | §11.5, Phase 11 | `parse_function_definition` |
-| `expected_parameter` | §11.5, Phase 11 | `parse_parameter` |
+| `expected_parameter_name` | §11.5, Phase 11 | `parse_parameter` |
 | `expected_condition` | §11.6, Phase 12 | the `if` and `while` headers |
 
 Three rules hold across all of them, and the split above does not weaken any:
@@ -1828,7 +1828,7 @@ needed. A hole is legal in an argument list, so `f(a,,b)` raises nothing at all;
 the missing-comma case (`f(a b)`) is `expect(T![,])`, which words itself; and a
 value that is not a value is an `expected_expression`, which is what it is — the
 argument arrived, its value did not. A constructor of its own would have had to say
-the same thing in different words. §11.5's `expected_parameter` still lands,
+the same thing in different words. §11.5's `expected_parameter_name` still lands,
 because R rejects `function(a,,b)` — that asymmetry is why the two lists do not
 share a constructor.
 
@@ -2214,7 +2214,7 @@ parse_parameter_name(p)
     .or_recover_with_token_set(
         p,
         &ParseRecoveryTokenSet::new(R_BOGUS_PARAMETER_NAME, PARAMETER_LIST_BOUNDARIES),
-        diagnostics::expected_parameter,
+        diagnostics::expected_parameter_name,
     )
     .ok();
 ```
@@ -2299,7 +2299,7 @@ const LAYER_NAME_LIST_RECOVERY_SET: TokenSet<CssSyntaxKind> =
 list is hand-rolled for what looks like the same reason: the trait treats an absent
 element at a separator as *a missing element* and `continue`s, producing neither a
 node nor a diagnostic. R needs both — an empty `RParameter`, as `RArgument` already
-does, and `expected_parameter`, because R rejects `function(a,,b)`. Returning
+does, and `expected_parameter_name`, because R rejects `function(a,,b)`. Returning
 `Present` for the hole to get the node would mean `parse_element` never returns
 `Absent`, so the trait's `recover` would never run and nothing would be left of it
 but ceremony.
@@ -2364,13 +2364,13 @@ pub(crate) fn expected_parameters(p: &RParser, range: TextRange) -> ParseDiagnos
     expected_node("parameter list", range, p)
 }
 
-/// A hole in a parameter list, as in `function(a,,b)`
-pub(crate) fn expected_parameter(p: &RParser, range: TextRange) -> ParseDiagnostic {
-    expected_node("parameter", range, p)
+/// A parameter with no name, as in `function(a,,b)` or `function(1)`
+pub(crate) fn expected_parameter_name(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("parameter name", range, p)
 }
 ```
 
-`expected_parameter` is the asymmetry with §11.3 worth remembering: R accepts
+`expected_parameter_name` is the asymmetry with §11.3 worth remembering: R accepts
 `f(a,,b)` and rejects `function(a,,b)`, so the identical shape is a hole in an
 argument list and an error in a parameter list. That is why the two lists do not
 share a constructor even though they share a separator — and, as it turned out,

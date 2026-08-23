@@ -101,9 +101,9 @@ pub(crate) fn expected_parameters(p: &RParser, range: TextRange) -> ParseDiagnos
     expected_node("parameter list", range, p)
 }
 
-/// A hole in a parameter list, as in `function(a,,b)`
-pub(crate) fn expected_parameter(p: &RParser, range: TextRange) -> ParseDiagnostic {
-    expected_node("parameter", range, p)
+/// A parameter with no name, as in `function(a,,b)` or `function(1)`
+pub(crate) fn expected_parameter_name(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("parameter name", range, p)
 }
 
 /// Two expressions with nothing between them, as in `1 2`

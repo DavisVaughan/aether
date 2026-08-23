@@ -80,7 +80,7 @@ fn parse_parameter(p: &mut RParser) {
         .or_recover_with_token_set(
             p,
             &ParseRecoveryTokenSet::new(R_BOGUS_PARAMETER_NAME, PARAMETER_LIST_BOUNDARIES),
-            diagnostics::expected_parameter,
+            diagnostics::expected_parameter_name,
         )
         .ok();
 
