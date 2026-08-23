@@ -35,6 +35,8 @@ fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
     while !p.at(T![EOF]) && !p.at(close) {
         progress.assert_progressing(p);
 
+        let statement = p.start();
+
         match p.cur() {
             T![;] => parse_empty_statement(p),
             _ => match parse_expression(p) {
@@ -42,6 +44,8 @@ fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
                 Absent => parse_recovered_statement(p, close),
             },
         }
+
+        statement.complete(p, R_STATEMENT);
     }
 
     statement_list.complete(p, R_STATEMENT_LIST);
@@ -52,37 +56,27 @@ fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
 /// may appear even without an expression, so `{ ;; }` and `{ 1\n; }` are fine.
 /// In those cases, the statement is missing its optional expression.
 fn parse_empty_statement(p: &mut RParser) {
-    let m = p.start();
-
     if p.scope() == Scope::TopLevel {
         p.error(diagnostics::unexpected_semicolon(p.cur_range()));
     }
     p.bump(T![;]);
-
-    m.complete(p, R_STATEMENT);
 }
 
 fn parse_statement(p: &mut RParser, expression: CompletedMarker, close: RSyntaxKind) {
-    let range = expression.range(p);
-    let m = expression.precede(p);
-
     let line_break = p.has_preceding_line_break();
     let semicolon = !line_break && p.eat(T![;]);
     let terminated = semicolon || line_break || p.at(T![EOF]) || p.at(close);
 
     if !terminated {
         p.error(diagnostics::expected_statement_separator(
-            range,
+            expression.range(p),
             p.cur_range(),
         ));
     }
-
-    m.complete(p, R_STATEMENT);
 }
 
 /// Failed to find an expression. Bury the rest of the line as bogus and retry.
 fn parse_recovered_statement(p: &mut RParser, close: RSyntaxKind) {
-    let m = p.start();
     let range = p.cur_range();
 
     let bogus = p.start();
@@ -96,6 +90,4 @@ fn parse_recovered_statement(p: &mut RParser, close: RSyntaxKind) {
     if !p.has_preceding_line_break() {
         p.eat(T![;]);
     }
-
-    m.complete(p, R_STATEMENT);
 }
