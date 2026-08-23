@@ -190,7 +190,6 @@ return()
 ## Side By Side Arguments [error]
 
 ```r
-# Can't have two arguments side by side without a delimiter
 fn(a b)
 fn(a b c)
 ```

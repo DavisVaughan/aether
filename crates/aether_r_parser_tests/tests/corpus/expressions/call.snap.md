@@ -2041,7 +2041,6 @@ return()
 ## Side By Side Arguments [error]
 
 ```r
-# Can't have two arguments side by side without a delimiter
 fn(a b)
 fn(a b c)
 ```
@@ -2053,26 +2052,26 @@ RRoot {
         RStatement {
             expression: RCall {
                 function: RIdentifier {
-                    name_token: IDENT@0..62 "fn" [Comments("# Can't have two argu ..."), Newline("\n")] [],
+                    name_token: IDENT@0..2 "fn" [] [],
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@62..63 "(" [] [],
+                    l_paren_token: L_PAREN@2..3 "(" [] [],
                     items: RArgumentList [
                         RArgument {
                             name_clause: missing (optional),
                             value: RIdentifier {
-                                name_token: IDENT@63..65 "a" [] [Whitespace(" ")],
+                                name_token: IDENT@3..5 "a" [] [Whitespace(" ")],
                             },
                         },
                         missing separator,
                         RArgument {
                             name_clause: missing (optional),
                             value: RIdentifier {
-                                name_token: IDENT@65..66 "b" [] [],
+                                name_token: IDENT@5..6 "b" [] [],
                             },
                         },
                     ],
-                    r_paren_token: R_PAREN@66..67 ")" [] [],
+                    r_paren_token: R_PAREN@6..7 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
@@ -2080,76 +2079,73 @@ RRoot {
         RStatement {
             expression: RCall {
                 function: RIdentifier {
-                    name_token: IDENT@67..70 "fn" [Newline("\n")] [],
+                    name_token: IDENT@7..10 "fn" [Newline("\n")] [],
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@70..71 "(" [] [],
+                    l_paren_token: L_PAREN@10..11 "(" [] [],
                     items: RArgumentList [
                         RArgument {
                             name_clause: missing (optional),
                             value: RIdentifier {
-                                name_token: IDENT@71..73 "a" [] [Whitespace(" ")],
+                                name_token: IDENT@11..13 "a" [] [Whitespace(" ")],
                             },
                         },
                         missing separator,
                         RArgument {
                             name_clause: missing (optional),
                             value: RIdentifier {
-                                name_token: IDENT@73..75 "b" [] [Whitespace(" ")],
+                                name_token: IDENT@13..15 "b" [] [Whitespace(" ")],
                             },
                         },
                         missing separator,
                         RArgument {
                             name_clause: missing (optional),
                             value: RIdentifier {
-                                name_token: IDENT@75..76 "c" [] [],
+                                name_token: IDENT@15..16 "c" [] [],
                             },
                         },
                     ],
-                    r_paren_token: R_PAREN@76..77 ")" [] [],
+                    r_paren_token: R_PAREN@16..17 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@77..78 "" [Newline("\n")] [],
+    eof_token: EOF@17..18 "" [Newline("\n")] [],
 }
 ```
 
 ```diagnostics
+test.R:1:6 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `,` but instead found `b`
+
+  > 1 │ fn(a b)
+      │      ^
+    2 │ fn(a b c)
+    3 │
+
+  i Remove b
+
 test.R:2:6 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × expected `,` but instead found `b`
 
-    1 │ # Can't have two arguments side by side without a delimiter
-  > 2 │ fn(a b)
+    1 │ fn(a b)
+  > 2 │ fn(a b c)
       │      ^
-    3 │ fn(a b c)
-    4 │
+    3 │
 
   i Remove b
 
-test.R:3:6 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × expected `,` but instead found `b`
-
-    1 │ # Can't have two arguments side by side without a delimiter
-    2 │ fn(a b)
-  > 3 │ fn(a b c)
-      │      ^
-    4 │
-
-  i Remove b
-
-test.R:3:8 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:2:8 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × expected `,` but instead found `c`
 
-    1 │ # Can't have two arguments side by side without a delimiter
-    2 │ fn(a b)
-  > 3 │ fn(a b c)
+    1 │ fn(a b)
+  > 2 │ fn(a b c)
       │        ^
-    4 │
+    3 │
 
   i Remove c
 ```
