@@ -21,6 +21,10 @@ pub(crate) fn parse_if_statement(p: &mut RParser) -> CompletedMarker {
     });
     p.expect(T![')']);
 
+    // The consequence and the alternative have the same limitation as a loop
+    // body: treated like any other expression, but `?` comes before them in the
+    // precedence table. In gram.y a loop body is left associative and an `if`
+    // body is right associative one rank up, but they shake out the same
     parse_body(p).or_add_diagnostic(p, diagnostics::expected_expression);
     parse_else_clause(p);
 
