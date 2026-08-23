@@ -36,6 +36,7 @@ fn parse_else_clause(p: &mut RParser) {
         return;
     }
 
+    // A newline before `else` ends the `if` at top level and nowhere else
     if p.scope() == Scope::TopLevel && p.has_preceding_line_break() {
         return;
     }
