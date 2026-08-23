@@ -418,13 +418,13 @@ RRoot {
 ```diagnostics
 test.R:1:10 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected a sequence but instead found ')'.
+  × Expected a loop sequence but instead found ')'.
 
   > 1 │ for (i in) y
       │          ^
     2 │
 
-  i Expected a sequence here.
+  i Expected a loop sequence here.
 
   > 1 │ for (i in) y
       │          ^
