@@ -586,9 +586,8 @@ RRoot {
 
 ## A Body Stops At The Binary `?`
 
-R's grammar gives the rule `%prec LOW`, which is looser than every operator
-except `?`, so the help operator takes the whole definition as its left operand
-while an assignment ends up inside the body.
+Weirdly in R, help is precedence 1 and function and loop bodies are precedence 2.
+So `function() x ? y` must parse as `(function () x) ? y`.
 
 ```r
 function() a ? b
