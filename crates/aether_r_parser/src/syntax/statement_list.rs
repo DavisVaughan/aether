@@ -50,44 +50,48 @@ fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
                 }
                 p.bump(T![;]);
             }
-            _ => match parse_expression(p) {
-                Present(expression) => parse_statement(p, expression, close),
-                Absent => parse_recovered_statement(p, close),
-            },
+            _ => {
+                match parse_expression(p) {
+                    Present(expression) => {
+                        if !p.at(T![EOF])
+                            && !p.at(close)
+                            && !p.at(T![;])
+                            && !p.has_preceding_line_break()
+                        {
+                            p.error(diagnostics::expected_statement_separator(
+                                expression.range(p),
+                                p.cur_range(),
+                            ));
+                        }
+                    }
+                    Absent => {
+                        // Failed to find an expression. Bury the rest of
+                        // the line as bogus and retry.
+                        let range = p.cur_range();
+
+                        let bogus = p.start();
+                        p.bump_any();
+                        while !p.at(T![EOF])
+                            && !p.at(close)
+                            && !p.at(T![;])
+                            && !p.has_preceding_line_break()
+                        {
+                            p.bump_any();
+                        }
+                        bogus.complete(p, R_BOGUS_EXPRESSION);
+
+                        p.error(diagnostics::expected_expression(p, range));
+                    }
+                }
+
+                if !p.has_preceding_line_break() {
+                    p.eat(T![;]);
+                }
+            }
         }
 
         statement.complete(p, R_STATEMENT);
     }
 
     statement_list.complete(p, R_STATEMENT_LIST);
-}
-
-fn parse_statement(p: &mut RParser, expression: CompletedMarker, close: RSyntaxKind) {
-    let line_break = p.has_preceding_line_break();
-    let semicolon = !line_break && p.eat(T![;]);
-    let terminated = semicolon || line_break || p.at(T![EOF]) || p.at(close);
-
-    if !terminated {
-        p.error(diagnostics::expected_statement_separator(
-            expression.range(p),
-            p.cur_range(),
-        ));
-    }
-}
-
-/// Failed to find an expression. Bury the rest of the line as bogus and retry.
-fn parse_recovered_statement(p: &mut RParser, close: RSyntaxKind) {
-    let range = p.cur_range();
-
-    let bogus = p.start();
-    p.bump_any();
-    while !p.at(T![EOF]) && !p.at(close) && !p.at(T![;]) && !p.has_preceding_line_break() {
-        p.bump_any();
-    }
-    bogus.complete(p, R_BOGUS_EXPRESSION);
-    p.error(diagnostics::expected_expression(p, range));
-
-    if !p.has_preceding_line_break() {
-        p.eat(T![;]);
-    }
 }
