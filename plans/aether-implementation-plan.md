@@ -2045,51 +2045,56 @@ pub(crate) fn parse_function_definition(p: &mut RParser) -> CompletedMarker {
 
     let m = p.start();
     p.bump_any();
-    parse_parameters(p).or_add_diagnostic(p, diagnostics::expected_parameters);
+
+    if p.at(T!['(']) {
+        parse_parameters(p);
+    } else {
+        p.error(diagnostics::expected_parameters(p, p.cur_range()));
+    }
+
     parse_body(p).or_add_diagnostic(p, diagnostics::expected_expression);
 
     m.complete(p, R_FUNCTION_DEFINITION)
 }
 ```
 
-It returns a `CompletedMarker` rather than the `ParsedSyntax` this section first
-drafted, because the arm that calls it has already matched on `function` or `\`
-and it cannot decline — the same rule §11.2 states for every builder the loop
-reaches, and the same shape `parse_parenthesized_expression` already had.
-
 `function` and `\` share one arm and one function. They differ in nothing but the
 token, `name: ('function' | '\\')` is a single slot, and `p.bump_any()` fills it
-either way.
+either way. It hands back a `CompletedMarker` because the arm that calls it has
+already matched and cannot decline, which is §11.2's rule for every builder the
+loop reaches.
+
+**The caller decides, the callee builds.** `parse_parameters` and
+`parse_parameter_default` both return `()` and are entered only with their opening
+token already in hand, so neither carries an `Absent` case that only its one caller
+could interpret. The `if`/`else` above is the one place that knows a parameter list
+was due, and `parse_parameter`'s `if p.at(T![=])` is the one place that knows a
+default was optional.
 
 #### The body is not greedy, and the table grew a rank
 
-**This is the one thing in the phase that a reader should not skim.** §11.2 said
-these constructs get no rank, that a recursive-descent parser makes a body greedy
-by construction, and that the binary `?` was the only case where a greedy body and
-a body at the lowest binding power could differ. The last part was right and the
-first two were wrong. R 4.6.0, asked directly:
+`FUNCTION_OR_LOOP` sits at rank 2, between `HELP` and `LEFT_ASSIGN`; everything
+above it shifted by one and `HIGHEST` is 17. §11.2's table carries it.
+
+The rank is not decoration. R 4.6.0, asked directly:
 
 ```
 function() a ? b      =>  `?`(function() a, b)
-function() a ? b ? c  =>  `?`(`?`(function() a, b), c)
 ?function() a         =>  `?`(function() a)
 function() a = b      =>  function() (a = b)
-function() a -> b     =>  function() (b <- a)
 1 + function(x) x + 2 =>  1 + (function(x) (x + 2))
 ```
 
-So the body swallows every operator from `<-` upward and stops short of `?`. That
-is `%prec LOW` in `gram.y`: the function rule's own precedence sits above `'?'` and
-below `LEFT_ASSIGN`, so a `?` in the lookahead reduces the definition instead of
-shifting into the body. tree-sitter-r reaches the same answer from the other
-direction, with `FUNCTION_OR_LOOP` at rank 2 and `HELP` at rank 1 — and it was
-worth checking R rather than trusting it, because a shared answer between two
-grammars that both descend from `gram.y` is not independent evidence.
+The body swallows every operator from `<-` upward and stops short of `?`. That is
+`%prec LOW` in `gram.y`: the function rule's own precedence sits above `'?'` and
+below `LEFT_ASSIGN`, so a `?` in the lookahead reduces the definition rather than
+shifting into the body. tree-sitter-r agrees from the other direction, with
+`FUNCTION_OR_LOOP` at 2 and `HELP` at 1 — worth checking against R rather than
+trusting, since two grammars that both descend from `gram.y` are not independent
+evidence.
 
-The rank is real, so the table has it: `FUNCTION_OR_LOOP` at 2, everything from
-`LEFT_ASSIGN` up shifted by one, `HIGHEST` now 17. It is the only rank in the table
-no arm of the loop ever compares against — nothing infix carries it — so it is
-spent in exactly one place:
+It is the only rank in the table no arm of the loop compares against, so it is
+spent in one place:
 
 ```rust
 pub(crate) fn parse_body(p: &mut RParser) -> ParsedSyntax {
@@ -2099,43 +2104,36 @@ pub(crate) fn parse_body(p: &mut RParser) -> ParsedSyntax {
 }
 ```
 
-**That function lives in `expr.rs`, beside the table it reads**, and `function.rs`
-imports one name from it. `BindingPower`, its ranks, `increment`, and
-`parse_expression_with_binding_power` all stay private to the Pratt module, which
-is what §11.3 was pleased to have arrived at: the loop has exactly one entry point
-per *kind* of caller, not a generic one. A detour through the alternative — moving
-`parse_body` next to `parse_function_definition` — is what proved the point, since
-it required making the type, its field, the rank, and the loop entry all
-`pub(crate)` to buy nothing but adjacency.
-
-The rank is bumped with `BindingPower::increment()`, the left-associative
-adjustment `parse_binary_expression` already made inline, now named once and
-shared by both callers inside the module.
+**That lives in `expr.rs`, beside the table it reads**, and `function.rs` imports
+one name from it. `BindingPower`, its ranks, `increment`, and
+`parse_expression_with_binding_power` stay private to the Pratt module: the loop
+keeps one entry point per *kind* of caller rather than a generic one. Putting
+`parse_body` next to `parse_function_definition` instead costs four `pub(crate)`s
+and buys only adjacency. `increment` is the left-associative bump
+`parse_binary_expression` already made inline, now named once and shared.
 
 The loops in §11.6 share the row — `while (a) b ? c` is `` `?`(while (a) b, c) ``
-in R too — so `parse_body` carries no construct in its name, and it already sits
-where `control.rs` can reach it: §11.6 adds callers, not a second body rule.
-`if` sits one rank higher in `gram.y` and lands on the same body power, since it
-is `%right`; that is §11.6's to confirm.
+in R too — so `parse_body` carries no construct in its name and already sits where
+`control.rs` can reach it: §11.6 adds callers, not a second body rule. `if` sits
+one rank higher in `gram.y` and lands on the same body power, since it is
+`%right`; that is §11.6's to confirm.
 
 #### The newline subtlety
 
 A statement break would normally stop us. Here it must not: after `function` or
 `\`, and after `)`, newlines carry no meaning. The clean way is to *not test* for
-one in these positions, and that is what landed — nothing in `function.rs` reads
+one in these positions, and nothing in `function.rs` reads
 `has_preceding_line_break()`, so `function\n\n# c\n\n() 1 + 1` and
-`function()\n\n1` both parse as one definition. The three tests that do read it
-are the top of the Pratt loop, the `::` arm, and (in §11.6) `parse_else_clause`.
-
-`Scope::Parenthesis` covers the inside of the parameter list, so newlines between
-parameters, around a `=`, and before the `)` are eaten by the same rule that
-already covers argument lists.
+`function()\n\n1` are each one definition. The three sites that do test it are the
+top of the Pratt loop, the `::` arm, and (in §11.6) `parse_else_clause`.
+`Scope::Parenthesis` covers the inside of the list, so newlines between parameters,
+around a `=`, and before the `)` go the way they already do in an argument list.
 
 **`\` accepts a newline before its `(` and R does not.** R's `EatLines` switch
 lists `FUNCTION` and not `'\\'`, which the imported `Lambda Function` test calls
-out as an oversight upstream rather than a rule. Nothing pins the behaviour today,
-because that heading is still `[pending]` on its braces; when Phase 13 turns it on,
-either aether follows R here or the block splits, and the choice wants a line in
+out as an upstream oversight rather than a rule. Nothing pins the behaviour today,
+since that heading is still `[pending]` on its braces; when Phase 13 turns it on,
+either aether follows R or the block splits, and the choice wants a line in
 `docs/deviations.md`.
 
 #### Parameters
@@ -2145,9 +2143,6 @@ plus an optional `RParameterDefault`. Names are `IDENT`, `DOTS`, or `DOTDOTI` �
 `parse_parameter_name` is `parse_selector` minus strings, one arm per kind, for the
 reason §11.3 gives. `return` needs nothing at all: it is not in `?Reserved`, so it
 arrives as an `IDENT` like any other name.
-
-**The list loop is nine lines where the argument list's is twenty**, and the
-difference is not carelessness:
 
 ```rust
 while !p.at_ts(PARAMETER_LIST_ENDS) {
@@ -2162,48 +2157,31 @@ while !p.at_ts(PARAMETER_LIST_ENDS) {
 }
 ```
 
-**The separator is consumed at the top of every iteration but the first**, which
-is what leaves a single end test in the whole function. An earlier shape parsed
-the element first and tested for the end afterwards, and that needs the test
-twice — once inside the loop before `expect`, and once as an `if` wrapped around
-the whole loop so that `function()` does not report a missing parameter. Moving
-the separator to the front folds the empty list, the token after the last
-parameter, and the foreign-closer exit into the same `while` condition. The cost
-is a `first` flag, which is what `ParseSeparatedList::parse_list` and
-`biome_js_parser`'s own `parse_parameters_list` both carry for this reason.
+**The separator is consumed at the top of every iteration but the first**, and that
+is what leaves a single end test in the whole function: the empty list, the token
+after the last parameter, and the foreign-closer exit all fall out of one `while`.
+Deciding the separator *after* the element needs the test twice — once before
+`expect` and once wrapped around the loop so that `function()` reports nothing —
+and it silently drops a trailing hole, since `function(a,)` would exit before
+building the second `RParameter`. The cost is a `first` flag, which
+`ParseSeparatedList::parse_list` and `biome_js_parser`'s own
+`parse_parameters_list` both carry for the same reason. `parse_argument_list` has
+the same loop; §11.3 has what still differs inside it.
 
-`p.expect(T![,])` bumps a separator that is there and reports one that is not
-without consuming anything, so both cases are the same line, and the parameter
-that follows starts where we already stand. `function(a b)` therefore keeps *both*
-parameters and says only that the comma is missing, where `f(a b)` recovers `b`
-into a bogus argument. A parameter name is one token, so the token after a
-complete parameter is very often a perfectly good next parameter; an argument
-value is a full `parse_expression` that has already taken everything it could.
-`parse_argument_list` took the same loop shape in this phase, verified against a
-probe of 24 inputs plus the corpus with no change to a single tree or diagnostic.
-It keeps its recovery branch, though, and that is the one part of the two lists
-that genuinely differs: an empty argument is *legal*, so `parse_argument` can
-return having consumed nothing on input that is not an error, and the loop needs a
-way to make progress over a token that starts no expression at all — `f(* 1)`.
-`parse_parameter` has no such case, because a name that is absent anywhere but a
-boundary is always an error and always recovers.
-
-**`assert_progressing` sits after the separator, not at the top**, and the order
-is load-bearing rather than stylistic. A hole consumes nothing — `function(,)`
-leaves the parser on the `,` it was already on — so an iteration that begins on a
-hole and ends on one has not moved, and a guard at the top of the *next* iteration
-would fire on valid-to-parse input. Reading the separator first means every
-iteration that reaches the guard has just bumped a `,` or is about to consume
-inside `parse_parameter`: the only way `parse_parameter` consumes nothing is an
-absent name at a boundary, and a boundary is either an end, which the `while`
-already caught, or the `,` the next iteration bumps ahead of the guard.
-`ParseSeparatedList::parse_list` orders it the same way.
+**`assert_progressing` sits after the separator, not at the top**, and the order is
+load-bearing. A hole consumes nothing — `function(,)` leaves the parser on the `,`
+it was already on — so an iteration that begins and ends on a hole has not moved,
+and a guard at the top of the next iteration would fire on input the parser handles
+fine. Reading the separator first means everything reaching the guard has just
+bumped a `,` or is about to consume inside `parse_parameter`: the only way
+`parse_parameter` consumes nothing is an absent name at a boundary, and a boundary
+is either an end, which the `while` already caught, or the `,` the next iteration
+bumps ahead of the guard. `ParseSeparatedList::parse_list` orders it the same way.
 
 `PARAMETER_LIST_ENDS` names every closing delimiter rather than the one the caller
 opened, for the reason §11.3 spells out, and `PARAMETER_LIST_BOUNDARIES` derives
-from it. Both are local to `function.rs` rather than shared with `call.rs`: the
-sets are equal today and there is no rule that keeps them equal, and a construct's
-terminators belong with the construct.
+from it. Both are local to `function.rs` rather than shared with `call.rs`: the two
+sets differ already, and a construct's terminators belong with the construct.
 
 #### The hole and the non-name are two different failures
 
@@ -2220,74 +2198,68 @@ parse_parameter_name(p)
 ```
 
 A name absent **at** a boundary is `function(a,,b)` — a hole. `recover` finds the
-parser already sitting on a recovery token and returns `RecoveryError::AlreadyRecovered`,
-so nothing is consumed and the diagnostic lands on the current token, leaving an
-`RParameter` with both slots empty. That is the technique `r.ungram` documents and
-what makes the hole representable at all.
+parser already on a recovery token, returns `RecoveryError::AlreadyRecovered`, and
+consumes nothing, so the diagnostic lands on the current token and the `RParameter`
+keeps both slots empty, which is the technique `r.ungram` documents.
 
-A name absent **before** a boundary is `function(1)` — something is there and it
-is not a name. `recover` takes the tokens up to the next boundary into an
+A name absent **before** a boundary is `function(1)` — something is there and it is
+not a name. `recover` takes the tokens up to the next boundary into an
 `R_BOGUS_PARAMETER_NAME`, the kind `docs/deviations.md` entry 13 adds, and the
-diagnostic lands on the range it consumed. Without that kind the failure cascades further
-than deviation 5's did: bogus name → bogus `RParameter` → bogus `RParameterList`,
-because the list is generated over `RParameter::can_cast` → bogus `RParameters` →
-one `R_BOGUS_EXPRESSION` for the entire definition. One bad token would cost the
-body and every good parameter beside it.
+diagnostic lands on the range it consumed. Without that kind the failure cascades
+further than deviation 5's did: bogus name → bogus `RParameter` → bogus
+`RParameterList`, because the list is generated over `RParameter::can_cast` → bogus
+`RParameters` → one `R_BOGUS_EXPRESSION` for the entire definition. One bad token
+would cost the body and every good parameter beside it.
 
 **`PARAMETER_LIST_BOUNDARIES` includes `=`, and that is the difference between
-containing a bad name and swallowing the parameter.** Recovery skips to the next
-boundary, so without the `=` in the set `function(1 = 2)` produces one
-`RBogusParameterName` spanning `1 = 2` and no `RParameterDefault` at all — the
-whole parameter is lost to the one bad token, which is the collapse deviation 13
-exists to prevent, one level down. With it, the bogus name is `1`, the `= 2`
-parses as the default, and `function(= 1)` keeps its default under a missing name
-rather than burying both.
+containing a bad name and losing the parameter.** Recovery skips to the next
+boundary, so without it `function(1 = 2)` yields one `RBogusParameterName` spanning
+`1 = 2` and no `RParameterDefault` at all — deviation 13's collapse one level down.
+With it the bogus name is `1`, the `= 2` parses as the default, and `function(= 1)`
+keeps its default under a missing name rather than burying both.
 
-**The argument list must *not* do the same**, and it is worth stating because the
-sets otherwise look interchangeable. `parse_argument_value` returns early at a
+**The argument list must *not* do the same**, which is worth stating because the
+two sets otherwise look interchangeable. `parse_argument_value` returns early at a
 boundary, and nothing else in an argument consumes a bare `=` — the name clause
 needs a name *before* it — so `f(= 1)` would leave every iteration consuming
-nothing and trip `assert_progressing`. Confirmed by trying it: it panics.
-`parse_parameter` is safe precisely because `p.at(T![=])` there is followed by a
+nothing and trip `assert_progressing`. It panics; that was checked rather than
+assumed. `parse_parameter` is safe only because its `p.at(T![=])` is followed by a
 `parse_parameter_default` that bumps.
 
-`function(a$b)` shows both mechanisms in one line: `a` is a complete parameter, the
+`function(a$b)` shows both mechanisms in one line: `a` is a complete parameter,
 `expect(T![,])` reports the missing separator, and `$b` recovers into a bogus name.
 A name is one token, so this really is a name followed by rubbish rather than one
-bad name, and the tree says so.
-
-**An earlier draft spelled the combinator out by hand**, testing `is_absent()`,
-raising the diagnostic, and guarding the `recover` call on `!p.at_ts(PARAMETER_LIST_BOUNDARIES)`.
-Every one of those pieces is already inside `or_recover_with_token_set`: the guard
-is `recover`'s own `AlreadyRecovered` check and the `debug_assert!` beside it was
-restating its `Eof` check. Swapping in the combinator changed no snapshot in the
-corpus, which is the evidence that the hand-rolled version was reimplementing it
-rather than differing from it.
+bad name.
 
 **The default is required once an `=` is written.** `function(x = ) 1` is not valid
 R (r-lib/tree-sitter-r#161), so `parse_parameter_default` reuses
-`expected_expression` rather than wording a third diagnostic. The default is parsed
-even when the name was absent, which costs nothing and keeps `function(= 1)` from
-losing its `1`.
+`expected_expression` rather than wording a third diagnostic. It runs even when the
+name was absent, which costs nothing and keeps `function(= 1)` from losing its `1`.
 
-#### Two roles for a token set, and why they are merged here
+#### What biome does differently
 
-Biome keeps them apart. `is_at_list_end` is one token — the list's own closer,
-15 times `}` and 4 times `)` across `biome_js_parser` — and the *recovery* set is
-the broad one that carries foreign delimiters, `EXPR_RECOVERY_SET` being
-`VAR_KW, R_PAREN, L_PAREN, L_BRACK, R_BRACK`. The two meet at `AlreadyRecovered`:
-a foreign closer in the recovery set makes `recover` return `Err`, and every
-biome list loop breaks on `Err`, so the closer survives for its owner. Same
-outcome as §11.3's rule, reached from the other end.
+Two of biome's own conventions were weighed and not taken.
 
-The cost of the split is a redundant diagnostic. `[a )` in JS runs
-`expect_separator` before it can discover that `)` is not a list end, so it reports
-both a missing `,` and a missing `]`. `PARAMETER_LIST_ENDS` carrying every closer
-ends the loop before `p.expect(T![,])` is reached, so `function(a} 1` reports only
-the missing `)`.
+**`ParseSeparatedList` does not fit.** The trait treats an absent element at a
+separator as *a missing element* and `continue`s, producing neither a node nor a
+diagnostic. R needs both — an empty `RParameter`, as `RArgument` already does, and
+`expected_parameter_name`, because R rejects `function(a,,b)`. Returning `Present`
+for the hole to get the node would mean `parse_element` never returns `Absent`, so
+the trait's `recover` would never run. Biome's own JS parameter list is hand-rolled
+for what looks like the same reason.
 
-The merged form is not an aether invention either — `biome_css_parser` writes the
-same pair, down to the `union`:
+**One token set where biome uses two.** Biome splits `is_at_list_end`, which is
+almost always a single token — the list's own closer, 15 times `}` and 4 times `)`
+across its JS and CSS parsers — from the recovery set, which is broad and carries
+foreign delimiters, `EXPR_RECOVERY_SET` being `VAR_KW, R_PAREN, L_PAREN, L_BRACK,
+R_BRACK`. The two meet at `AlreadyRecovered`: a foreign closer in the recovery
+set makes `recover` return `Err`, every biome list loop breaks on `Err`, and the
+closer survives for its owner, which is §11.3's rule reached from the other end.
+The split costs a redundant diagnostic, since `expect_separator` runs before a `)`
+can be found not to be a list end — `[a )` in JS reports a missing `,` *and* a
+missing `]`, where `PARAMETER_LIST_ENDS` carrying every closer ends the loop first
+and `function(a} 1` reports only the missing `)`. `biome_css_parser` writes the
+merged form too, down to the `union`:
 
 ```rust
 const LAYER_NAME_LIST_END_SET: TokenSet<CssSyntaxKind> = token_set!(T![')'], T![,], T!['{'], T![;]);
@@ -2295,68 +2267,57 @@ const LAYER_NAME_LIST_RECOVERY_SET: TokenSet<CssSyntaxKind> =
     LAYER_NAME_LIST_END_SET.union(token_set!(T![.]));
 ```
 
-**`ParseSeparatedList` was considered and does not fit.** Biome's own JS parameter
-list is hand-rolled for what looks like the same reason: the trait treats an absent
-element at a separator as *a missing element* and `continue`s, producing neither a
-node nor a diagnostic. R needs both — an empty `RParameter`, as `RArgument` already
-does, and `expected_parameter_name`, because R rejects `function(a,,b)`. Returning
-`Present` for the hole to get the node would mean `parse_element` never returns
-`Absent`, so the trait's `recover` would never run and nothing would be left of it
-but ceremony.
-
 #### Corpus
 
-**Four of the eight imported headings shed `[pending]`, not all eight.** This
-section claimed all eight, and it could not have: `Functions`, `Lambda Function`,
-`Function Dots And Dot Dot I`, and `Function No Body Inside Another Function` all
-contain `{ }`, and the first also a `for`, which are §11.6 and §11.7. A heading's
-markers apply to every block under it, so a heading cannot be half enabled. The
-four wait for Phase 13.
+**Four of the eight imported headings shed `[pending]`, not all eight.**
+`Functions`, `Lambda Function`, `Function Dots And Dot Dot I`, and `Function No
+Body Inside Another Function` all contain `{ }`, and the first also a `for`, which
+are §11.6 and §11.7. A heading's markers apply to every block under it, so a
+heading cannot be half enabled; those four wait for Phase 13.
 
-What did land: `Function Definitions` (air's merged `ok/function_definition.R`,
-which does stay within function syntax) and `Functions With return As Parameter
-Name` are clean parses compared against the oracle, and `Function No Body` and
-`Function No Body With Assignment` are `[error]`.
+What landed: `Function Definitions` (air's merged `ok/function_definition.R`, which
+does stay within function syntax) and `Functions With return As Parameter Name` are
+clean parses compared against the oracle, and `Function No Body` and `Function No
+Body With Assignment` are `[error]`.
 
-**`Function No Body` moved from `[pending]` to `[error]`**, which is a marker
-change worth noticing. It arrives from `expressions.txt` rather than the errors
-corpus, because tree-sitter recovers `function(x, y)` into a `function_definition`
-with `body: (MISSING identifier)` and calls it a parse. Aether builds the same
-shape and says `expected_expression` about it, so the block errors where
-tree-sitter is quiet — the same class of difference deviation 2 and 3 already
-record, and the shape is identical, so no `[deviation]`.
+**`Function No Body` moved from `[pending]` to `[error]`.** It arrives from
+`expressions.txt` rather than the errors corpus, because tree-sitter recovers
+`function(x, y)` into a `function_definition` with `body: (MISSING identifier)` and
+calls it a parse. Aether builds the same shape and says `expected_expression` about
+it, so the block errors where tree-sitter is quiet — the class of difference
+deviations 2 and 3 already record, and the shape is identical, so no `[deviation]`.
 
 **A ninth heading came along.** `` `return` Is Just An Identifier `` in
 `expressions/call.md` was `[pending]` on its first line, `function(x) return(x)`,
-and nothing else. It is a clean parse now.
+and nothing else.
 
-**Six aether-authored headings**, none of them in `MANIFEST.toml`, so the count
-of 89 does not move:
+**Seven aether-authored headings** in `corpus/functions/`, none in
+`MANIFEST.toml`, so the count of 89 does not move:
 
 - `A Body Stops At The Binary ?` in `definition.md`, the only one that is a clean
-  parse and therefore the only one the oracle compares. It is what pins the rank
-  above; nothing in the imported corpus touches the `?` interaction.
+  parse and so the only one the oracle compares. It pins the rank above; nothing in
+  the imported corpus touches the `?` interaction.
 
 - `A Definition With No Parameter List` in `definition.md`, for
-  `expected_parameters`. `function` alone at end of file is in it, and it raises
-  one diagnostic rather than two — `Parser::error` drops a diagnostic that starts
-  where the previous one starts, and the missing parameter list and the missing
-  body both start at EOF.
+  `expected_parameters`. `function` alone at end of file raises one diagnostic
+  rather than two, because `Parser::error` drops a diagnostic that starts where the
+  previous one starts, and the missing list and the missing body both start at EOF.
 
-- `A Hole In A Parameter List`, `A Parameter That Is Not A Name`,
-  `A Missing Comma Between Parameters`, and `A Default With No Value` in
-  `parameters.md`, which are the four paragraphs above turned into blocks.
+- `A Hole In A Parameter List`, `A Parameter That Is Not A Name`, `A Missing Comma
+  Between Parameters`, and `A Default With No Value` in `parameters.md`, one per
+  failure above. The second also pins the `=` boundary, with `function(1 = 2)` and
+  `function(= 1)`.
 
 - `A Parameter List With No Closing Parenthesis` in `parameters.md`, for the
   `expect(T![')'])` that nothing else reaches. `function(a` leaves the `)` and the
-  body missing and raises one diagnostic, and `function(a} 1` is the §11.3 rule
-  seen from this side: the foreign closer ends the list without being consumed, so
-  it survives as a statement of its own instead of costing the list its terminator.
+  body missing and raises one diagnostic; `function(a} 1` is §11.3's rule from this
+  side, the foreign closer ending the list without being consumed, so it survives
+  as a statement of its own.
 
 #### The diagnostics this phase adds
 
 Two, and the pair is easy to conflate. One is the whole `(...)` group going
-missing; the other is a hole inside a group that is present.
+missing; the other is a name missing inside a group that is present.
 
 ```rust
 /// The whole `(...)` group of a function definition is missing, as in `function 1`
@@ -2372,9 +2333,9 @@ pub(crate) fn expected_parameter_name(p: &RParser, range: TextRange) -> ParseDia
 
 `expected_parameter_name` is the asymmetry with §11.3 worth remembering: R accepts
 `f(a,,b)` and rejects `function(a,,b)`, so the identical shape is a hole in an
-argument list and an error in a parameter list. That is why the two lists do not
-share a constructor even though they share a separator — and, as it turned out,
-why they do not share a loop either.
+argument list and an error in a parameter list. It says *name* rather than
+*parameter* because a name is what is absent — `function(= 1)` is missing a name
+and has a perfectly good default.
 
 ### 11.6 Phase 12 — Control flow
 
