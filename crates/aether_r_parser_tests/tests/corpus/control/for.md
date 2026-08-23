@@ -23,13 +23,13 @@ for (... in 1:2) print(get("..."))
 for (..1 in 1:2) print(get("..1"))
 ```
 
-## For No Body [pending]
+## For No Body [error]
 
 ```r
 for (i in 1:5)
 ```
 
-## For With Comments [pending]
+## For With Comments
 
 ```r
 for (i in 1) i
@@ -45,4 +45,33 @@ for # dangling1
     a in 1
   ) # dangling3
   a
+```
+
+## `...` And `..i` As The `for` Variable [deviation]
+
+R and tree-sitter-r both take any name here, `...` and `..i` included. Air's
+factory takes only an identifier and turns the whole file bogus; deviation 14 has
+the rest.
+
+```r
+for (... in 1:2) print(get("..."))
+for (..1 in 1:2) print(get("..1"))
+```
+
+## A `for` Variable That Is Not A Name [error]
+
+```r
+for (1 in x) y
+```
+
+## A `for` With No Variable [error]
+
+```r
+for (in x) y
+```
+
+## A `for` With No Sequence [error]
+
+```r
+for (i in) y
 ```

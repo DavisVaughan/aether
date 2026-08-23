@@ -200,7 +200,7 @@ aether/
     │           ├── call.rs        # call / subset / subset2 / arg lists
     │           ├── parenthesized_expression.rs
     │           ├── function.rs    # ← Phase 11. defs, lambdas, parameters
-    │           ├── control.rs     # ← Phase 12. if/else, for, while, repeat
+    │           ├── control.rs     # if/else, for, while, repeat
     │           └── statement_list.rs # statement lists; braces and `;` in 13
     ├── aether_r_test_macros/      # proc-macro: `gen_corpus_tests!`
     │   └── src/lib.rs             #   modelled on air's `tests_macros`
@@ -256,7 +256,7 @@ intentional and earns a `[deviation]` marker and a line in `docs/deviations.md`.
 phase.** Nothing else in the project depends on it, so it shipped separately
 rather than doubling the size of the phase everything else was waiting on.
 
-Phases 1–10 have landed. Their sections below are compressed to the decisions
+Phases 1–12 have landed. Their sections below are compressed to the decisions
 later phases depend on; the repo, `docs/deviations.md`, and the code's own
 comments are the source of truth for everything else.
 
@@ -272,8 +272,8 @@ comments are the source of truth for everything else.
 | 8 | Binary & unary operators | The Pratt core, precedence table, newline sensitivity |✅ |
 | 9 | Calls, subset, subset2 | `f(a, b=1)`, `x[i]`, `x[[i]]`, hole arguments |✅ |
 | 10 | Extract & namespace | `$`, `@`, `::`, `:::` and the deviation from tree-sitter |✅ |
-| 11 | Functions | `function(x) y`, `\(x) y`, parameters, defaults | |
-| 12 | Control flow | `if`/`else` (incl. the newline rule), `for`, `while`, `repeat` | |
+| 11 | Functions | `function(x) y`, `\(x) y`, parameters, defaults |✅ |
+| 12 | Control flow | `if`/`else` (incl. the newline rule), `for`, `while`, `repeat` |✅ |
 | 13 | Blocks, statements, semicolons | `{}`, `R_STATEMENT_LIST`, real semicolon tokens | |
 | 14 | Recovery polish + air integration | Errors corpus fully green; swap into air | |
 
@@ -2337,27 +2337,29 @@ argument list and an error in a parameter list. It says *name* rather than
 *parameter* because a name is what is absent — `function(= 1)` is missing a name
 and has a perfectly good default.
 
-### 11.6 Phase 12 — Control flow
+### 11.6 Phase 12 — Control flow — LANDED
 
-`src/syntax/control.rs`. `for`, `while`, `repeat` are mechanical. `if`/`else` is
-not.
+`src/syntax/control.rs`, reached from four arms of the lhs match in `expr.rs`.
+`for`, `while`, and `repeat` are mechanical. `if`/`else` is not, and the `for`
+variable turned out not to be either.
 
-```rust
-fn parse_if_statement(p: &mut RParser) -> ParsedSyntax {
-    debug_assert!(p.at(T![if]));
+**Every body is `parse_body`, not `parse_expression`.** §11.5 left this to confirm
+and R confirms it, in 4.6.0:
 
-    let m = p.start();
-    p.bump(T![if]);
-    p.with_scope(Scope::Parenthesis, |p| {
-        p.expect(T!['(']);
-        parse_expression(p).or_add_diagnostic(p, diagnostics::expected_condition);
-    });
-    p.expect(T![')']);
-    parse_expression(p).or_add_diagnostic(p, diagnostics::expected_expression);
-    parse_else_clause(p).ok();
-    Present(m.complete(p, R_IF_STATEMENT))
-}
 ```
+repeat 1 ? 2      =>  `?`(repeat 1, 2)
+while (a) b ? c   =>  `?`(while (a) b, c)
+if (a) b ? c      =>  `?`(if (a) b, c)
+if (a) b else c ? d  =>  `?`(if (a) b else c, d)
+```
+
+`if` sits one rank above the loops in `gram.y` and is `%right` where they are
+`%left`, so a right-associative rank 3 and an incremented left-associative rank 2
+land on the same threshold: `?` reduces, `<-` and everything above it shifts. The
+loops and `if` share `parse_body` and the table needs no rank of its own for `if`.
+The consequence, the alternative, and all three loop bodies use it; the condition
+and the `for` sequence are ordinary `parse_expression` at `LOWEST`, inside the
+parentheses.
 
 #### The `else` rule — read this twice
 
@@ -2394,19 +2396,19 @@ where newlines are significant are exactly `TopLevel` and `Brace` (§9.2), remov
 `Brace` leaves one scope. The whole rule is `Scope::TopLevel`:
 
 ```rust
-fn parse_else_clause(p: &mut RParser) -> ParsedSyntax {
-    if !p.at(T![else]) { return Absent }
+fn parse_else_clause(p: &mut RParser) {
+    if !p.at(T![else]) {
+        return;
+    }
 
-    // A newline before `else` is fatal at top level and nowhere else: `{}` allows
-    // it outright, and `(`/`[`/`[[` never see a line break in the first place.
     if p.scope() == Scope::TopLevel && p.has_preceding_line_break() {
-        return Absent;   // caller finishes the `if`; `else` becomes a bogus statement
+        return;
     }
 
     let m = p.start();
     p.bump(T![else]);
-    parse_expression(p).or_add_diagnostic(p, diagnostics::expected_expression);
-    Present(m.complete(p, R_ELSE_CLAUSE))
+    parse_body(p).or_add_diagnostic(p, diagnostics::expected_expression);
+    m.complete(p, R_ELSE_CLAUSE);
 }
 ```
 
@@ -2416,9 +2418,16 @@ asking `newlines_are_significant()`, and it is why `scope()` is a plain read
 `(`/`[`/`[[` or restored on the way out, because there is a single field and
 `with_scope` saves it.
 
-Add all three cases to `control/if.md` as aether-authored tests. tree-sitter-r's
-corpus covers the braced and top-level forms; the parenthesised one is the case a
-newly-collapsed flag could plausibly regress.
+It returns `()`. Nothing acts on the result, both guards are §11.5's "the caller
+decides" question asked of the same two facts, and `parse_if_statement` is the only
+caller — so a `ParsedSyntax` here would only be `.ok()`d away at the one call site.
+When the second guard fires the caller does nothing special: the `if` is already
+complete, and the leftover `else` becomes a bogus statement in the enclosing list.
+
+The three cases are `control/if.md`'s `A Newline Before `else` At Top Level`,
+`A Newline Before `else` Inside A Delimiter` — which runs `(`, `[`, and `[[`, since
+that is the case a newly-collapsed flag could plausibly regress — and the braced
+one, which waits on Phase 13 along with the rest of the imported `if` corpus.
 
 **The comment case.** tree-sitter's scanner has a special carve-out: a comment
 between the consequence and the `else` must not break the `else` attachment.
@@ -2435,30 +2444,75 @@ between the consequence and the `else` must not break the `else` attachment.
 
 Because our `else` detection is purely `p.at(T![else])` on the next *non-trivia*
 token, comments are handled for free. This is a case where the hand-written parser
-is simply cleaner than the scanner. Add it as an explicit test in
-`control/if.md` as an aether-authored test (a *matching* case, not a deviation) so
-we notice if it regresses.
+is simply cleaner than the scanner. It arrives with `Complex If Expression`, which
+is one of the braced tests Phase 13 turns on.
 
 **The `else_idx` case** (tree-sitter-r #200): `elseμ <- 1` must lex as one
 identifier. Handled in the lexer by lexing the full identifier and *then* checking
 for keyword-hood, so it needs no parser support. Two corpus tests cover it.
 
-**Enable:** all 15 imported tests across `corpus/control/` — `if.md`, `for.md`,
-`while.md`, `repeat.md`. Air's four merged `ok/*_statement.R` snapshots come with
-them where they stay within control-flow syntax (§10.3.4). Note the two `#200` `else`-prefix identifier tests live in
-`if.md` rather than `literals/identifiers.md`; see §10.3.2.
+#### The `for` variable is not an identifier
 
-#### The diagnostic this phase adds
+Deviation 14, and the one part of this phase that touched the grammar. The slot was
+`variable: RIdentifier`, but `for (... in 1:2) print(get("..."))` both parses and
+runs in R, tree-sitter-r types the field as `_identifier` — `identifier | dots |
+dot_dot_i` — and air's factory rejects the `R_DOTS` its own walker produces,
+collapsing the file to a bogus root with no diagnostic at all. The slot is now
+`AnyRForVariable`, with `RBogusForVariable` as the fourth variant for
+`for (1 in x) y` to recover into. `docs/deviations.md` has the argument.
+
+Recovery runs to `FOR_VARIABLE_ENDS` — `in`, plus the closers `PARAMETER_LIST_ENDS`
+carries for the reason §11.3 gives. `for (in x) y` is the hole case: absent *at* a
+boundary, diagnosed at `p.cur_range()`, consuming nothing, slot left missing.
+
+#### Corpus
+
+Six imported headings come off `[pending]`: `While`, `Repeat`, `For With Comments`,
+and the three `No Body` tests, which are `[error]` — R rejects all three, and the
+body slot is left missing under one `expected_expression`.
+
+**None of `control/if.md` flips.** Every heading in it uses `{}`, so the file stays
+dark until Phase 13, and §10.3.2's "a merged snapshot may lag its file's nominal
+phase" applies to a whole file for the first time. Six aether-authored headings
+cover the feature in the meantime — the else rule above, `if`/`else`/`else if`,
+`else` binding to the nearest `if`, the `?` boundary, and the missing condition —
+all of them brace-free.
+
+`expressions/precedence.md`'s `Complex Expressions` also comes off `[pending]`, as
+`[error]`. It is brace-free and this phase is the last thing it was waiting on; the
+two top-level `else` lines in it are syntax errors in R too, so `[error]` is where
+it lands rather than clean.
+
+One recovery consequence is worth flagging for §12.1 rather than fixing here.
+`expressions/extract.md`'s `` Dollar, At, Namespace, Namespace Internal With `if` RHS ``
+is four lines each ending in a bare `if`. Each `if` now finds no `(`, diagnoses it,
+and takes the *next line* as its condition, so four independent statements nest into
+one. The tree round-trips and every bogus node is diagnosed, but a malformed header
+consuming across a newline is the recovery-quality question §12.1 exists to answer.
+
+#### The diagnostics this phase adds
 
 ```rust
 /// The condition of an `if` or `while` is missing
 pub(crate) fn expected_condition(p: &RParser, range: TextRange) -> ParseDiagnostic {
     expected_node("condition", range, p)
 }
+
+/// The variable of a `for` loop is missing or is not a name, as in `for (1 in x) y`
+pub(crate) fn expected_for_variable(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("loop variable", range, p)
+}
+
+/// The sequence a `for` loop iterates over is missing
+pub(crate) fn expected_sequence(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("sequence", range, p)
+}
 ```
 
-Only the two headers that have a condition use it. `for` names its own parts, and
-`repeat` has no header at all, so neither reaches this.
+Only the two headers that have a condition use `expected_condition`. `for` names
+its own parts, so it uses the other two; `repeat` has no header at all, so it
+reaches none of them.
+
 
 ### 11.7 Phase 13 — Blocks, statement lists, semicolons
 

@@ -693,64 +693,52 @@ RRoot {
             semicolon_token: missing (optional),
         },
         RStatement {
-            expression: RBogusExpression {
-                items: [
-                    IF_KW@296..298 "if" [] [],
-                ],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RExtractExpression {
-                left: RIdentifier {
-                    name_token: IDENT@298..302 "foo" [Newline("\n")] [],
+            expression: RIfStatement {
+                if_token: IF_KW@296..298 "if" [] [],
+                l_paren_token: missing (required),
+                condition: RExtractExpression {
+                    left: RIdentifier {
+                        name_token: IDENT@298..302 "foo" [Newline("\n")] [],
+                    },
+                    operator: AT@302..303 "@" [] [],
+                    right: missing (required),
                 },
-                operator: AT@302..303 "@" [] [],
-                right: missing (required),
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RBogusExpression {
-                items: [
-                    IF_KW@303..305 "if" [] [],
-                ],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RNamespaceExpression {
-                left: RIdentifier {
-                    name_token: IDENT@305..309 "foo" [Newline("\n")] [],
+                r_paren_token: missing (required),
+                consequence: RIfStatement {
+                    if_token: IF_KW@303..305 "if" [] [],
+                    l_paren_token: missing (required),
+                    condition: RNamespaceExpression {
+                        left: RIdentifier {
+                            name_token: IDENT@305..309 "foo" [Newline("\n")] [],
+                        },
+                        operator: COLON2@309..311 "::" [] [],
+                        right: missing (required),
+                    },
+                    r_paren_token: missing (required),
+                    consequence: RIfStatement {
+                        if_token: IF_KW@311..313 "if" [] [],
+                        l_paren_token: missing (required),
+                        condition: RNamespaceExpression {
+                            left: RIdentifier {
+                                name_token: IDENT@313..317 "foo" [Newline("\n")] [],
+                            },
+                            operator: COLON3@317..320 ":::" [] [],
+                            right: missing (required),
+                        },
+                        r_paren_token: missing (required),
+                        consequence: RIfStatement {
+                            if_token: IF_KW@320..322 "if" [] [],
+                            l_paren_token: missing (required),
+                            condition: missing (required),
+                            r_paren_token: missing (required),
+                            consequence: missing (required),
+                            else_clause: missing (optional),
+                        },
+                        else_clause: missing (optional),
+                    },
+                    else_clause: missing (optional),
                 },
-                operator: COLON2@309..311 "::" [] [],
-                right: missing (required),
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RBogusExpression {
-                items: [
-                    IF_KW@311..313 "if" [] [],
-                ],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RNamespaceExpression {
-                left: RIdentifier {
-                    name_token: IDENT@313..317 "foo" [Newline("\n")] [],
-                },
-                operator: COLON3@317..320 ":::" [] [],
-                right: missing (required),
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RBogusExpression {
-                items: [
-                    IF_KW@320..322 "if" [] [],
-                ],
+                else_clause: missing (optional),
             },
             semicolon_token: missing (optional),
         },
@@ -780,6 +768,19 @@ test.R:5:5 parse ━━━━━━━━━━━━━━━━━━━━━
     6 │ foo@if
     7 │ foo::if
 
+test.R:6:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `(` but instead found `foo`
+
+    4 │ # is actually pretty decent behavior.
+    5 │ foo$if
+  > 6 │ foo@if
+      │ ^^^
+    7 │ foo::if
+    8 │ foo:::if
+
+  i Remove foo
+
 test.R:6:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
@@ -799,6 +800,19 @@ test.R:6:5 parse ━━━━━━━━━━━━━━━━━━━━━
       │    ^
     7 │ foo::if
     8 │ foo:::if
+
+test.R:7:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `(` but instead found `foo`
+
+    5 │ foo$if
+    6 │ foo@if
+  > 7 │ foo::if
+      │ ^^^
+    8 │ foo:::if
+    9 │
+
+  i Remove foo
 
 test.R:7:6 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -820,6 +834,18 @@ test.R:7:6 parse ━━━━━━━━━━━━━━━━━━━━━
     8 │ foo:::if
     9 │
 
+test.R:8:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `(` but instead found `foo`
+
+    6 │ foo@if
+    7 │ foo::if
+  > 8 │ foo:::if
+      │ ^^^
+    9 │
+
+  i Remove foo
+
 test.R:8:7 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
@@ -837,6 +863,22 @@ test.R:8:7 parse ━━━━━━━━━━━━━━━━━━━━━
   > 8 │ foo:::if
       │    ^^^
     9 │
+
+test.R:9:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `(` but instead the file ends
+
+    7 │ foo::if
+    8 │ foo:::if
+  > 9 │
+      │
+
+  i the file ends here
+
+    7 │ foo::if
+    8 │ foo:::if
+  > 9 │
+      │
 ```
 
 ## Dollar, At, Namespace, Namespace Internal With Newline Before Operator [error]

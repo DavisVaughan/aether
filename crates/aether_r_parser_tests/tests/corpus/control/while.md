@@ -1,4 +1,4 @@
-## While [pending]
+## While
 
 ```r
 while(TRUE)
@@ -14,7 +14,7 @@ while(TRUE)
   next
 ```
 
-## While No Body [pending]
+## While No Body [error]
 
 ```r
 while (a < b)
@@ -34,4 +34,10 @@ while(a) {
 while(fn()) {
 
 }
+```
+
+## A `while` With No Condition [error]
+
+```r
+while () b
 ```

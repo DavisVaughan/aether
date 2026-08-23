@@ -106,6 +106,21 @@ pub(crate) fn expected_parameter_name(p: &RParser, range: TextRange) -> ParseDia
     expected_node("parameter name", range, p)
 }
 
+/// The condition of an `if` or `while` is missing
+pub(crate) fn expected_condition(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("condition", range, p)
+}
+
+/// The variable of a `for` loop is missing or is not a name, as in `for (1 in x) y`
+pub(crate) fn expected_for_variable(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("loop variable", range, p)
+}
+
+/// The sequence a `for` loop iterates over is missing
+pub(crate) fn expected_sequence(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("sequence", range, p)
+}
+
 /// Two expressions with nothing between them, as in `1 2`
 pub(crate) fn expected_statement_separator(
     previous: TextRange,

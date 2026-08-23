@@ -136,6 +136,7 @@ pub enum RSyntaxKind {
     R_BOGUS_EXPRESSION,
     R_BOGUS_SELECTOR,
     R_BOGUS_PARAMETER_NAME,
+    R_BOGUS_FOR_VARIABLE,
     #[doc(hidden)]
     __LAST,
 }

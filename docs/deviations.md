@@ -39,6 +39,7 @@ them, since the ledger runs ahead of the parser.
 | 11 | Two expressions on one line | accepted silently, since `program` needs no separator | an error, as R requires |
 | 12 | Strings | `string` node over an open, an optional content, and a close | one literal token per quote style, delimiters included, with the body reachable through `RStringValue::inner_string_text()` |
 | 13 | `AnyRParameterName` | 3 variants, no bogus | new `RBogusParameterName` kind added as a fourth variant, so a parameter that is not a name is contained in its slot instead of collapsing the list around it |
+| 14 | The `for` variable | `RIdentifier` only, so `for (... in x) y` collapses the whole file to one bogus node | new `AnyRForVariable` union of `RIdentifier`, `RDots`, `RDotDotI`, and a new `RBogusForVariable`, so `...` and `..i` are taken as R takes them |
 
 ### 1. Semicolons are real tokens
 
@@ -919,6 +920,95 @@ rule, and a fourth arm in `FormatAnyRParameterName`.
 Corpus tests: `functions/parameters.md`'s `A Parameter That Is Not A Name` and
 `A Missing Comma Between Parameters`. Neither carries `[deviation]` — both are
 `[error]`, and the oracle already skips any block that does not parse cleanly.
+
+### 14. The `for` variable takes any name, and gains `RBogusForVariable`
+
+Landed in Phase 12.
+
+`RForStatement` typed its variable slot as `RIdentifier`:
+
+```ungram
+RForStatement =
+	'for'
+	'('
+	variable: RIdentifier
+	'in'
+	sequence: AnyRExpression
+	')'
+	body: AnyRExpression
+```
+
+tree-sitter-r types the same field as `_identifier`, which is `identifier`,
+`dots`, *and* `dot_dot_i`, and R agrees — this runs, and prints `1` then `2`:
+
+```r
+for (... in 1:2) print(get("..."))
+```
+
+So air's walker faithfully hands `R_DOTS` to the factory, the factory rejects it,
+and deviation 5's collapse runs all the way to the top. There is no `R_ROOT` left:
+
+```
+R_BOGUS
+  R_BOGUS
+    R_BOGUS
+      FOR_KW, L_PAREN, R_DOTS, IN_KW, R_BINARY_EXPRESSION, R_PAREN, R_CALL
+  EOF
+```
+
+No diagnostic comes with it. `air_r_parser::parse().error()` is `None`, so this is
+not a parse air knows went wrong — it is valid R that silently loses its tree, and
+every consumer downstream of the formatter sees one bogus node where a file used
+to be.
+
+Aether widens the slot instead:
+
+```ungram
+AnyRForVariable =
+	RIdentifier
+	| RDots
+	| RDotDotI
+	| RBogusForVariable
+```
+
+The bogus variant is deviations 5 and 13 one position further along, and it is
+what `for (1 in x) y` recovers into. Without it the slot has no kind that fits, so
+a variable that is not a name would take `R_FOR_STATEMENT` with it, and with it the
+damage stops at the variable:
+
+```
+RForStatement {
+    variable: RBogusForVariable { 1 },
+    sequence: RIdentifier { x },
+    body: RIdentifier { y },
+}
+```
+
+`R_BOGUS_FOR_VARIABLE` is a new node kind, added after `R_BOGUS_PARAMETER_NAME` so
+nothing renumbers. `is_bogus()` returns true for it and `to_bogus()` is idempotent.
+
+Why not reuse `RBogusParameterName`, whose three real variants are the same three:
+the positions are still distinct — deviation 13's reasoning applies unchanged, and
+a walker that sees `R_BOGUS_FOR_VARIABLE` knows a loop variable was malformed
+without looking at its parent.
+
+**One path constructs one**, in `parse_for_statement`: a variable that is absent is
+diagnosed with `expected_for_variable` and the tokens up to the `in` are recovered
+into it. A variable that is absent *at* the `in`, as in `for (in x) y`, is
+diagnosed the same way and consumes nothing, so the slot is simply left missing.
+
+Swap-in cost is deviation 13's, one position down: `RSyntaxKind`, `nodes.rs`, and
+both factories are generated, leaving `is_bogus()`, `to_bogus()`, one empty
+formatter rule, and a `FormatAnyRForVariable` union rule beside the
+`AnyRParameterName` one. `r/statements/for_statement.rs` writes `variable.format()`
+and needs no edit.
+
+Corpus tests: `control/for.md`'s `` `...` And `..i` As The `for` Variable ``, which
+carries `[deviation]` because it parses cleanly and the oracle would otherwise
+compare it against the bogus root above. `A `for` Variable That Is Not A Name` and
+`A `for` With No Variable` cover the bogus kind and need no marker, being `[error]`.
+The imported `For` test exercises `...` and `..i` too and will need `[deviation]`
+when Phase 13's braces let it come off `[pending]`.
 
 ## tree-sitter-r vs. R
 

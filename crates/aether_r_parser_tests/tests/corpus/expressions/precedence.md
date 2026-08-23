@@ -18,7 +18,7 @@ a::b$c
 a$b?c
 ```
 
-## Complex Expressions [pending]
+## Complex Expressions [error]
 
 ```r
 repeat if (1) TRUE else repeat 42

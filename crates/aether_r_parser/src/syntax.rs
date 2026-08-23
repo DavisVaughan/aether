@@ -1,4 +1,5 @@
 mod call;
+mod control;
 mod expr;
 mod function;
 mod parenthesized_expression;

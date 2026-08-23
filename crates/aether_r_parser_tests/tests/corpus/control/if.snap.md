@@ -241,3 +241,558 @@ if # comment1
 ```
 
 *Not yet supported.*
+
+## If And Else
+
+```r
+if (a) 1
+if (a) 1 else 2
+if (a) 1 else if (b) 2 else 3
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RIfStatement {
+                if_token: IF_KW@0..3 "if" [] [Whitespace(" ")],
+                l_paren_token: L_PAREN@3..4 "(" [] [],
+                condition: RIdentifier {
+                    name_token: IDENT@4..5 "a" [] [],
+                },
+                r_paren_token: R_PAREN@5..7 ")" [] [Whitespace(" ")],
+                consequence: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@7..8 "1" [] [],
+                },
+                else_clause: missing (optional),
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RIfStatement {
+                if_token: IF_KW@8..12 "if" [Newline("\n")] [Whitespace(" ")],
+                l_paren_token: L_PAREN@12..13 "(" [] [],
+                condition: RIdentifier {
+                    name_token: IDENT@13..14 "a" [] [],
+                },
+                r_paren_token: R_PAREN@14..16 ")" [] [Whitespace(" ")],
+                consequence: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@16..18 "1" [] [Whitespace(" ")],
+                },
+                else_clause: RElseClause {
+                    else_token: ELSE_KW@18..23 "else" [] [Whitespace(" ")],
+                    alternative: RDoubleValue {
+                        value_token: R_DOUBLE_LITERAL@23..24 "2" [] [],
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RIfStatement {
+                if_token: IF_KW@24..28 "if" [Newline("\n")] [Whitespace(" ")],
+                l_paren_token: L_PAREN@28..29 "(" [] [],
+                condition: RIdentifier {
+                    name_token: IDENT@29..30 "a" [] [],
+                },
+                r_paren_token: R_PAREN@30..32 ")" [] [Whitespace(" ")],
+                consequence: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@32..34 "1" [] [Whitespace(" ")],
+                },
+                else_clause: RElseClause {
+                    else_token: ELSE_KW@34..39 "else" [] [Whitespace(" ")],
+                    alternative: RIfStatement {
+                        if_token: IF_KW@39..42 "if" [] [Whitespace(" ")],
+                        l_paren_token: L_PAREN@42..43 "(" [] [],
+                        condition: RIdentifier {
+                            name_token: IDENT@43..44 "b" [] [],
+                        },
+                        r_paren_token: R_PAREN@44..46 ")" [] [Whitespace(" ")],
+                        consequence: RDoubleValue {
+                            value_token: R_DOUBLE_LITERAL@46..48 "2" [] [Whitespace(" ")],
+                        },
+                        else_clause: RElseClause {
+                            else_token: ELSE_KW@48..53 "else" [] [Whitespace(" ")],
+                            alternative: RDoubleValue {
+                                value_token: R_DOUBLE_LITERAL@53..54 "3" [] [],
+                            },
+                        },
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@54..55 "" [Newline("\n")] [],
+}
+```
+
+An `else` binds to the nearest `if`.
+
+```r
+if (a) if (b) c else d
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RIfStatement {
+                if_token: IF_KW@0..3 "if" [] [Whitespace(" ")],
+                l_paren_token: L_PAREN@3..4 "(" [] [],
+                condition: RIdentifier {
+                    name_token: IDENT@4..5 "a" [] [],
+                },
+                r_paren_token: R_PAREN@5..7 ")" [] [Whitespace(" ")],
+                consequence: RIfStatement {
+                    if_token: IF_KW@7..10 "if" [] [Whitespace(" ")],
+                    l_paren_token: L_PAREN@10..11 "(" [] [],
+                    condition: RIdentifier {
+                        name_token: IDENT@11..12 "b" [] [],
+                    },
+                    r_paren_token: R_PAREN@12..14 ")" [] [Whitespace(" ")],
+                    consequence: RIdentifier {
+                        name_token: IDENT@14..16 "c" [] [Whitespace(" ")],
+                    },
+                    else_clause: RElseClause {
+                        else_token: ELSE_KW@16..21 "else" [] [Whitespace(" ")],
+                        alternative: RIdentifier {
+                            name_token: IDENT@21..22 "d" [] [],
+                        },
+                    },
+                },
+                else_clause: missing (optional),
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@22..23 "" [Newline("\n")] [],
+}
+```
+
+## A Consequence And An Alternative Stop At The Binary `?`
+
+Both share the rank a function or loop body has, so `if (a) b ? c` must parse as
+`(if (a) b) ? c`.
+
+```r
+if (a) b ? c
+if (a) b else c ? d
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RBinaryExpression {
+                left: RIfStatement {
+                    if_token: IF_KW@0..3 "if" [] [Whitespace(" ")],
+                    l_paren_token: L_PAREN@3..4 "(" [] [],
+                    condition: RIdentifier {
+                        name_token: IDENT@4..5 "a" [] [],
+                    },
+                    r_paren_token: R_PAREN@5..7 ")" [] [Whitespace(" ")],
+                    consequence: RIdentifier {
+                        name_token: IDENT@7..9 "b" [] [Whitespace(" ")],
+                    },
+                    else_clause: missing (optional),
+                },
+                operator: WAT@9..11 "?" [] [Whitespace(" ")],
+                right: RIdentifier {
+                    name_token: IDENT@11..12 "c" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBinaryExpression {
+                left: RIfStatement {
+                    if_token: IF_KW@12..16 "if" [Newline("\n")] [Whitespace(" ")],
+                    l_paren_token: L_PAREN@16..17 "(" [] [],
+                    condition: RIdentifier {
+                        name_token: IDENT@17..18 "a" [] [],
+                    },
+                    r_paren_token: R_PAREN@18..20 ")" [] [Whitespace(" ")],
+                    consequence: RIdentifier {
+                        name_token: IDENT@20..22 "b" [] [Whitespace(" ")],
+                    },
+                    else_clause: RElseClause {
+                        else_token: ELSE_KW@22..27 "else" [] [Whitespace(" ")],
+                        alternative: RIdentifier {
+                            name_token: IDENT@27..29 "c" [] [Whitespace(" ")],
+                        },
+                    },
+                },
+                operator: WAT@29..31 "?" [] [Whitespace(" ")],
+                right: RIdentifier {
+                    name_token: IDENT@31..32 "d" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@32..33 "" [Newline("\n")] [],
+}
+```
+
+An assignment binds tighter than either, so the consequence swallows it.
+
+```r
+if (a) b <- c else d
+1 + if (a) b
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RIfStatement {
+                if_token: IF_KW@0..3 "if" [] [Whitespace(" ")],
+                l_paren_token: L_PAREN@3..4 "(" [] [],
+                condition: RIdentifier {
+                    name_token: IDENT@4..5 "a" [] [],
+                },
+                r_paren_token: R_PAREN@5..7 ")" [] [Whitespace(" ")],
+                consequence: RBinaryExpression {
+                    left: RIdentifier {
+                        name_token: IDENT@7..9 "b" [] [Whitespace(" ")],
+                    },
+                    operator: ASSIGN@9..12 "<-" [] [Whitespace(" ")],
+                    right: RIdentifier {
+                        name_token: IDENT@12..14 "c" [] [Whitespace(" ")],
+                    },
+                },
+                else_clause: RElseClause {
+                    else_token: ELSE_KW@14..19 "else" [] [Whitespace(" ")],
+                    alternative: RIdentifier {
+                        name_token: IDENT@19..20 "d" [] [],
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBinaryExpression {
+                left: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@20..23 "1" [Newline("\n")] [Whitespace(" ")],
+                },
+                operator: PLUS@23..25 "+" [] [Whitespace(" ")],
+                right: RIfStatement {
+                    if_token: IF_KW@25..28 "if" [] [Whitespace(" ")],
+                    l_paren_token: L_PAREN@28..29 "(" [] [],
+                    condition: RIdentifier {
+                        name_token: IDENT@29..30 "a" [] [],
+                    },
+                    r_paren_token: R_PAREN@30..32 ")" [] [Whitespace(" ")],
+                    consequence: RIdentifier {
+                        name_token: IDENT@32..33 "b" [] [],
+                    },
+                    else_clause: missing (optional),
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@33..34 "" [Newline("\n")] [],
+}
+```
+
+## A Newline Before `else` At Top Level [error]
+
+Fatal here. The `if` ends at the consequence and the `else` is left over.
+
+```r
+if (a) 1
+else 2
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RIfStatement {
+                if_token: IF_KW@0..3 "if" [] [Whitespace(" ")],
+                l_paren_token: L_PAREN@3..4 "(" [] [],
+                condition: RIdentifier {
+                    name_token: IDENT@4..5 "a" [] [],
+                },
+                r_paren_token: R_PAREN@5..7 ")" [] [Whitespace(" ")],
+                consequence: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@7..8 "1" [] [],
+                },
+                else_clause: missing (optional),
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBogusExpression {
+                items: [
+                    ELSE_KW@8..14 "else" [Newline("\n")] [Whitespace(" ")],
+                ],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RDoubleValue {
+                value_token: R_DOUBLE_LITERAL@14..15 "2" [] [],
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@15..16 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected an expression but instead found 'else'.
+
+    1 │ if (a) 1
+  > 2 │ else 2
+      │ ^^^^
+    3 │
+
+  i Expected an expression here.
+
+    1 │ if (a) 1
+  > 2 │ else 2
+      │ ^^^^
+    3 │
+```
+
+## A Newline Before `else` Inside A Delimiter
+
+Newlines carry no meaning inside `(`, `[`, or `[[`, so the `else` attaches with no
+braces in sight. This is the case a check written as "inside braces" gets wrong.
+
+```r
+f(if (a) 1
+  else 2)
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@0..1 "f" [] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@1..2 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIfStatement {
+                                if_token: IF_KW@2..5 "if" [] [Whitespace(" ")],
+                                l_paren_token: L_PAREN@5..6 "(" [] [],
+                                condition: RIdentifier {
+                                    name_token: IDENT@6..7 "a" [] [],
+                                },
+                                r_paren_token: R_PAREN@7..9 ")" [] [Whitespace(" ")],
+                                consequence: RDoubleValue {
+                                    value_token: R_DOUBLE_LITERAL@9..10 "1" [] [],
+                                },
+                                else_clause: RElseClause {
+                                    else_token: ELSE_KW@10..18 "else" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                                    alternative: RDoubleValue {
+                                        value_token: R_DOUBLE_LITERAL@18..19 "2" [] [],
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@19..20 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@20..21 "" [Newline("\n")] [],
+}
+```
+
+```r
+x[if (a) 1
+  else 2]
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RSubset {
+                function: RIdentifier {
+                    name_token: IDENT@0..1 "x" [] [],
+                },
+                arguments: RSubsetArguments {
+                    l_brack_token: L_BRACK@1..2 "[" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIfStatement {
+                                if_token: IF_KW@2..5 "if" [] [Whitespace(" ")],
+                                l_paren_token: L_PAREN@5..6 "(" [] [],
+                                condition: RIdentifier {
+                                    name_token: IDENT@6..7 "a" [] [],
+                                },
+                                r_paren_token: R_PAREN@7..9 ")" [] [Whitespace(" ")],
+                                consequence: RDoubleValue {
+                                    value_token: R_DOUBLE_LITERAL@9..10 "1" [] [],
+                                },
+                                else_clause: RElseClause {
+                                    else_token: ELSE_KW@10..18 "else" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                                    alternative: RDoubleValue {
+                                        value_token: R_DOUBLE_LITERAL@18..19 "2" [] [],
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                    r_brack_token: R_BRACK@19..20 "]" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@20..21 "" [Newline("\n")] [],
+}
+```
+
+```r
+x[[if (a) 1
+  else 2]]
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RSubset2 {
+                function: RIdentifier {
+                    name_token: IDENT@0..1 "x" [] [],
+                },
+                arguments: RSubset2Arguments {
+                    l_brack2_token: L_BRACK2@1..3 "[[" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIfStatement {
+                                if_token: IF_KW@3..6 "if" [] [Whitespace(" ")],
+                                l_paren_token: L_PAREN@6..7 "(" [] [],
+                                condition: RIdentifier {
+                                    name_token: IDENT@7..8 "a" [] [],
+                                },
+                                r_paren_token: R_PAREN@8..10 ")" [] [Whitespace(" ")],
+                                consequence: RDoubleValue {
+                                    value_token: R_DOUBLE_LITERAL@10..11 "1" [] [],
+                                },
+                                else_clause: RElseClause {
+                                    else_token: ELSE_KW@11..19 "else" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                                    alternative: RDoubleValue {
+                                        value_token: R_DOUBLE_LITERAL@19..20 "2" [] [],
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                    r_brack2_token: R_BRACK2@20..22 "]]" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@22..23 "" [Newline("\n")] [],
+}
+```
+
+## A Newline Between `else` And Its Alternative
+
+Allowed even at top level, unlike a newline before the `else` itself (#141).
+
+```r
+if (a) 1 else
+  2
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RIfStatement {
+                if_token: IF_KW@0..3 "if" [] [Whitespace(" ")],
+                l_paren_token: L_PAREN@3..4 "(" [] [],
+                condition: RIdentifier {
+                    name_token: IDENT@4..5 "a" [] [],
+                },
+                r_paren_token: R_PAREN@5..7 ")" [] [Whitespace(" ")],
+                consequence: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@7..9 "1" [] [Whitespace(" ")],
+                },
+                else_clause: RElseClause {
+                    else_token: ELSE_KW@9..13 "else" [] [],
+                    alternative: RDoubleValue {
+                        value_token: R_DOUBLE_LITERAL@13..17 "2" [Newline("\n"), Whitespace("  ")] [],
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@17..18 "" [Newline("\n")] [],
+}
+```
+
+## An `if` With No Condition [error]
+
+```r
+if () 1
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RIfStatement {
+                if_token: IF_KW@0..3 "if" [] [Whitespace(" ")],
+                l_paren_token: L_PAREN@3..4 "(" [] [],
+                condition: missing (required),
+                r_paren_token: R_PAREN@4..6 ")" [] [Whitespace(" ")],
+                consequence: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@6..7 "1" [] [],
+                },
+                else_clause: missing (optional),
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@7..8 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:1:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a condition but instead found ')'.
+
+  > 1 │ if () 1
+      │     ^
+    2 │
+
+  i Expected a condition here.
+
+  > 1 │ if () 1
+      │     ^
+    2 │
+```

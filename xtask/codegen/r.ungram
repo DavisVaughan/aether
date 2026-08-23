@@ -37,6 +37,7 @@ RBogusValue = SyntaxElement*
 RBogusExpression = SyntaxElement*
 RBogusSelector = SyntaxElement*
 RBogusParameterName = SyntaxElement*
+RBogusForVariable = SyntaxElement*
 
 // ----------------------------------------------------------------
 // Root
@@ -161,11 +162,17 @@ RElseClause =
 RForStatement =
 	'for'
 	'('
-	variable: RIdentifier
+	variable: AnyRForVariable
 	'in'
 	sequence: AnyRExpression
 	')'
 	body: AnyRExpression
+
+AnyRForVariable =
+	RIdentifier
+	| RDots
+	| RDotDotI
+	| RBogusForVariable
 
 // ----------------------------------------------------------------
 // While statement

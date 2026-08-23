@@ -1,10 +1,10 @@
-## Repeat [pending]
+## Repeat
 
 ```r
 repeat 1
 ```
 
-## Repeat No Body [pending]
+## Repeat No Body [error]
 
 ```r
 repeat
