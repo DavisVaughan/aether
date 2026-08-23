@@ -164,9 +164,7 @@ RRoot {
 
 ## `...` And `..i` As The `for` Variable [deviation]
 
-R and tree-sitter-r both take any name here, `...` and `..i` included. Air's
-factory takes only an identifier and turns the whole file bogus; deviation 14 has
-the rest.
+Technically allowed!
 
 ```r
 for (... in 1:2) print(get("..."))
