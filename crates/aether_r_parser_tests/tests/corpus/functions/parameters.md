@@ -47,7 +47,7 @@ function(a$b) x
 ## A Missing Comma Between Parameters [error]
 
 A name is a single token, so the token after one may well be another parameter.
-Reporting the separator without consuming anything keeps both.
+Reporting the separator without consuming anything keeps both potential parameters.
 
 ```r
 function(a b) x
