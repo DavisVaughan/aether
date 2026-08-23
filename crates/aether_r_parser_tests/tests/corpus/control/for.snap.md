@@ -28,15 +28,60 @@ for (..1 in 1:2) print(get("..1"))
 
 *Not yet supported.*
 
-## For No Body [pending]
+## For No Body [error]
 
 ```r
 for (i in 1:5)
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RForStatement {
+                for_token: FOR_KW@0..4 "for" [] [Whitespace(" ")],
+                l_paren_token: L_PAREN@4..5 "(" [] [],
+                variable: RIdentifier {
+                    name_token: IDENT@5..7 "i" [] [Whitespace(" ")],
+                },
+                in_token: IN_KW@7..10 "in" [] [Whitespace(" ")],
+                sequence: RBinaryExpression {
+                    left: RDoubleValue {
+                        value_token: R_DOUBLE_LITERAL@10..11 "1" [] [],
+                    },
+                    operator: COLON@11..12 ":" [] [],
+                    right: RDoubleValue {
+                        value_token: R_DOUBLE_LITERAL@12..13 "5" [] [],
+                    },
+                },
+                r_paren_token: R_PAREN@13..14 ")" [] [],
+                body: missing (required),
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@14..15 "" [Newline("\n")] [],
+}
+```
 
-## For With Comments [pending]
+```diagnostics
+test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a loop body but instead found the end of the file.
+
+    1 │ for (i in 1:5)
+  > 2 │
+      │
+
+  i Expected a loop body here.
+
+    1 │ for (i in 1:5)
+  > 2 │
+      │
+```
+
+## For With Comments
 
 ```r
 for (i in 1) i
@@ -54,4 +99,332 @@ for # dangling1
   a
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RForStatement {
+                for_token: FOR_KW@0..4 "for" [] [Whitespace(" ")],
+                l_paren_token: L_PAREN@4..5 "(" [] [],
+                variable: RIdentifier {
+                    name_token: IDENT@5..7 "i" [] [Whitespace(" ")],
+                },
+                in_token: IN_KW@7..10 "in" [] [Whitespace(" ")],
+                sequence: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@10..11 "1" [] [],
+                },
+                r_paren_token: R_PAREN@11..13 ")" [] [Whitespace(" ")],
+                body: RIdentifier {
+                    name_token: IDENT@13..14 "i" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RForStatement {
+                for_token: FOR_KW@14..20 "for" [Newline("\n"), Newline("\n")] [Whitespace(" ")],
+                l_paren_token: L_PAREN@20..21 "(" [] [],
+                variable: RIdentifier {
+                    name_token: IDENT@21..35 "i" [Newline("\n"), Whitespace("  ")] [Whitespace(" "), Comments("# comment")],
+                },
+                in_token: IN_KW@35..51 "in" [Newline("\n"), Whitespace("  ")] [Whitespace(" "), Comments("# comment2")],
+                sequence: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@51..66 "1" [Newline("\n"), Whitespace("  ")] [Whitespace(" "), Comments("# comment3")],
+                },
+                r_paren_token: R_PAREN@66..69 ")" [Newline("\n")] [Whitespace(" ")],
+                body: RIdentifier {
+                    name_token: IDENT@69..70 "i" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RForStatement {
+                for_token: FOR_KW@70..87 "for" [Newline("\n"), Newline("\n")] [Whitespace(" "), Comments("# dangling1")],
+                l_paren_token: L_PAREN@87..103 "(" [Newline("\n"), Whitespace("  ")] [Whitespace(" "), Comments("# dangling2")],
+                variable: RIdentifier {
+                    name_token: IDENT@103..110 "a" [Newline("\n"), Whitespace("    ")] [Whitespace(" ")],
+                },
+                in_token: IN_KW@110..113 "in" [] [Whitespace(" ")],
+                sequence: RDoubleValue {
+                    value_token: R_DOUBLE_LITERAL@113..114 "1" [] [],
+                },
+                r_paren_token: R_PAREN@114..130 ")" [Newline("\n"), Whitespace("  ")] [Whitespace(" "), Comments("# dangling3")],
+                body: RIdentifier {
+                    name_token: IDENT@130..134 "a" [Newline("\n"), Whitespace("  ")] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@134..135 "" [Newline("\n")] [],
+}
+```
+
+## `...` And `..i` As The `for` Variable [deviation]
+
+Technically allowed!
+
+```r
+for (... in 1:2) print(get("..."))
+for (..1 in 1:2) print(get("..1"))
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RForStatement {
+                for_token: FOR_KW@0..4 "for" [] [Whitespace(" ")],
+                l_paren_token: L_PAREN@4..5 "(" [] [],
+                variable: RDots {
+                    value_token: DOTS@5..9 "..." [] [Whitespace(" ")],
+                },
+                in_token: IN_KW@9..12 "in" [] [Whitespace(" ")],
+                sequence: RBinaryExpression {
+                    left: RDoubleValue {
+                        value_token: R_DOUBLE_LITERAL@12..13 "1" [] [],
+                    },
+                    operator: COLON@13..14 ":" [] [],
+                    right: RDoubleValue {
+                        value_token: R_DOUBLE_LITERAL@14..15 "2" [] [],
+                    },
+                },
+                r_paren_token: R_PAREN@15..17 ")" [] [Whitespace(" ")],
+                body: RCall {
+                    function: RIdentifier {
+                        name_token: IDENT@17..22 "print" [] [],
+                    },
+                    arguments: RCallArguments {
+                        l_paren_token: L_PAREN@22..23 "(" [] [],
+                        items: RArgumentList [
+                            RArgument {
+                                name_clause: missing (optional),
+                                value: RCall {
+                                    function: RIdentifier {
+                                        name_token: IDENT@23..26 "get" [] [],
+                                    },
+                                    arguments: RCallArguments {
+                                        l_paren_token: L_PAREN@26..27 "(" [] [],
+                                        items: RArgumentList [
+                                            RArgument {
+                                                name_clause: missing (optional),
+                                                value: RStringValue {
+                                                    value: R_DOUBLE_QUOTED_STRING_LITERAL@27..32 "\"...\"" [] [],
+                                                },
+                                            },
+                                        ],
+                                        r_paren_token: R_PAREN@32..33 ")" [] [],
+                                    },
+                                },
+                            },
+                        ],
+                        r_paren_token: R_PAREN@33..34 ")" [] [],
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RForStatement {
+                for_token: FOR_KW@34..39 "for" [Newline("\n")] [Whitespace(" ")],
+                l_paren_token: L_PAREN@39..40 "(" [] [],
+                variable: RDotDotI {
+                    value_token: DOTDOTI@40..44 "..1" [] [Whitespace(" ")],
+                },
+                in_token: IN_KW@44..47 "in" [] [Whitespace(" ")],
+                sequence: RBinaryExpression {
+                    left: RDoubleValue {
+                        value_token: R_DOUBLE_LITERAL@47..48 "1" [] [],
+                    },
+                    operator: COLON@48..49 ":" [] [],
+                    right: RDoubleValue {
+                        value_token: R_DOUBLE_LITERAL@49..50 "2" [] [],
+                    },
+                },
+                r_paren_token: R_PAREN@50..52 ")" [] [Whitespace(" ")],
+                body: RCall {
+                    function: RIdentifier {
+                        name_token: IDENT@52..57 "print" [] [],
+                    },
+                    arguments: RCallArguments {
+                        l_paren_token: L_PAREN@57..58 "(" [] [],
+                        items: RArgumentList [
+                            RArgument {
+                                name_clause: missing (optional),
+                                value: RCall {
+                                    function: RIdentifier {
+                                        name_token: IDENT@58..61 "get" [] [],
+                                    },
+                                    arguments: RCallArguments {
+                                        l_paren_token: L_PAREN@61..62 "(" [] [],
+                                        items: RArgumentList [
+                                            RArgument {
+                                                name_clause: missing (optional),
+                                                value: RStringValue {
+                                                    value: R_DOUBLE_QUOTED_STRING_LITERAL@62..67 "\"..1\"" [] [],
+                                                },
+                                            },
+                                        ],
+                                        r_paren_token: R_PAREN@67..68 ")" [] [],
+                                    },
+                                },
+                            },
+                        ],
+                        r_paren_token: R_PAREN@68..69 ")" [] [],
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@69..70 "" [Newline("\n")] [],
+}
+```
+
+## A `for` Variable That Is Not A Name [error]
+
+```r
+for (1 in x) y
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RForStatement {
+                for_token: FOR_KW@0..4 "for" [] [Whitespace(" ")],
+                l_paren_token: L_PAREN@4..5 "(" [] [],
+                variable: RBogusForVariable {
+                    items: [
+                        R_DOUBLE_LITERAL@5..7 "1" [] [Whitespace(" ")],
+                    ],
+                },
+                in_token: IN_KW@7..10 "in" [] [Whitespace(" ")],
+                sequence: RIdentifier {
+                    name_token: IDENT@10..11 "x" [] [],
+                },
+                r_paren_token: R_PAREN@11..13 ")" [] [Whitespace(" ")],
+                body: RIdentifier {
+                    name_token: IDENT@13..14 "y" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@14..15 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:1:6 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a loop variable but instead found '1'.
+
+  > 1 │ for (1 in x) y
+      │      ^
+    2 │
+
+  i Expected a loop variable here.
+
+  > 1 │ for (1 in x) y
+      │      ^
+    2 │
+```
+
+## A `for` With No Variable [error]
+
+```r
+for (in x) y
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RForStatement {
+                for_token: FOR_KW@0..4 "for" [] [Whitespace(" ")],
+                l_paren_token: L_PAREN@4..5 "(" [] [],
+                variable: missing (required),
+                in_token: IN_KW@5..8 "in" [] [Whitespace(" ")],
+                sequence: RIdentifier {
+                    name_token: IDENT@8..9 "x" [] [],
+                },
+                r_paren_token: R_PAREN@9..11 ")" [] [Whitespace(" ")],
+                body: RIdentifier {
+                    name_token: IDENT@11..12 "y" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@12..13 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:1:6 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a loop variable but instead found 'in'.
+
+  > 1 │ for (in x) y
+      │      ^^
+    2 │
+
+  i Expected a loop variable here.
+
+  > 1 │ for (in x) y
+      │      ^^
+    2 │
+```
+
+## A `for` With No Sequence [error]
+
+```r
+for (i in) y
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RForStatement {
+                for_token: FOR_KW@0..4 "for" [] [Whitespace(" ")],
+                l_paren_token: L_PAREN@4..5 "(" [] [],
+                variable: RIdentifier {
+                    name_token: IDENT@5..7 "i" [] [Whitespace(" ")],
+                },
+                in_token: IN_KW@7..9 "in" [] [],
+                sequence: missing (required),
+                r_paren_token: R_PAREN@9..11 ")" [] [Whitespace(" ")],
+                body: RIdentifier {
+                    name_token: IDENT@11..12 "y" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@12..13 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:1:10 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a loop sequence but instead found ')'.
+
+  > 1 │ for (i in) y
+      │          ^
+    2 │
+
+  i Expected a loop sequence here.
+
+  > 1 │ for (i in) y
+      │          ^
+    2 │
+```

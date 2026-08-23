@@ -18,15 +18,13 @@ a::b$c
 a$b?c
 ```
 
-## Complex Expressions [pending]
+## Complex Expressions
 
 ```r
 repeat if (1) TRUE else repeat 42
 if (TRUE) if (FALSE) 2 else NULL
 a::b$c[[d]] <- e
 TRUE ~ FALSE ~ NULL ? NA ? NaN
-if (TRUE) FALSE
-else NA
 (if (TRUE) FALSE
 else NA)
 a = TRUE ? FALSE

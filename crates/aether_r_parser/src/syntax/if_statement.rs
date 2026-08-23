@@ -1,0 +1,43 @@
+use crate::diagnostics;
+use crate::parser::{RParser, Scope};
+use crate::syntax::expr::{parse_body, parse_expression};
+use aether_r_syntax::RSyntaxKind::{R_ELSE_CLAUSE, R_IF_STATEMENT};
+use aether_r_syntax::T;
+use biome_parser::CompletedMarker;
+use biome_parser::Parser;
+
+pub(crate) fn parse_if_statement(p: &mut RParser) -> CompletedMarker {
+    let m = p.start();
+    p.bump(T![if]);
+
+    p.with_scope(Scope::Parenthesis, |p| {
+        p.expect(T!['(']);
+        parse_expression(p).or_add_diagnostic(p, diagnostics::expected_condition);
+    });
+    p.expect(T![')']);
+
+    // The consequence and the alternative have the same limitation as a loop
+    // body: treated like any other expression, but `?` comes before them in the
+    // precedence table. In gram.y a loop body is left associative and an `if`
+    // body is right associative one rank up, but they shake out the same
+    parse_body(p).or_add_diagnostic(p, diagnostics::expected_expression);
+    parse_else_clause(p);
+
+    m.complete(p, R_IF_STATEMENT)
+}
+
+fn parse_else_clause(p: &mut RParser) {
+    if !p.at(T![else]) {
+        return;
+    }
+
+    // A newline before `else` ends the `if` at top level and nowhere else
+    if p.scope() == Scope::TopLevel && p.has_preceding_line_break() {
+        return;
+    }
+
+    let m = p.start();
+    p.bump(T![else]);
+    parse_body(p).or_add_diagnostic(p, diagnostics::expected_expression);
+    m.complete(p, R_ELSE_CLAUSE);
+}

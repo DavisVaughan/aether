@@ -226,3 +226,77 @@ if # comment1
   else· <- 1
 }
 ```
+
+## If And Else
+
+```r
+if (a) 1
+if (a) 1 else 2
+if (a) 1 else if (b) 2 else 3
+```
+
+An `else` binds to the nearest `if`.
+
+```r
+if (a) if (b) c else d
+```
+
+## A Consequence And An Alternative Stop At The Binary `?`
+
+Both share the rank a function or loop body has, so `if (a) b ? c` must parse as
+`(if (a) b) ? c`.
+
+```r
+if (a) b ? c
+if (a) b else c ? d
+```
+
+An assignment binds tighter than either, so the consequence swallows it.
+
+```r
+if (a) b <- c else d
+1 + if (a) b
+```
+
+## A Newline Before `else` At Top Level [error]
+
+Fatal here. The `if` ends at the consequence and the `else` is left over.
+
+```r
+if (a) 1
+else 2
+```
+
+## A Newline Before `else` Inside A Delimiter
+
+Newlines carry no meaning inside `(`, `[`, or `[[`
+
+```r
+f(if (a) 1
+  else 2)
+```
+
+```r
+x[if (a) 1
+  else 2]
+```
+
+```r
+x[[if (a) 1
+  else 2]]
+```
+
+## A Newline Between `else` And Its Alternative
+
+Allowed even at top level, unlike a newline before the `else` itself (r-lib/tree-sitter-r#141).
+
+```r
+if (a) 1 else
+  2
+```
+
+## An `if` With No Condition [error]
+
+```r
+if () 1
+```

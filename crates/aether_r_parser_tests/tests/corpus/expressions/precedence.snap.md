@@ -280,15 +280,13 @@ RRoot {
 }
 ```
 
-## Complex Expressions [pending]
+## Complex Expressions
 
 ```r
 repeat if (1) TRUE else repeat 42
 if (TRUE) if (FALSE) 2 else NULL
 a::b$c[[d]] <- e
 TRUE ~ FALSE ~ NULL ? NA ? NaN
-if (TRUE) FALSE
-else NA
 (if (TRUE) FALSE
 else NA)
 a = TRUE ? FALSE
@@ -298,7 +296,251 @@ TRUE = FALSE ? NA
 TRUE ? FALSE = NA
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RRepeatStatement {
+                repeat_token: REPEAT_KW@0..7 "repeat" [] [Whitespace(" ")],
+                body: RIfStatement {
+                    if_token: IF_KW@7..10 "if" [] [Whitespace(" ")],
+                    l_paren_token: L_PAREN@10..11 "(" [] [],
+                    condition: RDoubleValue {
+                        value_token: R_DOUBLE_LITERAL@11..12 "1" [] [],
+                    },
+                    r_paren_token: R_PAREN@12..14 ")" [] [Whitespace(" ")],
+                    consequence: RTrueExpression {
+                        true_token: TRUE_KW@14..19 "TRUE" [] [Whitespace(" ")],
+                    },
+                    else_clause: RElseClause {
+                        else_token: ELSE_KW@19..24 "else" [] [Whitespace(" ")],
+                        alternative: RRepeatStatement {
+                            repeat_token: REPEAT_KW@24..31 "repeat" [] [Whitespace(" ")],
+                            body: RDoubleValue {
+                                value_token: R_DOUBLE_LITERAL@31..33 "42" [] [],
+                            },
+                        },
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RIfStatement {
+                if_token: IF_KW@33..37 "if" [Newline("\n")] [Whitespace(" ")],
+                l_paren_token: L_PAREN@37..38 "(" [] [],
+                condition: RTrueExpression {
+                    true_token: TRUE_KW@38..42 "TRUE" [] [],
+                },
+                r_paren_token: R_PAREN@42..44 ")" [] [Whitespace(" ")],
+                consequence: RIfStatement {
+                    if_token: IF_KW@44..47 "if" [] [Whitespace(" ")],
+                    l_paren_token: L_PAREN@47..48 "(" [] [],
+                    condition: RFalseExpression {
+                        false_token: FALSE_KW@48..53 "FALSE" [] [],
+                    },
+                    r_paren_token: R_PAREN@53..55 ")" [] [Whitespace(" ")],
+                    consequence: RDoubleValue {
+                        value_token: R_DOUBLE_LITERAL@55..57 "2" [] [Whitespace(" ")],
+                    },
+                    else_clause: RElseClause {
+                        else_token: ELSE_KW@57..62 "else" [] [Whitespace(" ")],
+                        alternative: RNullExpression {
+                            null_token: NULL_KW@62..66 "NULL" [] [],
+                        },
+                    },
+                },
+                else_clause: missing (optional),
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBinaryExpression {
+                left: RSubset2 {
+                    function: RExtractExpression {
+                        left: RNamespaceExpression {
+                            left: RIdentifier {
+                                name_token: IDENT@66..68 "a" [Newline("\n")] [],
+                            },
+                            operator: COLON2@68..70 "::" [] [],
+                            right: RIdentifier {
+                                name_token: IDENT@70..71 "b" [] [],
+                            },
+                        },
+                        operator: DOLLAR@71..72 "$" [] [],
+                        right: RIdentifier {
+                            name_token: IDENT@72..73 "c" [] [],
+                        },
+                    },
+                    arguments: RSubset2Arguments {
+                        l_brack2_token: L_BRACK2@73..75 "[[" [] [],
+                        items: RArgumentList [
+                            RArgument {
+                                name_clause: missing (optional),
+                                value: RIdentifier {
+                                    name_token: IDENT@75..76 "d" [] [],
+                                },
+                            },
+                        ],
+                        r_brack2_token: R_BRACK2@76..79 "]]" [] [Whitespace(" ")],
+                    },
+                },
+                operator: ASSIGN@79..82 "<-" [] [Whitespace(" ")],
+                right: RIdentifier {
+                    name_token: IDENT@82..83 "e" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBinaryExpression {
+                left: RBinaryExpression {
+                    left: RBinaryExpression {
+                        left: RBinaryExpression {
+                            left: RTrueExpression {
+                                true_token: TRUE_KW@83..89 "TRUE" [Newline("\n")] [Whitespace(" ")],
+                            },
+                            operator: TILDE@89..91 "~" [] [Whitespace(" ")],
+                            right: RFalseExpression {
+                                false_token: FALSE_KW@91..97 "FALSE" [] [Whitespace(" ")],
+                            },
+                        },
+                        operator: TILDE@97..99 "~" [] [Whitespace(" ")],
+                        right: RNullExpression {
+                            null_token: NULL_KW@99..104 "NULL" [] [Whitespace(" ")],
+                        },
+                    },
+                    operator: WAT@104..106 "?" [] [Whitespace(" ")],
+                    right: RNaExpression {
+                        value: NA_LOGICAL_KW@106..109 "NA" [] [Whitespace(" ")],
+                    },
+                },
+                operator: WAT@109..111 "?" [] [Whitespace(" ")],
+                right: RNanExpression {
+                    nan_token: NAN_KW@111..114 "NaN" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RParenthesizedExpression {
+                l_paren_token: L_PAREN@114..116 "(" [Newline("\n")] [],
+                body: RIfStatement {
+                    if_token: IF_KW@116..119 "if" [] [Whitespace(" ")],
+                    l_paren_token: L_PAREN@119..120 "(" [] [],
+                    condition: RTrueExpression {
+                        true_token: TRUE_KW@120..124 "TRUE" [] [],
+                    },
+                    r_paren_token: R_PAREN@124..126 ")" [] [Whitespace(" ")],
+                    consequence: RFalseExpression {
+                        false_token: FALSE_KW@126..131 "FALSE" [] [],
+                    },
+                    else_clause: RElseClause {
+                        else_token: ELSE_KW@131..137 "else" [Newline("\n")] [Whitespace(" ")],
+                        alternative: RNaExpression {
+                            value: NA_LOGICAL_KW@137..139 "NA" [] [],
+                        },
+                    },
+                },
+                r_paren_token: R_PAREN@139..140 ")" [] [],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBinaryExpression {
+                left: RBinaryExpression {
+                    left: RIdentifier {
+                        name_token: IDENT@140..143 "a" [Newline("\n")] [Whitespace(" ")],
+                    },
+                    operator: EQUAL@143..145 "=" [] [Whitespace(" ")],
+                    right: RTrueExpression {
+                        true_token: TRUE_KW@145..150 "TRUE" [] [Whitespace(" ")],
+                    },
+                },
+                operator: WAT@150..152 "?" [] [Whitespace(" ")],
+                right: RFalseExpression {
+                    false_token: FALSE_KW@152..157 "FALSE" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBinaryExpression {
+                left: RTrueExpression {
+                    true_token: TRUE_KW@157..163 "TRUE" [Newline("\n")] [Whitespace(" ")],
+                },
+                operator: ASSIGN@163..166 "<-" [] [Whitespace(" ")],
+                right: RBinaryExpression {
+                    left: RFalseExpression {
+                        false_token: FALSE_KW@166..172 "FALSE" [] [Whitespace(" ")],
+                    },
+                    operator: EQUAL@172..174 "=" [] [Whitespace(" ")],
+                    right: RNaExpression {
+                        value: NA_LOGICAL_KW@174..176 "NA" [] [],
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBinaryExpression {
+                left: RBinaryExpression {
+                    left: RTrueExpression {
+                        true_token: TRUE_KW@176..182 "TRUE" [Newline("\n")] [Whitespace(" ")],
+                    },
+                    operator: ASSIGN@182..185 "<-" [] [Whitespace(" ")],
+                    right: RFalseExpression {
+                        false_token: FALSE_KW@185..191 "FALSE" [] [Whitespace(" ")],
+                    },
+                },
+                operator: WAT@191..193 "?" [] [Whitespace(" ")],
+                right: RNaExpression {
+                    value: NA_LOGICAL_KW@193..195 "NA" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBinaryExpression {
+                left: RBinaryExpression {
+                    left: RTrueExpression {
+                        true_token: TRUE_KW@195..201 "TRUE" [Newline("\n")] [Whitespace(" ")],
+                    },
+                    operator: EQUAL@201..203 "=" [] [Whitespace(" ")],
+                    right: RFalseExpression {
+                        false_token: FALSE_KW@203..209 "FALSE" [] [Whitespace(" ")],
+                    },
+                },
+                operator: WAT@209..211 "?" [] [Whitespace(" ")],
+                right: RNaExpression {
+                    value: NA_LOGICAL_KW@211..213 "NA" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBinaryExpression {
+                left: RTrueExpression {
+                    true_token: TRUE_KW@213..219 "TRUE" [Newline("\n")] [Whitespace(" ")],
+                },
+                operator: WAT@219..221 "?" [] [Whitespace(" ")],
+                right: RBinaryExpression {
+                    left: RFalseExpression {
+                        false_token: FALSE_KW@221..227 "FALSE" [] [Whitespace(" ")],
+                    },
+                    operator: EQUAL@227..229 "=" [] [Whitespace(" ")],
+                    right: RNaExpression {
+                        value: NA_LOGICAL_KW@229..231 "NA" [] [],
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@231..232 "" [Newline("\n")] [],
+}
+```
 
 ## Subset and Subset2 Precedence
 

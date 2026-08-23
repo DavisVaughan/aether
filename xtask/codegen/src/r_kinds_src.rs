@@ -134,5 +134,6 @@ pub const R_KINDS_SRC: KindsSrc = KindsSrc {
         "R_BOGUS_EXPRESSION",
         "R_BOGUS_SELECTOR",
         "R_BOGUS_PARAMETER_NAME",
+        "R_BOGUS_FOR_VARIABLE",
     ],
 };

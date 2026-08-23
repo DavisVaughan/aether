@@ -9,6 +9,10 @@ use crate::syntax::call::{
     parse_call_expression, parse_subset_expression, parse_subset2_expression,
 };
 use crate::syntax::function::parse_function_definition;
+use crate::syntax::if_statement::parse_if_statement;
+use crate::syntax::loop_statements::{
+    parse_for_statement, parse_repeat_statement, parse_while_statement,
+};
 use crate::syntax::parenthesized_expression::parse_parenthesized_expression;
 use aether_r_syntax::RSyntaxKind::*;
 use aether_r_syntax::{AnyRSelector, T};
@@ -176,6 +180,10 @@ fn parse_expression_with_binding_power(
             m.complete(p, R_STRING_VALUE)
         }
         T![function] | T!["\\"] => parse_function_definition(p),
+        T![if] => parse_if_statement(p),
+        T![for] => parse_for_statement(p),
+        T![while] => parse_while_statement(p),
+        T![repeat] => parse_repeat_statement(p),
         T!['('] => parse_parenthesized_expression(p),
         // Doesn't start an expression
         _ => return Absent,
