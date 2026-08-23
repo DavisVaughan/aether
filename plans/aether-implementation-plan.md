@@ -1745,11 +1745,21 @@ Four things about `parse_argument_list` are not obvious from reading it:
   hole has not moved. Reading the separator first is what makes the guard sound;
   §11.5 has the argument in full, since both lists now share the shape.
 
-- **The recovery branch is reached by `fn(a b)`, not by `fn(a}`.** A foreign
-  closer is in `ARGUMENT_LIST_ENDS`, so it ends the list cleanly; only a token
-  that is neither a boundary nor a `,` makes `expect(T![,])` fire and hands the
-  rest to `ParseRecoveryTokenSet`. `Side By Side Arguments` in
-  `expressions/call.md` is the test.
+- **A missing separator and a value that is not a value are different mistakes,
+  and each is decided where its condition is known.** The loop's `expect(T![,])`
+  owns the first: `fn(a b)` keeps *both* arguments and says only that the comma is
+  missing. `parse_argument_value` owns the second: it returns early at a boundary,
+  because an empty value is legal there, and otherwise hands an absent value to
+  `or_recover_with_token_set`, so `fn(* 1)` is one argument with a bogus value and
+  an `expected_expression` pointing at the `*`. `fn(a}` reaches neither — a foreign
+  closer is in `ARGUMENT_LIST_ENDS`, so it ends the list and `expect(T![')'])`
+  reports it. `Side By Side Arguments` and `An Argument Value That Starts No
+  Expression` in `expressions/call.md` are the tests.
+
+  An earlier shape ran both from one branch after `parse_argument` returned, which
+  made `fn(* 1)` claim a comma was missing when nothing was, and let one iteration
+  push two `RArgument`s. Naming the legal-empty case is what separated them, and it
+  is what lets the loop be the same nine lines as §11.5's.
 
 - **`enable_recovery_on_line_break()` is deliberately not set.** Recovery runs
   inside `(`/`[`/`[[`, where newlines carry no meaning (§9.2).
@@ -1815,9 +1825,10 @@ for the other four forms.
 
 None. `expected_argument` was specified for this phase and turned out not to be
 needed. A hole is legal in an argument list, so `f(a,,b)` raises nothing at all;
-the missing-comma case (`f(a b)`) is `expect(T![,])`, which words itself; and where
-recovery has to fill an argument, the `R_BOGUS_EXPRESSION` it builds is already
-overlapped by that same diagnostic. §11.5's `expected_parameter` still lands,
+the missing-comma case (`f(a b)`) is `expect(T![,])`, which words itself; and a
+value that is not a value is an `expected_expression`, which is what it is — the
+argument arrived, its value did not. A constructor of its own would have had to say
+the same thing in different words. §11.5's `expected_parameter` still lands,
 because R rejects `function(a,,b)` — that asymmetry is why the two lists do not
 share a constructor.
 

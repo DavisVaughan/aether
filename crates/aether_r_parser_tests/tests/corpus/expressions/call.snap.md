@@ -1593,10 +1593,8 @@ RRoot {
                         missing separator,
                         RArgument {
                             name_clause: missing (optional),
-                            value: RBogusExpression {
-                                items: [
-                                    IDENT@4..5 "y" [] [],
-                                ],
+                            value: RIdentifier {
+                                name_token: IDENT@4..5 "y" [] [],
                             },
                         },
                     ],
@@ -1622,10 +1620,8 @@ RRoot {
                         missing separator,
                         RArgument {
                             name_clause: missing (optional),
-                            value: RBogusExpression {
-                                items: [
-                                    IDENT@13..14 "y" [] [],
-                                ],
+                            value: RIdentifier {
+                                name_token: IDENT@13..14 "y" [] [],
                             },
                         },
                     ],
@@ -1651,10 +1647,8 @@ RRoot {
                         missing separator,
                         RArgument {
                             name_clause: missing (optional),
-                            value: RBogusExpression {
-                                items: [
-                                    IDENT@23..24 "y" [] [],
-                                ],
+                            value: RIdentifier {
+                                name_token: IDENT@23..24 "y" [] [],
                             },
                         },
                     ],
@@ -1687,10 +1681,8 @@ RRoot {
                         missing separator,
                         RArgument {
                             name_clause: missing (optional),
-                            value: RBogusExpression {
-                                items: [
-                                    IDENT@35..36 "z" [] [],
-                                ],
+                            value: RIdentifier {
+                                name_token: IDENT@35..36 "z" [] [],
                             },
                         },
                     ],
@@ -1723,10 +1715,8 @@ RRoot {
                         missing separator,
                         RArgument {
                             name_clause: missing (optional),
-                            value: RBogusExpression {
-                                items: [
-                                    IDENT@47..48 "z" [] [],
-                                ],
+                            value: RIdentifier {
+                                name_token: IDENT@47..48 "z" [] [],
                             },
                         },
                     ],
@@ -1759,10 +1749,8 @@ RRoot {
                         missing separator,
                         RArgument {
                             name_clause: missing (optional),
-                            value: RBogusExpression {
-                                items: [
-                                    IDENT@60..61 "z" [] [],
-                                ],
+                            value: RIdentifier {
+                                name_token: IDENT@60..61 "z" [] [],
                             },
                         },
                     ],
@@ -1793,10 +1781,8 @@ RRoot {
                         missing separator,
                         RArgument {
                             name_clause: missing (optional),
-                            value: RBogusExpression {
-                                items: [
-                                    IDENT@71..72 "y" [] [],
-                                ],
+                            value: RIdentifier {
+                                name_token: IDENT@71..72 "y" [] [],
                             },
                         },
                     ],
@@ -1827,10 +1813,8 @@ RRoot {
                         missing separator,
                         RArgument {
                             name_clause: missing (optional),
-                            value: RBogusExpression {
-                                items: [
-                                    IDENT@82..83 "y" [] [],
-                                ],
+                            value: RIdentifier {
+                                name_token: IDENT@82..83 "y" [] [],
                             },
                         },
                     ],
@@ -1861,10 +1845,8 @@ RRoot {
                         missing separator,
                         RArgument {
                             name_clause: missing (optional),
-                            value: RBogusExpression {
-                                items: [
-                                    IDENT@94..95 "y" [] [],
-                                ],
+                            value: RIdentifier {
+                                name_token: IDENT@94..95 "y" [] [],
                             },
                         },
                     ],
@@ -2058,9 +2040,12 @@ return()
 
 ## Side By Side Arguments [error]
 
+Only the separator is missing, so each argument is still an argument.
+
 ```r
 # Can't have two arguments side by side without a delimiter
 fn(a b)
+fn(a b c)
 ```
 
 ```cst
@@ -2084,10 +2069,8 @@ RRoot {
                         missing separator,
                         RArgument {
                             name_clause: missing (optional),
-                            value: RBogusExpression {
-                                items: [
-                                    IDENT@65..66 "b" [] [],
-                                ],
+                            value: RIdentifier {
+                                name_token: IDENT@65..66 "b" [] [],
                             },
                         },
                     ],
@@ -2096,8 +2079,42 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@67..70 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@70..71 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIdentifier {
+                                name_token: IDENT@71..73 "a" [] [Whitespace(" ")],
+                            },
+                        },
+                        missing separator,
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIdentifier {
+                                name_token: IDENT@73..75 "b" [] [Whitespace(" ")],
+                            },
+                        },
+                        missing separator,
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIdentifier {
+                                name_token: IDENT@75..76 "c" [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@76..77 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
     ],
-    eof_token: EOF@67..68 "" [Newline("\n")] [],
+    eof_token: EOF@77..78 "" [Newline("\n")] [],
 }
 ```
 
@@ -2109,9 +2126,341 @@ test.R:2:6 parse ━━━━━━━━━━━━━━━━━━━━━
     1 │ # Can't have two arguments side by side without a delimiter
   > 2 │ fn(a b)
       │      ^
-    3 │
+    3 │ fn(a b c)
+    4 │
 
   i Remove b
+
+test.R:3:6 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `,` but instead found `b`
+
+    1 │ # Can't have two arguments side by side without a delimiter
+    2 │ fn(a b)
+  > 3 │ fn(a b c)
+      │      ^
+    4 │
+
+  i Remove b
+
+test.R:3:8 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `,` but instead found `c`
+
+    1 │ # Can't have two arguments side by side without a delimiter
+    2 │ fn(a b)
+  > 3 │ fn(a b c)
+      │        ^
+    4 │
+
+  i Remove c
+```
+
+## An Argument Value That Starts No Expression [error]
+
+A missing separator and a value that is not a value are different mistakes.
+Nothing is missing between `(` and `*` here, so the diagnostic is about the
+expression rather than about a comma, and the tokens up to the next boundary go
+into the value slot of the argument that wanted them.
+
+```r
+fn(* 1)
+fn(a, * 1)
+fn(a = * 1)
+fn(,, * 1)
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@0..2 "fn" [] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@2..3 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RBogusExpression {
+                                items: [
+                                    MULTIPLY@3..5 "*" [] [Whitespace(" ")],
+                                    R_DOUBLE_LITERAL@5..6 "1" [] [],
+                                ],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@6..7 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@7..10 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@10..11 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIdentifier {
+                                name_token: IDENT@11..12 "a" [] [],
+                            },
+                        },
+                        COMMA@12..14 "," [] [Whitespace(" ")],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RBogusExpression {
+                                items: [
+                                    MULTIPLY@14..16 "*" [] [Whitespace(" ")],
+                                    R_DOUBLE_LITERAL@16..17 "1" [] [],
+                                ],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@17..18 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@18..21 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@21..22 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RIdentifier {
+                                    name_token: IDENT@22..24 "a" [] [Whitespace(" ")],
+                                },
+                                eq_token: EQUAL@24..26 "=" [] [Whitespace(" ")],
+                            },
+                            value: RBogusExpression {
+                                items: [
+                                    MULTIPLY@26..28 "*" [] [Whitespace(" ")],
+                                    R_DOUBLE_LITERAL@28..29 "1" [] [],
+                                ],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@29..30 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@30..33 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@33..34 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: missing (optional),
+                        },
+                        COMMA@34..35 "," [] [],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: missing (optional),
+                        },
+                        COMMA@35..37 "," [] [Whitespace(" ")],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RBogusExpression {
+                                items: [
+                                    MULTIPLY@37..39 "*" [] [Whitespace(" ")],
+                                    R_DOUBLE_LITERAL@39..40 "1" [] [],
+                                ],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@40..41 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@41..42 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:1:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected an expression but instead found '* 1'.
+
+  > 1 │ fn(* 1)
+      │    ^^^
+    2 │ fn(a, * 1)
+    3 │ fn(a = * 1)
+
+  i Expected an expression here.
+
+  > 1 │ fn(* 1)
+      │    ^^^
+    2 │ fn(a, * 1)
+    3 │ fn(a = * 1)
+
+test.R:2:7 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected an expression but instead found '* 1'.
+
+    1 │ fn(* 1)
+  > 2 │ fn(a, * 1)
+      │       ^^^
+    3 │ fn(a = * 1)
+    4 │ fn(,, * 1)
+
+  i Expected an expression here.
+
+    1 │ fn(* 1)
+  > 2 │ fn(a, * 1)
+      │       ^^^
+    3 │ fn(a = * 1)
+    4 │ fn(,, * 1)
+
+test.R:3:8 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected an expression but instead found '* 1'.
+
+    1 │ fn(* 1)
+    2 │ fn(a, * 1)
+  > 3 │ fn(a = * 1)
+      │        ^^^
+    4 │ fn(,, * 1)
+    5 │
+
+  i Expected an expression here.
+
+    1 │ fn(* 1)
+    2 │ fn(a, * 1)
+  > 3 │ fn(a = * 1)
+      │        ^^^
+    4 │ fn(,, * 1)
+    5 │
+
+test.R:4:7 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected an expression but instead found '* 1'.
+
+    2 │ fn(a, * 1)
+    3 │ fn(a = * 1)
+  > 4 │ fn(,, * 1)
+      │       ^^^
+    5 │
+
+  i Expected an expression here.
+
+    2 │ fn(a, * 1)
+    3 │ fn(a = * 1)
+  > 4 │ fn(,, * 1)
+      │       ^^^
+    5 │
+```
+
+The same holds inside `[` and `[[`, which share the argument list.
+
+```r
+x[* 1]
+x[[* 1]]
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RSubset {
+                function: RIdentifier {
+                    name_token: IDENT@0..1 "x" [] [],
+                },
+                arguments: RSubsetArguments {
+                    l_brack_token: L_BRACK@1..2 "[" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RBogusExpression {
+                                items: [
+                                    MULTIPLY@2..4 "*" [] [Whitespace(" ")],
+                                    R_DOUBLE_LITERAL@4..5 "1" [] [],
+                                ],
+                            },
+                        },
+                    ],
+                    r_brack_token: R_BRACK@5..6 "]" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RSubset2 {
+                function: RIdentifier {
+                    name_token: IDENT@6..8 "x" [Newline("\n")] [],
+                },
+                arguments: RSubset2Arguments {
+                    l_brack2_token: L_BRACK2@8..10 "[[" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RBogusExpression {
+                                items: [
+                                    MULTIPLY@10..12 "*" [] [Whitespace(" ")],
+                                    R_DOUBLE_LITERAL@12..13 "1" [] [],
+                                ],
+                            },
+                        },
+                    ],
+                    r_brack2_token: R_BRACK2@13..15 "]]" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@15..16 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:1:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected an expression but instead found '* 1'.
+
+  > 1 │ x[* 1]
+      │   ^^^
+    2 │ x[[* 1]]
+    3 │
+
+  i Expected an expression here.
+
+  > 1 │ x[* 1]
+      │   ^^^
+    2 │ x[[* 1]]
+    3 │
+
+test.R:2:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected an expression but instead found '* 1'.
+
+    1 │ x[* 1]
+  > 2 │ x[[* 1]]
+      │    ^^^
+    3 │
+
+  i Expected an expression here.
+
+    1 │ x[* 1]
+  > 2 │ x[[* 1]]
+      │    ^^^
+    3 │
 ```
 
 ## Closing Delimiter Belonging To Someone Else [error]

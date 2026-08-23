@@ -189,9 +189,33 @@ return()
 
 ## Side By Side Arguments [error]
 
+Only the separator is missing, so each argument is still an argument.
+
 ```r
 # Can't have two arguments side by side without a delimiter
 fn(a b)
+fn(a b c)
+```
+
+## An Argument Value That Starts No Expression [error]
+
+A missing separator and a value that is not a value are different mistakes.
+Nothing is missing between `(` and `*` here, so the diagnostic is about the
+expression rather than about a comma, and the tokens up to the next boundary go
+into the value slot of the argument that wanted them.
+
+```r
+fn(* 1)
+fn(a, * 1)
+fn(a = * 1)
+fn(,, * 1)
+```
+
+The same holds inside `[` and `[[`, which share the argument list.
+
+```r
+x[* 1]
+x[[* 1]]
 ```
 
 ## Closing Delimiter Belonging To Someone Else [error]

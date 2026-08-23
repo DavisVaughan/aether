@@ -1,3 +1,4 @@
+use crate::diagnostics;
 use crate::parser::{RParser, Scope};
 use crate::syntax::expr::parse_expression;
 use aether_r_syntax::RSyntaxKind::{
@@ -90,24 +91,6 @@ fn parse_argument_list(p: &mut RParser) {
 
         progress.assert_progressing(p);
         parse_argument(p);
-
-        if !p.at_ts(ARGUMENT_LIST_BOUNDARIES) {
-            // We know there is a missing separator, so here's where we get to
-            // report that. Since the comma is missing, this doesn't bump, it
-            // just reports a diagnostic and we continue sitting where we are.
-            p.expect(T![,]);
-
-            let argument = p.start();
-            // Opens a marker, bumps repeatedly until we hit a boundary,
-            // closes as R_BOGUS_EXPRESSION
-            let recovered =
-                ParseRecoveryTokenSet::new(R_BOGUS_EXPRESSION, ARGUMENT_LIST_BOUNDARIES).recover(p);
-            debug_assert!(
-                recovered.is_ok(),
-                "not at a boundary, so not at `EOF` either"
-            );
-            argument.complete(p, R_ARGUMENT);
-        }
     }
 
     argument_list.complete(p, R_ARGUMENT_LIST);
@@ -123,11 +106,24 @@ fn parse_argument(p: &mut RParser) {
 
     // Optional name clause
     parse_argument_name_clause(p);
-
-    // Optional value (hence the `ok()`)
-    parse_expression(p).ok();
+    parse_argument_value(p);
 
     m.complete(p, R_ARGUMENT);
+}
+
+/// An empty value is legal, but only where the argument has already ended
+fn parse_argument_value(p: &mut RParser) {
+    if p.at_ts(ARGUMENT_LIST_BOUNDARIES) {
+        return;
+    }
+
+    parse_expression(p)
+        .or_recover_with_token_set(
+            p,
+            &ParseRecoveryTokenSet::new(R_BOGUS_EXPRESSION, ARGUMENT_LIST_BOUNDARIES),
+            diagnostics::expected_expression,
+        )
+        .ok();
 }
 
 /// `name =`, where the `name` is an identifier, a string, `...`, `..i`, or `NULL`
