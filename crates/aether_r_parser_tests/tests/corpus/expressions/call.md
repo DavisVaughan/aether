@@ -205,7 +205,7 @@ fn(a = * 1)
 fn(,, * 1)
 ```
 
-The same holds inside `[` and `[[`, which share the argument list.
+Same for `[` and `[[`
 
 ```r
 x[* 1]

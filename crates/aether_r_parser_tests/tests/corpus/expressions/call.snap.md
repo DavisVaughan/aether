@@ -2358,7 +2358,7 @@ test.R:4:7 parse ━━━━━━━━━━━━━━━━━━━━━
     5 │
 ```
 
-The same holds inside `[` and `[[`, which share the argument list.
+Same for `[` and `[[`
 
 ```r
 x[* 1]
