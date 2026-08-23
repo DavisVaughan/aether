@@ -83,8 +83,9 @@ fn parse_parameter(p: &mut RParser) {
         )
         .ok();
 
-    // Optional (hence the `ok()`)
-    parse_parameter_default(p).ok();
+    if p.at(T![=]) {
+        parse_parameter_default(p);
+    }
 
     m.complete(p, R_PARAMETER);
 }
@@ -112,13 +113,9 @@ fn parse_parameter_name(p: &mut RParser) -> ParsedSyntax {
 }
 
 /// `= value`, where the value is required (r-lib/tree-sitter-r#161)
-fn parse_parameter_default(p: &mut RParser) -> ParsedSyntax {
-    if !p.at(T![=]) {
-        return Absent;
-    }
-
+fn parse_parameter_default(p: &mut RParser) {
     let m = p.start();
     p.bump(T![=]);
     parse_expression(p).or_add_diagnostic(p, diagnostics::expected_expression);
-    Present(m.complete(p, R_PARAMETER_DEFAULT))
+    m.complete(p, R_PARAMETER_DEFAULT);
 }
