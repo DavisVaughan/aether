@@ -47,8 +47,10 @@ fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
     statement_list.complete(p, R_STATEMENT_LIST);
 }
 
-/// R's `prog` reaches a `;` only through `expr ';'`, where its `exprlist` also
-/// has `exprlist ';'` over a possibly empty list
+/// At top level, a semicolon must be preceded by an expression that ends on
+/// the same line, i.e. `;;` and `1\n;` aren't legal. Inside braces, semicolons
+/// may appear even without an expression, so `{ ;; }` and `{ 1\n; }` are fine.
+/// In those cases, the statement is missing its optional expression.
 fn parse_empty_statement(p: &mut RParser) {
     let m = p.start();
 
