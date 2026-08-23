@@ -17,17 +17,19 @@ pub(crate) fn parse_function_definition(p: &mut RParser) -> CompletedMarker {
     let m = p.start();
     p.bump_any();
 
-    parse_parameters(p).or_add_diagnostic(p, diagnostics::expected_parameters);
+    if p.at(T!['(']) {
+        parse_parameters(p);
+    } else {
+        p.error(diagnostics::expected_parameters(p, p.cur_range()));
+    }
+
     parse_body(p).or_add_diagnostic(p, diagnostics::expected_expression);
 
     m.complete(p, R_FUNCTION_DEFINITION)
 }
 
-fn parse_parameters(p: &mut RParser) -> ParsedSyntax {
-    if !p.at(T!['(']) {
-        // Caller will report a diagnostic
-        return Absent;
-    }
+fn parse_parameters(p: &mut RParser) {
+    debug_assert!(p.at(T!['(']));
 
     let m = p.start();
     p.with_scope(Scope::Parenthesis, |p| {
@@ -36,7 +38,7 @@ fn parse_parameters(p: &mut RParser) -> ParsedSyntax {
     });
     p.expect(T![')']);
 
-    Present(m.complete(p, R_PARAMETERS))
+    m.complete(p, R_PARAMETERS);
 }
 
 /// What ends a parameter list
