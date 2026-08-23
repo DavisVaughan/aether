@@ -45,9 +45,10 @@ fn parse_parameters(p: &mut RParser) {
 const PARAMETER_LIST_ENDS: TokenSet<RSyntaxKind> =
     token_set![T![EOF], T![')'], T![']'], T!["]]"], T!['}']];
 
-/// Where a parameter may stop: at the `,` that starts the next one, or at an end
+/// Where a parameter may stop: at the `=` of its own default, at the `,` that
+/// starts the next one, or at an end
 const PARAMETER_LIST_BOUNDARIES: TokenSet<RSyntaxKind> =
-    PARAMETER_LIST_ENDS.union(token_set![T![,]]);
+    PARAMETER_LIST_ENDS.union(token_set![T![,], T![=]]);
 
 fn parse_parameter_list(p: &mut RParser) {
     let parameter_list = p.start();

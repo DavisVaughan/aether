@@ -403,6 +403,220 @@ test.R:3:11 parse ━━━━━━━━━━━━━━━━━━━━�
   i Remove $
 ```
 
+Recovery stops at the `=`, so a bad name costs the name and nothing else.
+
+```r
+function(1 = 2) x
+function("a" = 1) x
+function(a, 1 = 2, b) x
+function(= 1) x
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@0..8 "function" [] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@8..9 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RBogusParameterName {
+                                items: [
+                                    R_DOUBLE_LITERAL@9..11 "1" [] [Whitespace(" ")],
+                                ],
+                            },
+                            default: RParameterDefault {
+                                eq_token: EQUAL@11..13 "=" [] [Whitespace(" ")],
+                                value: RDoubleValue {
+                                    value_token: R_DOUBLE_LITERAL@13..14 "2" [] [],
+                                },
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@14..16 ")" [] [Whitespace(" ")],
+                },
+                body: RIdentifier {
+                    name_token: IDENT@16..17 "x" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@17..26 "function" [Newline("\n")] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@26..27 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RBogusParameterName {
+                                items: [
+                                    R_DOUBLE_QUOTED_STRING_LITERAL@27..31 "\"a\"" [] [Whitespace(" ")],
+                                ],
+                            },
+                            default: RParameterDefault {
+                                eq_token: EQUAL@31..33 "=" [] [Whitespace(" ")],
+                                value: RDoubleValue {
+                                    value_token: R_DOUBLE_LITERAL@33..34 "1" [] [],
+                                },
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@34..36 ")" [] [Whitespace(" ")],
+                },
+                body: RIdentifier {
+                    name_token: IDENT@36..37 "x" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@37..46 "function" [Newline("\n")] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@46..47 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@47..48 "a" [] [],
+                            },
+                            default: missing (optional),
+                        },
+                        COMMA@48..50 "," [] [Whitespace(" ")],
+                        RParameter {
+                            name: RBogusParameterName {
+                                items: [
+                                    R_DOUBLE_LITERAL@50..52 "1" [] [Whitespace(" ")],
+                                ],
+                            },
+                            default: RParameterDefault {
+                                eq_token: EQUAL@52..54 "=" [] [Whitespace(" ")],
+                                value: RDoubleValue {
+                                    value_token: R_DOUBLE_LITERAL@54..55 "2" [] [],
+                                },
+                            },
+                        },
+                        COMMA@55..57 "," [] [Whitespace(" ")],
+                        RParameter {
+                            name: RIdentifier {
+                                name_token: IDENT@57..58 "b" [] [],
+                            },
+                            default: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@58..60 ")" [] [Whitespace(" ")],
+                },
+                body: RIdentifier {
+                    name_token: IDENT@60..61 "x" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@61..70 "function" [Newline("\n")] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@70..71 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: missing (required),
+                            default: RParameterDefault {
+                                eq_token: EQUAL@71..73 "=" [] [Whitespace(" ")],
+                                value: RDoubleValue {
+                                    value_token: R_DOUBLE_LITERAL@73..74 "1" [] [],
+                                },
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@74..76 ")" [] [Whitespace(" ")],
+                },
+                body: RIdentifier {
+                    name_token: IDENT@76..77 "x" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@77..78 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:1:10 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a parameter but instead found '1'.
+
+  > 1 │ function(1 = 2) x
+      │          ^
+    2 │ function("a" = 1) x
+    3 │ function(a, 1 = 2, b) x
+
+  i Expected a parameter here.
+
+  > 1 │ function(1 = 2) x
+      │          ^
+    2 │ function("a" = 1) x
+    3 │ function(a, 1 = 2, b) x
+
+test.R:2:10 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a parameter but instead found '"a"'.
+
+    1 │ function(1 = 2) x
+  > 2 │ function("a" = 1) x
+      │          ^^^
+    3 │ function(a, 1 = 2, b) x
+    4 │ function(= 1) x
+
+  i Expected a parameter here.
+
+    1 │ function(1 = 2) x
+  > 2 │ function("a" = 1) x
+      │          ^^^
+    3 │ function(a, 1 = 2, b) x
+    4 │ function(= 1) x
+
+test.R:3:13 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a parameter but instead found '1'.
+
+    1 │ function(1 = 2) x
+    2 │ function("a" = 1) x
+  > 3 │ function(a, 1 = 2, b) x
+      │             ^
+    4 │ function(= 1) x
+    5 │
+
+  i Expected a parameter here.
+
+    1 │ function(1 = 2) x
+    2 │ function("a" = 1) x
+  > 3 │ function(a, 1 = 2, b) x
+      │             ^
+    4 │ function(= 1) x
+    5 │
+
+test.R:4:10 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a parameter but instead found '='.
+
+    2 │ function("a" = 1) x
+    3 │ function(a, 1 = 2, b) x
+  > 4 │ function(= 1) x
+      │          ^
+    5 │
+
+  i Expected a parameter here.
+
+    2 │ function("a" = 1) x
+    3 │ function(a, 1 = 2, b) x
+  > 4 │ function(= 1) x
+      │          ^
+    5 │
+```
+
 ## A Missing Comma Between Parameters [error]
 
 A name is a single token, so the token after one may well be another parameter.

@@ -2234,6 +2234,23 @@ because the list is generated over `RParameter::can_cast` → bogus `RParameters
 one `R_BOGUS_EXPRESSION` for the entire definition. One bad token would cost the
 body and every good parameter beside it.
 
+**`PARAMETER_LIST_BOUNDARIES` includes `=`, and that is the difference between
+containing a bad name and swallowing the parameter.** Recovery skips to the next
+boundary, so without the `=` in the set `function(1 = 2)` produces one
+`RBogusParameterName` spanning `1 = 2` and no `RParameterDefault` at all — the
+whole parameter is lost to the one bad token, which is the collapse deviation 13
+exists to prevent, one level down. With it, the bogus name is `1`, the `= 2`
+parses as the default, and `function(= 1)` keeps its default under a missing name
+rather than burying both.
+
+**The argument list must *not* do the same**, and it is worth stating because the
+sets otherwise look interchangeable. `parse_argument_value` returns early at a
+boundary, and nothing else in an argument consumes a bare `=` — the name clause
+needs a name *before* it — so `f(= 1)` would leave every iteration consuming
+nothing and trip `assert_progressing`. Confirmed by trying it: it panics.
+`parse_parameter` is safe precisely because `p.at(T![=])` there is followed by a
+`parse_parameter_default` that bumps.
+
 `function(a$b)` shows both mechanisms in one line: `a` is a complete parameter, the
 `expect(T![,])` reports the missing separator, and `$b` recovers into a bogus name.
 A name is one token, so this really is a name followed by rubbish rather than one

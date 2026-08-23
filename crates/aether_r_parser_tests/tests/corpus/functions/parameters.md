@@ -44,6 +44,15 @@ function("a") x
 function(a$b) x
 ```
 
+Recovery stops at the `=`, so a bad name costs the name and nothing else.
+
+```r
+function(1 = 2) x
+function("a" = 1) x
+function(a, 1 = 2, b) x
+function(= 1) x
+```
+
 ## A Missing Comma Between Parameters [error]
 
 A name is a single token, so the token after one may well be another parameter.
