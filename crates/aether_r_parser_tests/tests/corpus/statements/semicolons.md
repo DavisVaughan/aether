@@ -1,4 +1,4 @@
-## Semicolons [deviation]
+## Semicolons [error]
 
 ```r
 1;2
@@ -19,14 +19,14 @@
 1; # comment
 ```
 
-## Semicolon At Start Of File [deviation]
+## Semicolon At Start Of File [error]
 
 ```r
 ;
 1
 ```
 
-## Semicolon Before The First Expression [deviation]
+## Semicolon Before The First Expression [error]
 
 ```r
 ;1
@@ -39,13 +39,13 @@
 1;
 ```
 
-## Two Semicolons At End Of File [deviation]
+## Two Semicolons At End Of File [error]
 
 ```r
 1;;
 ```
 
-## Semicolon On Its Own Line At End Of File [deviation]
+## Semicolon On Its Own Line At End Of File [error]
 
 ```r
 1
@@ -53,103 +53,51 @@
 ;
 ```
 
-## A Comment On A Semicolon With No Expression [deviation]
+## A Semicolon With No Expression Is An Error At Top Level [error]
 
-The comment has no expression to attach to, so it lands on the `;` and, once
-the formatter drops the `;` for a hard line break, becomes dangling on the
-`RStatement`.
+R reaches a `;` at top level only through `prog`'s `expr_or_assign_or_help ';'`,
+so a `;` must follow an expression that ends on the same line. `prog` also
+offers `expr_or_assign_or_help '\n'` as a peer, so the newline in `1\n;` has
+already reduced `1` and leaves the `;` with nothing to terminate.
+
+Each of these is `unexpected ';'` to R, and each has a mirror in the heading
+below that R accepts.
+
+```r
+;
+```
+
+```r
+;;
+```
+
+```r
+;1
+```
+
+```r
+1;;
+```
+
+```r
+1
+;
+```
+
+The comment has no expression to attach to, so it lands on the `;`.
 
 ```r
 ;# comment
 ```
 
-```r
-{
-  ;# comment
-}
-```
+## A Semicolon With No Expression Is Allowed Inside Braces [deviation]
 
-## A Semicolon After A Line Break Starts Its Own Statement [deviation]
-
-R's `prog` offers `expr '\n'` and `expr ';'` as alternatives, so whichever
-terminator arrives first is the one that ends the expression. A newline
-therefore takes the `;` out of reach, and R says so:
-
-| Source | R |
-|---|---|
-| `1;` | one expression |
-| `1\n;` | `2:1: unexpected ';'` |
-| `1\n\n;` | `3:1: unexpected ';'` |
-| `1;\n;` | `2:1: unexpected ';'` |
-
-Inside braces `exprlist` carries `exprlist ';'` and `exprlist '\n'` as peers, so
-`{1\n;}` is accepted — but by the same reduction order, the `;` trails a list
-`1` has already left rather than terminating `1`.
-
-Either way the `;` is never `1`'s. Aether gives it a statement of its own, which
-is also what keeps the blank line above it in that statement's leading trivia
-rather than inside a token the formatter is about to delete.
-
-```r
-1
-;
-```
-
-```r
-1;
-;
-```
-
-```r
-{
-  1
-  ;
-}
-```
-
-```r
-{
-  1
-
-  ;
-}
-```
-
-## A Semicolon Terminates Any Kind Of Statement [deviation]
-
-Every one of these is accepted by R.
-
-```r
-x <- 1;
-f(1);
-(1);
-{1};
-if (TRUE) 1;
-for (i in 1) i;
-while (FALSE) 1;
-repeat break;
-function() 1;
-```
-
-## Semicolons R Rejects At Top Level But Accepts Inside Braces [deviation]
-
-R's top-level `prog` has no production for a `;` with no expression before it on
-the same line, so each of these is `unexpected ';'` to R. `exprlist` does have
-one — it is `exprlist ';'` over a possibly empty list — so the braced form of
-each is valid.
-
-| Source | R at top level | R inside `{}` |
-|---|---|---|
-| `;` | `1:1: unexpected ';'` | valid |
-| `;;` | `1:1: unexpected ';'` | valid |
-| `;1` | `1:1: unexpected ';'` | valid |
-| `1;;` | `1:3: unexpected ';'` | valid |
-| `1;;2` | `1:3: unexpected ';'` | valid |
-
-Aether accepts both columns, the same way air and tree-sitter-r do. Reporting
-the top-level half would follow R the way deviation 11 does for `1 2`, and is
-deliberately not done here — a formatter that refuses a file over a stray `;`
-helps nobody, and the token is preserved either way.
+`exprlist` carries `exprlist ';'` over a possibly empty list, so every source
+above is valid R once wrapped in `{}`. The `;` still gets an `RStatement` of its
+own rather than joining the expression before it: in `{1\n;}` the newline
+reduced `1` through `exprlist '\n'` first, and the `;` trails a list `1` has
+already left. That is also what keeps a blank line above the `;` in that
+statement's leading trivia, rather than inside a token the formatter deletes.
 
 ```r
 {
@@ -177,6 +125,37 @@ helps nobody, and the token is preserved either way.
 
 ```r
 {
-  1;;2
+  1
+  ;
 }
+```
+
+```r
+{
+  1
+
+  ;
+}
+```
+
+```r
+{
+  ;# comment
+}
+```
+
+## A Semicolon Terminates Any Kind Of Statement [deviation]
+
+Every one of these is accepted by R.
+
+```r
+x <- 1;
+f(1);
+(1);
+{1};
+if (TRUE) 1;
+for (i in 1) i;
+while (FALSE) 1;
+repeat break;
+function() 1;
 ```

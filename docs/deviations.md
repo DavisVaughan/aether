@@ -39,6 +39,7 @@ them, since the ledger runs ahead of the parser.
 | 11 | Two expressions on one line | accepted silently, since `program` needs no separator | an error, as R requires |
 | 12 | Strings | `string` node over an open, an optional content, and a close | one literal token per quote style, delimiters included, with the body reachable through `RStringValue::inner_string_text()` |
 | 13 | `AnyRParameterName` | 3 variants, no bogus | new `RBogusParameterName` kind added as a fourth variant, so a parameter that is not a name is contained in its slot instead of collapsing the list around it |
+| 11b | A `;` with no expression before it on the same line | accepted silently everywhere | an error at top level, as R requires; accepted inside `{}`, as R does |
 | 14 | The `for` variable | `RIdentifier` only, so `for (... in x) y` collapses the whole file to one bogus node | new `AnyRForVariable` union of `RIdentifier`, `RDots`, `RDotDotI`, and a new `RBogusForVariable`, so `...` and `..i` are taken as R takes them |
 
 ### 1. Semicolons are real tokens
@@ -99,12 +100,7 @@ not `1`'s there either. Aether therefore gives a `;` after a line break an
 statement's leading trivia rather than inside a token the formatter is about to
 delete.
 
-R rejects every top-level `;` with no expression before it on the same line —
-`;`, `;;`, `;1`, `1;;`, and `1\n;` are all `unexpected ';'` — where `exprlist`
-accepts all five. Aether accepts both, as air and tree-sitter-r do. This is the
-one place it declines to follow R the way deviation 11 does, because a file is
-more useful formatted than refused over a stray `;`, and the token survives
-either way.
+Whether such a statement is *allowed* is deviation 11b.
 
 Formatting semantics, settled with the owner: the semicolon is removed and
 replaced by a hard line break, so `1;2` formats as two lines.
@@ -732,6 +728,85 @@ Corpus tests: `statements/newlines.md`, and `literals/identifiers.md`'s
 `Invalid Identifiers`, which is `[error]` here and clean under tree-sitter. So is
 `control/if.md`'s `` Identifiers starting with `else` that are not the `else`
 keyword - 2 (#200) ``, where `} else.x` puts an `if` and a name on one line.
+
+### 11b. A `;` with no expression is an error at top level
+
+Landed in Phase 13.
+
+Example:
+
+```r
+;1
+```
+
+R rejects it, and rejects every other top-level `;` that has no expression
+before it on the same line:
+
+```
+> ;1
+Error: unexpected ';' in ";"
+```
+
+The grammar says why. `prog` reaches a `;` through one production only:
+
+```
+prog	:	END_OF_INPUT
+	|	'\n'
+	|	error
+	|	expr_or_assign_or_help '\n'
+	|	expr_or_assign_or_help ';'
+	;
+```
+
+There is no bare-`;` alternative, and `expr_or_assign_or_help '\n'` is a peer of
+`expr_or_assign_or_help ';'`, so whichever terminator arrives first reduces the
+expression. Inside `{}` the picture is different, because `exprlist` has a
+production for exactly this:
+
+```
+exprlist:	/* empty */
+	|	expr_or_assign_or_help
+	|	exprlist ';' expr_or_assign_or_help
+	|	exprlist ';'
+	|	exprlist '\n' expr_or_assign_or_help
+	|	exprlist '\n'
+	;
+```
+
+`exprlist ';'` over a possibly empty list admits a leading `;`, a repeated `;`,
+and a `;` after a newline. Checked against R 4.6.0:
+
+| Source | top level | inside `{}` |
+|---|---|---|
+| `1;` | valid | valid |
+| `1;2` | valid | valid |
+| `;` | `1:1: unexpected ';'` | valid |
+| `;;` | `1:1: unexpected ';'` | valid |
+| `;1` | `1:1: unexpected ';'` | valid |
+| `1;;` | `1:3: unexpected ';'` | valid |
+| `1\n;` | `2:1: unexpected ';'` | valid |
+
+tree-sitter-r's `program` is a bare repetition and its `;` is trivia, so it
+accepts every row of both columns. Aether reports `Unexpected `;`.` on the
+top-level half and accepts the braced half, which is R's rule exactly.
+
+The condition is one line to state: an `RStatement` with no expression is an
+error at top level. That set is precisely the set R rejects, which is why the
+rule needs no case analysis beyond the scope it is in.
+
+Tree-only, no shape change — the `;` is still a token on a statement of its own,
+so this is a diagnostic deviation in the same family as 11. What it costs is the
+same: an input of this shape stops being oracle-compared.
+
+Why follow R rather than stay silent like air: the same argument as 11. A file
+holding a stray `;` does not run, and saying so beats formatting it as if it
+did.
+
+Corpus tests: `statements/semicolons.md`, where five imported air snapshots are
+`[error]` here and clean under tree-sitter, and the two aether-authored headings
+`A Semicolon With No Expression Is An Error At Top Level` and
+`A Semicolon With No Expression Is Allowed Inside Braces` mirror each other
+source for source.
 
 ### 12. A string is one token
 

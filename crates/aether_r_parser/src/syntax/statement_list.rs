@@ -32,6 +32,11 @@ pub(crate) fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
         let statement = p.start();
 
         if p.at(T![;]) {
+            // R's `prog` reaches a `;` only through `expr ';'`, where its
+            // `exprlist` also has `exprlist ';'` over a possibly empty list.
+            if p.scope() == Scope::TopLevel {
+                p.error(diagnostics::unexpected_semicolon(p.cur_range()));
+            }
             p.bump(T![;]);
             statement.complete(p, R_STATEMENT);
             continue;

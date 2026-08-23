@@ -137,3 +137,9 @@ pub(crate) fn expected_statement_separator(
     )
     .with_detail(previous, "The first expression ends here.")
 }
+
+/// A `;` with no expression before it on the same line, as in `;1` or `1\n;`
+pub(crate) fn unexpected_semicolon(range: TextRange) -> ParseDiagnostic {
+    ParseDiagnostic::new("Unexpected `;`.", range)
+        .with_hint("Outside of `{}`, a `;` must follow an expression that ends on the same line.")
+}
