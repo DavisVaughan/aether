@@ -17,8 +17,6 @@ pub(crate) fn parse_root(p: &mut RParser) {
 }
 
 pub(crate) fn parse_braced_statements(p: &mut RParser) -> CompletedMarker {
-    debug_assert!(p.at(T!['{']));
-
     let m = p.start();
     p.with_scope(Scope::Brace, |p| {
         p.bump(T!['{']);
