@@ -288,7 +288,7 @@ x[[if (a) 1
 
 ## A Newline Between `else` And Its Alternative
 
-Allowed even at top level, unlike a newline before the `else` itself (#141).
+Allowed even at top level, unlike a newline before the `else` itself (r-lib/tree-sitter-r#141).
 
 ```r
 if (a) 1 else
