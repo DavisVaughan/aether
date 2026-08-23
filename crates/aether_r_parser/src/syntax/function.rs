@@ -75,10 +75,6 @@ fn parse_parameter_list(p: &mut RParser) {
 }
 
 /// One parameter: `name [= default]`
-///
-/// An empty parameter opens and immediately closes its marker, pushing no
-/// children, which is what makes `function(a,,b)` representable. Unlike an
-/// argument it is never legal, so it always comes with a diagnostic.
 fn parse_parameter(p: &mut RParser) {
     let m = p.start();
 
