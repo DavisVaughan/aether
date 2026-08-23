@@ -2152,10 +2152,7 @@ test.R:2:8 parse ━━━━━━━━━━━━━━━━━━━━━
 
 ## An Argument Value That Starts No Expression [error]
 
-A missing separator and a value that is not a value are different mistakes.
-Nothing is missing between `(` and `*` here, so the diagnostic is about the
-expression rather than about a comma, and the tokens up to the next boundary go
-into the value slot of the argument that wanted them.
+Diagnostic should be about the faulty expression, not a comma
 
 ```r
 fn(* 1)
