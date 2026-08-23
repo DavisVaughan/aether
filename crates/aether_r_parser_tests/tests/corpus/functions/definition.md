@@ -1,4 +1,4 @@
-## Functions [pending]
+## Functions
 
 ```r
 function() 1
@@ -53,7 +53,7 @@ function(x, y)
 x <- function(x, y)
 ```
 
-## Function No Body Inside Another Function [pending, error]
+## Function No Body Inside Another Function [error]
 
 ```r
 function(x = function()) {}

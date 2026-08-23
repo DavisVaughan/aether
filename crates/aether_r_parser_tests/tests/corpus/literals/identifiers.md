@@ -57,7 +57,7 @@ _foo_
 `\`
 ```
 
-## Dots [pending]
+## Dots
 
 ```r
 # Parses, but fails at runtime
@@ -69,7 +69,7 @@ _foo_
 ...()
 ```
 
-## Dot Dot I In Functions And Calls [pending]
+## Dot Dot I In Functions And Calls
 
 ```r
 ..1

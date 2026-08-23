@@ -20,7 +20,7 @@ while(TRUE)
 while (a < b)
 ```
 
-## While With Braces [pending]
+## While With Braces
 
 ```r
 while(TRUE) FALSE

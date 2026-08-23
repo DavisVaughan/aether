@@ -902,24 +902,17 @@ RRoot {
             semicolon_token: missing (optional),
         },
         RStatement {
-            expression: RBogusExpression {
-                items: [
-                    L_CURLY@596..598 "{" [] [Whitespace(" ")],
+            expression: RBracedStatements {
+                l_curly_token: L_CURLY@596..598 "{" [] [Whitespace(" ")],
+                statements: RStatementList [
+                    RStatement {
+                        expression: RIdentifier {
+                            name_token: IDENT@598..600 "b" [] [Whitespace(" ")],
+                        },
+                        semicolon_token: missing (optional),
+                    },
                 ],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RIdentifier {
-                name_token: IDENT@598..600 "b" [] [Whitespace(" ")],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RBogusExpression {
-                items: [
-                    R_CURLY@600..601 "}" [] [],
-                ],
+                r_curly_token: R_CURLY@600..601 "}" [] [],
             },
             semicolon_token: missing (optional),
         },
@@ -1022,24 +1015,17 @@ RRoot {
             semicolon_token: missing (optional),
         },
         RStatement {
-            expression: RBogusExpression {
-                items: [
-                    L_CURLY@646..648 "{" [] [Whitespace(" ")],
+            expression: RBracedStatements {
+                l_curly_token: L_CURLY@646..648 "{" [] [Whitespace(" ")],
+                statements: RStatementList [
+                    RStatement {
+                        expression: RIdentifier {
+                            name_token: IDENT@648..650 "b" [] [Whitespace(" ")],
+                        },
+                        semicolon_token: missing (optional),
+                    },
                 ],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RIdentifier {
-                name_token: IDENT@648..650 "b" [] [Whitespace(" ")],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RBogusExpression {
-                items: [
-                    R_CURLY@650..651 "}" [] [],
-                ],
+                r_curly_token: R_CURLY@650..651 "}" [] [],
             },
             semicolon_token: missing (optional),
         },
@@ -1167,26 +1153,6 @@ test.R:22:4 parse ━━━━━━━━━━━━━━━━━━━━�
     23 │
     24 │ a:::1
 
-test.R:22:8 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Expected a newline or a `;` between two expressions.
-
-    20 │ a::TRUE
-    21 │ a::(b)
-  > 22 │ a::{ b }
-       │        ^
-    23 │
-    24 │ a:::1
-
-  i The first expression ends here.
-
-    20 │ a::TRUE
-    21 │ a::(b)
-  > 22 │ a::{ b }
-       │      ^
-    23 │
-    24 │ a:::1
-
 test.R:24:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
@@ -1301,24 +1267,6 @@ test.R:29:5 parse ━━━━━━━━━━━━━━━━━━━━�
     28 │ a:::(b)
   > 29 │ a:::{ b }
        │  ^^^
-    30 │
-
-test.R:29:9 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Expected a newline or a `;` between two expressions.
-
-    27 │ a:::TRUE
-    28 │ a:::(b)
-  > 29 │ a:::{ b }
-       │         ^
-    30 │
-
-  i The first expression ends here.
-
-    27 │ a:::TRUE
-    28 │ a:::(b)
-  > 29 │ a:::{ b }
-       │       ^
     30 │
 ```
 

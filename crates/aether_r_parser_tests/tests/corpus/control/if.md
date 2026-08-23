@@ -1,4 +1,4 @@
-## If [pending]
+## If
 
 ```r
 if (x)
@@ -17,7 +17,7 @@ if (
 }
 ```
 
-## If-else [pending]
+## If-else
 
 ```r
 if (x)
@@ -36,7 +36,7 @@ if (a) {
 }
 ```
 
-## Complex If Expression [pending]
+## Complex If Expression [error]
 
 ```r
 # Invalid at top level due to newline before `else`, so not a real if statement
@@ -117,7 +117,7 @@ if (TRUE) 1 else
   2
 ```
 
-## Identifiers starting with `else` that are not the `else` keyword (#200) [pending]
+## Identifiers starting with `else` that are not the `else` keyword (#200)
 
 ```r
 # ASCII letter
@@ -161,7 +161,7 @@ if (TRUE) 1 else
 }
 ```
 
-## Identifiers starting with `else` that are not the `else` keyword - 2 (#200) [pending]
+## Identifiers starting with `else` that are not the `else` keyword - 2 (#200) [error]
 
 ```r
 # Correctly treats `else.x` as a single identifier, not as `else` followed by `.x`,
@@ -171,7 +171,7 @@ if (TRUE) {
 } else.x
 ```
 
-## If With Comments And `else`-Like Identifiers [pending]
+## If With Comments And `else`-Like Identifiers
 
 ```r
 if (a) 1

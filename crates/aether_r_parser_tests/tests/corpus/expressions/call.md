@@ -124,7 +124,7 @@ foo[, x y]
 foo[[, x y]]
 ```
 
-## Call Arguments [pending]
+## Call Arguments
 
 ```r
 fn()

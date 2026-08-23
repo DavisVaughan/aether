@@ -18,7 +18,6 @@ pub(crate) struct RParser<'src> {
 pub(crate) enum Scope {
     #[default]
     TopLevel,
-    #[expect(dead_code, reason = "`parse_braced_statements()` arrives in Phase 13")]
     Brace,
     Parenthesis,
     Bracket,

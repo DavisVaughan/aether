@@ -10,7 +10,7 @@ repeat 1
 repeat
 ```
 
-## Repeat With Braces [pending]
+## Repeat With Braces
 
 ```r
 repeat 1

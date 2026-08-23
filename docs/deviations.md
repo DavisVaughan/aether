@@ -43,8 +43,7 @@ them, since the ledger runs ahead of the parser.
 
 ### 1. Semicolons are real tokens
 
-Grammar landed in Phase 3; the parser fills the slot in Phase 13, so the trees
-below are the target rather than what aether builds today.
+Grammar landed in Phase 3, the parser in Phase 13.
 
 Example:
 
@@ -80,7 +79,7 @@ formatter can never drop or rewrite a semicolon. Making it a token is the whole
 point; the wrapper node is what makes the token expressible.
 
 Both of `RStatement`'s slots are optional, the same trick `RArgument` already
-uses, because R allows `;;` and a leading `;`:
+uses, because R allows `;;` and a leading `;` inside `{}`:
 
 ```r
 ;        # RStatement { expression: missing, semicolon: ";" }
@@ -89,6 +88,23 @@ uses, because R allows `;;` and a leading `;`:
 ```
 
 A statement with neither slot filled is never produced.
+
+**A `;` is the semicolon of the expression before it only when no newline
+intervenes.** R's `prog` offers `expr '\n'` and `expr ';'` as alternatives, so
+the first terminator to arrive is the one that reduces the expression: `1;` is
+one expression, `1\n;` is `2:1: unexpected ';'`. Braces accept the second form,
+through `exprlist ';'` trailing a list that `1` has already left, so the `;` is
+not `1`'s there either. Aether therefore gives a `;` after a line break an
+`RStatement` of its own, which also leaves any blank line above it in that
+statement's leading trivia rather than inside a token the formatter is about to
+delete.
+
+R rejects every top-level `;` with no expression before it on the same line —
+`;`, `;;`, `;1`, `1;;`, and `1\n;` are all `unexpected ';'` — where `exprlist`
+accepts all five. Aether accepts both, as air and tree-sitter-r do. This is the
+one place it declines to follow R the way deviation 11 does, because a file is
+more useful formatted than refused over a stray `;`, and the token survives
+either way.
 
 Formatting semantics, settled with the owner: the semicolon is removed and
 replaced by a hard line break, so `1;2` formats as two lines.
@@ -668,6 +684,12 @@ here, and it is the half that reaches air's formatter, so it is exactly the half
 the oracle has to keep checking. Normalizing over "trivia" rather than over
 whitespace would blind it to the one attachment drift that has consequences.
 
+One more consequence, found in Phase 13. A node holding no tokens sits wherever
+the whitespace around it left the cursor, so `{ }` puts air's empty statement
+list at 1 and aether's at 2. There is no text to disagree about, and the node's
+siblings are compared by position anyway, so the oracle compares the ranges of
+two empty nodes as equal.
+
 ### 11. Two expressions on one line is an error
 
 Landed in Phase 7.
@@ -707,7 +729,9 @@ nothing said. Deviations 7 and 8 both lean on it, and their tables are written
 against it.
 
 Corpus tests: `statements/newlines.md`, and `literals/identifiers.md`'s
-`Invalid Identifiers`, which is `[error]` here and clean under tree-sitter.
+`Invalid Identifiers`, which is `[error]` here and clean under tree-sitter. So is
+`control/if.md`'s `` Identifiers starting with `else` that are not the `else`
+keyword - 2 (#200) ``, where `} else.x` puts an `if` and a name on one line.
 
 ### 12. A string is one token
 
@@ -1007,8 +1031,8 @@ Corpus tests: `control/for.md`'s `` `...` And `..i` As The `for` Variable ``, wh
 carries `[deviation]` because it parses cleanly and the oracle would otherwise
 compare it against the bogus root above. `A `for` Variable That Is Not A Name` and
 `A `for` With No Variable` cover the bogus kind and need no marker, being `[error]`.
-The imported `For` test exercises `...` and `..i` too and will need `[deviation]`
-when Phase 13's braces let it come off `[pending]`.
+The imported `For` test exercises `...` and `..i` too, and carries `[deviation]`
+for the same reason.
 
 ## tree-sitter-r vs. R
 

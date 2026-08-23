@@ -1411,19 +1411,7 @@ RRoot {
             expression: RBogusExpression {
                 items: [
                     L_BRACK@10..12 "[" [Newline("\n")] [],
-                ],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RIdentifier {
-                name_token: IDENT@12..15 "bar" [] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RBogusExpression {
-                items: [
+                    IDENT@12..15 "bar" [] [],
                     R_BRACK@15..16 "]" [] [],
                 ],
             },
@@ -1439,27 +1427,8 @@ RRoot {
             expression: RBogusExpression {
                 items: [
                     L_BRACK2@21..24 "[[" [Newline("\n")] [],
-                ],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RIdentifier {
-                name_token: IDENT@24..25 "x" [] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RBogusExpression {
-                items: [
+                    IDENT@24..25 "x" [] [],
                     R_BRACK@25..26 "]" [] [],
-                ],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RBogusExpression {
-                items: [
                     R_BRACK@26..27 "]" [] [],
                 ],
             },
@@ -1489,24 +1458,6 @@ test.R:5:1 parse ━━━━━━━━━━━━━━━━━━━━━
     6 │
     7 │ foo
 
-test.R:5:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Expected a newline or a `;` between two expressions.
-
-    4 │ foo
-  > 5 │ [bar]
-      │     ^
-    6 │
-    7 │ foo
-
-  i The first expression ends here.
-
-    4 │ foo
-  > 5 │ [bar]
-      │  ^^^
-    6 │
-    7 │ foo
-
 test.R:8:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected an expression but instead found '[['.
@@ -1521,38 +1472,6 @@ test.R:8:1 parse ━━━━━━━━━━━━━━━━━━━━━
     7 │ foo
   > 8 │ [[x]]
       │ ^^
-    9 │
-
-test.R:8:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Expected a newline or a `;` between two expressions.
-
-    7 │ foo
-  > 8 │ [[x]]
-      │    ^
-    9 │
-
-  i The first expression ends here.
-
-    7 │ foo
-  > 8 │ [[x]]
-      │   ^
-    9 │
-
-test.R:8:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Expected an expression but instead found ']'.
-
-    7 │ foo
-  > 8 │ [[x]]
-      │     ^
-    9 │
-
-  i Expected an expression here.
-
-    7 │ foo
-  > 8 │ [[x]]
-      │     ^
     9 │
 ```
 
@@ -1973,7 +1892,7 @@ test.R:11:10 parse ━━━━━━━━━━━━━━━━━━━━�
   i Remove y
 ```
 
-## Call Arguments [pending]
+## Call Arguments
 
 ```r
 fn()
@@ -2036,7 +1955,716 @@ fn(
 return()
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@0..2 "fn" [] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@2..3 "(" [] [],
+                    items: RArgumentList [],
+                    r_paren_token: R_PAREN@3..4 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@4..7 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@7..8 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIdentifier {
+                                name_token: IDENT@8..9 "a" [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@9..10 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@10..13 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@13..14 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIdentifier {
+                                name_token: IDENT@14..15 "a" [] [],
+                            },
+                        },
+                        COMMA@15..17 "," [] [Whitespace(" ")],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIdentifier {
+                                name_token: IDENT@17..18 "b" [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@18..19 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@19..22 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@22..23 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RDots {
+                                value_token: DOTS@23..26 "..." [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@26..27 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@27..30 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@30..31 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIdentifier {
+                                name_token: IDENT@31..32 "a" [] [],
+                            },
+                        },
+                        COMMA@32..34 "," [] [Whitespace(" ")],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RDots {
+                                value_token: DOTS@34..37 "..." [] [],
+                            },
+                        },
+                        COMMA@37..39 "," [] [Whitespace(" ")],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIdentifier {
+                                name_token: IDENT@39..40 "b" [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@40..41 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@41..45 "fn" [Newline("\n"), Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@45..46 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RIdentifier {
+                                    name_token: IDENT@46..48 "a" [] [Whitespace(" ")],
+                                },
+                                eq_token: EQUAL@48..50 "=" [] [Whitespace(" ")],
+                            },
+                            value: RDoubleValue {
+                                value_token: R_DOUBLE_LITERAL@50..51 "1" [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@51..52 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@52..55 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@55..56 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RIdentifier {
+                                    name_token: IDENT@56..58 "a" [] [Whitespace(" ")],
+                                },
+                                eq_token: EQUAL@58..60 "=" [] [Whitespace(" ")],
+                            },
+                            value: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@60..61 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@61..65 "fn" [Newline("\n"), Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@65..66 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RIdentifier {
+                                    name_token: IDENT@66..68 "a" [] [Whitespace(" ")],
+                                },
+                                eq_token: EQUAL@68..70 "=" [] [Whitespace(" ")],
+                            },
+                            value: RDoubleValue {
+                                value_token: R_DOUBLE_LITERAL@70..71 "1" [] [],
+                            },
+                        },
+                        COMMA@71..73 "," [] [Whitespace(" ")],
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RIdentifier {
+                                    name_token: IDENT@73..75 "b" [] [Whitespace(" ")],
+                                },
+                                eq_token: EQUAL@75..77 "=" [] [Whitespace(" ")],
+                            },
+                            value: RDoubleValue {
+                                value_token: R_DOUBLE_LITERAL@77..78 "2" [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@78..79 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@79..82 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@82..83 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RIdentifier {
+                                    name_token: IDENT@83..85 "a" [] [Whitespace(" ")],
+                                },
+                                eq_token: EQUAL@85..87 "=" [] [Whitespace(" ")],
+                            },
+                            value: missing (optional),
+                        },
+                        COMMA@87..89 "," [] [Whitespace(" ")],
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RIdentifier {
+                                    name_token: IDENT@89..91 "b" [] [Whitespace(" ")],
+                                },
+                                eq_token: EQUAL@91..93 "=" [] [Whitespace(" ")],
+                            },
+                            value: RDoubleValue {
+                                value_token: R_DOUBLE_LITERAL@93..94 "2" [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@94..95 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@95..99 "fn" [Newline("\n"), Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@99..100 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RDots {
+                                    value_token: DOTS@100..104 "..." [] [Whitespace(" ")],
+                                },
+                                eq_token: EQUAL@104..106 "=" [] [Whitespace(" ")],
+                            },
+                            value: RDoubleValue {
+                                value_token: R_DOUBLE_LITERAL@106..107 "1" [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@107..108 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@108..111 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@111..112 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RDots {
+                                    value_token: DOTS@112..116 "..." [] [Whitespace(" ")],
+                                },
+                                eq_token: EQUAL@116..117 "=" [] [],
+                            },
+                            value: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@117..118 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@118..122 "fn" [Newline("\n"), Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@122..123 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RDotDotI {
+                                    value_token: DOTDOTI@123..127 "..1" [] [Whitespace(" ")],
+                                },
+                                eq_token: EQUAL@127..129 "=" [] [Whitespace(" ")],
+                            },
+                            value: RDoubleValue {
+                                value_token: R_DOUBLE_LITERAL@129..130 "2" [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@130..131 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@131..134 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@134..135 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RDotDotI {
+                                    value_token: DOTDOTI@135..139 "..1" [] [Whitespace(" ")],
+                                },
+                                eq_token: EQUAL@139..140 "=" [] [],
+                            },
+                            value: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@140..141 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@141..145 "fn" [Newline("\n"), Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@145..146 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RStringValue {
+                                    value: R_DOUBLE_QUOTED_STRING_LITERAL@146..152 "\"arg\"" [] [Whitespace(" ")],
+                                },
+                                eq_token: EQUAL@152..154 "=" [] [Whitespace(" ")],
+                            },
+                            value: RDoubleValue {
+                                value_token: R_DOUBLE_LITERAL@154..155 "1" [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@155..156 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@156..159 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@159..160 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RStringValue {
+                                    value: R_DOUBLE_QUOTED_STRING_LITERAL@160..166 "\"arg\"" [] [Whitespace(" ")],
+                                },
+                                eq_token: EQUAL@166..167 "=" [] [],
+                            },
+                            value: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@167..168 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@168..186 "fn" [Newline("\n"), Newline("\n"), Comments("# Comma tests"), Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@186..187 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: missing (optional),
+                        },
+                        COMMA@187..188 "," [] [],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@188..189 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@189..192 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@192..193 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: missing (optional),
+                        },
+                        COMMA@193..194 "," [] [],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: missing (optional),
+                        },
+                        COMMA@194..195 "," [] [],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: missing (optional),
+                        },
+                        COMMA@195..196 "," [] [],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@196..197 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@197..200 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@200..201 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: missing (optional),
+                        },
+                        COMMA@201..202 "," [] [],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: missing (optional),
+                        },
+                        COMMA@202..203 "," [] [],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIdentifier {
+                                name_token: IDENT@203..204 "a" [] [],
+                            },
+                        },
+                        COMMA@204..205 "," [] [],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: missing (optional),
+                        },
+                        COMMA@205..206 "," [] [],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIdentifier {
+                                name_token: IDENT@206..207 "b" [] [],
+                            },
+                        },
+                        COMMA@207..208 "," [] [],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: missing (optional),
+                        },
+                        COMMA@208..209 "," [] [],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@209..210 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@210..230 "fn" [Newline("\n"), Newline("\n"), Comments("# Comment tests"), Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@230..231 "(" [] [],
+                    items: RArgumentList [],
+                    r_paren_token: R_PAREN@231..245 ")" [Newline("\n"), Whitespace("  "), Comments("# comment"), Newline("\n")] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@245..248 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@248..249 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: missing (optional),
+                        },
+                        COMMA@249..250 "," [] [],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: missing (optional),
+                        },
+                        COMMA@250..264 "," [Newline("\n"), Whitespace("  "), Comments("# comment"), Newline("\n")] [],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@264..265 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@265..268 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@268..269 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIdentifier {
+                                name_token: IDENT@269..273 "a" [Newline("\n"), Whitespace("  ")] [],
+                            },
+                        },
+                        COMMA@273..285 "," [] [Whitespace(" "), Comments("# comment1")],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: RIdentifier {
+                                name_token: IDENT@285..300 "b" [Newline("\n"), Whitespace("  ")] [Whitespace(" "), Comments("# comment2")],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@300..302 ")" [Newline("\n")] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@302..305 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@305..306 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RIdentifier {
+                                    name_token: IDENT@306..321 "a" [Newline("\n"), Whitespace("  ")] [Whitespace(" "), Comments("# comment1")],
+                                },
+                                eq_token: EQUAL@321..336 "=" [Newline("\n"), Whitespace("  ")] [Whitespace(" "), Comments("# comment2")],
+                            },
+                            value: RDoubleValue {
+                                value_token: R_DOUBLE_LITERAL@336..351 "1" [Newline("\n"), Whitespace("  ")] [Whitespace(" "), Comments("# comment3")],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@351..353 ")" [Newline("\n")] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RBracedStatements {
+                    l_curly_token: L_CURLY@353..356 "{" [Newline("\n"), Newline("\n")] [],
+                    statements: RStatementList [
+                        RStatement {
+                            expression: RIdentifier {
+                                name_token: IDENT@356..360 "expr" [] [],
+                            },
+                            semicolon_token: missing (optional),
+                        },
+                    ],
+                    r_curly_token: R_CURLY@360..361 "}" [] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@361..362 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RIdentifier {
+                                    name_token: IDENT@362..364 "a" [] [Whitespace(" ")],
+                                },
+                                eq_token: EQUAL@364..366 "=" [] [Whitespace(" ")],
+                            },
+                            value: RDoubleValue {
+                                value_token: R_DOUBLE_LITERAL@366..367 "1" [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@367..368 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@368..421 "fn" [Newline("\n"), Newline("\n"), Comments("# `NULL` argument nam ..."), Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@421..422 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RNullExpression {
+                                    null_token: NULL_KW@422..430 "NULL" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                                },
+                                eq_token: EQUAL@430..432 "=" [] [Whitespace(" ")],
+                            },
+                            value: RDoubleValue {
+                                value_token: R_DOUBLE_LITERAL@432..433 "1" [] [],
+                            },
+                        },
+                    ],
+                    r_paren_token: R_PAREN@433..435 ")" [Newline("\n")] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@435..438 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@438..439 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RNullExpression {
+                                    null_token: NULL_KW@439..447 "NULL" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                                },
+                                eq_token: EQUAL@447..449 "=" [] [Whitespace(" ")],
+                            },
+                            value: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@449..451 ")" [Newline("\n")] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@451..454 "fn" [Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@454..455 "(" [] [],
+                    items: RArgumentList [
+                        RArgument {
+                            name_clause: RArgumentNameClause {
+                                name: RNullExpression {
+                                    null_token: NULL_KW@455..463 "NULL" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                                },
+                                eq_token: EQUAL@463..465 "=" [] [Whitespace(" ")],
+                            },
+                            value: missing (optional),
+                        },
+                        COMMA@465..466 "," [] [],
+                        RArgument {
+                            name_clause: missing (optional),
+                            value: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@466..468 ")" [Newline("\n")] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RIdentifier {
+                    name_token: IDENT@468..546 "return" [Newline("\n"), Newline("\n"), Comments("# Standard call as of ..."), Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@546..547 "(" [] [],
+                    items: RArgumentList [],
+                    r_paren_token: R_PAREN@547..548 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@548..549 "" [Newline("\n")] [],
+}
+```
 
 ## Side By Side Arguments [error]
 

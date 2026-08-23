@@ -1,4 +1,4 @@
-## Lambda Function [pending]
+## Lambda Function
 
 ```r
 a <- \(arg) arg

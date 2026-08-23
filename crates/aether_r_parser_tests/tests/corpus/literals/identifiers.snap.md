@@ -305,7 +305,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │
 ```
 
-## Dots [pending]
+## Dots
 
 ```r
 # Parses, but fails at runtime
@@ -317,9 +317,50 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
 ...()
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RDots {
+                value_token: DOTS@0..34 "..." [Comments("# Parses, but fails a ..."), Newline("\n")] [],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBracedStatements {
+                l_curly_token: L_CURLY@34..38 "{" [Newline("\n"), Newline("\n")] [Whitespace(" ")],
+                statements: RStatementList [
+                    RStatement {
+                        expression: RDots {
+                            value_token: DOTS@38..42 "..." [] [Whitespace(" ")],
+                        },
+                        semicolon_token: missing (optional),
+                    },
+                ],
+                r_curly_token: R_CURLY@42..43 "}" [] [],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RDots {
+                    value_token: DOTS@43..76 "..." [Newline("\n"), Newline("\n"), Comments("# An actual base R fu ..."), Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@76..77 "(" [] [],
+                    items: RArgumentList [],
+                    r_paren_token: R_PAREN@77..78 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@78..79 "" [Newline("\n")] [],
+}
+```
 
-## Dot Dot I In Functions And Calls [pending]
+## Dot Dot I In Functions And Calls
 
 ```r
 ..1
@@ -334,4 +375,78 @@ function(...) {
 ..1()
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RDotDotI {
+                value_token: DOTDOTI@0..3 "..1" [] [],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RDotDotI {
+                value_token: DOTDOTI@3..7 "..2" [Newline("\n")] [],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RDotDotI {
+                value_token: DOTDOTI@7..12 "..10" [Newline("\n")] [],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RFunctionDefinition {
+                name: FUNCTION_KW@12..22 "function" [Newline("\n"), Newline("\n")] [],
+                parameters: RParameters {
+                    l_paren_token: L_PAREN@22..23 "(" [] [],
+                    items: RParameterList [
+                        RParameter {
+                            name: RDots {
+                                value_token: DOTS@23..26 "..." [] [],
+                            },
+                            default: missing (optional),
+                        },
+                    ],
+                    r_paren_token: R_PAREN@26..28 ")" [] [Whitespace(" ")],
+                },
+                body: RBracedStatements {
+                    l_curly_token: L_CURLY@28..29 "{" [] [],
+                    statements: RStatementList [
+                        RStatement {
+                            expression: RBinaryExpression {
+                                left: RDotDotI {
+                                    value_token: DOTDOTI@29..36 "..1" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                                },
+                                operator: PLUS@36..38 "+" [] [Whitespace(" ")],
+                                right: RDotDotI {
+                                    value_token: DOTDOTI@38..41 "..2" [] [],
+                                },
+                            },
+                            semicolon_token: missing (optional),
+                        },
+                    ],
+                    r_curly_token: R_CURLY@41..43 "}" [Newline("\n")] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RCall {
+                function: RDotDotI {
+                    value_token: DOTDOTI@43..71 "..1" [Newline("\n"), Newline("\n"), Comments("# Parses as a function"), Newline("\n")] [],
+                },
+                arguments: RCallArguments {
+                    l_paren_token: L_PAREN@71..72 "(" [] [],
+                    items: RArgumentList [],
+                    r_paren_token: R_PAREN@72..73 ")" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@73..74 "" [Newline("\n")] [],
+}
+```
