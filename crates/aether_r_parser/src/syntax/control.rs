@@ -12,8 +12,6 @@ use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
 use biome_parser::{Parser, TokenSet, token_set};
 
 pub(crate) fn parse_if_statement(p: &mut RParser) -> CompletedMarker {
-    debug_assert!(p.at(T![if]));
-
     let m = p.start();
     p.bump(T![if]);
 
@@ -52,8 +50,6 @@ const FOR_VARIABLE_ENDS: TokenSet<RSyntaxKind> =
     token_set![T![EOF], T![in], T![')'], T![']'], T!["]]"], T!['}']];
 
 pub(crate) fn parse_for_statement(p: &mut RParser) -> CompletedMarker {
-    debug_assert!(p.at(T![for]));
-
     let m = p.start();
     p.bump(T![for]);
 
@@ -99,8 +95,6 @@ fn parse_for_variable(p: &mut RParser) -> ParsedSyntax {
 }
 
 pub(crate) fn parse_while_statement(p: &mut RParser) -> CompletedMarker {
-    debug_assert!(p.at(T![while]));
-
     let m = p.start();
     p.bump(T![while]);
 
@@ -116,8 +110,6 @@ pub(crate) fn parse_while_statement(p: &mut RParser) -> CompletedMarker {
 }
 
 pub(crate) fn parse_repeat_statement(p: &mut RParser) -> CompletedMarker {
-    debug_assert!(p.at(T![repeat]));
-
     let m = p.start();
     p.bump(T![repeat]);
 
