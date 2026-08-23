@@ -72,7 +72,7 @@ pub(crate) fn parse_for_statement(p: &mut RParser) -> CompletedMarker {
     });
     p.expect(T![')']);
 
-    parse_body(p).or_add_diagnostic(p, diagnostics::expected_expression);
+    parse_body(p).or_add_diagnostic(p, diagnostics::expected_loop_body);
 
     m.complete(p, R_FOR_STATEMENT)
 }
@@ -109,7 +109,7 @@ pub(crate) fn parse_while_statement(p: &mut RParser) -> CompletedMarker {
     });
     p.expect(T![')']);
 
-    parse_body(p).or_add_diagnostic(p, diagnostics::expected_expression);
+    parse_body(p).or_add_diagnostic(p, diagnostics::expected_loop_body);
 
     m.complete(p, R_WHILE_STATEMENT)
 }
@@ -118,7 +118,7 @@ pub(crate) fn parse_repeat_statement(p: &mut RParser) -> CompletedMarker {
     let m = p.start();
     p.bump(T![repeat]);
 
-    parse_body(p).or_add_diagnostic(p, diagnostics::expected_expression);
+    parse_body(p).or_add_diagnostic(p, diagnostics::expected_loop_body);
 
     m.complete(p, R_REPEAT_STATEMENT)
 }

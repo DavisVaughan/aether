@@ -121,6 +121,11 @@ pub(crate) fn expected_for_sequence(p: &RParser, range: TextRange) -> ParseDiagn
     expected_node("loop sequence", range, p)
 }
 
+/// The body of a `for`, `while`, or `repeat` loop is missing
+pub(crate) fn expected_loop_body(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("loop body", range, p)
+}
+
 /// Two expressions with nothing between them, as in `1 2`
 pub(crate) fn expected_statement_separator(
     previous: TextRange,

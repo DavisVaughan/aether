@@ -68,13 +68,13 @@ RRoot {
 ```diagnostics
 test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an expression but instead found the end of the file.
+  × Expected a loop body but instead found the end of the file.
 
     1 │ for (i in 1:5)
   > 2 │
       │
 
-  i Expected an expression here.
+  i Expected a loop body here.
 
     1 │ for (i in 1:5)
   > 2 │
