@@ -38,7 +38,18 @@ fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
         let statement = p.start();
 
         match p.cur() {
-            T![;] => parse_empty_statement(p),
+            T![;] => {
+                if p.scope() == Scope::TopLevel {
+                    // At top level, a semicolon must be preceded by an
+                    // expression that ends on the same line, i.e. `;;` and
+                    // `1\n;` aren't legal. Inside braces, semicolons may
+                    // appear even without an expression, so `{ ;; }` and
+                    // `{ 1\n; }` are fine. In those cases, the statement is
+                    // missing its optional expression.
+                    p.error(diagnostics::unexpected_semicolon(p.cur_range()));
+                }
+                p.bump(T![;]);
+            }
             _ => match parse_expression(p) {
                 Present(expression) => parse_statement(p, expression, close),
                 Absent => parse_recovered_statement(p, close),
@@ -49,17 +60,6 @@ fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
     }
 
     statement_list.complete(p, R_STATEMENT_LIST);
-}
-
-/// At top level, a semicolon must be preceded by an expression that ends on
-/// the same line, i.e. `;;` and `1\n;` aren't legal. Inside braces, semicolons
-/// may appear even without an expression, so `{ ;; }` and `{ 1\n; }` are fine.
-/// In those cases, the statement is missing its optional expression.
-fn parse_empty_statement(p: &mut RParser) {
-    if p.scope() == Scope::TopLevel {
-        p.error(diagnostics::unexpected_semicolon(p.cur_range()));
-    }
-    p.bump(T![;]);
 }
 
 fn parse_statement(p: &mut RParser, expression: CompletedMarker, close: RSyntaxKind) {
