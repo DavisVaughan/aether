@@ -44,6 +44,13 @@ fn parse_else_clause(p: &mut RParser) {
     m.complete(p, R_ELSE_CLAUSE);
 }
 
+/// Where a `for` variable may stop: at the `in` that follows it, or at an end
+///
+/// Any closing delimiter, not just the one the caller opened, for the reason
+/// [crate::syntax::call]'s `ARGUMENT_LIST_ENDS` gives.
+const FOR_VARIABLE_ENDS: TokenSet<RSyntaxKind> =
+    token_set![T![EOF], T![in], T![')'], T![']'], T!["]]"], T!['}']];
+
 pub(crate) fn parse_for_statement(p: &mut RParser) -> CompletedMarker {
     debug_assert!(p.at(T![for]));
 
@@ -68,13 +75,6 @@ pub(crate) fn parse_for_statement(p: &mut RParser) -> CompletedMarker {
 
     m.complete(p, R_FOR_STATEMENT)
 }
-
-/// Where a `for` variable may stop: at the `in` that follows it, or at an end
-///
-/// Any closing delimiter, not just the one the caller opened, for the reason
-/// [crate::syntax::call]'s `ARGUMENT_LIST_ENDS` gives.
-const FOR_VARIABLE_ENDS: TokenSet<RSyntaxKind> =
-    token_set![T![EOF], T![in], T![')'], T![']'], T!["]]"], T!['}']];
 
 /// identifier | `...` | `..i`
 fn parse_for_variable(p: &mut RParser) -> ParsedSyntax {
