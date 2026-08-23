@@ -29,15 +29,12 @@ pub(crate) fn parse_function_definition(p: &mut RParser) -> CompletedMarker {
 }
 
 fn parse_parameters(p: &mut RParser) {
-    debug_assert!(p.at(T!['(']));
-
     let m = p.start();
     p.with_scope(Scope::Parenthesis, |p| {
         p.bump(T!['(']);
         parse_parameter_list(p);
     });
     p.expect(T![')']);
-
     m.complete(p, R_PARAMETERS);
 }
 
