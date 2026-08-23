@@ -2341,30 +2341,28 @@ and has a perfectly good default.
 ### 11.6 Phase 12 — Control flow — LANDED
 
 `src/syntax/if_statement.rs` and `src/syntax/loop_statements.rs`, reached from four
-arms of the lhs match in `expr.rs`. `for`, `while`, and `repeat` are mechanical.
-`if`/`else` is not, and the `for` variable turned out not to be either. The two
-files share no code — `parse_body` is `expr.rs`'s (§11.5) and is what they have in
-common.
+arms of the lhs match in `expr.rs`. `for`, `while`, and `repeat` are mechanical;
+`if`/`else` is not, and neither is the `for` variable. The two files share no code
+— `parse_body` is `expr.rs`'s (§11.5) and is all they have in common.
 
 **Every body is `parse_body`, not `parse_expression`.** §11.5 left this to confirm
-and R confirms it, in 4.6.0:
+and R 4.6.0 confirms it:
 
 ```
-repeat 1 ? 2      =>  `?`(repeat 1, 2)
-while (a) b ? c   =>  `?`(while (a) b, c)
-if (a) b ? c      =>  `?`(if (a) b, c)
+repeat 1 ? 2         =>  `?`(repeat 1, 2)
+while (a) b ? c      =>  `?`(while (a) b, c)
+if (a) b ? c         =>  `?`(if (a) b, c)
 if (a) b else c ? d  =>  `?`(if (a) b else c, d)
 ```
 
 `if` sits one rank above the loops in `gram.y` and is `%right` where they are
 `%left`, so a right-associative rank 3 and an incremented left-associative rank 2
-land on the same threshold: `?` reduces, `<-` and everything above it shifts. The
-loops and `if` share `parse_body` and the table needs no rank of its own for `if`.
-The consequence, the alternative, and all three loop bodies use it; the condition
-and the `for` sequence are ordinary `parse_expression` at `LOWEST`, inside the
-parentheses.
+land on the same threshold — `?` reduces, `<-` and everything above it shifts — and
+the table needs no rank of its own for `if`. Both `if` bodies and all three loop
+bodies use it; the condition and the `for` sequence are ordinary `parse_expression`
+at `LOWEST`, inside the parentheses.
 
-#### The `else` rule — read this twice
+#### The `else` rule
 
 In R, `else` may follow the consequence on a **later line only inside `{}`**. At
 top level, a newline before `else` terminates the `if` and the `else` is a syntax
@@ -2417,19 +2415,18 @@ fn parse_else_clause(p: &mut RParser) {
 
 This is the one site that compares against a `Scope` variant by name rather than
 asking `newlines_are_significant()`, and it is why `scope()` is a plain read
-(§9.2). Note what it does *not* need: nothing has to be reset on the way into
-`(`/`[`/`[[` or restored on the way out, because there is a single field and
-`with_scope` saves it.
+(§9.2). Nothing has to be reset on the way into `(`/`[`/`[[` or restored on the way
+out: there is a single field and `with_scope` saves it.
 
-It returns `()`. Nothing acts on the result, both guards are §11.5's "the caller
-decides" question asked of the same two facts, and `parse_if_statement` is the only
-caller — so a `ParsedSyntax` here would only be `.ok()`d away at the one call site.
-When the second guard fires the caller does nothing special: the `if` is already
-complete, and the leftover `else` becomes a bogus statement in the enclosing list.
+It returns `()`. `parse_if_statement` is the only caller and nothing acts on the
+result — both guards are §11.5's "the caller decides" asked of the same two facts —
+so a `ParsedSyntax` here would only be `.ok()`d away. When the second guard fires
+the caller does nothing special: the `if` is already complete, and the leftover
+`else` becomes a bogus statement in the enclosing list.
 
 The three cases are `control/if.md`'s `A Newline Before `else` At Top Level`,
-`A Newline Before `else` Inside A Delimiter` — which runs `(`, `[`, and `[[`, since
-that is the case a newly-collapsed flag could plausibly regress — and the braced
+`A Newline Before `else` Inside A Delimiter` — which runs `(`, `[`, and `[[`, the
+case collapsing the check to one scope could plausibly regress — and the braced
 one, which waits on Phase 13 along with the rest of the imported `if` corpus.
 
 **The comment case.** tree-sitter's scanner has a special carve-out: a comment
@@ -2445,10 +2442,10 @@ between the consequence and the `else` must not break the `else` attachment.
 }
 ```
 
-Because our `else` detection is purely `p.at(T![else])` on the next *non-trivia*
-token, comments are handled for free. This is a case where the hand-written parser
-is simply cleaner than the scanner. It arrives with `Complex If Expression`, which
-is one of the braced tests Phase 13 turns on.
+Because our `else` detection is `p.at(T![else])` on the next *non-trivia* token,
+comments come for free — the one place here where the hand-written parser is plainly
+simpler than the scanner. It arrives with `Complex If Expression`, one of the braced
+tests Phase 13 turns on.
 
 **The `else_idx` case** (tree-sitter-r #200): `elseμ <- 1` must lex as one
 identifier. Handled in the lexer by lexing the full identifier and *then* checking
@@ -2464,15 +2461,16 @@ collapsing the file to a bogus root with no diagnostic at all. The slot is now
 `AnyRForVariable`, with `RBogusForVariable` as the fourth variant for
 `for (1 in x) y` to recover into. `docs/deviations.md` has the argument.
 
-Recovery runs to `FOR_VARIABLE_ENDS` — `in`, plus the closers `PARAMETER_LIST_ENDS`
-carries for the reason §11.3 gives. `for (in x) y` is the hole case: absent *at* a
-boundary, diagnosed at `p.cur_range()`, consuming nothing, slot left missing.
+Recovery runs to `FOR_VARIABLE_ENDS` — `in` and `EOF`, plus the closers
+`ARGUMENT_LIST_ENDS` carries for the reason §11.3 gives. `for (in x) y` is the hole
+case: absent *at* a boundary, diagnosed at `p.cur_range()`, consuming nothing, slot
+left missing.
 
 #### Corpus
 
 Six imported headings come off `[pending]`: `While`, `Repeat`, `For With Comments`,
 and the three `No Body` tests, which are `[error]` — R rejects all three, and the
-body slot is left missing under one `expected_expression`.
+body slot is left missing under one `expected_loop_body`.
 
 **None of `control/if.md` flips.** Every heading in it uses `{}`, so the file stays
 dark until Phase 13, and §10.3.2's "a merged snapshot may lag its file's nominal
@@ -2481,14 +2479,21 @@ cover the feature in the meantime — the else rule above, `if`/`else`/`else if`
 `else` binding to the nearest `if`, the `?` boundary, and the missing condition —
 all of them brace-free.
 
-`expressions/precedence.md`'s `Complex Expressions` also comes off `[pending]`, and
-comes off clean. It is brace-free and this phase is the last thing it was waiting
-on, but it arrived carrying a top level `if (TRUE) FALSE` / `else NA` pair that R
-rejects and tree-sitter takes. Left in, that one error would have cost the other
-eleven expressions in the block their oracle comparison — `check()` skips the
-comparison for anything that does not parse cleanly, and those eleven are precedence
-corner cases like `TRUE <- FALSE = NA` that most want a second opinion. The pair
-moved to `control/if.md`, which is where the else-newline concept lives anyway.
+`control/for.md` gains four more. `` `...` And `..i` As The `for` Variable `` is
+the one that pins deviation 14, and carries `[deviation]` because it parses cleanly
+and the oracle would otherwise compare it against the bogus root above; the imported
+`For` heading exercises the same two spellings and will need the marker too when
+Phase 13's braces let it off `[pending]`. The other three are `[error]`: a variable
+that is not a name, an absent variable, and an absent sequence.
+
+`expressions/precedence.md`'s `Complex Expressions` comes off `[pending]` clean,
+this phase being the last thing it waited on. It arrived carrying a top level
+`if (TRUE) FALSE` / `else NA` pair that R rejects and tree-sitter takes; left in,
+that one error would have cost the other eleven expressions in the block their
+oracle comparison, since `check()` skips the comparison for a block that does not
+parse cleanly, and those eleven are precedence corner cases like
+`TRUE <- FALSE = NA` that most want a second opinion. The pair moved to
+`control/if.md`, where the else-newline concept lives anyway.
 
 One recovery consequence is worth flagging for §12.1 rather than fixing here.
 `expressions/extract.md`'s `` Dollar, At, Namespace, Namespace Internal With `if` RHS ``
@@ -2511,15 +2516,21 @@ pub(crate) fn expected_for_variable(p: &RParser, range: TextRange) -> ParseDiagn
 }
 
 /// The sequence a `for` loop iterates over is missing
-pub(crate) fn expected_sequence(p: &RParser, range: TextRange) -> ParseDiagnostic {
-    expected_node("sequence", range, p)
+pub(crate) fn expected_for_sequence(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("loop sequence", range, p)
+}
+
+/// The body of a `for`, `while`, or `repeat` loop is missing
+pub(crate) fn expected_loop_body(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("loop body", range, p)
 }
 ```
 
-Only the two headers that have a condition use `expected_condition`. `for` names
-its own parts, so it uses the other two; `repeat` has no header at all, so it
-reaches none of them.
-
+Four, and each names the part its own header names. Only `if` and `while` have a
+condition; `for` spells out its variable and its sequence; all three loops share
+`expected_loop_body`, where the consequence and the alternative fall back to
+`expected_expression`, since an `if` calls neither of its bodies anything. `repeat`
+has no header at all, so it reaches only the loop body.
 
 ### 11.7 Phase 13 — Blocks, statement lists, semicolons
 
