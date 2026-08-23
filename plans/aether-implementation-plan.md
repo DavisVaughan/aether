@@ -200,9 +200,9 @@ aether/
     │           ├── call.rs        # call / subset / subset2 / arg lists
     │           ├── parenthesized_expression.rs
     │           ├── function.rs    # ← Phase 11. defs, lambdas, parameters
-    │           ├── if.rs         # `if` and its `else` clause
-    │           ├── loops.rs      # for, while, repeat
-    │           └── statement_list.rs # statement lists; braces and `;` in 13
+    │           ├── if_statement.rs    # `if` and its `else` clause
+    │           ├── loop_statements.rs # for, while, repeat
+    │           └── statement_list.rs  # statement lists; braces and `;` in 13
     ├── aether_r_test_macros/      # proc-macro: `gen_corpus_tests!`
     │   └── src/lib.rs             #   modelled on air's `tests_macros`
     ├── aether_r_parser_tests/     # Every corpus test, plus the harness that
@@ -2340,10 +2340,11 @@ and has a perfectly good default.
 
 ### 11.6 Phase 12 — Control flow — LANDED
 
-`src/syntax/if.rs` and `src/syntax/loops.rs`, reached from four arms of the lhs
-match in `expr.rs`. `for`, `while`, and `repeat` are mechanical. `if`/`else` is
-not, and the `for` variable turned out not to be either. The two files share no
-code — `parse_body` is `expr.rs`'s (§11.5) and is what they have in common.
+`src/syntax/if_statement.rs` and `src/syntax/loop_statements.rs`, reached from four
+arms of the lhs match in `expr.rs`. `for`, `while`, and `repeat` are mechanical.
+`if`/`else` is not, and the `for` variable turned out not to be either. The two
+files share no code — `parse_body` is `expr.rs`'s (§11.5) and is what they have in
+common.
 
 **Every body is `parse_body`, not `parse_expression`.** §11.5 left this to confirm
 and R confirms it, in 4.6.0:
