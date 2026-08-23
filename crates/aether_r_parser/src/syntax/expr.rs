@@ -393,10 +393,10 @@ fn parse_selector(p: &mut RParser) -> ParsedSyntax {
     }
 }
 
-/// Parse a function body
+/// Parse a function or loop body
 ///
 /// Generally treated like a normal expression, but R's precedence table puts
-/// `?` at a lower binding power than a function body, so `function() a ? b`
+/// `?` at a lower binding power than a function or loop body, so `function() a ? b`
 /// needs to parse as `(function () a) ? b`.
 pub(crate) fn parse_body(p: &mut RParser) -> ParsedSyntax {
     // Treated as left associative
