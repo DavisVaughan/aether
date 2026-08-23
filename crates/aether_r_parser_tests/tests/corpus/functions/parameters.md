@@ -74,9 +74,7 @@ function(a
 \(x
 ```
 
-A closer that belongs to someone else ends the list without being consumed, so
-the list keeps its own terminator missing and the stray closer survives as a
-statement of its own rather than being swallowed here.
+A closer that belongs to someone else ends the list without being consumed
 
 ```r
 function(a} 1
