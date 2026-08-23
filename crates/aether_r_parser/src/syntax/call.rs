@@ -106,6 +106,8 @@ fn parse_argument(p: &mut RParser) {
 
     // Optional name clause
     parse_argument_name_clause(p);
+
+    // Optional value
     parse_argument_value(p);
 
     m.complete(p, R_ARGUMENT);
