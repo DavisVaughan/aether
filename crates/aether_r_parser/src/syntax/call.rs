@@ -113,7 +113,10 @@ fn parse_argument(p: &mut RParser) {
     m.complete(p, R_ARGUMENT);
 }
 
-/// An empty value is legal, but only where the argument has already ended
+/// Value can be missing as long as the next token is a boundary, like
+/// `f(a,<here>)` where the next token is `)` or `f(a,<here>,)` where the next
+/// token is `,`, but not with `f(* x)` where `* x` simply isn't an expression.
+/// That should be a parse error!
 fn parse_argument_value(p: &mut RParser) {
     if p.at_ts(ARGUMENT_LIST_BOUNDARIES) {
         return;
