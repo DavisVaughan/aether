@@ -91,9 +91,6 @@ function(x, ...) ..1 + ..2
 
 ## A Hole In A Parameter List [error]
 
-R accepts `f(a,,b)` and rejects `function(a,,b)`, so the identical shape is a
-hole in an argument list and an error in a parameter list.
-
 ```r
 function(a,,b) 1
 function(a,) 1
