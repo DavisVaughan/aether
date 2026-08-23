@@ -67,7 +67,7 @@ pub(crate) fn parse_for_statement(p: &mut RParser) -> CompletedMarker {
             )
             .ok();
         p.expect(T![in]);
-        parse_expression(p).or_add_diagnostic(p, diagnostics::expected_sequence);
+        parse_expression(p).or_add_diagnostic(p, diagnostics::expected_for_sequence);
     });
     p.expect(T![')']);
 

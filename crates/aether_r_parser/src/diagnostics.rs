@@ -117,7 +117,7 @@ pub(crate) fn expected_for_variable(p: &RParser, range: TextRange) -> ParseDiagn
 }
 
 /// The sequence a `for` loop iterates over is missing
-pub(crate) fn expected_sequence(p: &RParser, range: TextRange) -> ParseDiagnostic {
+pub(crate) fn expected_for_sequence(p: &RParser, range: TextRange) -> ParseDiagnostic {
     expected_node("sequence", range, p)
 }
 
