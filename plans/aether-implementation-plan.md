@@ -2478,10 +2478,14 @@ cover the feature in the meantime — the else rule above, `if`/`else`/`else if`
 `else` binding to the nearest `if`, the `?` boundary, and the missing condition —
 all of them brace-free.
 
-`expressions/precedence.md`'s `Complex Expressions` also comes off `[pending]`, as
-`[error]`. It is brace-free and this phase is the last thing it was waiting on; the
-two top-level `else` lines in it are syntax errors in R too, so `[error]` is where
-it lands rather than clean.
+`expressions/precedence.md`'s `Complex Expressions` also comes off `[pending]`, and
+comes off clean. It is brace-free and this phase is the last thing it was waiting
+on, but it arrived carrying a top level `if (TRUE) FALSE` / `else NA` pair that R
+rejects and tree-sitter takes. Left in, that one error would have cost the other
+eleven expressions in the block their oracle comparison — `check()` skips the
+comparison for anything that does not parse cleanly, and those eleven are precedence
+corner cases like `TRUE <- FALSE = NA` that most want a second opinion. The pair
+moved to `control/if.md`, which is where the else-newline concept lives anyway.
 
 One recovery consequence is worth flagging for §12.1 rather than fixing here.
 `expressions/extract.md`'s `` Dollar, At, Namespace, Namespace Internal With `if` RHS ``

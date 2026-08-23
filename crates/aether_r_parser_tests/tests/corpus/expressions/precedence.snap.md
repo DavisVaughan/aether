@@ -280,15 +280,19 @@ RRoot {
 }
 ```
 
-## Complex Expressions [error]
+## Complex Expressions
+
+A top level `if (TRUE) FALSE` / `else NA` pair came with this test. tree-sitter
+takes it, since a top level `else` lexes as an identifier there, but R does not,
+and one error in the block would cost the other eleven expressions their oracle
+comparison. It lives in `control/if.md` instead, as
+`A Newline Before `else` At Top Level`.
 
 ```r
 repeat if (1) TRUE else repeat 42
 if (TRUE) if (FALSE) 2 else NULL
 a::b$c[[d]] <- e
 TRUE ~ FALSE ~ NULL ? NA ? NaN
-if (TRUE) FALSE
-else NA
 (if (TRUE) FALSE
 else NA)
 a = TRUE ? FALSE
@@ -426,55 +430,26 @@ RRoot {
             semicolon_token: missing (optional),
         },
         RStatement {
-            expression: RIfStatement {
-                if_token: IF_KW@114..118 "if" [Newline("\n")] [Whitespace(" ")],
-                l_paren_token: L_PAREN@118..119 "(" [] [],
-                condition: RTrueExpression {
-                    true_token: TRUE_KW@119..123 "TRUE" [] [],
-                },
-                r_paren_token: R_PAREN@123..125 ")" [] [Whitespace(" ")],
-                consequence: RFalseExpression {
-                    false_token: FALSE_KW@125..130 "FALSE" [] [],
-                },
-                else_clause: missing (optional),
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RBogusExpression {
-                items: [
-                    ELSE_KW@130..136 "else" [Newline("\n")] [Whitespace(" ")],
-                ],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RNaExpression {
-                value: NA_LOGICAL_KW@136..138 "NA" [] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
             expression: RParenthesizedExpression {
-                l_paren_token: L_PAREN@138..140 "(" [Newline("\n")] [],
+                l_paren_token: L_PAREN@114..116 "(" [Newline("\n")] [],
                 body: RIfStatement {
-                    if_token: IF_KW@140..143 "if" [] [Whitespace(" ")],
-                    l_paren_token: L_PAREN@143..144 "(" [] [],
+                    if_token: IF_KW@116..119 "if" [] [Whitespace(" ")],
+                    l_paren_token: L_PAREN@119..120 "(" [] [],
                     condition: RTrueExpression {
-                        true_token: TRUE_KW@144..148 "TRUE" [] [],
+                        true_token: TRUE_KW@120..124 "TRUE" [] [],
                     },
-                    r_paren_token: R_PAREN@148..150 ")" [] [Whitespace(" ")],
+                    r_paren_token: R_PAREN@124..126 ")" [] [Whitespace(" ")],
                     consequence: RFalseExpression {
-                        false_token: FALSE_KW@150..155 "FALSE" [] [],
+                        false_token: FALSE_KW@126..131 "FALSE" [] [],
                     },
                     else_clause: RElseClause {
-                        else_token: ELSE_KW@155..161 "else" [Newline("\n")] [Whitespace(" ")],
+                        else_token: ELSE_KW@131..137 "else" [Newline("\n")] [Whitespace(" ")],
                         alternative: RNaExpression {
-                            value: NA_LOGICAL_KW@161..163 "NA" [] [],
+                            value: NA_LOGICAL_KW@137..139 "NA" [] [],
                         },
                     },
                 },
-                r_paren_token: R_PAREN@163..164 ")" [] [],
+                r_paren_token: R_PAREN@139..140 ")" [] [],
             },
             semicolon_token: missing (optional),
         },
@@ -482,16 +457,16 @@ RRoot {
             expression: RBinaryExpression {
                 left: RBinaryExpression {
                     left: RIdentifier {
-                        name_token: IDENT@164..167 "a" [Newline("\n")] [Whitespace(" ")],
+                        name_token: IDENT@140..143 "a" [Newline("\n")] [Whitespace(" ")],
                     },
-                    operator: EQUAL@167..169 "=" [] [Whitespace(" ")],
+                    operator: EQUAL@143..145 "=" [] [Whitespace(" ")],
                     right: RTrueExpression {
-                        true_token: TRUE_KW@169..174 "TRUE" [] [Whitespace(" ")],
+                        true_token: TRUE_KW@145..150 "TRUE" [] [Whitespace(" ")],
                     },
                 },
-                operator: WAT@174..176 "?" [] [Whitespace(" ")],
+                operator: WAT@150..152 "?" [] [Whitespace(" ")],
                 right: RFalseExpression {
-                    false_token: FALSE_KW@176..181 "FALSE" [] [],
+                    false_token: FALSE_KW@152..157 "FALSE" [] [],
                 },
             },
             semicolon_token: missing (optional),
@@ -499,16 +474,16 @@ RRoot {
         RStatement {
             expression: RBinaryExpression {
                 left: RTrueExpression {
-                    true_token: TRUE_KW@181..187 "TRUE" [Newline("\n")] [Whitespace(" ")],
+                    true_token: TRUE_KW@157..163 "TRUE" [Newline("\n")] [Whitespace(" ")],
                 },
-                operator: ASSIGN@187..190 "<-" [] [Whitespace(" ")],
+                operator: ASSIGN@163..166 "<-" [] [Whitespace(" ")],
                 right: RBinaryExpression {
                     left: RFalseExpression {
-                        false_token: FALSE_KW@190..196 "FALSE" [] [Whitespace(" ")],
+                        false_token: FALSE_KW@166..172 "FALSE" [] [Whitespace(" ")],
                     },
-                    operator: EQUAL@196..198 "=" [] [Whitespace(" ")],
+                    operator: EQUAL@172..174 "=" [] [Whitespace(" ")],
                     right: RNaExpression {
-                        value: NA_LOGICAL_KW@198..200 "NA" [] [],
+                        value: NA_LOGICAL_KW@174..176 "NA" [] [],
                     },
                 },
             },
@@ -518,16 +493,16 @@ RRoot {
             expression: RBinaryExpression {
                 left: RBinaryExpression {
                     left: RTrueExpression {
-                        true_token: TRUE_KW@200..206 "TRUE" [Newline("\n")] [Whitespace(" ")],
+                        true_token: TRUE_KW@176..182 "TRUE" [Newline("\n")] [Whitespace(" ")],
                     },
-                    operator: ASSIGN@206..209 "<-" [] [Whitespace(" ")],
+                    operator: ASSIGN@182..185 "<-" [] [Whitespace(" ")],
                     right: RFalseExpression {
-                        false_token: FALSE_KW@209..215 "FALSE" [] [Whitespace(" ")],
+                        false_token: FALSE_KW@185..191 "FALSE" [] [Whitespace(" ")],
                     },
                 },
-                operator: WAT@215..217 "?" [] [Whitespace(" ")],
+                operator: WAT@191..193 "?" [] [Whitespace(" ")],
                 right: RNaExpression {
-                    value: NA_LOGICAL_KW@217..219 "NA" [] [],
+                    value: NA_LOGICAL_KW@193..195 "NA" [] [],
                 },
             },
             semicolon_token: missing (optional),
@@ -536,16 +511,16 @@ RRoot {
             expression: RBinaryExpression {
                 left: RBinaryExpression {
                     left: RTrueExpression {
-                        true_token: TRUE_KW@219..225 "TRUE" [Newline("\n")] [Whitespace(" ")],
+                        true_token: TRUE_KW@195..201 "TRUE" [Newline("\n")] [Whitespace(" ")],
                     },
-                    operator: EQUAL@225..227 "=" [] [Whitespace(" ")],
+                    operator: EQUAL@201..203 "=" [] [Whitespace(" ")],
                     right: RFalseExpression {
-                        false_token: FALSE_KW@227..233 "FALSE" [] [Whitespace(" ")],
+                        false_token: FALSE_KW@203..209 "FALSE" [] [Whitespace(" ")],
                     },
                 },
-                operator: WAT@233..235 "?" [] [Whitespace(" ")],
+                operator: WAT@209..211 "?" [] [Whitespace(" ")],
                 right: RNaExpression {
-                    value: NA_LOGICAL_KW@235..237 "NA" [] [],
+                    value: NA_LOGICAL_KW@211..213 "NA" [] [],
                 },
             },
             semicolon_token: missing (optional),
@@ -553,46 +528,24 @@ RRoot {
         RStatement {
             expression: RBinaryExpression {
                 left: RTrueExpression {
-                    true_token: TRUE_KW@237..243 "TRUE" [Newline("\n")] [Whitespace(" ")],
+                    true_token: TRUE_KW@213..219 "TRUE" [Newline("\n")] [Whitespace(" ")],
                 },
-                operator: WAT@243..245 "?" [] [Whitespace(" ")],
+                operator: WAT@219..221 "?" [] [Whitespace(" ")],
                 right: RBinaryExpression {
                     left: RFalseExpression {
-                        false_token: FALSE_KW@245..251 "FALSE" [] [Whitespace(" ")],
+                        false_token: FALSE_KW@221..227 "FALSE" [] [Whitespace(" ")],
                     },
-                    operator: EQUAL@251..253 "=" [] [Whitespace(" ")],
+                    operator: EQUAL@227..229 "=" [] [Whitespace(" ")],
                     right: RNaExpression {
-                        value: NA_LOGICAL_KW@253..255 "NA" [] [],
+                        value: NA_LOGICAL_KW@229..231 "NA" [] [],
                     },
                 },
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@255..256 "" [Newline("\n")] [],
+    eof_token: EOF@231..232 "" [Newline("\n")] [],
 }
-```
-
-```diagnostics
-test.R:6:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Expected an expression but instead found 'else'.
-
-    4 │ TRUE ~ FALSE ~ NULL ? NA ? NaN
-    5 │ if (TRUE) FALSE
-  > 6 │ else NA
-      │ ^^^^
-    7 │ (if (TRUE) FALSE
-    8 │ else NA)
-
-  i Expected an expression here.
-
-    4 │ TRUE ~ FALSE ~ NULL ? NA ? NaN
-    5 │ if (TRUE) FALSE
-  > 6 │ else NA
-      │ ^^^^
-    7 │ (if (TRUE) FALSE
-    8 │ else NA)
 ```
 
 ## Subset and Subset2 Precedence
