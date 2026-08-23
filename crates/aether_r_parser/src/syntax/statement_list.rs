@@ -32,7 +32,7 @@ fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
     let statement_list = p.start();
     let mut progress = ParserProgress::default();
 
-    while !at_end(p, close) {
+    while !p.at(T![EOF]) && !p.at(close) {
         progress.assert_progressing(p);
 
         match p.cur() {
@@ -66,7 +66,7 @@ fn parse_statement(p: &mut RParser, expression: CompletedMarker, close: RSyntaxK
 
     let line_break = p.has_preceding_line_break();
     let semicolon = !line_break && p.eat(T![;]);
-    let terminated = semicolon || line_break || at_end(p, close);
+    let terminated = semicolon || line_break || p.at(T![EOF]) || p.at(close);
 
     if !terminated {
         p.error(diagnostics::expected_statement_separator(
@@ -78,31 +78,22 @@ fn parse_statement(p: &mut RParser, expression: CompletedMarker, close: RSyntaxK
     m.complete(p, R_STATEMENT);
 }
 
+/// Failed to find an expression. Bury the rest of the line as bogus and retry.
 fn parse_recovered_statement(p: &mut RParser, close: RSyntaxKind) {
     let m = p.start();
+    let range = p.cur_range();
 
-    recover_expression(p, close);
+    let bogus = p.start();
+    p.bump_any();
+    while !p.at(T![EOF]) && !p.at(close) && !p.at(T![;]) && !p.has_preceding_line_break() {
+        p.bump_any();
+    }
+    bogus.complete(p, R_BOGUS_EXPRESSION);
+    p.error(diagnostics::expected_expression(p, range));
+
     if !p.has_preceding_line_break() {
         p.eat(T![;]);
     }
 
     m.complete(p, R_STATEMENT);
-}
-
-/// Failed to find an expression. Bury the rest of the line as bogus and retry.
-fn recover_expression(p: &mut RParser, close: RSyntaxKind) {
-    let range = p.cur_range();
-
-    let m = p.start();
-    p.bump_any();
-    while !at_end(p, close) && !p.at(T![;]) && !p.has_preceding_line_break() {
-        p.bump_any();
-    }
-    m.complete(p, R_BOGUS_EXPRESSION);
-
-    p.error(diagnostics::expected_expression(p, range));
-}
-
-fn at_end(p: &RParser, close: RSyntaxKind) -> bool {
-    p.at(T![EOF]) || p.at(close)
 }
