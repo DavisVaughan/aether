@@ -269,8 +269,7 @@ else 2
 
 ## A Newline Before `else` Inside A Delimiter
 
-Newlines carry no meaning inside `(`, `[`, or `[[`, so the `else` attaches with no
-braces in sight. This is the case a check written as "inside braces" gets wrong.
+Newlines carry no meaning inside `(`, `[`, or `[[`
 
 ```r
 f(if (a) 1
