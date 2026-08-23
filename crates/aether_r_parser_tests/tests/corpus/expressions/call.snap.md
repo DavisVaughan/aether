@@ -2040,8 +2040,6 @@ return()
 
 ## Side By Side Arguments [error]
 
-Only the separator is missing, so each argument is still an argument.
-
 ```r
 # Can't have two arguments side by side without a delimiter
 fn(a b)
