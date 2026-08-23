@@ -802,11 +802,11 @@ Why follow R rather than stay silent like air: the same argument as 11. A file
 holding a stray `;` does not run, and saying so beats formatting it as if it
 did.
 
-Corpus tests: `statements/semicolons.md`, where five imported air snapshots are
+Corpus tests: `statements/semicolons.md`, where four imported air snapshots are
 `[error]` here and clean under tree-sitter, and the two aether-authored headings
 `A Semicolon With No Expression Is An Error At Top Level` and
-`A Semicolon With No Expression Is Allowed Inside Braces` mirror each other
-source for source.
+`A Semicolon With No Expression Is Allowed Inside Braces` pair off the two
+columns of the table above.
 
 ### 12. A string is one token
 
