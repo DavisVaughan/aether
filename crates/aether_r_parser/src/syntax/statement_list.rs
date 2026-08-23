@@ -6,6 +6,7 @@ use aether_r_syntax::RSyntaxKind::{
 };
 use aether_r_syntax::T;
 use biome_parser::CompletedMarker;
+use biome_parser::parsed_syntax::ParsedSyntax::{Absent, Present};
 use biome_parser::{Parser, ParserProgress};
 
 pub(crate) fn parse_root(p: &mut RParser) {
@@ -31,56 +32,77 @@ fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
     let statement_list = p.start();
     let mut progress = ParserProgress::default();
 
-    while !p.at(T![EOF]) && !p.at(close) {
+    while !at_end(p, close) {
         progress.assert_progressing(p);
 
-        let statement = p.start();
-
-        if p.at(T![;]) {
-            // R's `prog` reaches a `;` only through `expr ';'`, where its
-            // `exprlist` also has `exprlist ';'` over a possibly empty list.
-            if p.scope() == Scope::TopLevel {
-                p.error(diagnostics::unexpected_semicolon(p.cur_range()));
-            }
-            p.bump(T![;]);
-            statement.complete(p, R_STATEMENT);
-            continue;
+        match p.cur() {
+            T![;] => parse_empty_statement(p),
+            _ => match parse_expression(p) {
+                Present(expression) => parse_statement(p, expression, close),
+                Absent => parse_recovered_statement(p, close),
+            },
         }
-
-        let expression = parse_expression(p).ok();
-
-        if expression.is_none() {
-            // Failed to find an expression. Bury the rest of the line as bogus
-            // and retry.
-            let range = p.cur_range();
-            let bogus = p.start();
-            p.bump_any();
-            while !p.at(T![EOF]) && !p.at(close) && !p.at(T![;]) && !p.has_preceding_line_break() {
-                p.bump_any();
-            }
-            bogus.complete(p, R_BOGUS_EXPRESSION);
-            p.error(diagnostics::expected_expression(p, range));
-        }
-
-        let semicolon = !p.has_preceding_line_break() && p.eat(T![;]);
-
-        // We've just accepted an expression. Now check for a statement
-        // separator. If it looks like the next expression starts
-        // immediately, log that as a diagnostic, i.e. `1 2`.
-        if let Some(expression) = expression
-            && !semicolon
-            && !p.at(T![EOF])
-            && !p.at(close)
-            && !p.has_preceding_line_break()
-        {
-            p.error(diagnostics::expected_statement_separator(
-                expression.range(p),
-                p.cur_range(),
-            ));
-        }
-
-        statement.complete(p, R_STATEMENT);
     }
 
     statement_list.complete(p, R_STATEMENT_LIST);
+}
+
+/// R's `prog` reaches a `;` only through `expr ';'`, where its `exprlist` also
+/// has `exprlist ';'` over a possibly empty list
+fn parse_empty_statement(p: &mut RParser) {
+    let m = p.start();
+
+    if p.scope() == Scope::TopLevel {
+        p.error(diagnostics::unexpected_semicolon(p.cur_range()));
+    }
+    p.bump(T![;]);
+
+    m.complete(p, R_STATEMENT);
+}
+
+fn parse_statement(p: &mut RParser, expression: CompletedMarker, close: RSyntaxKind) {
+    let range = expression.range(p);
+    let m = expression.precede(p);
+
+    let line_break = p.has_preceding_line_break();
+    let semicolon = !line_break && p.eat(T![;]);
+    let terminated = semicolon || line_break || at_end(p, close);
+
+    if !terminated {
+        p.error(diagnostics::expected_statement_separator(
+            range,
+            p.cur_range(),
+        ));
+    }
+
+    m.complete(p, R_STATEMENT);
+}
+
+fn parse_recovered_statement(p: &mut RParser, close: RSyntaxKind) {
+    let m = p.start();
+
+    recover_expression(p, close);
+    if !p.has_preceding_line_break() {
+        p.eat(T![;]);
+    }
+
+    m.complete(p, R_STATEMENT);
+}
+
+/// Failed to find an expression. Bury the rest of the line as bogus and retry.
+fn recover_expression(p: &mut RParser, close: RSyntaxKind) {
+    let range = p.cur_range();
+
+    let m = p.start();
+    p.bump_any();
+    while !at_end(p, close) && !p.at(T![;]) && !p.has_preceding_line_break() {
+        p.bump_any();
+    }
+    m.complete(p, R_BOGUS_EXPRESSION);
+
+    p.error(diagnostics::expected_expression(p, range));
+}
+
+fn at_end(p: &RParser, close: RSyntaxKind) -> bool {
+    p.at(T![EOF]) || p.at(close)
 }
