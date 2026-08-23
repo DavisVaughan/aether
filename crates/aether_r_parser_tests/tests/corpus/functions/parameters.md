@@ -38,11 +38,6 @@ function(,) 1
 
 ## A Parameter That Is Not A Name [error]
 
-A string is a valid argument name and not a valid parameter name. Whatever
-stands in a name's place is contained in an `RBogusParameterName`, which leaves
-the parameter, the list, and the definition around it intact. A name is a single
-token, so `a$b` is a name followed by rubbish rather than one bad name.
-
 ```r
 function(1) x
 function("a") x
