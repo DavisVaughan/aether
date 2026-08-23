@@ -1,3 +1,4 @@
+use crate::diagnostics;
 use crate::parser::{RParser, Scope};
 use crate::syntax::expr::parse_expression;
 use aether_r_syntax::RSyntaxKind::{
@@ -76,43 +77,20 @@ const ARGUMENT_LIST_BOUNDARIES: TokenSet<RSyntaxKind> = ARGUMENT_LIST_ENDS.union
 fn parse_argument_list(p: &mut RParser) {
     let argument_list = p.start();
     let mut progress = ParserProgress::default();
+    let mut first = true;
 
-    // Handle empty list before looping
-    if !p.at_ts(ARGUMENT_LIST_ENDS) {
-        loop {
-            progress.assert_progressing(p);
-            parse_argument(p);
-
-            if !p.at_ts(ARGUMENT_LIST_BOUNDARIES) {
-                // We know there is a missing separator, so here's where we get
-                // to report that. Since the comma is missing, this doesn't
-                // bump, it just reports a diagnostic and we continue sitting
-                // where we are.
-                p.expect(T![,]);
-
-                let argument = p.start();
-                // Opens a marker, bumps repeatedly until we hit a boundary,
-                // closes as R_BOGUS_EXPRESSION
-                let recovered =
-                    ParseRecoveryTokenSet::new(R_BOGUS_EXPRESSION, ARGUMENT_LIST_BOUNDARIES)
-                        .recover(p);
-                debug_assert!(
-                    recovered.is_ok(),
-                    "not at a boundary, so not at `EOF` either"
-                );
-                argument.complete(p, R_ARGUMENT);
-            }
-
-            // We are at a boundary, either because the argument ended at one or
-            // because we just recovered to one. A comma means another argument
-            // follows, so consume it and loop. Anything else ends the list, and
-            // we leave it where it is.
-            if !p.at(T![,]) {
-                break;
-            }
-
-            p.bump(T![,]);
+    while !p.at_ts(ARGUMENT_LIST_ENDS) {
+        if first {
+            first = false;
+        } else {
+            // Either a `,` that introduces the next argument, or a missing one
+            // that we report without consuming and let the next argument start
+            // where we already are
+            p.expect(T![,]);
         }
+
+        progress.assert_progressing(p);
+        parse_argument(p);
     }
 
     argument_list.complete(p, R_ARGUMENT_LIST);
@@ -129,10 +107,28 @@ fn parse_argument(p: &mut RParser) {
     // Optional name clause
     parse_argument_name_clause(p);
 
-    // Optional value (hence the `ok()`)
-    parse_expression(p).ok();
+    // Optional value
+    parse_argument_value(p);
 
     m.complete(p, R_ARGUMENT);
+}
+
+/// Value can be missing as long as the next token is a boundary, like
+/// `f(a,<here>)` where the next token is `)` or `f(a,<here>,)` where the next
+/// token is `,`, but not with `f(* x)` where `* x` simply isn't an expression.
+/// That should be a parse error!
+fn parse_argument_value(p: &mut RParser) {
+    if p.at_ts(ARGUMENT_LIST_BOUNDARIES) {
+        return;
+    }
+
+    parse_expression(p)
+        .or_recover_with_token_set(
+            p,
+            &ParseRecoveryTokenSet::new(R_BOGUS_EXPRESSION, ARGUMENT_LIST_BOUNDARIES),
+            diagnostics::expected_expression,
+        )
+        .ok();
 }
 
 /// `name =`, where the `name` is an identifier, a string, `...`, `..i`, or `NULL`

@@ -65,7 +65,7 @@ switch(
 )
 ```
 
-## `return` Is Just An Identifier [pending]
+## `return` Is Just An Identifier
 
 ```r
 # `return` is a regular symbol in R, not a keyword (#189). A `return()`
@@ -190,8 +190,26 @@ return()
 ## Side By Side Arguments [error]
 
 ```r
-# Can't have two arguments side by side without a delimiter
 fn(a b)
+fn(a b c)
+```
+
+## An Argument Value That Starts No Expression [error]
+
+Diagnostic should be about the faulty expression, not a comma
+
+```r
+fn(* 1)
+fn(a, * 1)
+fn(a = * 1)
+fn(,, * 1)
+```
+
+Same for `[` and `[[`
+
+```r
+x[* 1]
+x[[* 1]]
 ```
 
 ## Closing Delimiter Belonging To Someone Else [error]

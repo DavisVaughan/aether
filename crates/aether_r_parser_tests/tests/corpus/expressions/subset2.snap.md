@@ -549,10 +549,8 @@ RRoot {
                         missing separator,
                         RArgument {
                             name_clause: missing (optional),
-                            value: RBogusExpression {
-                                items: [
-                                    IDENT@5..6 "b" [] [],
-                                ],
+                            value: RIdentifier {
+                                name_token: IDENT@5..6 "b" [] [],
                             },
                         },
                     ],

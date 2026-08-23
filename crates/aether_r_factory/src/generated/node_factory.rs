@@ -585,6 +585,16 @@ where
         slots,
     ))
 }
+pub fn r_bogus_parameter_name<I>(slots: I) -> RBogusParameterName
+where
+    I: IntoIterator<Item = Option<SyntaxElement>>,
+    I::IntoIter: ExactSizeIterator,
+{
+    RBogusParameterName::unwrap_cast(SyntaxNode::new_detached(
+        RSyntaxKind::R_BOGUS_PARAMETER_NAME,
+        slots,
+    ))
+}
 pub fn r_bogus_selector<I>(slots: I) -> RBogusSelector
 where
     I: IntoIterator<Item = Option<SyntaxElement>>,
