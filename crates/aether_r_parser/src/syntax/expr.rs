@@ -8,10 +8,9 @@ use crate::parser::RParser;
 use crate::syntax::call::{
     parse_call_expression, parse_subset_expression, parse_subset2_expression,
 };
-use crate::syntax::control::{
-    parse_for_statement, parse_if_statement, parse_repeat_statement, parse_while_statement,
-};
 use crate::syntax::function::parse_function_definition;
+use crate::syntax::r#if::parse_if_statement;
+use crate::syntax::loops::{parse_for_statement, parse_repeat_statement, parse_while_statement};
 use crate::syntax::parenthesized_expression::parse_parenthesized_expression;
 use aether_r_syntax::RSyntaxKind::*;
 use aether_r_syntax::{AnyRSelector, T};

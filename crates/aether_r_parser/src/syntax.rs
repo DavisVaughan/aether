@@ -1,7 +1,8 @@
 mod call;
-mod control;
 mod expr;
 mod function;
+mod r#if;
+mod loops;
 mod parenthesized_expression;
 mod statement_list;
 

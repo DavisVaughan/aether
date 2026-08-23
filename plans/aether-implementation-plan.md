@@ -200,7 +200,8 @@ aether/
     │           ├── call.rs        # call / subset / subset2 / arg lists
     │           ├── parenthesized_expression.rs
     │           ├── function.rs    # ← Phase 11. defs, lambdas, parameters
-    │           ├── control.rs     # if/else, for, while, repeat
+    │           ├── if.rs         # `if` and its `else` clause
+    │           ├── loops.rs      # for, while, repeat
     │           └── statement_list.rs # statement lists; braces and `;` in 13
     ├── aether_r_test_macros/      # proc-macro: `gen_corpus_tests!`
     │   └── src/lib.rs             #   modelled on air's `tests_macros`
@@ -2114,7 +2115,7 @@ and buys only adjacency. `increment` is the left-associative bump
 
 The loops in §11.6 share the row — `while (a) b ? c` is `` `?`(while (a) b, c) ``
 in R too — so `parse_body` carries no construct in its name and already sits where
-`control.rs` can reach it: §11.6 adds callers, not a second body rule. `if` sits
+§11.6's files can reach it: they add callers, not a second body rule. `if` sits
 one rank higher in `gram.y` and lands on the same body power, since it is
 `%right`; that is §11.6's to confirm.
 
@@ -2339,9 +2340,10 @@ and has a perfectly good default.
 
 ### 11.6 Phase 12 — Control flow — LANDED
 
-`src/syntax/control.rs`, reached from four arms of the lhs match in `expr.rs`.
-`for`, `while`, and `repeat` are mechanical. `if`/`else` is not, and the `for`
-variable turned out not to be either.
+`src/syntax/if.rs` and `src/syntax/loops.rs`, reached from four arms of the lhs
+match in `expr.rs`. `for`, `while`, and `repeat` are mechanical. `if`/`else` is
+not, and the `for` variable turned out not to be either. The two files share no
+code — `parse_body` is `expr.rs`'s (§11.5) and is what they have in common.
 
 **Every body is `parse_body`, not `parse_expression`.** §11.5 left this to confirm
 and R confirms it, in 4.6.0:
