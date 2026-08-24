@@ -8,7 +8,7 @@ function(return) return
 function(return = 1) return
 ```
 
-## Function Dots And Dot Dot I [pending]
+## Function Dots And Dot Dot I
 
 ```r
 # Dots as parameter without default

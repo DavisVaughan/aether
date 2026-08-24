@@ -26,7 +26,7 @@ x[[a[[b]]]]
 x[y[z[[a]]]]
 ```
 
-## Subset Arguments [pending]
+## Subset Arguments
 
 ```r
 fn

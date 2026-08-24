@@ -149,7 +149,7 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │
 ```
 
-## While With Braces [pending]
+## While With Braces
 
 ```r
 while(TRUE) FALSE
@@ -165,7 +165,83 @@ while(fn()) {
 }
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RWhileStatement {
+                while_token: WHILE_KW@0..5 "while" [] [],
+                l_paren_token: L_PAREN@5..6 "(" [] [],
+                condition: RTrueExpression {
+                    true_token: TRUE_KW@6..10 "TRUE" [] [],
+                },
+                r_paren_token: R_PAREN@10..12 ")" [] [Whitespace(" ")],
+                body: RFalseExpression {
+                    false_token: FALSE_KW@12..17 "FALSE" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RWhileStatement {
+                while_token: WHILE_KW@17..24 "while" [Newline("\n"), Newline("\n")] [],
+                l_paren_token: L_PAREN@24..25 "(" [] [],
+                condition: RTrueExpression {
+                    true_token: TRUE_KW@25..29 "TRUE" [] [],
+                },
+                r_paren_token: R_PAREN@29..31 ")" [] [Whitespace(" ")],
+                body: RBracedStatements {
+                    l_curly_token: L_CURLY@31..32 "{" [] [],
+                    statements: RStatementList [],
+                    r_curly_token: R_CURLY@32..33 "}" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RWhileStatement {
+                while_token: WHILE_KW@33..40 "while" [Newline("\n"), Newline("\n")] [],
+                l_paren_token: L_PAREN@40..41 "(" [] [],
+                condition: RIdentifier {
+                    name_token: IDENT@41..42 "a" [] [],
+                },
+                r_paren_token: R_PAREN@42..44 ")" [] [Whitespace(" ")],
+                body: RBracedStatements {
+                    l_curly_token: L_CURLY@44..45 "{" [] [],
+                    statements: RStatementList [],
+                    r_curly_token: R_CURLY@45..48 "}" [Newline("\n"), Newline("\n")] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RWhileStatement {
+                while_token: WHILE_KW@48..55 "while" [Newline("\n"), Newline("\n")] [],
+                l_paren_token: L_PAREN@55..56 "(" [] [],
+                condition: RCall {
+                    function: RIdentifier {
+                        name_token: IDENT@56..58 "fn" [] [],
+                    },
+                    arguments: RCallArguments {
+                        l_paren_token: L_PAREN@58..59 "(" [] [],
+                        items: RArgumentList [],
+                        r_paren_token: R_PAREN@59..60 ")" [] [],
+                    },
+                },
+                r_paren_token: R_PAREN@60..62 ")" [] [Whitespace(" ")],
+                body: RBracedStatements {
+                    l_curly_token: L_CURLY@62..63 "{" [] [],
+                    statements: RStatementList [],
+                    r_curly_token: R_CURLY@63..66 "}" [Newline("\n"), Newline("\n")] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@66..67 "" [Newline("\n")] [],
+}
+```
 
 ## A `while` With No Condition [error]
 

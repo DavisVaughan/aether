@@ -14,6 +14,7 @@ use crate::syntax::loop_statements::{
     parse_for_statement, parse_repeat_statement, parse_while_statement,
 };
 use crate::syntax::parenthesized_expression::parse_parenthesized_expression;
+use crate::syntax::statement_list::parse_braced_statements;
 use aether_r_syntax::RSyntaxKind::*;
 use aether_r_syntax::{AnyRSelector, T};
 use biome_parser::CompletedMarker;
@@ -185,6 +186,7 @@ fn parse_expression_with_binding_power(
         T![while] => parse_while_statement(p),
         T![repeat] => parse_repeat_statement(p),
         T!['('] => parse_parenthesized_expression(p),
+        T!['{'] => parse_braced_statements(p),
         // Doesn't start an expression
         _ => return Absent,
     };

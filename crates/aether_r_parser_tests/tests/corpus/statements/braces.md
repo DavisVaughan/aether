@@ -1,4 +1,4 @@
-## Braced Expression [pending]
+## Braced Expression
 
 ```r
 {}
@@ -20,7 +20,7 @@
 }
 ```
 
-## Braced Expressions [pending]
+## Braced Expressions
 
 ```r
 { }

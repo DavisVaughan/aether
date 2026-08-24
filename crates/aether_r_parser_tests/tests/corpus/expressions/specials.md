@@ -12,7 +12,7 @@ x %//% y
 # Not specials, but hard to test errors `%\%`, `%%%`
 ```
 
-## Pipe [pending]
+## Pipe
 
 ```r
 x |> print()

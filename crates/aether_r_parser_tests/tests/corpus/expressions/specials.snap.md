@@ -114,7 +114,7 @@ RRoot {
 }
 ```
 
-## Pipe [pending]
+## Pipe
 
 ```r
 x |> print()
@@ -126,7 +126,166 @@ x |> foo() |> bar() + baz()
 x |> {function(x) x}()
 ```
 
-*Not yet supported.*
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RBinaryExpression {
+                left: RIdentifier {
+                    name_token: IDENT@0..2 "x" [] [Whitespace(" ")],
+                },
+                operator: PIPE@2..5 "|>" [] [Whitespace(" ")],
+                right: RCall {
+                    function: RIdentifier {
+                        name_token: IDENT@5..10 "print" [] [],
+                    },
+                    arguments: RCallArguments {
+                        l_paren_token: L_PAREN@10..11 "(" [] [],
+                        items: RArgumentList [],
+                        r_paren_token: R_PAREN@11..12 ")" [] [],
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBinaryExpression {
+                left: RBinaryExpression {
+                    left: RBinaryExpression {
+                        left: RIdentifier {
+                            name_token: IDENT@12..16 "x" [Newline("\n"), Newline("\n")] [Whitespace(" ")],
+                        },
+                        operator: PIPE@16..19 "|>" [] [Whitespace(" ")],
+                        right: RCall {
+                            function: RIdentifier {
+                                name_token: IDENT@19..22 "foo" [] [],
+                            },
+                            arguments: RCallArguments {
+                                l_paren_token: L_PAREN@22..23 "(" [] [],
+                                items: RArgumentList [],
+                                r_paren_token: R_PAREN@23..25 ")" [] [Whitespace(" ")],
+                            },
+                        },
+                    },
+                    operator: SPECIAL@25..29 "%>%" [] [Whitespace(" ")],
+                    right: RCall {
+                        function: RIdentifier {
+                            name_token: IDENT@29..32 "bar" [] [],
+                        },
+                        arguments: RCallArguments {
+                            l_paren_token: L_PAREN@32..33 "(" [] [],
+                            items: RArgumentList [],
+                            r_paren_token: R_PAREN@33..35 ")" [] [Whitespace(" ")],
+                        },
+                    },
+                },
+                operator: PIPE@35..38 "|>" [] [Whitespace(" ")],
+                right: RCall {
+                    function: RIdentifier {
+                        name_token: IDENT@38..41 "baz" [] [],
+                    },
+                    arguments: RCallArguments {
+                        l_paren_token: L_PAREN@41..42 "(" [] [],
+                        items: RArgumentList [],
+                        r_paren_token: R_PAREN@42..43 ")" [] [],
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBinaryExpression {
+                left: RBinaryExpression {
+                    left: RBinaryExpression {
+                        left: RIdentifier {
+                            name_token: IDENT@43..47 "x" [Newline("\n"), Newline("\n")] [Whitespace(" ")],
+                        },
+                        operator: PIPE@47..50 "|>" [] [Whitespace(" ")],
+                        right: RCall {
+                            function: RIdentifier {
+                                name_token: IDENT@50..53 "foo" [] [],
+                            },
+                            arguments: RCallArguments {
+                                l_paren_token: L_PAREN@53..54 "(" [] [],
+                                items: RArgumentList [],
+                                r_paren_token: R_PAREN@54..56 ")" [] [Whitespace(" ")],
+                            },
+                        },
+                    },
+                    operator: PIPE@56..59 "|>" [] [Whitespace(" ")],
+                    right: RCall {
+                        function: RIdentifier {
+                            name_token: IDENT@59..62 "bar" [] [],
+                        },
+                        arguments: RCallArguments {
+                            l_paren_token: L_PAREN@62..63 "(" [] [],
+                            items: RArgumentList [],
+                            r_paren_token: R_PAREN@63..65 ")" [] [Whitespace(" ")],
+                        },
+                    },
+                },
+                operator: PLUS@65..67 "+" [] [Whitespace(" ")],
+                right: RCall {
+                    function: RIdentifier {
+                        name_token: IDENT@67..70 "baz" [] [],
+                    },
+                    arguments: RCallArguments {
+                        l_paren_token: L_PAREN@70..71 "(" [] [],
+                        items: RArgumentList [],
+                        r_paren_token: R_PAREN@71..72 ")" [] [],
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RBinaryExpression {
+                left: RIdentifier {
+                    name_token: IDENT@72..76 "x" [Newline("\n"), Newline("\n")] [Whitespace(" ")],
+                },
+                operator: PIPE@76..79 "|>" [] [Whitespace(" ")],
+                right: RCall {
+                    function: RBracedStatements {
+                        l_curly_token: L_CURLY@79..80 "{" [] [],
+                        statements: RStatementList [
+                            RStatement {
+                                expression: RFunctionDefinition {
+                                    name: FUNCTION_KW@80..88 "function" [] [],
+                                    parameters: RParameters {
+                                        l_paren_token: L_PAREN@88..89 "(" [] [],
+                                        items: RParameterList [
+                                            RParameter {
+                                                name: RIdentifier {
+                                                    name_token: IDENT@89..90 "x" [] [],
+                                                },
+                                                default: missing (optional),
+                                            },
+                                        ],
+                                        r_paren_token: R_PAREN@90..92 ")" [] [Whitespace(" ")],
+                                    },
+                                    body: RIdentifier {
+                                        name_token: IDENT@92..93 "x" [] [],
+                                    },
+                                },
+                                semicolon_token: missing (optional),
+                            },
+                        ],
+                        r_curly_token: R_CURLY@93..94 "}" [] [],
+                    },
+                    arguments: RCallArguments {
+                        l_paren_token: L_PAREN@94..95 "(" [] [],
+                        items: RArgumentList [],
+                        r_paren_token: R_PAREN@95..96 ")" [] [],
+                    },
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@96..97 "" [Newline("\n")] [],
+}
+```
 
 ## Pipe Placeholder
 

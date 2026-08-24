@@ -49,7 +49,7 @@ x[[a = 1]]
 x[[a = x[[b = 1]]]]
 ```
 
-## Subset2 Arguments [pending]
+## Subset2 Arguments
 
 ```r
 fn

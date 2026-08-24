@@ -1,4 +1,4 @@
-## Newlines [pending]
+## Newlines
 
 ```r
 apple
@@ -21,7 +21,7 @@ apple
 1 2
 ```
 
-## Two Expressions On One Line Inside Braces [pending, error]
+## Two Expressions On One Line Inside Braces [error]
 
 ```r
 { 1 2 }

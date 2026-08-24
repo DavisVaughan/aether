@@ -1,7 +1,7 @@
 mod shape;
 
 use crate::shape::{Shape, shape_of};
-use aether_r_syntax::RSyntaxNode;
+use aether_r_syntax::{RSyntaxNode, TextRange};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OracleResult {
@@ -31,7 +31,7 @@ pub fn compare(source: &str, actual: &RSyntaxNode) -> OracleResult {
 }
 
 fn difference(expected: &Shape, actual: &Shape, path: &mut Vec<String>) -> Option<OracleResult> {
-    if expected.kind() != actual.kind() || expected.range() != actual.range() {
+    if expected.kind() != actual.kind() || !ranges_agree(expected.range(), actual.range()) {
         return Some(mismatch(expected, actual, path));
     }
 
@@ -108,6 +108,10 @@ fn difference(expected: &Shape, actual: &Shape, path: &mut Vec<String>) -> Optio
     }
 }
 
+fn ranges_agree(expected: TextRange, actual: TextRange) -> bool {
+    expected == actual || (expected.is_empty() && actual.is_empty())
+}
+
 fn mismatch(expected: &Shape, actual: &Shape, path: &[String]) -> OracleResult {
     OracleResult::Mismatch {
         path: render_path(path, expected.kind()),
@@ -170,6 +174,11 @@ mod tests {
     #[test]
     fn whitespace_only_matches() {
         assert_eq!(oracle("  \n\n  "), OracleResult::Match);
+    }
+
+    #[test]
+    fn an_empty_node_matches_wherever_the_whitespace_put_it() {
+        assert_eq!(oracle("{ }"), OracleResult::Match);
     }
 
     /// Deviation 8: tree-sitter re-splits `0x` into `0` and the name `x`, where

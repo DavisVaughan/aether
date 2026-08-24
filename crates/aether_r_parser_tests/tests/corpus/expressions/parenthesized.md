@@ -1,4 +1,4 @@
-## Parenthesized Expression [pending]
+## Parenthesized Expression
 
 ```r
 (1)
@@ -26,13 +26,13 @@ fn((a), (b))
 )
 ```
 
-## Not A Parenthesized Expression 3 [pending, error]
+## Not A Parenthesized Expression 3 [error]
 
 ```r
 (1; 2)
 ```
 
-## Parentheses With Comments [pending]
+## Parentheses With Comments
 
 ```r
 (1)
