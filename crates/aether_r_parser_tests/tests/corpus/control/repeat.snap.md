@@ -24,7 +24,7 @@ RRoot {
 }
 ```
 
-## Repeat No Body [error]
+## Repeat no body [error]
 
 ```r
 repeat
@@ -56,7 +56,7 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │
 ```
 
-## Repeat With Braces
+## Repeat with braces
 
 ```r
 repeat 1

@@ -286,7 +286,7 @@ RRoot {
 }
 ```
 
-## Pipe Placeholder
+## Pipe placeholder
 
 ```r
 foo |> bar(x, y = _)

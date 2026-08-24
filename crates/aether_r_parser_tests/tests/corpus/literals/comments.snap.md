@@ -33,7 +33,7 @@ RRoot {
 }
 ```
 
-## Leading And Trailing Comments
+## Leading and trailing comments
 
 ```r
 # Leading
@@ -62,7 +62,7 @@ RRoot {
 }
 ```
 
-## Multi-byte Unicode In A Comment
+## Multi-byte Unicode in a comment
 
 ```r
 # héllo wörld 日本語 emoji 🎉 comment

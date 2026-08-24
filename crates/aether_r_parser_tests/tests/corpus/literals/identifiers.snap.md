@@ -151,7 +151,7 @@ RRoot {
 }
 ```
 
-## Unicode Identifiers
+## Unicode identifiers
 
 ```r
 你好
@@ -186,7 +186,7 @@ RRoot {
 }
 ```
 
-## Invalid Identifiers [error]
+## Invalid identifiers [error]
 
 ```r
 # R does not allow identifiers to start with a `.` followed by a digit, as this
@@ -237,7 +237,7 @@ test.R:5:3 parse ━━━━━━━━━━━━━━━━━━━━━
     6 │
 ```
 
-## Dot Dot I
+## Dot dot i
 
 ```r
 ..1
@@ -265,7 +265,7 @@ RRoot {
 }
 ```
 
-## Unclosed Backtick [error]
+## Unclosed backtick [error]
 
 ```r
 `\`
@@ -359,7 +359,7 @@ RRoot {
 }
 ```
 
-## Dot Dot I In Functions And Calls
+## Dot dot i in functions and calls
 
 ```r
 ..1

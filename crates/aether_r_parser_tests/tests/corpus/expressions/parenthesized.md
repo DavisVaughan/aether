@@ -1,4 +1,4 @@
-## Parenthesized Expression
+## Parenthesized expression
 
 ```r
 (1)
@@ -11,13 +11,13 @@ fn((a), (b))
 })
 ```
 
-## Not A Parenthesized Expression 1 [error]
+## Not a parenthesized expression 1 [error]
 
 ```r
 ()
 ```
 
-## Not A Parenthesized Expression 2 [error]
+## Not a parenthesized expression 2 [error]
 
 ```r
 (
@@ -26,13 +26,13 @@ fn((a), (b))
 )
 ```
 
-## Not A Parenthesized Expression 3 [error]
+## Not a parenthesized expression 3 [error]
 
 ```r
 (1; 2)
 ```
 
-## Parentheses With Comments
+## Parentheses with comments
 
 ```r
 (1)
@@ -50,13 +50,13 @@ fn((a), (b))
 ) # comment5
 ```
 
-## Empty Parentheses [error]
+## Empty parentheses [error]
 
 ```r
 ()
 ```
 
-## Multiple Expressions In Parentheses [error]
+## Multiple expressions in parentheses [error]
 
 ```r
 (

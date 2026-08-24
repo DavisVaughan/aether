@@ -17,14 +17,14 @@ foo[[1, 2]]
 foo[[x=1,,y=3,4]]
 ```
 
-## Unsupported Subset2 With `]]` Over Multiple Lines (r-lib/tree-sitter-r#177) [error]
+## Unsupported subset2 with `]]` over multiple lines (r-lib/tree-sitter-r#177) [error]
 
 ```r
 x[["a"]
 ]
 ```
 
-## Empty Subset2 Joins Its `]]`
+## Empty subset2 joins its `]]`
 
 Nothing stands between the `[[` and the `]]`, so the join has to happen on the
 bump of the `[[` itself.
@@ -33,13 +33,13 @@ bump of the `[[` itself.
 x[[]]
 ```
 
-## Side By Side Arguments Still Join The `]]` [error]
+## Side by side arguments still join the `]]` [error]
 
 ```r
 x[[a b]]
 ```
 
-## Lookahead For `=` Survives The `]]` Join
+## Lookahead for `=` survives the `]]` join
 
 Looking one token past an argument name buffers whatever follows it, which for
 `x[[a]]` is the very `]` the next bump has to re-lex into `]]`.
@@ -49,7 +49,7 @@ x[[a = 1]]
 x[[a = x[[b = 1]]]]
 ```
 
-## Subset2 Arguments
+## Subset2 arguments
 
 ```r
 fn

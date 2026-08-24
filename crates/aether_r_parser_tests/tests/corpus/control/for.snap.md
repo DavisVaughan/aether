@@ -270,7 +270,7 @@ RRoot {
 }
 ```
 
-## For No Body [error]
+## For no body [error]
 
 ```r
 for (i in 1:5)
@@ -317,7 +317,7 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │
 ```
 
-## For With Comments
+## For with comments
 
 ```r
 for (i in 1) i
@@ -398,7 +398,7 @@ RRoot {
 }
 ```
 
-## `...` And `..i` As The `for` Variable
+## `...` and `..i` as the `for` variable
 
 Technically allowed!
 
@@ -520,7 +520,7 @@ RRoot {
 }
 ```
 
-## A `for` Variable That Is Not A Name [error]
+## A `for` variable that is not a name [error]
 
 ```r
 for (1 in x) y
@@ -565,7 +565,7 @@ test.R:1:6 parse ━━━━━━━━━━━━━━━━━━━━━
     2 │
 ```
 
-## A `for` With No Variable [error]
+## A `for` with no variable [error]
 
 ```r
 for (in x) y
@@ -606,7 +606,7 @@ test.R:1:6 parse ━━━━━━━━━━━━━━━━━━━━━
     2 │
 ```
 
-## A `for` With No Sequence [error]
+## A `for` with no sequence [error]
 
 ```r
 for (i in) y

@@ -38,7 +38,7 @@ f(..1 = ,)
 f(..1 = ..1)
 ```
 
-## Calls With NULL As Argument Name
+## Calls with NULL as argument name
 
 ```r
 fn(NULL =)
@@ -49,7 +49,7 @@ fn(NULL = 1)
 switch(typeof(x), NULL = this, integer = that)
 ```
 
-## Calls With `return` As Argument Name
+## Calls with `return` as argument name
 
 ```r
 # `return` is not a reserved word in R (it's not in `?Reserved`), so it is
@@ -65,7 +65,7 @@ switch(
 )
 ```
 
-## `return` Is Just An Identifier
+## `return` is just an identifier
 
 ```r
 # `return` is a regular symbol in R, not a keyword (r-lib/tree-sitter-r#189). A `return()`
@@ -88,14 +88,14 @@ switch(foo,
 )
 ```
 
-## Calls With NA As Argument Name [error]
+## Calls with NA as argument name [error]
 
 ```r
 # Unlike `NULL`, other keywords like `NA` aren't allowed here
 fn(NA = )
 ```
 
-## Not A Call, Subset, Or Subset2 [error]
+## Not a call, subset, or subset2 [error]
 
 ```r
 f
@@ -108,7 +108,7 @@ foo
 [[x]]
 ```
 
-## Not A Call, Subset, Or Subset2 Due To Sequential Arguments [error]
+## Not a call, subset, or subset2 due to sequential arguments [error]
 
 ```r
 f(x y)
@@ -124,7 +124,7 @@ foo[, x y]
 foo[[, x y]]
 ```
 
-## Call Arguments
+## Call arguments
 
 ```r
 fn()
@@ -187,14 +187,14 @@ fn(
 return()
 ```
 
-## Side By Side Arguments [error]
+## Side by side arguments [error]
 
 ```r
 fn(a b)
 fn(a b c)
 ```
 
-## An Argument Value That Starts No Expression [error]
+## An argument value that starts no expression [error]
 
 Diagnostic should be about the faulty expression, not a comma
 
@@ -212,7 +212,7 @@ x[* 1]
 x[[* 1]]
 ```
 
-## Closing Delimiter Belonging To Someone Else [error]
+## Closing delimiter belonging to someone else [error]
 
 The argument list ends at any closing delimiter, not just its own, so the `}`
 survives for its owner rather than being eaten as an argument. Nothing was
@@ -227,7 +227,7 @@ fn(}
 fn(a}
 ```
 
-## A Newline Or Comment Between A Name And Its `=`
+## A newline or comment between a name and its `=`
 
 `parse_argument()` looks one token past the name to find the `=`, and that
 lookahead skips trivia to reach it

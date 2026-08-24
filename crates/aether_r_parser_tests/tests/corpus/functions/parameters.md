@@ -1,4 +1,4 @@
-## Functions With `return` As Parameter Name
+## Functions with `return` as parameter name
 
 ```r
 # `return` is not a reserved word in R (it's not in `?Reserved`), so it is
@@ -8,7 +8,7 @@ function(return) return
 function(return = 1) return
 ```
 
-## Function Dots And Dot Dot I
+## Function dots and dot dot i
 
 ```r
 # Dots as parameter without default
@@ -28,7 +28,7 @@ function(x, ...) f(...)
 function(x, ...) ..1 + ..2
 ```
 
-## A Hole In A Parameter List [error]
+## A hole in a parameter list [error]
 
 ```r
 function(a,,b) 1
@@ -36,7 +36,7 @@ function(a,) 1
 function(,) 1
 ```
 
-## A Parameter That Is Not A Name [error]
+## A parameter that is not a name [error]
 
 ```r
 function(1) x
@@ -53,7 +53,7 @@ function(a, 1 = 2, b) x
 function(= 1) x
 ```
 
-## A Missing Comma Between Parameters [error]
+## A missing comma between parameters [error]
 
 A name is a single token, so the token after one may well be another parameter.
 Reporting the separator without consuming anything keeps both potential parameters.
@@ -62,7 +62,7 @@ Reporting the separator without consuming anything keeps both potential paramete
 function(a b) x
 ```
 
-## A Default With No Value [error]
+## A default with no value [error]
 
 The default is required once an `=` is written (r-lib/tree-sitter-r#161).
 
@@ -70,7 +70,7 @@ The default is required once an `=` is written (r-lib/tree-sitter-r#161).
 function(x = ) 1
 ```
 
-## A Parameter List With No Closing Parenthesis [error]
+## A parameter list with no closing parenthesis [error]
 
 The list runs to the end of the file and the `)` is reported missing, leaving
 `RParameters` and the definition around it whole.

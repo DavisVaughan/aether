@@ -380,7 +380,7 @@ RRoot {
 }
 ```
 
-## Scientific Notation Floats
+## Scientific notation floats
 
 ```r
 1e322
@@ -506,7 +506,7 @@ RRoot {
 }
 ```
 
-## Integer Values
+## Integer values
 
 ```r
 1L
@@ -705,7 +705,7 @@ RRoot {
 }
 ```
 
-## Double Values
+## Double values
 
 ```r
 1
@@ -918,7 +918,7 @@ RRoot {
 }
 ```
 
-## Complex Values
+## Complex values
 
 ```r
 1i

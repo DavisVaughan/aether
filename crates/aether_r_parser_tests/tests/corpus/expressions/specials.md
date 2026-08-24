@@ -24,7 +24,7 @@ x |> foo() |> bar() + baz()
 x |> {function(x) x}()
 ```
 
-## Pipe Placeholder
+## Pipe placeholder
 
 ```r
 foo |> bar(x, y = _)

@@ -10,7 +10,7 @@
 # still not a comment'
 ```
 
-## Leading And Trailing Comments
+## Leading and trailing comments
 
 ```r
 # Leading
@@ -18,7 +18,7 @@
 # Leading
 ```
 
-## Multi-byte Unicode In A Comment
+## Multi-byte Unicode in a comment
 
 ```r
 # héllo wörld 日本語 emoji 🎉 comment

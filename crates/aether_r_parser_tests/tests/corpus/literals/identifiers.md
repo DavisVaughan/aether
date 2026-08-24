@@ -26,7 +26,7 @@ __foo
 _foo_
 ```
 
-## Unicode Identifiers
+## Unicode identifiers
 
 ```r
 你好
@@ -34,7 +34,7 @@ _foo_
 .你_好.
 ```
 
-## Invalid Identifiers [error]
+## Invalid identifiers [error]
 
 ```r
 # R does not allow identifiers to start with a `.` followed by a digit, as this
@@ -44,14 +44,14 @@ _foo_
 .1foo
 ```
 
-## Dot Dot I
+## Dot dot i
 
 ```r
 ..1
 ..10
 ```
 
-## Unclosed Backtick [error]
+## Unclosed backtick [error]
 
 ```r
 `\`
@@ -69,7 +69,7 @@ _foo_
 ...()
 ```
 
-## Dot Dot I In Functions And Calls
+## Dot dot i in functions and calls
 
 ```r
 ..1

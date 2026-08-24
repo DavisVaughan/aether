@@ -208,7 +208,7 @@ RRoot {
 }
 ```
 
-## Precedence Tests
+## Precedence tests
 
 ```r
 A$"B"^NA
@@ -279,7 +279,7 @@ RRoot {
 }
 ```
 
-## Complex Expressions
+## Complex expressions
 
 ```r
 repeat if (1) TRUE else repeat 42
@@ -541,7 +541,7 @@ RRoot {
 }
 ```
 
-## Subset and Subset2 Precedence
+## Subset and subset2 precedence
 
 ```r
 a[[b[1]]]

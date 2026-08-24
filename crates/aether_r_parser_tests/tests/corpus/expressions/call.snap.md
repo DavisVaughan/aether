@@ -884,7 +884,7 @@ RRoot {
 }
 ```
 
-## Calls With NULL As Argument Name
+## Calls with NULL as argument name
 
 ```r
 fn(NULL =)
@@ -1038,7 +1038,7 @@ RRoot {
 }
 ```
 
-## Calls With `return` As Argument Name
+## Calls with `return` as argument name
 
 ```r
 # `return` is not a reserved word in R (it's not in `?Reserved`), so it is
@@ -1146,7 +1146,7 @@ RRoot {
 }
 ```
 
-## `return` Is Just An Identifier
+## `return` is just an identifier
 
 ```r
 # `return` is a regular symbol in R, not a keyword (r-lib/tree-sitter-r#189). A `return()`
@@ -1309,7 +1309,7 @@ RRoot {
 }
 ```
 
-## Calls With NA As Argument Name [error]
+## Calls with NA as argument name [error]
 
 ```r
 # Unlike `NULL`, other keywords like `NA` aren't allowed here
@@ -1360,7 +1360,7 @@ test.R:2:9 parse ━━━━━━━━━━━━━━━━━━━━━
     3 │
 ```
 
-## Not A Call, Subset, Or Subset2 [error]
+## Not a call, subset, or subset2 [error]
 
 ```r
 f
@@ -1452,7 +1452,7 @@ test.R:8:1 parse ━━━━━━━━━━━━━━━━━━━━━
     9 │
 ```
 
-## Not A Call, Subset, Or Subset2 Due To Sequential Arguments [error]
+## Not a call, subset, or subset2 due to sequential arguments [error]
 
 ```r
 f(x y)
@@ -1869,7 +1869,7 @@ test.R:11:10 parse ━━━━━━━━━━━━━━━━━━━━�
   i Remove y
 ```
 
-## Call Arguments
+## Call arguments
 
 ```r
 fn()
@@ -2643,7 +2643,7 @@ RRoot {
 }
 ```
 
-## Side By Side Arguments [error]
+## Side by side arguments [error]
 
 ```r
 fn(a b)
@@ -2755,7 +2755,7 @@ test.R:2:8 parse ━━━━━━━━━━━━━━━━━━━━━
   i Remove c
 ```
 
-## An Argument Value That Starts No Expression [error]
+## An argument value that starts no expression [error]
 
 Diagnostic should be about the faulty expression, not a comma
 
@@ -3013,7 +3013,7 @@ test.R:2:4 parse ━━━━━━━━━━━━━━━━━━━━━
     3 │
 ```
 
-## Closing Delimiter Belonging To Someone Else [error]
+## Closing delimiter belonging to someone else [error]
 
 The argument list ends at any closing delimiter, not just its own, so the `}`
 survives for its owner rather than being eaten as an argument. Nothing was
@@ -3119,7 +3119,7 @@ test.R:1:5 parse ━━━━━━━━━━━━━━━━━━━━━
   i Remove }
 ```
 
-## A Newline Or Comment Between A Name And Its `=`
+## A newline or comment between a name and its `=`
 
 `parse_argument()` looks one token past the name to find the `=`, and that
 lookahead skips trivia to reach it

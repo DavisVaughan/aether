@@ -4,13 +4,13 @@
 repeat 1
 ```
 
-## Repeat No Body [error]
+## Repeat no body [error]
 
 ```r
 repeat
 ```
 
-## Repeat With Braces
+## Repeat with braces
 
 ```r
 repeat 1

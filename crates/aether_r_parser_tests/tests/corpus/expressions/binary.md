@@ -12,7 +12,7 @@ a ==
   b
 ```
 
-## Arithmetic Operator
+## Arithmetic operator
 
 ```r
 a + b
@@ -29,14 +29,14 @@ a *
   b
 ```
 
-## Not An Arithmetic Operator
+## Not an arithmetic operator
 
 ```r
 a
   + b
 ```
 
-## Binary Operators
+## Binary operators
 
 ```r
 1 ? 2

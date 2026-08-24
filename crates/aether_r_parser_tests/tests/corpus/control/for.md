@@ -23,13 +23,13 @@ for (... in 1:2) print(get("..."))
 for (..1 in 1:2) print(get("..1"))
 ```
 
-## For No Body [error]
+## For no body [error]
 
 ```r
 for (i in 1:5)
 ```
 
-## For With Comments
+## For with comments
 
 ```r
 for (i in 1) i
@@ -47,7 +47,7 @@ for # dangling1
   a
 ```
 
-## `...` And `..i` As The `for` Variable
+## `...` and `..i` as the `for` variable
 
 Technically allowed!
 
@@ -56,19 +56,19 @@ for (... in 1:2) print(get("..."))
 for (..1 in 1:2) print(get("..1"))
 ```
 
-## A `for` Variable That Is Not A Name [error]
+## A `for` variable that is not a name [error]
 
 ```r
 for (1 in x) y
 ```
 
-## A `for` With No Variable [error]
+## A `for` with no variable [error]
 
 ```r
 for (in x) y
 ```
 
-## A `for` With No Sequence [error]
+## A `for` with no sequence [error]
 
 ```r
 for (i in) y

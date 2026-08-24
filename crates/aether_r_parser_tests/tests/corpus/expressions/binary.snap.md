@@ -107,7 +107,7 @@ RRoot {
 }
 ```
 
-## Arithmetic Operator
+## Arithmetic operator
 
 ```r
 a + b
@@ -229,7 +229,7 @@ RRoot {
 }
 ```
 
-## Not An Arithmetic Operator
+## Not an arithmetic operator
 
 ```r
 a
@@ -260,7 +260,7 @@ RRoot {
 }
 ```
 
-## Binary Operators
+## Binary operators
 
 ```r
 1 ? 2

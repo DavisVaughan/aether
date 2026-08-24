@@ -381,7 +381,7 @@ RRoot {
 }
 ```
 
-## Nested Brackets
+## Nested brackets
 
 ```r
 x[a[b]]
@@ -584,7 +584,7 @@ RRoot {
 }
 ```
 
-## Subset Arguments
+## Subset arguments
 
 ```r
 fn
