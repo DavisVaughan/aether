@@ -17,3 +17,10 @@
 1 + 1 # Trailing
 # Leading
 ```
+
+## Multi-byte Unicode In A Comment
+
+```r
+# héllo wörld 日本語 emoji 🎉 comment
+1
+```

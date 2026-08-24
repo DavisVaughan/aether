@@ -1,14 +1,14 @@
 # Aether: parser performance
 
-**Three measured optimizations, none of them applied yet, and where to look next.**
+**Two measured optimizations, neither applied yet, and where to look next.**
 
 This document is written for a Claude session picking this up cold. It records
 what was measured, what was tried and rejected, and the exact changes to make,
 so that none of it has to be rediscovered.
 
-**Nothing in sections 1–3 is in the tree.** Each was written, measured, and then
+**Nothing in sections 1–2 is in the tree.** Each was written, measured, and then
 reverted; this document is the only surviving record. Apply them in any order,
-they are independent. The combined effect is measured in section 6.
+they are independent. The combined effect is measured in section 5.
 
 ---
 
@@ -30,7 +30,7 @@ throwaway harness that was deleted afterwards. To reproduce, build one that:
    medians — run-to-run variance is about 1%, so anything under ~2% is noise.
 
 dplyr is a good corpus for R specifically because **49% of its bytes are comment
-text** (roxygen). Any corpus without that property will under-value section 2.
+text** (roxygen).
 
 ### The number that matters most
 
@@ -103,64 +103,7 @@ the debug profile so this is mostly invisible, but if it becomes annoying,
 
 ---
 
-## 2. Scan comments as raw bytes
-
-**Expected: 6.2% faster lexing, ~1.3% faster overall.**
-
-### Why
-
-`consume_comment` walked one byte at a time through
-`biome_parser::lexer::Lexer::advance_byte_or_char`, which branches on
-`is_ascii()` and UTF-8-decodes anything non-ASCII. With 49% of real R source
-being roxygen, this is the hottest loop in the lexer.
-
-The correctness argument for the rewrite: a line break byte (`0x0A`, `0x0D`) can
-never appear inside a multi-byte UTF-8 sequence, because every byte of such a
-sequence has its high bit set. So scanning raw bytes cannot split a character,
-and the resulting `position` is always on a character boundary.
-
-### The change
-
-In `crates/aether_r_parser/src/lexer.rs`, replace the body of
-`RLexer::consume_comment`:
-
-```rust
-    /// `#` to the end of the line, exclusive of the line break itself
-    fn consume_comment(&mut self) -> RSyntaxKind {
-        self.assert_byte(b'#');
-        self.advance(1);
-
-        // A line break byte can never be part of a multi-byte UTF-8 sequence,
-        // so scanning raw bytes can't split a character
-        let rest = &self.source.as_bytes()[self.position..];
-        let len = rest
-            .iter()
-            .position(|byte| matches!(byte, b'\n' | b'\r'))
-            .unwrap_or(rest.len());
-        self.advance(len);
-
-        COMMENT
-    }
-```
-
-The loop it replaces was:
-
-```rust
-        while let Some(byte) = self.current_byte() {
-            if matches!(byte, b'\n' | b'\r') {
-                break;
-            }
-            self.advance_byte_or_char(byte);
-        }
-```
-
-### Measured
-
-Lex-only time across the corpus: **1.42 ms to 1.33 ms**.
-
----
-
-## 3. Pre-size the trivia buffer
+## 2. Pre-size the trivia buffer
 
 **Expected: ~1% faster overall.**
 
@@ -198,7 +141,7 @@ place where a pathological input does strictly more work than before.
 
 ---
 
-## 4. Tried and rejected
+## 3. Tried and rejected
 
 Both of these looked plausible and are worth *not* retrying.
 
@@ -223,13 +166,14 @@ confirm against end-to-end parse time.
 
 ### Byte-scanning whitespace
 
-The exact transformation from section 2, applied to `consume_whitespaces`, is a
-wash (6.57 ms to 6.64 ms — noise, trending worse). Whitespace runs are 2–4 bytes
-of indentation, so building the slice costs more than the loop it replaces.
+The same raw-byte scan used for comment scanning, applied instead to
+`consume_whitespaces`, is a wash (6.57 ms to 6.64 ms — noise, trending worse).
+Whitespace runs are 2–4 bytes of indentation, so building the slice costs more
+than the loop it replaces.
 
 ---
 
-## 5. Where to look next
+## 4. Where to look next
 
 Ranked by expected value.
 
@@ -246,7 +190,7 @@ Ranked by expected value.
    the sheer malloc share suggests an arena or a bump allocator for the
    transient buffers is worth an experiment.
 
-3. **`ParserContext::events`**, same problem as section 3 and same blocker: it
+3. **`ParserContext::events`**, same problem as section 2 and same blocker: it
    needs a capacity constructor upstream. At 0.357 events per byte it is the
    densest buffer in the pipeline.
 
@@ -257,7 +201,7 @@ Ranked by expected value.
 
 ---
 
-## 6. Verification and combined result
+## 5. Verification and combined result
 
 All three changes were applied together, measured, verified, and then reverted.
 Re-applying them should reproduce this.
@@ -279,5 +223,5 @@ Any change here must hold the invariants in `CLAUDE.md`. The checks used were:
   (`parse(src).syntax().to_string() == src`), zero diagnostics, and
   `aether_r_oracle::compare` returning `Match` against air's tree. All three
   were 106/106 both before and after, which is what establishes that the
-  comment rewrite in section 2 preserves invariant 1 and tree-shape parity on
+  comment-scanning rewrite preserves invariant 1 and tree-shape parity on
   real-world code.
