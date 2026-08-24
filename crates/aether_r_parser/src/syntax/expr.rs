@@ -19,6 +19,7 @@ use aether_r_syntax::RSyntaxKind::*;
 use aether_r_syntax::{AnyRSelector, T};
 use biome_parser::CompletedMarker;
 use biome_parser::Parser;
+use biome_parser::ParserProgress;
 use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
 use biome_rowan::AstNode;
 
@@ -191,7 +192,11 @@ fn parse_expression_with_binding_power(
         _ => return Absent,
     };
 
+    let mut progress = ParserProgress::default();
+
     loop {
+        progress.assert_progressing(p);
+
         if p.scope().newlines_are_significant() && p.has_preceding_line_break() {
             break;
         }

@@ -2756,6 +2756,57 @@ dedicated pass:
   (`crates/air_r_formatter/tests/**`) as a smoke test, asserting no panic and
   round-trip fidelity. This is cheap and catches a surprising amount.
 
+**A first pass landed the mechanical half of this list**, and found that the
+`T![;]` half of the first bullet is actively wrong for the three recovery sets
+that existed at the time: `parse_argument_value`'s `ARGUMENT_LIST_BOUNDARIES`
+(§11.3), `parse_parameter_name`'s `PARAMETER_LIST_BOUNDARIES`, and
+`parse_for_variable`'s `FOR_VARIABLE_ENDS`. All three sit inside
+`Scope::Parenthesis`/`Bracket`/`Bracket2`, where `;` is not a boundary the
+enclosing construct recognizes — it is just another unexpected token, and the
+existing (semicolon-free) recovery set already swallows it correctly by
+running to the next real boundary. Adding `T![;]` to any of them was tried and
+reverted after confirming empirically (`f(;)`, `function(;) 1`) that it makes
+`ParseRecoveryTokenSet::recover()` see the semicolon as already-recovered
+before consuming it, so the caller's list loop retries the same unconsumed
+token forever and `ParserProgress::assert_progressing` panics: *"The parser is
+no longer progressing. Stuck at ';'."* `enable_recovery_on_line_break()` was
+confirmed correctly absent already, since `Scope::newlines_are_significant()`
+is `false` for all three scopes. Neither part of the first bullet has a safe
+change to make against the current recovery sites; it's here as a recorded
+finding, not a TODO.
+
+The list-loop audit (second bullet) found no leaks — every list loop in
+`syntax/*.rs` has exactly one exit condition, confirming the §11.3 fix holds.
+The one style outlier was `parse_statement_list`'s inner bogus-token loop,
+which used a hand-rolled sweep instead of `ParseRecoveryTokenSet`; it keeps
+the hand-rolled shape (the shared helper's `enable_recovery_on_line_break()`
+checks for a leading line break *before* consuming anything, but this loop's
+invariant is "consume the offending token unconditionally, then stop at the
+next boundary," which the helper can't express), but now reports its
+diagnostic after the sweep, over the completed bogus node's range, matching
+`or_recover_with_token_set`'s convention rather than pointing at just the
+first swallowed token. That was also the only diagnostic-placement fix needed
+for the third bullet — the three token-set-backed sites already got the
+after-recovery range for free from `or_recover_with_token_set`.
+
+`ParserProgress` guards (fourth bullet) were added to that same inner loop and
+to the Pratt operator loop in `expr.rs`; both were already safe by
+construction (every path through them bumps at least one token) but were the
+only two unbounded loops in the parser without a guard.
+
+The fifth bullet (a smoke test against air's own `.R` corpus) was run by hand
+against the 42 files under `crates/air_r_formatter/tests/**` — no panics, full
+round-trip fidelity — but was not wired into `just test`, since air is a
+sibling checkout at a path nothing in this repo can assume. Automating it
+needs a decision on how the corpus is located (env var, vendored copy, etc.)
+before it can land.
+
+While reviewing wording, `if` and `else` bodies were the one clear gap:
+`for`/`while`/`repeat` get `expected_loop_body` and `function` gets
+`expected_function_body`, but the `if` consequence and `else` clause fell back
+to the generic `expected_expression`. They now have `expected_if_body` and
+`expected_else_body`.
+
 ### 12.2 Performance
 
 Only measure once correctness is done. A hand-written parser should be

@@ -65,8 +65,6 @@ fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
                         }
                     }
                     Absent => {
-                        p.error(diagnostics::expected_expression(p, p.cur_range()));
-
                         // Consume everything until next statement separator as
                         // bogus, and always at least one token so that the
                         // statement list keeps progressing
@@ -79,7 +77,8 @@ fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
                         {
                             p.bump_any();
                         }
-                        bogus.complete(p, R_BOGUS_EXPRESSION);
+                        let bogus = bogus.complete(p, R_BOGUS_EXPRESSION);
+                        p.error(diagnostics::expected_expression(p, bogus.range(p)));
                     }
                 }
 

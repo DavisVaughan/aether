@@ -1442,11 +1442,11 @@ RRoot {
 ```diagnostics
 test.R:5:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an expression but instead found '['.
+  × Expected an expression but instead found '[bar]'.
 
     4 │ foo
   > 5 │ [bar]
-      │ ^
+      │ ^^^^^
     6 │
     7 │ foo
 
@@ -1454,24 +1454,24 @@ test.R:5:1 parse ━━━━━━━━━━━━━━━━━━━━━
 
     4 │ foo
   > 5 │ [bar]
-      │ ^
+      │ ^^^^^
     6 │
     7 │ foo
 
 test.R:8:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an expression but instead found '[['.
+  × Expected an expression but instead found '[[x]]'.
 
     7 │ foo
   > 8 │ [[x]]
-      │ ^^
+      │ ^^^^^
     9 │
 
   i Expected an expression here.
 
     7 │ foo
   > 8 │ [[x]]
-      │ ^^
+      │ ^^^^^
     9 │
 ```
 
