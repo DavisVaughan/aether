@@ -2,7 +2,7 @@
 
 ```r
 # `return` is not a reserved word in R (it's not in `?Reserved`), so it is
-# allowed as a parameter name (#189).
+# allowed as a parameter name (r-lib/tree-sitter-r#189).
 
 function(return) return
 function(return = 1) return

@@ -290,7 +290,7 @@ file   = "expressions/subset2.md"
 
 [[imported]]
 source = "tree-sitter-r/test/corpus/expressions-errors.txt"
-name   = "Unsupported Subset2 With `]]` Over Multiple Lines (#177)"
+name   = "Unsupported Subset2 With `]]` Over Multiple Lines (r-lib/tree-sitter-r#177)"
 file   = "expressions/subset2.md"
 
 [[imported]]
@@ -480,12 +480,12 @@ file   = "control/if.md"
 
 [[imported]]
 source = "tree-sitter-r/test/corpus/expressions.txt"
-name   = "Identifiers starting with `else` that are not the `else` keyword (#200)"
+name   = "Identifiers starting with `else` that are not the `else` keyword (r-lib/tree-sitter-r#200)"
 file   = "control/if.md"
 
 [[imported]]
 source = "tree-sitter-r/test/corpus/expressions.txt"
-name   = "Identifiers starting with `else` that are not the `else` keyword - 2 (#200)"
+name   = "Identifiers starting with `else` that are not the `else` keyword - 2 (r-lib/tree-sitter-r#200)"
 file   = "control/if.md"
 
 [[imported]]

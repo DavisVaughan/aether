@@ -17,7 +17,7 @@ foo[[1, 2]]
 foo[[x=1,,y=3,4]]
 ```
 
-## Unsupported Subset2 With `]]` Over Multiple Lines (#177) [error]
+## Unsupported Subset2 With `]]` Over Multiple Lines (r-lib/tree-sitter-r#177) [error]
 
 ```r
 x[["a"]

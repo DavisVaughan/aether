@@ -1043,7 +1043,7 @@ RRoot {
 
 ```r
 # `return` is not a reserved word in R (it's not in `?Reserved`), so it is
-# allowed as an argument name (#189).
+# allowed as an argument name (r-lib/tree-sitter-r#189).
 
 fn(return = TRUE)
 fn(return = )
@@ -1062,24 +1062,24 @@ RRoot {
         RStatement {
             expression: RCall {
                 function: RIdentifier {
-                    name_token: IDENT@0..116 "fn" [Comments("# `return` is not a r ..."), Newline("\n"), Comments("# allowed as an argum ..."), Newline("\n"), Newline("\n")] [],
+                    name_token: IDENT@0..135 "fn" [Comments("# `return` is not a r ..."), Newline("\n"), Comments("# allowed as an argum ..."), Newline("\n"), Newline("\n")] [],
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@116..117 "(" [] [],
+                    l_paren_token: L_PAREN@135..136 "(" [] [],
                     items: RArgumentList [
                         RArgument {
                             name_clause: RArgumentNameClause {
                                 name: RIdentifier {
-                                    name_token: IDENT@117..124 "return" [] [Whitespace(" ")],
+                                    name_token: IDENT@136..143 "return" [] [Whitespace(" ")],
                                 },
-                                eq_token: EQUAL@124..126 "=" [] [Whitespace(" ")],
+                                eq_token: EQUAL@143..145 "=" [] [Whitespace(" ")],
                             },
                             value: RTrueExpression {
-                                true_token: TRUE_KW@126..130 "TRUE" [] [],
+                                true_token: TRUE_KW@145..149 "TRUE" [] [],
                             },
                         },
                     ],
-                    r_paren_token: R_PAREN@130..131 ")" [] [],
+                    r_paren_token: R_PAREN@149..150 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
@@ -1087,22 +1087,22 @@ RRoot {
         RStatement {
             expression: RCall {
                 function: RIdentifier {
-                    name_token: IDENT@131..134 "fn" [Newline("\n")] [],
+                    name_token: IDENT@150..153 "fn" [Newline("\n")] [],
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@134..135 "(" [] [],
+                    l_paren_token: L_PAREN@153..154 "(" [] [],
                     items: RArgumentList [
                         RArgument {
                             name_clause: RArgumentNameClause {
                                 name: RIdentifier {
-                                    name_token: IDENT@135..142 "return" [] [Whitespace(" ")],
+                                    name_token: IDENT@154..161 "return" [] [Whitespace(" ")],
                                 },
-                                eq_token: EQUAL@142..144 "=" [] [Whitespace(" ")],
+                                eq_token: EQUAL@161..163 "=" [] [Whitespace(" ")],
                             },
                             value: missing (optional),
                         },
                     ],
-                    r_paren_token: R_PAREN@144..145 ")" [] [],
+                    r_paren_token: R_PAREN@163..164 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
@@ -1110,47 +1110,47 @@ RRoot {
         RStatement {
             expression: RCall {
                 function: RIdentifier {
-                    name_token: IDENT@145..186 "switch" [Newline("\n"), Newline("\n"), Comments("# One specific exampl ..."), Newline("\n")] [],
+                    name_token: IDENT@164..205 "switch" [Newline("\n"), Newline("\n"), Comments("# One specific exampl ..."), Newline("\n")] [],
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@186..187 "(" [] [],
+                    l_paren_token: L_PAREN@205..206 "(" [] [],
                     items: RArgumentList [
                         RArgument {
                             name_clause: missing (optional),
                             value: RIdentifier {
-                                name_token: IDENT@187..191 "x" [Newline("\n"), Whitespace("  ")] [],
+                                name_token: IDENT@206..210 "x" [Newline("\n"), Whitespace("  ")] [],
                             },
                         },
-                        COMMA@191..192 "," [] [],
+                        COMMA@210..211 "," [] [],
                         RArgument {
                             name_clause: RArgumentNameClause {
                                 name: RIdentifier {
-                                    name_token: IDENT@192..202 "return" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                                    name_token: IDENT@211..221 "return" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                                 },
-                                eq_token: EQUAL@202..204 "=" [] [Whitespace(" ")],
+                                eq_token: EQUAL@221..223 "=" [] [Whitespace(" ")],
                             },
                             value: missing (optional),
                         },
-                        COMMA@204..205 "," [] [],
+                        COMMA@223..224 "," [] [],
                         RArgument {
                             name_clause: missing (optional),
                             value: missing (optional),
                         },
                     ],
-                    r_paren_token: R_PAREN@205..207 ")" [Newline("\n")] [],
+                    r_paren_token: R_PAREN@224..226 ")" [Newline("\n")] [],
                 },
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@207..208 "" [Newline("\n")] [],
+    eof_token: EOF@226..227 "" [Newline("\n")] [],
 }
 ```
 
 ## `return` Is Just An Identifier
 
 ```r
-# `return` is a regular symbol in R, not a keyword (#189). A `return()`
+# `return` is a regular symbol in R, not a keyword (r-lib/tree-sitter-r#189). A `return()`
 # call is parsed the same as any other call, with `return` as the
 # identifier. A bare `return` is also parsed as an identifier.
 
@@ -1165,34 +1165,34 @@ RRoot {
     statements: RStatementList [
         RStatement {
             expression: RFunctionDefinition {
-                name: FUNCTION_KW@0..210 "function" [Comments("# `return` is a regul ..."), Newline("\n"), Comments("# call is parsed the  ..."), Newline("\n"), Comments("# identifier. A bare  ..."), Newline("\n"), Newline("\n")] [],
+                name: FUNCTION_KW@0..229 "function" [Comments("# `return` is a regul ..."), Newline("\n"), Comments("# call is parsed the  ..."), Newline("\n"), Comments("# identifier. A bare  ..."), Newline("\n"), Newline("\n")] [],
                 parameters: RParameters {
-                    l_paren_token: L_PAREN@210..211 "(" [] [],
+                    l_paren_token: L_PAREN@229..230 "(" [] [],
                     items: RParameterList [
                         RParameter {
                             name: RIdentifier {
-                                name_token: IDENT@211..212 "x" [] [],
+                                name_token: IDENT@230..231 "x" [] [],
                             },
                             default: missing (optional),
                         },
                     ],
-                    r_paren_token: R_PAREN@212..214 ")" [] [Whitespace(" ")],
+                    r_paren_token: R_PAREN@231..233 ")" [] [Whitespace(" ")],
                 },
                 body: RCall {
                     function: RIdentifier {
-                        name_token: IDENT@214..220 "return" [] [],
+                        name_token: IDENT@233..239 "return" [] [],
                     },
                     arguments: RCallArguments {
-                        l_paren_token: L_PAREN@220..221 "(" [] [],
+                        l_paren_token: L_PAREN@239..240 "(" [] [],
                         items: RArgumentList [
                             RArgument {
                                 name_clause: missing (optional),
                                 value: RIdentifier {
-                                    name_token: IDENT@221..222 "x" [] [],
+                                    name_token: IDENT@240..241 "x" [] [],
                                 },
                             },
                         ],
-                        r_paren_token: R_PAREN@222..223 ")" [] [],
+                        r_paren_token: R_PAREN@241..242 ")" [] [],
                     },
                 },
             },
@@ -1201,31 +1201,31 @@ RRoot {
         RStatement {
             expression: RCall {
                 function: RIdentifier {
-                    name_token: IDENT@223..230 "return" [Newline("\n")] [],
+                    name_token: IDENT@242..249 "return" [Newline("\n")] [],
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@230..231 "(" [] [],
+                    l_paren_token: L_PAREN@249..250 "(" [] [],
                     items: RArgumentList [
                         RArgument {
                             name_clause: missing (optional),
                             value: RIdentifier {
-                                name_token: IDENT@231..232 "x" [] [],
+                                name_token: IDENT@250..251 "x" [] [],
                             },
                         },
                     ],
-                    r_paren_token: R_PAREN@232..233 ")" [] [],
+                    r_paren_token: R_PAREN@251..252 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RIdentifier {
-                name_token: IDENT@233..240 "return" [Newline("\n")] [],
+                name_token: IDENT@252..259 "return" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@240..241 "" [Newline("\n")] [],
+    eof_token: EOF@259..260 "" [Newline("\n")] [],
 }
 ```
 

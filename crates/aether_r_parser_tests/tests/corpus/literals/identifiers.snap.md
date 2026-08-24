@@ -23,7 +23,7 @@ literal \` foo`
 `\``
 # Pipe placeholder
 _
-# Recognized as a single `_foo` identifier, even if invalid R code (#71).
+# Recognized as a single `_foo` identifier, even if invalid R code (r-lib/tree-sitter-r#71).
 _foo
 __foo
 _foo_
@@ -131,24 +131,24 @@ RRoot {
         },
         RStatement {
             expression: RIdentifier {
-                name_token: IDENT@168..247 "_foo" [Newline("\n"), Comments("# Recognized as a sin ..."), Newline("\n")] [],
+                name_token: IDENT@168..266 "_foo" [Newline("\n"), Comments("# Recognized as a sin ..."), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RIdentifier {
-                name_token: IDENT@247..253 "__foo" [Newline("\n")] [],
+                name_token: IDENT@266..272 "__foo" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RIdentifier {
-                name_token: IDENT@253..259 "_foo_" [Newline("\n")] [],
+                name_token: IDENT@272..278 "_foo_" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@259..260 "" [Newline("\n")] [],
+    eof_token: EOF@278..279 "" [Newline("\n")] [],
 }
 ```
 
@@ -193,7 +193,7 @@ RRoot {
 # R does not allow identifiers to start with a `.` followed by a digit, as this
 # would cause ambiguity with `.1L` and `.1i`. R itself rejects this as a syntax
 # error, we currently parse this as `.1` followed by `foo`, just like we do with
-# `1foo` (#190).
+# `1foo` (r-lib/tree-sitter-r#190).
 .1foo
 ```
 
@@ -203,18 +203,18 @@ RRoot {
     statements: RStatementList [
         RStatement {
             expression: RDoubleValue {
-                value_token: R_DOUBLE_LITERAL@0..260 ".1" [Comments("# R does not allow id ..."), Newline("\n"), Comments("# would cause ambigui ..."), Newline("\n"), Comments("# error, we currently ..."), Newline("\n"), Comments("# `1foo` (#190)."), Newline("\n")] [],
+                value_token: R_DOUBLE_LITERAL@0..279 ".1" [Comments("# R does not allow id ..."), Newline("\n"), Comments("# would cause ambigui ..."), Newline("\n"), Comments("# error, we currently ..."), Newline("\n"), Comments("# `1foo` (r-lib/tree- ..."), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RIdentifier {
-                name_token: IDENT@260..263 "foo" [] [],
+                name_token: IDENT@279..282 "foo" [] [],
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@263..264 "" [Newline("\n")] [],
+    eof_token: EOF@282..283 "" [Newline("\n")] [],
 }
 ```
 
@@ -224,7 +224,7 @@ test.R:5:3 parse ━━━━━━━━━━━━━━━━━━━━━
   × Expected a newline or a `;` between two expressions.
 
     3 │ # error, we currently parse this as `.1` followed by `foo`, just like we do with
-    4 │ # `1foo` (#190).
+    4 │ # `1foo` (r-lib/tree-sitter-r#190).
   > 5 │ .1foo
       │   ^^^
     6 │
@@ -232,7 +232,7 @@ test.R:5:3 parse ━━━━━━━━━━━━━━━━━━━━━
   i The first expression ends here.
 
     3 │ # error, we currently parse this as `.1` followed by `foo`, just like we do with
-    4 │ # `1foo` (#190).
+    4 │ # `1foo` (r-lib/tree-sitter-r#190).
   > 5 │ .1foo
       │ ^^
     6 │

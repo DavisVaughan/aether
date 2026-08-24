@@ -20,7 +20,7 @@ literal \` foo`
 `\``
 # Pipe placeholder
 _
-# Recognized as a single `_foo` identifier, even if invalid R code (#71).
+# Recognized as a single `_foo` identifier, even if invalid R code (r-lib/tree-sitter-r#71).
 _foo
 __foo
 _foo_
@@ -40,7 +40,7 @@ _foo_
 # R does not allow identifiers to start with a `.` followed by a digit, as this
 # would cause ambiguity with `.1L` and `.1i`. R itself rejects this as a syntax
 # error, we currently parse this as `.1` followed by `foo`, just like we do with
-# `1foo` (#190).
+# `1foo` (r-lib/tree-sitter-r#190).
 .1foo
 ```
 

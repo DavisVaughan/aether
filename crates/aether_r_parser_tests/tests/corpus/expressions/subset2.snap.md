@@ -410,7 +410,7 @@ RRoot {
 }
 ```
 
-## Unsupported Subset2 With `]]` Over Multiple Lines (#177) [error]
+## Unsupported Subset2 With `]]` Over Multiple Lines (r-lib/tree-sitter-r#177) [error]
 
 ```r
 x[["a"]

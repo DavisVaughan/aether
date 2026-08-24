@@ -53,7 +53,7 @@ switch(typeof(x), NULL = this, integer = that)
 
 ```r
 # `return` is not a reserved word in R (it's not in `?Reserved`), so it is
-# allowed as an argument name (#189).
+# allowed as an argument name (r-lib/tree-sitter-r#189).
 
 fn(return = TRUE)
 fn(return = )
@@ -68,7 +68,7 @@ switch(
 ## `return` Is Just An Identifier
 
 ```r
-# `return` is a regular symbol in R, not a keyword (#189). A `return()`
+# `return` is a regular symbol in R, not a keyword (r-lib/tree-sitter-r#189). A `return()`
 # call is parsed the same as any other call, with `return` as the
 # identifier. A bare `return` is also parsed as an identifier.
 

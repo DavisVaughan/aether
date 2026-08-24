@@ -5,7 +5,7 @@
 
 ```r
 # `return` is not a reserved word in R (it's not in `?Reserved`), so it is
-# allowed as a parameter name (#189).
+# allowed as a parameter name (r-lib/tree-sitter-r#189).
 
 function(return) return
 function(return = 1) return
@@ -17,53 +17,53 @@ RRoot {
     statements: RStatementList [
         RStatement {
             expression: RFunctionDefinition {
-                name: FUNCTION_KW@0..122 "function" [Comments("# `return` is not a r ..."), Newline("\n"), Comments("# allowed as a parame ..."), Newline("\n"), Newline("\n")] [],
+                name: FUNCTION_KW@0..141 "function" [Comments("# `return` is not a r ..."), Newline("\n"), Comments("# allowed as a parame ..."), Newline("\n"), Newline("\n")] [],
                 parameters: RParameters {
-                    l_paren_token: L_PAREN@122..123 "(" [] [],
+                    l_paren_token: L_PAREN@141..142 "(" [] [],
                     items: RParameterList [
                         RParameter {
                             name: RIdentifier {
-                                name_token: IDENT@123..129 "return" [] [],
+                                name_token: IDENT@142..148 "return" [] [],
                             },
                             default: missing (optional),
                         },
                     ],
-                    r_paren_token: R_PAREN@129..131 ")" [] [Whitespace(" ")],
+                    r_paren_token: R_PAREN@148..150 ")" [] [Whitespace(" ")],
                 },
                 body: RIdentifier {
-                    name_token: IDENT@131..137 "return" [] [],
+                    name_token: IDENT@150..156 "return" [] [],
                 },
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RFunctionDefinition {
-                name: FUNCTION_KW@137..146 "function" [Newline("\n")] [],
+                name: FUNCTION_KW@156..165 "function" [Newline("\n")] [],
                 parameters: RParameters {
-                    l_paren_token: L_PAREN@146..147 "(" [] [],
+                    l_paren_token: L_PAREN@165..166 "(" [] [],
                     items: RParameterList [
                         RParameter {
                             name: RIdentifier {
-                                name_token: IDENT@147..154 "return" [] [Whitespace(" ")],
+                                name_token: IDENT@166..173 "return" [] [Whitespace(" ")],
                             },
                             default: RParameterDefault {
-                                eq_token: EQUAL@154..156 "=" [] [Whitespace(" ")],
+                                eq_token: EQUAL@173..175 "=" [] [Whitespace(" ")],
                                 value: RDoubleValue {
-                                    value_token: R_DOUBLE_LITERAL@156..157 "1" [] [],
+                                    value_token: R_DOUBLE_LITERAL@175..176 "1" [] [],
                                 },
                             },
                         },
                     ],
-                    r_paren_token: R_PAREN@157..159 ")" [] [Whitespace(" ")],
+                    r_paren_token: R_PAREN@176..178 ")" [] [Whitespace(" ")],
                 },
                 body: RIdentifier {
-                    name_token: IDENT@159..165 "return" [] [],
+                    name_token: IDENT@178..184 "return" [] [],
                 },
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@165..166 "" [Newline("\n")] [],
+    eof_token: EOF@184..185 "" [Newline("\n")] [],
 }
 ```
 
