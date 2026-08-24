@@ -1674,11 +1674,12 @@ stops at every one of them; `p.expect(close)` in the caller is the only place th
 knows which was expected, and it reports the difference. A list that cannot name
 its terminator cannot leak it either — eating one that belongs to an enclosing
 construct would strip it of its terminator and turn one error into a cascade, the
-same rule as `a$)` in §11.4. `parse_statement_list` (§11.7) takes the same shape,
-a bare `close` and a const recovery set, for the same reason. An argument list
-stopping at a foreign closer costs it its own terminator, and `fn(}` in
-`expressions/call.md` pins the shape: an empty `RArgumentList`, a missing `)`, and
-the `}` surviving as a statement of its own.
+same rule as `a$)` in §11.4. `parse_statement_list` (§11.7) takes the same bare
+`close` but not the rest of the rule: the only closers it can meet are `EOF` and
+its own `}`, and nothing encloses either, so it stops at `close` alone. An
+argument list stopping at a foreign closer costs it its own terminator, and `fn(}`
+in `expressions/call.md` pins the shape: an empty `RArgumentList`, a missing `)`,
+and the `}` surviving as a statement of its own.
 
 **The join was first written into the argument list's terminator check, and that
 was wrong.** Worth recording, because the reasoning that put it there is
@@ -2532,162 +2533,178 @@ condition; `for` spells out its variable and its sequence; all three loops share
 `expected_expression`, since an `if` calls neither of its bodies anything. `repeat`
 has no header at all, so it reaches only the loop body.
 
-### 11.7 Phase 13 — Blocks, statement lists, semicolons
+### 11.7 Phase 13 — Blocks, statement lists, semicolons — LANDED
 
-`src/syntax/statement_list.rs`. This lands the semicolon deviation.
-
-**What landed in Phase 7 is simpler than the body below.** Its recovery branch
-consumes exactly one token into an `R_BOGUS_EXPRESSION` instead of running
-`ParseRecoveryTokenSet`, so a run of junk becomes one bogus statement per token
-rather than one per run. That is the shape Biome deprecated:
-`SingleTokenParseRecovery` lives in `biome_js_parser` rather than the shared
-crate, is marked `#[deprecated]`, and survives at a single call site. Replacing
-it with the version below — recovery set, `enable_recovery_on_line_break()`, and
-all — is part of this phase, not a refactor to schedule separately. Read the body
-below as a diff against the landed `parse_statement_list`, not as a fresh
-function. Its marker names and its `expression.range(p)` as the separator
-diagnostic's first range are already right and stay as they are; what does change
-is the landed `match` on `parse_expression`, which becomes an `Option`, because
-the `;` has to be eaten after either branch rather than inside one.
+`src/syntax/statement_list.rs`, which ends up holding `parse_root`,
+`parse_braced_statements`, and `parse_statement_list` together: the file and a
+braced block are the only two things that carry a statement list, so both live
+beside it. This lands the semicolon deviation.
 
 ```rust
-fn parse_braced_statements(p: &mut RParser) -> ParsedSyntax {
-    debug_assert!(p.at(T!['{']));
-
+pub(crate) fn parse_braced_statements(p: &mut RParser) -> CompletedMarker {
     let m = p.start();
-    // The one scope that makes newlines significant *again* from inside a
-    // paren: `f({\n  a\n  b\n})` is three statements, not one.
     p.with_scope(Scope::Brace, |p| {
         p.bump(T!['{']);
-        parse_statement_list(p, T!['}'])
+        parse_statement_list(p, T!['}']);
     });
     p.expect(T!['}']);
-    Present(m.complete(p, R_BRACED_STATEMENTS))
-}
-
-/// Tokens a failed statement may resynchronise on: the statement separator, the
-/// `}` of a braced block, and EOF as the universal backstop. Listed whether or
-/// not this particular list is the one a `}` closes, for the reason §11.3 gives:
-/// a closer that belongs to someone else must survive to reach them.
-const STATEMENT_LIST_RECOVERY_SET: TokenSet<RSyntaxKind> = token_set![T![;], T![EOF], T!['}']];
-
-fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
-    let statement_list = p.start();
-    let mut progress = ParserProgress::default();
-
-    while !p.at(T![EOF]) && !p.at(close) {
-        progress.assert_progressing(p);
-
-        let statement = p.start();
-        let expression = parse_expression(p).ok();
-
-        if expression.is_none() && !p.at(T![;]) {
-            // Nothing here starts an expression. Recover INSIDE the statement,
-            // so the bogus node fills the `expression` slot rather than becoming
-            // a stray child of `R_STATEMENT_LIST` — that list is `RStatement*`
-            // and `slot_to_node` panics on anything else (§7).
-            //
-            // `R_BOGUS_EXPRESSION` is the right kind because `AnyRExpression`
-            // already carries an `RBogusExpression` variant, so it casts into the
-            // `expression` slot unchanged. Note air's `R_EXPRESSION_LIST` accepts
-            // bogus expressions as DIRECT children (its factory arm is
-            // `make_node_list_syntax(kind, children, AnyRExpression::can_cast)`);
-            // aether's `R_STATEMENT_LIST` will not, which is exactly why the
-            // marker has to wrap the recovery.
-            let range = p.cur_range();
-            let recovered =
-                ParseRecoveryTokenSet::new(R_BOGUS_EXPRESSION, STATEMENT_LIST_RECOVERY_SET)
-                .enable_recovery_on_line_break()
-                .recover(p);
-
-            if recovered.is_err() {
-                // Already at a recovery token with nothing consumed: abandon the
-                // empty statement rather than completing a childless
-                // `R_STATEMENT`, which `r.ungram` says is never produced.
-                statement.abandon(p);
-                break;
-            }
-            p.error(diagnostics::expected_expression(p, range));
-        }
-
-        // R separates statements by a newline or a `;` and accepts nothing else,
-        // so `1 2` is an error even though both halves parse on their own.
-        // Without this the list silently accepts it: `parse_expression` returns
-        // `1`, `eat(;)` is a no-op, the statement completes, and `2` becomes a
-        // second statement with no diagnostic.
-        //
-        // Emit and continue rather than recover: `2` becoming its own statement
-        // is the most useful reading, and progress is already guaranteed because
-        // `parse_expression` consumed.
-        //
-        // Guarded on the expression being present so the recovery branch above —
-        // which has already emitted `expected_expression` — does not also
-        // complain about a separator it was never going to reach.
-        //
-        // A bare `has_preceding_line_break()` suffices where the Pratt loop needs
-        // `newlines_are_significant()` too: the only scopes a statement list runs
-        // in are `TopLevel` and `Brace`, and in both of them it is already true.
-        let ate_semicolon = p.eat(T![;]);
-        if let Some(expression) = expression
-            && !ate_semicolon
-            && !p.at(T![EOF])
-            && !p.at(close)
-            && !p.has_preceding_line_break()
-        {
-            p.error(diagnostics::expected_statement_separator(
-                expression.range(p), p.cur_range(),
-            ));
-        }
-
-        statement.complete(p, R_STATEMENT);
-    }
-
-    statement_list.complete(p, R_STATEMENT_LIST);
+    m.complete(p, R_BRACED_STATEMENTS)
 }
 ```
 
-Cases to test explicitly (air already has snapshot files for all of these under
-`tests/snapshots/ok/semicolons/`):
+`Scope::Brace` is the one scope that makes newlines significant *again* from
+inside a `(`, `[`, or `[[` — `f({\n  a\n  b\n})` is three statements, not one.
+The `expect` sits outside `with_scope` on purpose: `x[[{a}]]` needs the scope
+back to `Bracket2` when the `}` is bumped, or `RParser::do_bump` never re-lexes
+the `] ]` into the `]]` (§11.3).
 
-| Source | `R_STATEMENT_LIST` contents (`stmt` = `RStatement`) |
-|---|---|
-| `1;2` | stmt(`1`, `;`), stmt(`2`, —) |
-| `1 ; 2` | same, `;` gets surrounding whitespace as trivia |
-| `1;;2` | stmt(`1`, `;`), stmt(—, `;`), stmt(`2`, —) |
-| `;1` | stmt(—, `;`), stmt(`1`, —) |
-| `1;` | stmt(`1`, `;`) |
-| `1;# comment` | stmt(`1`, `;`), comment is trailing trivia of `;` |
-| `;# comment` | stmt(—, `;`) — the comment has no expression to attach to |
-| `{\n  ;# c\n}` | same, inside braces |
+The list itself dispatches on what is actually there. `RStatement` has two
+optional slots and three ways to fill them, so the loop body is that three-way
+match and nothing else:
 
-The last three matter more for the formatter than for the parser, and the last
-two are aether-authored (air has no snapshot for a comment on a bare `;`). With
+```rust
+while !p.at(T![EOF]) && !p.at(close) {
+    progress.assert_progressing(p);
+
+    let statement = p.start();
+
+    match p.cur() {
+        T![;] => { /* empty statement — an error at top level */ }
+        _ => {
+            match parse_expression(p) {
+                Present(expression) => { /* separator check */ }
+                Absent => { /* bury the rest of the line as bogus */ }
+            }
+
+            if !p.has_preceding_line_break() {
+                p.eat(T![;]);
+            }
+        }
+    }
+
+    statement.complete(p, R_STATEMENT);
+}
+```
+
+The marker opens before `parse_expression` runs, so the expression lands inside
+it and nothing needs `precede`. Both non-empty arms end by eating the `;`, so it
+is eaten once after the inner match rather than in each of them.
+
+#### Recovery has to consume
+
+**It runs inside the statement.** The bogus node fills the `expression` slot
+rather than sitting beside it, because `R_STATEMENT_LIST` is `RStatement*` and
+`slot_to_node` panics on anything else (§7). `R_BOGUS_EXPRESSION` is the right
+kind, since `AnyRExpression` already carries an `RBogusExpression` variant and
+casts into the slot unchanged. Air's `R_EXPRESSION_LIST` takes bogus expressions
+as direct children — its factory arm is
+`make_node_list_syntax(kind, children, AnyRExpression::can_cast)` — and aether's
+list will not, which is why the marker wraps the recovery.
+
+**It cannot be `ParseRecoveryTokenSet`.** The obvious spelling is that helper
+with `enable_recovery_on_line_break()`, and it does not work here. `recover()`
+returns `AlreadyRecovered` without consuming when it is *already* at a stopping
+point, and with line breaks enabled the very token whose line break it sees is a
+stopping point. Junk that starts a line — `else` after a closing brace, a stray
+`)` on its own line — makes it decline to consume at all. The list then either
+spins or has to `break`, and breaking strands the token: `parse_root`'s
+`p.expect(T![EOF])` reports without consuming, and `EOF.to_string()` is `None`,
+so `expected_token` panics. What the list needs is recovery that always eats at
+least one token, which is a `bump_any` followed by a loop:
+
+```rust
+let bogus = p.start();
+p.bump_any();
+while !p.at(T![EOF]) && !p.at(close) && !p.at(T![;]) && !p.has_preceding_line_break() {
+    p.bump_any();
+}
+bogus.complete(p, R_BOGUS_EXPRESSION);
+```
+
+That is what makes `parse_statement_list`'s "runs to `close` and never stops
+short of it" true, and it is the whole reason the doc comment says so.
+
+**It stops at `close`, not at `}`.** A fixed recovery set carrying `T!['}']`
+looks right by §11.3's rule — a closer belonging to someone else must survive to
+reach them — but no one owns a `}` at top level, where `close` is `EOF`. Left in
+the set, a stray top-level `}` ends the list, is never consumed, and lands as
+text inside the generated `EOF` token. `parse_statement_list` only ever runs with
+`close` of `EOF` or `}`, so keying on `close` is both correct and the same thing
+inside braces.
+
+#### A `;` belongs only to an expression on its own line
+
+R's `prog` offers `expr_or_assign_or_help '\n'` and `expr_or_assign_or_help ';'`
+as peers, so whichever terminator arrives first reduces the expression: `1;` is
+one expression and `1\n;` is `unexpected ';'`. `exprlist` has `exprlist ';'` over
+a possibly empty list, so braces take a leading `;`, a repeated `;`, and a `;`
+after a newline where top level takes none of them.
+
+Two rules fall out, both checked against R 4.6.0 rather than assumed. The `;` is
+eaten only when no newline intervenes, so a `;` on a later line gets an
+`RStatement` of its own — which is also what keeps a blank line above it in that
+statement's leading trivia, instead of inside a token the formatter is about to
+delete. And an `RStatement` with no expression is an error at top level and fine
+inside braces. That set is exactly the set R rejects, so the rule needs no case
+analysis beyond the scope it is in. `docs/deviations.md` deviation 11b has both
+productions and the verdict table.
+
+| Source | `R_STATEMENT_LIST` contents (`stmt` = `RStatement`) | |
+|---|---|---|
+| `1;2` | stmt(`1`, `;`), stmt(`2`, —) | |
+| `1 ; 2` | same, `;` gets surrounding whitespace as trivia | |
+| `1;` | stmt(`1`, `;`) | |
+| `1;# comment` | stmt(`1`, `;`), comment is trailing trivia of `;` | |
+| `{\n  ;# c\n}` | stmt(—, `;`), inside braces | |
+| `1;;2` | stmt(`1`, `;`), stmt(—, `;`), stmt(`2`, —) | `[error]` |
+| `;1` | stmt(—, `;`), stmt(`1`, —) | `[error]` |
+| `;# comment` | stmt(—, `;`) — the comment has no expression to attach to | `[error]` |
+| `1\n;` | stmt(`1`, —), stmt(—, `;`) | `[error]` |
+
+The erroring rows still build those trees; they just carry a diagnostic beside
+them. The comment rows matter more for the formatter than for the parser: with
 the semicolon removed and replaced by a hard line, a comment with no expression
 beside it becomes **dangling on the `RStatement`**, which is a case air's comment
 rules do not currently have — see §12.3 step 4. `1;;2` is in the table for the
-same reason: the middle statement must not print a blank line.
-
-All three are `[deviation]`, so they do not move the 89 count.
-
-**Enable:** all of `corpus/statements/` — `braces.md`, `semicolons.md`, and the
-two headings in `newlines.md` that have been waiting on braces since Phase 8.
-This is the one directory that really does finish here: braces and statement
-lists are the last constructs any merged air snapshot in it can depend on. Every
-test in `semicolons.md` comes from air's snapshots rather than tree-sitter and
-carries `[deviation]`.
+same reason, since the middle statement must not print a blank line.
 
 #### The diagnostics this phase adds
 
-None. `expected_statement_separator` landed in Phase 7 with
-`parse_statement_list` (§11.1); a `;` is a second way to satisfy a rule it already
-enforces, not a new rule. What this phase owes it is the wording check — the
-message names both separators, so it must not start claiming a `;` is required
-where a newline would do.
+One. `unexpected_semicolon` reports the empty statement that only braces allow.
+`expected_statement_separator` landed in Phase 7 with `parse_statement_list`
+(§11.1) and is unchanged — a `;` is a second way to satisfy a rule it already
+enforces, not a new rule.
 
 The argument-list analogue (`f(a b)`) stays a different rule, enforced by
 `expect(T![,])` in §11.3 — the same shape of mistake, a different separator, and
 different wording. Keep them apart: a reader who sees "expected a newline or a
 `;`" inside a call has been told something false.
+
+#### Corpus
+
+Braces were the last thing holding back **every** remaining `[pending]` marker
+outside `recovery/`, not just `corpus/statements/`. Thirty-one clear at once,
+across `expressions/`, `functions/`, `control/`, and `literals/` as well —
+`{expr}[a = 1]`, `x |> {function(x) x}()`, `(function() {\n  body\n})`. The six
+unmatched-delimiter markers stay for §12.1.
+
+Two headings in `control/if.md` need `[error]` as they come off `[pending]`, both
+for things their own comments already call invalid R: `Complex If Expression` for
+a top-level `else` after a newline, and the `else.x` heading for two expressions
+on one line, which is deviation 11. `control/for.md`'s `For` needs `[deviation]`,
+as deviation 14 predicted it would.
+
+`semicolons.md` is the one file whose contents move. Its imported headings come
+from air's snapshots rather than tree-sitter, so none of them touch the 89 count,
+and four of the six end up `[error]` under deviation 11b. Two aether-authored
+headings pair off the two columns of that deviation's table, top level against
+braces.
+
+One oracle fix falls out. `{ }` puts air's empty statement list at offset 1 and
+aether's at 2, because air hands the space to the `}` as leading trivia where
+aether keeps it on the `{` — deviation 10 reaching a node with no tokens in it.
+Two empty ranges now compare equal, which is sound because an empty node has no
+text to disagree about and its siblings are compared by position anyway.
 
 ---
 
