@@ -23,7 +23,7 @@ pub(crate) fn parse_function_definition(p: &mut RParser) -> CompletedMarker {
         p.error(diagnostics::expected_parameters(p, p.cur_range()));
     }
 
-    parse_body(p).or_add_diagnostic(p, diagnostics::expected_expression);
+    parse_body(p).or_add_diagnostic(p, diagnostics::expected_function_body);
 
     m.complete(p, R_FUNCTION_DEFINITION)
 }

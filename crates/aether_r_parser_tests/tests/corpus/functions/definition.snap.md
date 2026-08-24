@@ -409,13 +409,13 @@ RRoot {
 ```diagnostics
 test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an expression but instead found the end of the file.
+  × Expected a function body but instead found the end of the file.
 
     1 │ function(x, y)
   > 2 │
       │
 
-  i Expected an expression here.
+  i Expected a function body here.
 
     1 │ function(x, y)
   > 2 │
@@ -472,13 +472,13 @@ RRoot {
 ```diagnostics
 test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an expression but instead found the end of the file.
+  × Expected a function body but instead found the end of the file.
 
     1 │ x <- function(x, y)
   > 2 │
       │
 
-  i Expected an expression here.
+  i Expected a function body here.
 
     1 │ x <- function(x, y)
   > 2 │
@@ -537,13 +537,13 @@ RRoot {
 ```diagnostics
 test.R:1:24 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an expression but instead found ')'.
+  × Expected a function body but instead found ')'.
 
   > 1 │ function(x = function()) {}
       │                        ^
     2 │
 
-  i Expected an expression here.
+  i Expected a function body here.
 
   > 1 │ function(x = function()) {}
       │                        ^
