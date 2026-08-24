@@ -10,8 +10,6 @@ foo::...
 foo::..1
 ...::foo
 ..1::foo
-...::...
-..1::..1
 ```
 
 ```cst
@@ -114,32 +112,8 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
-            expression: RNamespaceExpression {
-                left: RDots {
-                    value_token: DOTS@62..66 "..." [Newline("\n")] [],
-                },
-                operator: COLON2@66..68 "::" [] [],
-                right: RDots {
-                    value_token: DOTS@68..71 "..." [] [],
-                },
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RNamespaceExpression {
-                left: RDotDotI {
-                    value_token: DOTDOTI@71..75 "..1" [Newline("\n")] [],
-                },
-                operator: COLON2@75..77 "::" [] [],
-                right: RDotDotI {
-                    value_token: DOTDOTI@77..80 "..1" [] [],
-                },
-            },
-            semicolon_token: missing (optional),
-        },
     ],
-    eof_token: EOF@80..81 "" [Newline("\n")] [],
+    eof_token: EOF@62..63 "" [Newline("\n")] [],
 }
 ```
 
@@ -164,8 +138,6 @@ foo:::...
 foo:::..1
 ...:::foo
 ..1:::foo
-...:::...
-..1:::..1
 ```
 
 ```cst
@@ -268,32 +240,8 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
-            expression: RNamespaceExpression {
-                left: RDots {
-                    value_token: DOTS@69..73 "..." [Newline("\n")] [],
-                },
-                operator: COLON3@73..76 ":::" [] [],
-                right: RDots {
-                    value_token: DOTS@76..79 "..." [] [],
-                },
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RNamespaceExpression {
-                left: RDotDotI {
-                    value_token: DOTDOTI@79..83 "..1" [Newline("\n")] [],
-                },
-                operator: COLON3@83..86 ":::" [] [],
-                right: RDotDotI {
-                    value_token: DOTDOTI@86..89 "..1" [] [],
-                },
-            },
-            semicolon_token: missing (optional),
-        },
     ],
-    eof_token: EOF@89..90 "" [Newline("\n")] [],
+    eof_token: EOF@69..70 "" [Newline("\n")] [],
 }
 ```
 

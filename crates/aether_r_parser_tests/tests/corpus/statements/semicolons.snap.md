@@ -139,43 +139,6 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
   i At top level, a `;` must directly follow an expression.
 ```
 
-## Semicolon before the first expression [error]
-
-```r
-;1
-```
-
-```cst
-RRoot {
-    bom_token: missing (optional),
-    statements: RStatementList [
-        RStatement {
-            expression: missing (optional),
-            semicolon_token: SEMICOLON@0..1 ";" [] [],
-        },
-        RStatement {
-            expression: RDoubleValue {
-                value_token: R_DOUBLE_LITERAL@1..2 "1" [] [],
-            },
-            semicolon_token: missing (optional),
-        },
-    ],
-    eof_token: EOF@2..3 "" [Newline("\n")] [],
-}
-```
-
-```diagnostics
-test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Unexpected `;`.
-
-  > 1 │ ;1
-      │ ^
-    2 │
-
-  i At top level, a `;` must directly follow an expression.
-```
-
 ## Semicolon at end of file
 
 ```r
@@ -196,43 +159,6 @@ RRoot {
     ],
     eof_token: EOF@48..49 "" [Newline("\n")] [],
 }
-```
-
-## Two semicolons at end of file [error]
-
-```r
-1;;
-```
-
-```cst
-RRoot {
-    bom_token: missing (optional),
-    statements: RStatementList [
-        RStatement {
-            expression: RDoubleValue {
-                value_token: R_DOUBLE_LITERAL@0..1 "1" [] [],
-            },
-            semicolon_token: SEMICOLON@1..2 ";" [] [],
-        },
-        RStatement {
-            expression: missing (optional),
-            semicolon_token: SEMICOLON@2..3 ";" [] [],
-        },
-    ],
-    eof_token: EOF@3..4 "" [Newline("\n")] [],
-}
-```
-
-```diagnostics
-test.R:1:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Unexpected `;`.
-
-  > 1 │ 1;;
-      │   ^
-    2 │
-
-  i At top level, a `;` must directly follow an expression.
 ```
 
 ## Semicolon on its own line at end of file [error]

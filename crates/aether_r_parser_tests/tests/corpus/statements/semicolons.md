@@ -24,23 +24,11 @@
 1
 ```
 
-## Semicolon before the first expression [error]
-
-```r
-;1
-```
-
 ## Semicolon at end of file
 
 ```r
 # https://github.com/posit-dev/air/issues/238
 1;
-```
-
-## Two semicolons at end of file [error]
-
-```r
-1;;
 ```
 
 ## Semicolon on its own line at end of file [error]

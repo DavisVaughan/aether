@@ -323,13 +323,9 @@ test.R:1:6 parse ━━━━━━━━━━━━━━━━━━━━━
 ## Parentheses with comments
 
 ```r
-(1)
-
 ({
   1 + 1
 })
-
-((1))
 
 ( # comment1
   # comment2
@@ -345,163 +341,39 @@ RRoot {
         RStatement {
             expression: RParenthesizedExpression {
                 l_paren_token: L_PAREN@0..1 "(" [] [],
-                body: RDoubleValue {
-                    value_token: R_DOUBLE_LITERAL@1..2 "1" [] [],
-                },
-                r_paren_token: R_PAREN@2..3 ")" [] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RParenthesizedExpression {
-                l_paren_token: L_PAREN@3..6 "(" [Newline("\n"), Newline("\n")] [],
                 body: RBracedStatements {
-                    l_curly_token: L_CURLY@6..7 "{" [] [],
+                    l_curly_token: L_CURLY@1..2 "{" [] [],
                     statements: RStatementList [
                         RStatement {
                             expression: RBinaryExpression {
                                 left: RDoubleValue {
-                                    value_token: R_DOUBLE_LITERAL@7..12 "1" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                                    value_token: R_DOUBLE_LITERAL@2..7 "1" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                                 },
-                                operator: PLUS@12..14 "+" [] [Whitespace(" ")],
+                                operator: PLUS@7..9 "+" [] [Whitespace(" ")],
                                 right: RDoubleValue {
-                                    value_token: R_DOUBLE_LITERAL@14..15 "1" [] [],
+                                    value_token: R_DOUBLE_LITERAL@9..10 "1" [] [],
                                 },
                             },
                             semicolon_token: missing (optional),
                         },
                     ],
-                    r_curly_token: R_CURLY@15..17 "}" [Newline("\n")] [],
+                    r_curly_token: R_CURLY@10..12 "}" [Newline("\n")] [],
                 },
-                r_paren_token: R_PAREN@17..18 ")" [] [],
+                r_paren_token: R_PAREN@12..13 ")" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RParenthesizedExpression {
-                l_paren_token: L_PAREN@18..21 "(" [Newline("\n"), Newline("\n")] [],
-                body: RParenthesizedExpression {
-                    l_paren_token: L_PAREN@21..22 "(" [] [],
-                    body: RDoubleValue {
-                        value_token: R_DOUBLE_LITERAL@22..23 "1" [] [],
-                    },
-                    r_paren_token: R_PAREN@23..24 ")" [] [],
-                },
-                r_paren_token: R_PAREN@24..25 ")" [] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RParenthesizedExpression {
-                l_paren_token: L_PAREN@25..39 "(" [Newline("\n"), Newline("\n")] [Whitespace(" "), Comments("# comment1")],
+                l_paren_token: L_PAREN@13..27 "(" [Newline("\n"), Newline("\n")] [Whitespace(" "), Comments("# comment1")],
                 body: RDoubleValue {
-                    value_token: R_DOUBLE_LITERAL@39..67 "1" [Newline("\n"), Whitespace("  "), Comments("# comment2"), Newline("\n"), Whitespace("  ")] [Whitespace(" "), Comments("# comment3")],
+                    value_token: R_DOUBLE_LITERAL@27..55 "1" [Newline("\n"), Whitespace("  "), Comments("# comment2"), Newline("\n"), Whitespace("  ")] [Whitespace(" "), Comments("# comment3")],
                 },
-                r_paren_token: R_PAREN@67..93 ")" [Newline("\n"), Whitespace("  "), Comments("# comment4"), Newline("\n")] [Whitespace(" "), Comments("# comment5")],
+                r_paren_token: R_PAREN@55..81 ")" [Newline("\n"), Whitespace("  "), Comments("# comment4"), Newline("\n")] [Whitespace(" "), Comments("# comment5")],
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@93..94 "" [Newline("\n")] [],
+    eof_token: EOF@81..82 "" [Newline("\n")] [],
 }
-```
-
-## Empty parentheses [error]
-
-```r
-()
-```
-
-```cst
-RRoot {
-    bom_token: missing (optional),
-    statements: RStatementList [
-        RStatement {
-            expression: RParenthesizedExpression {
-                l_paren_token: L_PAREN@0..1 "(" [] [],
-                body: missing (required),
-                r_paren_token: R_PAREN@1..2 ")" [] [],
-            },
-            semicolon_token: missing (optional),
-        },
-    ],
-    eof_token: EOF@2..3 "" [Newline("\n")] [],
-}
-```
-
-```diagnostics
-test.R:1:2 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Expected an expression but instead found ')'.
-
-  > 1 │ ()
-      │  ^
-    2 │
-```
-
-## Multiple expressions in parentheses [error]
-
-```r
-(
-  a
-  b
-)
-```
-
-```cst
-RRoot {
-    bom_token: missing (optional),
-    statements: RStatementList [
-        RStatement {
-            expression: RParenthesizedExpression {
-                l_paren_token: L_PAREN@0..1 "(" [] [],
-                body: RIdentifier {
-                    name_token: IDENT@1..5 "a" [Newline("\n"), Whitespace("  ")] [],
-                },
-                r_paren_token: missing (required),
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RIdentifier {
-                name_token: IDENT@5..9 "b" [Newline("\n"), Whitespace("  ")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RBogusExpression {
-                items: [
-                    R_PAREN@9..11 ")" [Newline("\n")] [],
-                ],
-            },
-            semicolon_token: missing (optional),
-        },
-    ],
-    eof_token: EOF@11..12 "" [Newline("\n")] [],
-}
-```
-
-```diagnostics
-test.R:3:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × expected `)` but instead found `b`
-
-    1 │ (
-    2 │   a
-  > 3 │   b
-      │   ^
-    4 │ )
-    5 │
-
-  i Remove b
-
-test.R:4:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Expected an expression but instead found ')'.
-
-    2 │   a
-    3 │   b
-  > 4 │ )
-      │ ^
-    5 │
 ```

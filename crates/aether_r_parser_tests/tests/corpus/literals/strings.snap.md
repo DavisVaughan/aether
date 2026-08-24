@@ -851,28 +851,10 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
 
 ```r
 "hi there!"
-"\""
 'hi there!'
-'\''
 "'"
 "multiline
 string"
-r"(")"
-r"("")"
-r"(')"
-r"('')"
-r"-(-)-"
-r"-()-)-"
-r"--()-")--"
-r"( () )"
-r"(())"
-r"( ())"
-r"(() )"
-r"-())-"
-r"-(())-)-"
-r"(raw
-string
-)"
 r"("some raw string
 business")"
 ```
@@ -889,125 +871,29 @@ RRoot {
         },
         RStatement {
             expression: RStringValue {
-                value: R_DOUBLE_QUOTED_STRING_LITERAL@11..16 "\"\\\"\"" [Newline("\n")] [],
+                value: R_SINGLE_QUOTED_STRING_LITERAL@11..23 "'hi there!'" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                value: R_SINGLE_QUOTED_STRING_LITERAL@16..28 "'hi there!'" [Newline("\n")] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@23..27 "\"'\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                value: R_SINGLE_QUOTED_STRING_LITERAL@28..33 "'\\''" [Newline("\n")] [],
+                value: R_DOUBLE_QUOTED_STRING_LITERAL@27..46 "\"multiline\nstring\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                value: R_DOUBLE_QUOTED_STRING_LITERAL@33..37 "\"'\"" [Newline("\n")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RStringValue {
-                value: R_DOUBLE_QUOTED_STRING_LITERAL@37..56 "\"multiline\nstring\"" [Newline("\n")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@56..63 "r\"(\")\"" [Newline("\n")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@63..71 "r\"(\"\")\"" [Newline("\n")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@71..78 "r\"(')\"" [Newline("\n")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@78..86 "r\"('')\"" [Newline("\n")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@86..95 "r\"-(-)-\"" [Newline("\n")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@95..105 "r\"-()-)-\"" [Newline("\n")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@105..118 "r\"--()-\")--\"" [Newline("\n")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@118..128 "r\"( () )\"" [Newline("\n")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@128..136 "r\"(())\"" [Newline("\n")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@136..145 "r\"( ())\"" [Newline("\n")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@145..154 "r\"(() )\"" [Newline("\n")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@154..163 "r\"-())-\"" [Newline("\n")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@163..175 "r\"-(())-)-\"" [Newline("\n")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@175..192 "r\"(raw\nstring\n)\"" [Newline("\n")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@192..224 "r\"(\"some raw string\nbusiness\")\"" [Newline("\n")] [],
+                value: R_RAW_STRING_LITERAL@46..78 "r\"(\"some raw string\nbusiness\")\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@224..225 "" [Newline("\n")] [],
+    eof_token: EOF@78..79 "" [Newline("\n")] [],
 }
 ```

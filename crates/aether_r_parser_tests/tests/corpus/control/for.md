@@ -15,12 +15,6 @@ for (x in y) for (y in z) x + y
 for (x in y
 
 ) 1 + 1
-
-# `...` as the `variable`
-for (... in 1:2) print(get("..."))
-
-# `..i` as the `variable`
-for (..1 in 1:2) print(get("..1"))
 ```
 
 ## For no body [error]

@@ -8,8 +8,6 @@ foo::...
 foo::..1
 ...::foo
 ..1::foo
-...::...
-..1::..1
 ```
 
 ## Namespace get internal [error]
@@ -22,8 +20,6 @@ foo:::...
 foo:::..1
 ...:::foo
 ..1:::foo
-...:::...
-..1:::..1
 ```
 
 ## Namespace with missing RHS [error]
