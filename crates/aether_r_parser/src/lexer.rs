@@ -483,12 +483,14 @@ impl<'src> RLexer<'src> {
         self.assert_byte(b'#');
         self.advance(1);
 
-        while let Some(byte) = self.current_byte() {
-            if matches!(byte, b'\n' | b'\r') {
-                break;
-            }
-            self.advance_byte_or_char(byte);
-        }
+        // We're just scanning for the next `\n` or `\r`, so we don't need to worry about multi
+        // byte UTF-8 characters here. This is faster than calling `advance_byte_or_char()` in a loop.
+        let rest = &self.source.as_bytes()[self.position..];
+        let len = rest
+            .iter()
+            .position(|byte| matches!(byte, b'\n' | b'\r'))
+            .unwrap_or(rest.len());
+        self.advance(len);
 
         COMMENT
     }

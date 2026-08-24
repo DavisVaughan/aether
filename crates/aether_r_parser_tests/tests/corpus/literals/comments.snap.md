@@ -62,3 +62,25 @@ RRoot {
     eof_token: EOF@26..37 "" [Newline("\n"), Comments("# Leading"), Newline("\n")] [],
 }
 ```
+
+## Multi-byte Unicode In A Comment
+
+```r
+# héllo wörld 日本語 emoji 🎉 comment
+1
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RDoubleValue {
+                value_token: R_DOUBLE_LITERAL@0..46 "1" [Comments("# héllo wörld 日本 ..."), Newline("\n")] [],
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@46..47 "" [Newline("\n")] [],
+}
+```
