@@ -126,6 +126,11 @@ pub(crate) fn expected_loop_body(p: &RParser, range: TextRange) -> ParseDiagnost
     expected_node("loop body", range, p)
 }
 
+/// The body of a function definition is missing, as in `function(x)`
+pub(crate) fn expected_function_body(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("function body", range, p)
+}
+
 /// Two expressions with nothing between them, as in `1 2`
 pub(crate) fn expected_statement_separator(
     previous: TextRange,
