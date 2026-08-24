@@ -483,8 +483,8 @@ impl<'src> RLexer<'src> {
         self.assert_byte(b'#');
         self.advance(1);
 
-        // A line break byte can never be part of a multi-byte UTF-8 sequence,
-        // so scanning raw bytes can't split a character
+        // We're just scanning for the next `\n` or `\r`, so we don't need to worry about multi
+        // byte UTF-8 characters here. This is faster than calling `advance_byte_or_char()` in a loop.
         let rest = &self.source.as_bytes()[self.position..];
         let len = rest
             .iter()
