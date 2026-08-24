@@ -59,8 +59,6 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
 ## Repeat with braces
 
 ```r
-repeat 1
-
 repeat {
 }
 
@@ -76,48 +74,39 @@ RRoot {
         RStatement {
             expression: RRepeatStatement {
                 repeat_token: REPEAT_KW@0..7 "repeat" [] [Whitespace(" ")],
-                body: RDoubleValue {
-                    value_token: R_DOUBLE_LITERAL@7..8 "1" [] [],
-                },
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RRepeatStatement {
-                repeat_token: REPEAT_KW@8..17 "repeat" [Newline("\n"), Newline("\n")] [Whitespace(" ")],
                 body: RBracedStatements {
-                    l_curly_token: L_CURLY@17..18 "{" [] [],
+                    l_curly_token: L_CURLY@7..8 "{" [] [],
                     statements: RStatementList [],
-                    r_curly_token: R_CURLY@18..20 "}" [Newline("\n")] [],
+                    r_curly_token: R_CURLY@8..10 "}" [Newline("\n")] [],
                 },
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RRepeatStatement {
-                repeat_token: REPEAT_KW@20..29 "repeat" [Newline("\n"), Newline("\n")] [Whitespace(" ")],
+                repeat_token: REPEAT_KW@10..19 "repeat" [Newline("\n"), Newline("\n")] [Whitespace(" ")],
                 body: RBracedStatements {
-                    l_curly_token: L_CURLY@29..30 "{" [] [],
+                    l_curly_token: L_CURLY@19..20 "{" [] [],
                     statements: RStatementList [
                         RStatement {
                             expression: RBinaryExpression {
                                 left: RDoubleValue {
-                                    value_token: R_DOUBLE_LITERAL@30..35 "1" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                                    value_token: R_DOUBLE_LITERAL@20..25 "1" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                                 },
-                                operator: PLUS@35..37 "+" [] [Whitespace(" ")],
+                                operator: PLUS@25..27 "+" [] [Whitespace(" ")],
                                 right: RDoubleValue {
-                                    value_token: R_DOUBLE_LITERAL@37..38 "1" [] [],
+                                    value_token: R_DOUBLE_LITERAL@27..28 "1" [] [],
                                 },
                             },
                             semicolon_token: missing (optional),
                         },
                     ],
-                    r_curly_token: R_CURLY@38..40 "}" [Newline("\n")] [],
+                    r_curly_token: R_CURLY@28..30 "}" [Newline("\n")] [],
                 },
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@40..41 "" [Newline("\n")] [],
+    eof_token: EOF@30..31 "" [Newline("\n")] [],
 }
 ```

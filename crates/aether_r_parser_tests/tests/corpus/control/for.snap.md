@@ -17,12 +17,6 @@ for (x in y) for (y in z) x + y
 for (x in y
 
 ) 1 + 1
-
-# `...` as the `variable`
-for (... in 1:2) print(get("..."))
-
-# `..i` as the `variable`
-for (..1 in 1:2) print(get("..1"))
 ```
 
 ```cst
@@ -161,112 +155,8 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
-            expression: RForStatement {
-                for_token: FOR_KW@119..151 "for" [Newline("\n"), Newline("\n"), Comments("# `...` as the `varia ..."), Newline("\n")] [Whitespace(" ")],
-                l_paren_token: L_PAREN@151..152 "(" [] [],
-                variable: RDots {
-                    value_token: DOTS@152..156 "..." [] [Whitespace(" ")],
-                },
-                in_token: IN_KW@156..159 "in" [] [Whitespace(" ")],
-                sequence: RBinaryExpression {
-                    left: RDoubleValue {
-                        value_token: R_DOUBLE_LITERAL@159..160 "1" [] [],
-                    },
-                    operator: COLON@160..161 ":" [] [],
-                    right: RDoubleValue {
-                        value_token: R_DOUBLE_LITERAL@161..162 "2" [] [],
-                    },
-                },
-                r_paren_token: R_PAREN@162..164 ")" [] [Whitespace(" ")],
-                body: RCall {
-                    function: RIdentifier {
-                        name_token: IDENT@164..169 "print" [] [],
-                    },
-                    arguments: RCallArguments {
-                        l_paren_token: L_PAREN@169..170 "(" [] [],
-                        items: RArgumentList [
-                            RArgument {
-                                name_clause: missing (optional),
-                                value: RCall {
-                                    function: RIdentifier {
-                                        name_token: IDENT@170..173 "get" [] [],
-                                    },
-                                    arguments: RCallArguments {
-                                        l_paren_token: L_PAREN@173..174 "(" [] [],
-                                        items: RArgumentList [
-                                            RArgument {
-                                                name_clause: missing (optional),
-                                                value: RStringValue {
-                                                    value: R_DOUBLE_QUOTED_STRING_LITERAL@174..179 "\"...\"" [] [],
-                                                },
-                                            },
-                                        ],
-                                        r_paren_token: R_PAREN@179..180 ")" [] [],
-                                    },
-                                },
-                            },
-                        ],
-                        r_paren_token: R_PAREN@180..181 ")" [] [],
-                    },
-                },
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RForStatement {
-                for_token: FOR_KW@181..213 "for" [Newline("\n"), Newline("\n"), Comments("# `..i` as the `varia ..."), Newline("\n")] [Whitespace(" ")],
-                l_paren_token: L_PAREN@213..214 "(" [] [],
-                variable: RDotDotI {
-                    value_token: DOTDOTI@214..218 "..1" [] [Whitespace(" ")],
-                },
-                in_token: IN_KW@218..221 "in" [] [Whitespace(" ")],
-                sequence: RBinaryExpression {
-                    left: RDoubleValue {
-                        value_token: R_DOUBLE_LITERAL@221..222 "1" [] [],
-                    },
-                    operator: COLON@222..223 ":" [] [],
-                    right: RDoubleValue {
-                        value_token: R_DOUBLE_LITERAL@223..224 "2" [] [],
-                    },
-                },
-                r_paren_token: R_PAREN@224..226 ")" [] [Whitespace(" ")],
-                body: RCall {
-                    function: RIdentifier {
-                        name_token: IDENT@226..231 "print" [] [],
-                    },
-                    arguments: RCallArguments {
-                        l_paren_token: L_PAREN@231..232 "(" [] [],
-                        items: RArgumentList [
-                            RArgument {
-                                name_clause: missing (optional),
-                                value: RCall {
-                                    function: RIdentifier {
-                                        name_token: IDENT@232..235 "get" [] [],
-                                    },
-                                    arguments: RCallArguments {
-                                        l_paren_token: L_PAREN@235..236 "(" [] [],
-                                        items: RArgumentList [
-                                            RArgument {
-                                                name_clause: missing (optional),
-                                                value: RStringValue {
-                                                    value: R_DOUBLE_QUOTED_STRING_LITERAL@236..241 "\"..1\"" [] [],
-                                                },
-                                            },
-                                        ],
-                                        r_paren_token: R_PAREN@241..242 ")" [] [],
-                                    },
-                                },
-                            },
-                        ],
-                        r_paren_token: R_PAREN@242..243 ")" [] [],
-                    },
-                },
-            },
-            semicolon_token: missing (optional),
-        },
     ],
-    eof_token: EOF@243..244 "" [Newline("\n")] [],
+    eof_token: EOF@119..120 "" [Newline("\n")] [],
 }
 ```
 

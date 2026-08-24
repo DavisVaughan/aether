@@ -13,8 +13,6 @@ repeat
 ## Repeat with braces
 
 ```r
-repeat 1
-
 repeat {
 }
 

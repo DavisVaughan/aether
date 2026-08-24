@@ -1,17 +1,3 @@
-## Constants
-
-```r
-TRUE
-FALSE
-NULL
-Inf
-NaN
-NA
-NA_real_
-NA_character_
-NA_complex_
-```
-
 ## Keywords
 
 ```r

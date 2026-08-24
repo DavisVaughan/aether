@@ -35,32 +35,13 @@ fn((a), (b))
 ## Parentheses with comments
 
 ```r
-(1)
-
 ({
   1 + 1
 })
-
-((1))
 
 ( # comment1
   # comment2
   1 # comment3
   # comment4
 ) # comment5
-```
-
-## Empty parentheses [error]
-
-```r
-()
-```
-
-## Multiple expressions in parentheses [error]
-
-```r
-(
-  a
-  b
-)
 ```

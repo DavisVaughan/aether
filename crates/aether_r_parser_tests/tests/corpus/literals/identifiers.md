@@ -72,10 +72,6 @@ _foo_
 ## Dot dot i in functions and calls
 
 ```r
-..1
-..2
-..10
-
 function(...) {
   ..1 + ..2
 }

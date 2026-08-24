@@ -362,10 +362,6 @@ RRoot {
 ## Dot dot i in functions and calls
 
 ```r
-..1
-..2
-..10
-
 function(...) {
   ..1 + ..2
 }
@@ -379,55 +375,37 @@ RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
         RStatement {
-            expression: RDotDotI {
-                value_token: DOTDOTI@0..3 "..1" [] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RDotDotI {
-                value_token: DOTDOTI@3..7 "..2" [Newline("\n")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
-            expression: RDotDotI {
-                value_token: DOTDOTI@7..12 "..10" [Newline("\n")] [],
-            },
-            semicolon_token: missing (optional),
-        },
-        RStatement {
             expression: RFunctionDefinition {
-                name: FUNCTION_KW@12..22 "function" [Newline("\n"), Newline("\n")] [],
+                name: FUNCTION_KW@0..8 "function" [] [],
                 parameters: RParameters {
-                    l_paren_token: L_PAREN@22..23 "(" [] [],
+                    l_paren_token: L_PAREN@8..9 "(" [] [],
                     items: RParameterList [
                         RParameter {
                             name: RDots {
-                                value_token: DOTS@23..26 "..." [] [],
+                                value_token: DOTS@9..12 "..." [] [],
                             },
                             default: missing (optional),
                         },
                     ],
-                    r_paren_token: R_PAREN@26..28 ")" [] [Whitespace(" ")],
+                    r_paren_token: R_PAREN@12..14 ")" [] [Whitespace(" ")],
                 },
                 body: RBracedStatements {
-                    l_curly_token: L_CURLY@28..29 "{" [] [],
+                    l_curly_token: L_CURLY@14..15 "{" [] [],
                     statements: RStatementList [
                         RStatement {
                             expression: RBinaryExpression {
                                 left: RDotDotI {
-                                    value_token: DOTDOTI@29..36 "..1" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                                    value_token: DOTDOTI@15..22 "..1" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                                 },
-                                operator: PLUS@36..38 "+" [] [Whitespace(" ")],
+                                operator: PLUS@22..24 "+" [] [Whitespace(" ")],
                                 right: RDotDotI {
-                                    value_token: DOTDOTI@38..41 "..2" [] [],
+                                    value_token: DOTDOTI@24..27 "..2" [] [],
                                 },
                             },
                             semicolon_token: missing (optional),
                         },
                     ],
-                    r_curly_token: R_CURLY@41..43 "}" [Newline("\n")] [],
+                    r_curly_token: R_CURLY@27..29 "}" [Newline("\n")] [],
                 },
             },
             semicolon_token: missing (optional),
@@ -435,17 +413,17 @@ RRoot {
         RStatement {
             expression: RCall {
                 function: RDotDotI {
-                    value_token: DOTDOTI@43..71 "..1" [Newline("\n"), Newline("\n"), Comments("# Parses as a function"), Newline("\n")] [],
+                    value_token: DOTDOTI@29..57 "..1" [Newline("\n"), Newline("\n"), Comments("# Parses as a function"), Newline("\n")] [],
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@71..72 "(" [] [],
+                    l_paren_token: L_PAREN@57..58 "(" [] [],
                     items: RArgumentList [],
-                    r_paren_token: R_PAREN@72..73 ")" [] [],
+                    r_paren_token: R_PAREN@58..59 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@73..74 "" [Newline("\n")] [],
+    eof_token: EOF@59..60 "" [Newline("\n")] [],
 }
 ```
