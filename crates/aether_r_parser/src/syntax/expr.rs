@@ -101,67 +101,67 @@ fn parse_expression_with_binding_power(
         T![+] | T![-] => parse_unary_expression(p, BindingPower::UNARY_PLUS_MINUS),
         R_INTEGER_LITERAL => {
             let m = p.start();
-            p.bump_any();
+            p.bump(R_INTEGER_LITERAL);
             m.complete(p, R_INTEGER_VALUE)
         }
         R_DOUBLE_LITERAL => {
             let m = p.start();
-            p.bump_any();
+            p.bump(R_DOUBLE_LITERAL);
             m.complete(p, R_DOUBLE_VALUE)
         }
         R_COMPLEX_LITERAL => {
             let m = p.start();
-            p.bump_any();
+            p.bump(R_COMPLEX_LITERAL);
             m.complete(p, R_COMPLEX_VALUE)
         }
         IDENT => {
             let m = p.start();
-            p.bump_any();
+            p.bump(IDENT);
             m.complete(p, R_IDENTIFIER)
         }
         DOTS => {
             let m = p.start();
-            p.bump_any();
+            p.bump(DOTS);
             m.complete(p, R_DOTS)
         }
         DOTDOTI => {
             let m = p.start();
-            p.bump_any();
+            p.bump(DOTDOTI);
             m.complete(p, R_DOT_DOT_I)
         }
         T![next] => {
             let m = p.start();
-            p.bump_any();
+            p.bump(T![next]);
             m.complete(p, R_NEXT_EXPRESSION)
         }
         T![break] => {
             let m = p.start();
-            p.bump_any();
+            p.bump(T![break]);
             m.complete(p, R_BREAK_EXPRESSION)
         }
         T![true] => {
             let m = p.start();
-            p.bump_any();
+            p.bump(T![true]);
             m.complete(p, R_TRUE_EXPRESSION)
         }
         T![false] => {
             let m = p.start();
-            p.bump_any();
+            p.bump(T![false]);
             m.complete(p, R_FALSE_EXPRESSION)
         }
         T![null] => {
             let m = p.start();
-            p.bump_any();
+            p.bump(T![null]);
             m.complete(p, R_NULL_EXPRESSION)
         }
         T![inf] => {
             let m = p.start();
-            p.bump_any();
+            p.bump(T![inf]);
             m.complete(p, R_INF_EXPRESSION)
         }
         T![nan] => {
             let m = p.start();
-            p.bump_any();
+            p.bump(T![nan]);
             m.complete(p, R_NAN_EXPRESSION)
         }
         T![na_logical] | T![na_integer] | T![na_double] | T![na_complex] | T![na_character] => {
@@ -172,7 +172,7 @@ fn parse_expression_with_binding_power(
         ERROR_TOKEN => {
             // Lexer already raised `unexpected_character()`
             let m = p.start();
-            p.bump_any();
+            p.bump(ERROR_TOKEN);
             m.complete(p, R_BOGUS_EXPRESSION)
         }
         R_SINGLE_QUOTED_STRING_LITERAL | R_DOUBLE_QUOTED_STRING_LITERAL | R_RAW_STRING_LITERAL => {
@@ -381,17 +381,17 @@ fn parse_selector(p: &mut RParser) -> ParsedSyntax {
     match p.cur() {
         IDENT => {
             let m = p.start();
-            p.bump_any();
+            p.bump(IDENT);
             Present(m.complete(p, R_IDENTIFIER))
         }
         DOTS => {
             let m = p.start();
-            p.bump_any();
+            p.bump(DOTS);
             Present(m.complete(p, R_DOTS))
         }
         DOTDOTI => {
             let m = p.start();
-            p.bump_any();
+            p.bump(DOTDOTI);
             Present(m.complete(p, R_DOT_DOT_I))
         }
         R_SINGLE_QUOTED_STRING_LITERAL | R_DOUBLE_QUOTED_STRING_LITERAL | R_RAW_STRING_LITERAL => {

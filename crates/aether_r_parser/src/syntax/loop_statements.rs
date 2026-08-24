@@ -46,17 +46,17 @@ fn parse_for_variable(p: &mut RParser) -> ParsedSyntax {
     match p.cur() {
         IDENT => {
             let m = p.start();
-            p.bump_any();
+            p.bump(IDENT);
             Present(m.complete(p, R_IDENTIFIER))
         }
         DOTS => {
             let m = p.start();
-            p.bump_any();
+            p.bump(DOTS);
             Present(m.complete(p, R_DOTS))
         }
         DOTDOTI => {
             let m = p.start();
-            p.bump_any();
+            p.bump(DOTDOTI);
             Present(m.complete(p, R_DOT_DOT_I))
         }
         _ => Absent,
