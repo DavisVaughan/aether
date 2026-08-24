@@ -22,13 +22,13 @@ pub fn run_file(input_path: &Path) {
     let mut failures = Vec::new();
 
     for section in &mut generated.sections {
-        let markers = section.markers;
+        let expectation = section.expectation;
         let name = section.name.clone();
 
         // A heading may hold several blocks, so the name alone would not say
         // which one failed
         for (index, block) in section.blocks_mut().enumerate() {
-            match check(block, markers) {
+            match check(block, expectation) {
                 Ok(cells) => block.generated = cells,
                 Err(error) => failures.push((name.clone(), index, error)),
             }
@@ -49,7 +49,7 @@ pub fn run_file(input_path: &Path) {
         "{display} and its snapshot have drifted apart — run `just accept`",
     );
 
-    let rendered = generated.render_snapshot(&display);
+    let rendered = generated.render_snapshot();
     if rendered != committed {
         let diff = similar::TextDiff::from_lines(&committed, &rendered);
         panic!(
@@ -78,9 +78,6 @@ fn render_failure(error: &CheckError) -> String {
              input:  {expected:?}\n\
              output: {got:?}\n"
         ),
-        CheckError::UnexpectedlyPasses => {
-            "Marked `[pending]` but parsed cleanly. Delete the marker.\n".to_string()
-        }
         CheckError::ExpectedError => {
             "Marked `[error]` but produced no error diagnostic.\n".to_string()
         }
@@ -93,15 +90,6 @@ fn render_failure(error: &CheckError) -> String {
         CheckError::UndiagnosedBogusNode { ranges, ast } => format!(
             "Bogus nodes that no diagnostic points at, at {ranges:?}.\n\
              {ast}\n"
-        ),
-        CheckError::OracleMismatch {
-            path,
-            expected,
-            actual,
-        } => format!(
-            "The oracle disagrees with tree-sitter-r at {path}.\n\
-             expected: {expected}\n\
-             actual:   {actual}\n"
         ),
     }
 }

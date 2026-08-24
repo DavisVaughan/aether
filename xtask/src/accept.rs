@@ -9,16 +9,16 @@ pub fn accept() -> Result<()> {
             .map_err(|err| crate::anyhow!("{display}: {err}"))?;
 
         for section in &mut document.sections {
-            let markers = section.markers;
+            let expectation = section.expectation;
             for block in section.blocks_mut() {
                 // On failure write what we can and let the test run report it:
                 // a regeneration should be maximally informative
-                block.generated = check(block, markers).unwrap_or_default();
+                block.generated = check(block, expectation).unwrap_or_default();
             }
         }
 
         let snapshot_path = corpus::snapshot_of(&input_path);
-        let rendered = document.render_snapshot(&display);
+        let rendered = document.render_snapshot();
 
         if fs::read_to_string(&snapshot_path).ok().as_deref() != Some(&rendered) {
             fs::write(&snapshot_path, rendered)?;

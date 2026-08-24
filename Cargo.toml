@@ -24,14 +24,10 @@ biome_unicode_table = { git = "https://github.com/lionel-/biome", rev = "a1296ea
 biome_ungrammar = { path = "./crates/biome_ungrammar" }
 
 aether_r_factory = { path = "./crates/aether_r_factory" }
-aether_r_oracle = { path = "./crates/aether_r_oracle" }
 aether_r_parser = { path = "./crates/aether_r_parser" }
 aether_r_parser_tests = { path = "./crates/aether_r_parser_tests" }
 aether_r_syntax = { path = "./crates/aether_r_syntax" }
 aether_r_test_macros = { path = "./crates/aether_r_test_macros" }
-
-air_r_parser = { git = "https://github.com/posit-dev/air", rev = "3c25bc68e88df84c2e8f13c6efbb29ffd920aa7e" }
-air_r_syntax = { git = "https://github.com/posit-dev/air", rev = "3c25bc68e88df84c2e8f13c6efbb29ffd920aa7e" }
 
 anyhow = "1.0.89"
 bitflags = "2.6"
@@ -42,11 +38,8 @@ quote = "1.0.37"
 rustc-hash = "2.1.0"
 serde = { version = "1.0.215", features = ["derive"] }
 similar = "2.6"
-toml = "0.8"
 tracing = { version = "0.1.40", default-features = false, features = ["std"] }
 unicode-ident = "1.0"
-tree-sitter = "0.24.7"
-tree-sitter-r = { git = "https://github.com/r-lib/tree-sitter-r", rev = "d459b97a9a11dd81643ab674938bede2874663b0" }
 
 [workspace.lints.clippy]
 assigning_clones = "warn"
