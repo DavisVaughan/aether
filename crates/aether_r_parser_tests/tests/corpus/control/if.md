@@ -77,14 +77,14 @@ else
   }
 }
 
-# Valid. This test ensures we handle the newline after `1 + 1` correctly (#125).
+# Valid. This test ensures we handle the newline after `1 + 1` correctly (r-lib/tree-sitter-r#125).
 {
   if (TRUE)
 
     1 + 1
 }
 
-# Valid. Newlines are allowed between the `else` and the `alternative`, even at top level (#141).
+# Valid. Newlines are allowed between the `else` and the `alternative`, even at top level (r-lib/tree-sitter-r#141).
 if (TRUE) {
   1
 } else
@@ -117,7 +117,7 @@ if (TRUE) 1 else
   2
 ```
 
-## Identifiers starting with `else` that are not the `else` keyword (#200)
+## Identifiers starting with `else` that are not the `else` keyword (r-lib/tree-sitter-r#200)
 
 ```r
 # ASCII letter
@@ -161,7 +161,7 @@ if (TRUE) 1 else
 }
 ```
 
-## Identifiers starting with `else` that are not the `else` keyword - 2 (#200) [error]
+## Identifiers starting with `else` that are not the `else` keyword - 2 (r-lib/tree-sitter-r#200) [error]
 
 ```r
 # Correctly treats `else.x` as a single identifier, not as `else` followed by `.x`,
@@ -184,7 +184,7 @@ if # comment1
   2 # comment4
 
 # ------------------------------------------------------------------------------
-# `else`-like identifier is not treated as `else` (#499)
+# `else`-like identifier is not treated as `else` (r-lib/tree-sitter-r#499)
 
 # ASCII letter
 {
