@@ -10,15 +10,12 @@ Two categories, kept apart on purpose:
   can revisit.
 
 - [tree-sitter-r vs. R](#tree-sitter-r-vs-r) — places where tree-sitter-r already
-  differs from R and aether follows tree-sitter anyway, so the oracle agrees.
-  Upstream behaviour we are deliberately not fixing.
+  differs from R and aether follows tree-sitter anyway. Upstream behaviour we are
+  deliberately not fixing.
 
-The differential oracle reads nothing from this file. Reviewers do, and so does
-whoever updates air's formatter.
-
-Corpus tests marked `[deviation]` are the ones the oracle skips because of an
-entry below; each entry names its tests. Entries also record the phase that lands
-them, since the ledger runs ahead of the parser.
+This file is read by reviewers, and by whoever updates air's formatter. Each
+entry names the corpus tests it covers and records the phase that lands it,
+since the ledger runs ahead of the parser.
 
 ## Aether vs. tree-sitter-r
 
@@ -221,8 +218,7 @@ then `RDoubleValue` as a sibling.
 
 Corpus tests: `Dollar No RHS`, `Slot No RHS`, `Extract With A Literal RHS`, and
 `Dollar, At, Namespace, Namespace Internal With Expression RHS` in
-`expressions/extract.md`, all `[error]`. The first three carried `[deviation]`
-until the shape stopped changing.
+`expressions/extract.md`, all `[error]`.
 
 ### 3. Namespace RHS is required, and so is the LHS
 
@@ -247,7 +243,7 @@ Corpus tests: `Namespace get`, `Namespace get internal`, `Namespace With Missing
 RHS`, `Namespace With A Literal RHS`, `Chained ::`, `Chained :::`, `Call On The
 Left Of ::`, and `Call On The Left Of :::` in `expressions/namespace.md`, all
 `[error]`. `Namespace Newline Is Significant Only Outside Parens` is the clean
-half, and it is compared against tree-sitter-r rather than marked.
+half and carries no marker.
 
 ### 4. Recovery is localized
 
@@ -271,10 +267,6 @@ changelog at swap time.
 
 Why: every consumer of the tree — the formatter, the LSP, lint rules — degrades
 from "no information" to "information everywhere except the broken span".
-
-This deviation is why the oracle compares trees only for tests that parse cleanly
-or are marked `[deviation]`; two different recovery strategies are not expected to
-agree.
 
 ### 5. `AnyRSelector` gains `RBogusSelector`
 
@@ -360,9 +352,8 @@ Example:
 tree-sitter-r produces an `ERROR` node. Aether reports each of these from the
 lexer — `Unexpected character`, `Unterminated string.`,
 `Unterminated backtick-quoted name.` — and hands the text on as an `ERROR_TOKEN`,
-which the parser can only wrap in a bogus node. The file never parses cleanly, so
-the oracle skips it, and the text survives into the tree where a reader can see
-it.
+which the parser can only wrap in a bogus node. The file never parses cleanly,
+and the text survives into the tree where a reader can see it.
 
 Dropping the character is not an option — the tree has to round-trip, and folding
 it into trivia would make it silently disappear exactly the way semicolons used
@@ -472,10 +463,10 @@ ever pushed back. Aether follows R on both counts.
 Every row but the first is a syntax error in R and in aether, arriving as two
 expressions on one line (deviation 11). tree-sitter-r parses all of them cleanly,
 since its `program` does not require a separator between expressions. So nothing
-is lost by disagreeing: the oracle only compares trees for inputs aether parses
-cleanly, and it skips every one of these either way.
+is lost by disagreeing: every one of these is a syntax error in aether, so there
+is no clean tree to compare against tree-sitter's in the first place.
 
-Why follow R rather than the oracle: R's rule cannot disagree with R about a
+Why follow R rather than tree-sitter: R's rule cannot disagree with R about a
 program R accepts, because it never looks past the suffix. The lookahead rule can
 only differ on programs R rejects, and there it puts the error one token earlier
 than R does. It also cost a byte of lookahead that nothing else in the lexer
@@ -570,7 +561,7 @@ since R stops at it too.
 Lexer test: `a_backslash_is_ordinary_text` in
 `crates/aether_r_parser/src/lexer/tests/specials.rs`. No corpus test — every
 special in `expressions/specials.md` matches tree-sitter-r's regex too, so the
-block is compared rather than marked `[deviation]`.
+block needs no marker.
 
 ### 10. Whitespace attaches trailing, not leading
 
@@ -638,9 +629,7 @@ of the file. Under this one it is trailing in both.
 
 The cost of the change grows monotonically: it landed before the corpus existed,
 where regenerating every snapshot was free, and deferring past the swap would
-have added air's formatter snapshots on top. The oracle lost no coverage either
-— see below — because the drift worth watching for is in comment attachment,
-which this does not touch.
+have added air's formatter snapshots on top.
 
 #### Swap-in cost, and the audit behind that claim
 
@@ -667,24 +656,9 @@ whitespace regression cannot hide inside the semicolon churn. If a non-semicolon
 file moves, this deviation has failed its premise — and the retreat is cheap,
 because restoring air's rule means rewriting one function.
 
-#### Oracle
-
-**No test carries `[deviation]` for this**, which makes it the first entry here
-handled entirely by normalization. Air's walker produces air's polarity, so
-without normalization every corpus file containing a space would mismatch — which
-is every file, and the oracle would be useless from Phase 5 onward.
-
-So the oracle re-tags `Whitespace` pieces on both trees by the same rule before
-comparing. **Whitespace only, never comments:** comment attachment is unchanged
-here, and it is the half that reaches air's formatter, so it is exactly the half
-the oracle has to keep checking. Normalizing over "trivia" rather than over
-whitespace would blind it to the one attachment drift that has consequences.
-
 One more consequence, found in Phase 13. A node holding no tokens sits wherever
 the whitespace around it left the cursor, so `{ }` puts air's empty statement
-list at 1 and aether's at 2. There is no text to disagree about, and the node's
-siblings are compared by position anyway, so the oracle compares the ranges of
-two empty nodes as equal.
+list at 1 and aether's at 2. There is no text to disagree about.
 
 ### 11. Two expressions on one line is an error
 
@@ -714,9 +688,7 @@ Expected a newline or a `;` between two expressions.
 at the second expression, with the first labelled as the one that already ended.
 
 The tree is the same either way — two statements — so this is a diagnostic-only
-deviation, in the same family as deviations 2 and 3. What it costs is that every
-input of this shape stops being oracle-compared, because the oracle skips
-anything aether does not parse cleanly.
+deviation, in the same family as deviations 2 and 3.
 
 Why follow R: the alternative is silence on a class of typo the language really
 does reject, and the rule is what makes `1foo`, `0x`, and `a$1` land as two
@@ -795,8 +767,7 @@ error at top level. That set is precisely the set R rejects, which is why the
 rule needs no case analysis beyond the scope it is in.
 
 Tree-only, no shape change — the `;` is still a token on a statement of its own,
-so this is a diagnostic deviation in the same family as 11. What it costs is the
-same: an input of this shape stops being oracle-compared.
+so this is a diagnostic deviation in the same family as 11.
 
 Why follow R rather than stay silent like air: the same argument as 11. A file
 holding a stray `;` does not run, and saying so beats formatting it as if it
@@ -933,21 +904,6 @@ fires in debug and slices the wrong bytes in release. **`normalize_string_conten
 must read `text_trimmed()`.** Do that in the same commit as the assert, not
 after it.
 
-#### Oracle
-
-**No test carries `[deviation]` for this.** Air keeps three tokens until swap-in,
-so without normalization every block containing a string would mismatch, and
-marking them all `[deviation]` would throw away real coverage.
-
-So the oracle collapses `R_STRING_VALUE` on both trees before comparing: its
-children become one synthetic `STRING` token spanning the node's trimmed range,
-with comments taken from the first and last token. Coverage loss is close to
-zero. The collapsed comparison still pins where every string starts and ends,
-which is what the raw-string delimiter logic gets wrong when it gets anything
-wrong — `r"(())"`, hyphen counts, `r"-abc"` falling through to an identifier. The
-internal boundaries no longer exist on aether's side, so there is nothing there
-to lose.
-
 Unterminated strings are deviation 6's business, not this entry's.
 
 ### 13. `AnyRParameterName` gains `RBogusParameterName`
@@ -1017,8 +973,7 @@ factories are generated, leaving `is_bogus()`, `to_bogus()`, one empty formatter
 rule, and a fourth arm in `FormatAnyRParameterName`.
 
 Corpus tests: `functions/parameters.md`'s `A Parameter That Is Not A Name` and
-`A Missing Comma Between Parameters`. Neither carries `[deviation]` — both are
-`[error]`, and the oracle already skips any block that does not parse cleanly.
+`A Missing Comma Between Parameters`, both `[error]`.
 
 ### 14. The `for` variable takes any name, and gains `RBogusForVariable`
 
@@ -1102,19 +1057,18 @@ formatter rule, and a `FormatAnyRForVariable` union rule beside the
 `AnyRParameterName` one. `r/statements/for_statement.rs` writes `variable.format()`
 and needs no edit.
 
-Corpus tests: `control/for.md`'s `` `...` And `..i` As The `for` Variable ``, which
-carries `[deviation]` because it parses cleanly and the oracle would otherwise
-compare it against the bogus root above. `A `for` Variable That Is Not A Name` and
-`A `for` With No Variable` cover the bogus kind and need no marker, being `[error]`.
-The imported `For` test exercises `...` and `..i` too, and carries `[deviation]`
-for the same reason.
+Corpus tests: `control/for.md`'s `` `...` And `..i` As The `for` Variable ``,
+whose tree cleanly disagrees with the bogus root above — air collapses the whole
+file where aether does not. `A `for` Variable That Is Not A Name` and `A `for`
+With No Variable` cover the bogus kind and need no marker, being `[error]`. The
+imported `For` test exercises `...` and `..i` too, and disagrees with
+tree-sitter-r's tree for the same reason.
 
 ## tree-sitter-r vs. R
 
 Places where tree-sitter-r already disagrees with R's own parser. Aether follows
-tree-sitter, because tree-sitter is the oracle and agreeing with it is what keeps
-the differential check meaningful. These are not aether's choices; they are logged
-so nobody has to rediscover them.
+tree-sitter regardless, since these are inherited quirks rather than aether's own
+choices; they are logged here so nobody has to rediscover them.
 
 ### `%foo` at end of file
 

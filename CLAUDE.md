@@ -20,9 +20,6 @@ Tests run under [cargo-nextest](https://nexte.st), not `cargo test`.
 
 - `just quick` — run the `tests/quick_test.rs` scratchpad
 
-- The differential check against tree-sitter-r runs as part of every test run,
-  on any block not marked `[deviation]`. It goes away at swap-in.
-
 - `cargo nextest run -E 'test(/Dollar/)'` — filter by name
 
 Tests are read-only. Only `xtask accept` writes corpus files; nextest runs tests
@@ -36,7 +33,8 @@ in parallel processes and they would race otherwise.
 
 3. The parser never panics and never loops forever.
 
-4. Tree shape matches tree-sitter-r except where `docs/deviations.md` says so.
+4. Tree shape matches tree-sitter-r except where `docs/deviations.md` says so —
+   a manually maintained design record, not an automated check.
 
 ## Test corpus
 
@@ -50,20 +48,14 @@ and ```diagnostics after each. If you change a test, edit `X.md` and re-run
 `just accept`.
 
 A heading may hold several ```r blocks. Each is parsed independently — related
-tests, not one program split up — and the heading's markers apply to all of them.
-Prose between blocks is copied to the snapshot and otherwise ignored; use it to
-say why a test exists, rather than an R comment, which would be input and would
-change the tree.
+tests, not one program split up — and the heading's marker applies to all of
+them. Prose between blocks is copied to the snapshot and otherwise ignored; use
+it to say why a test exists, rather than an R comment, which would be input and
+would change the tree.
 
-`MANIFEST.toml` records where each of the 89 tree-sitter-r tests lives; a test
-enforces that none go missing. Moving or renaming a test means editing both the
-input `.md` and the manifest.
-
-Markers: `[pending]` (not yet supported; must NOT parse cleanly), `[error]`
-(must produce an error), `[deviation]` (skip oracle comparison).
-
-Turning on a feature means deleting `[pending]` markers, not adding tests. The
-89 tree-sitter-r tests were imported wholesale in one commit.
+Marker: `[error]` — every block under the heading must produce at least one
+error diagnostic. An unmarked heading's blocks must parse with zero diagnostics
+and no bogus nodes.
 
 ## Editing files
 

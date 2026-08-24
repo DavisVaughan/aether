@@ -1,4 +1,4 @@
-## Semicolons [deviation]
+## Semicolons
 
 ```r
 1;2
@@ -30,7 +30,7 @@
 ;1
 ```
 
-## Semicolon At End Of File [deviation]
+## Semicolon At End Of File
 
 ```r
 # https://github.com/posit-dev/air/issues/238
@@ -84,7 +84,7 @@ The comment has no expression to attach to, so it lands on the `;`.
 ;# comment
 ```
 
-## A Semicolon With No Expression Is Allowed Inside Braces [deviation]
+## A Semicolon With No Expression Is Allowed Inside Braces
 
 ```r
 {
@@ -131,7 +131,7 @@ The comment has no expression to attach to, so it lands on the `;`.
 }
 ```
 
-## A Semicolon Terminates Any Kind Of Statement [deviation]
+## A Semicolon Terminates Any Kind Of Statement
 
 ```r
 x <- 1;

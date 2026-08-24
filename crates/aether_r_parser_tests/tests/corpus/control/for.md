@@ -1,4 +1,4 @@
-## For [deviation]
+## For
 
 ```r
 for (x in y)
@@ -47,7 +47,7 @@ for # dangling1
   a
 ```
 
-## `...` And `..i` As The `for` Variable [deviation]
+## `...` And `..i` As The `for` Variable
 
 Technically allowed!
 
