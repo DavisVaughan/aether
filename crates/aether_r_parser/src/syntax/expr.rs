@@ -195,11 +195,11 @@ fn parse_expression_with_binding_power(
     let mut progress = ParserProgress::default();
 
     loop {
+        progress.assert_progressing(p);
+
         if p.scope().newlines_are_significant() && p.has_preceding_line_break() {
             break;
         }
-
-        progress.assert_progressing(p);
 
         lhs = match p.cur() {
             T!['('] => parse_call_expression(p, lhs),
