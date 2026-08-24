@@ -1,35 +1,35 @@
-## Closing Brace [pending, error]
+## Closing Brace [error]
 
 ```r
 }
 ```
 
-## Closing Parenthesis [pending, error]
+## Closing Parenthesis [error]
 
 ```r
 )
 ```
 
-## Closing Bracket [pending, error]
+## Closing Bracket [error]
 
 ```r
 ]
 ```
 
-## Opening Brace, Closing Parenthesis [pending, error]
+## Opening Brace, Closing Parenthesis [error]
 
 ```r
 # Parenthesis is "not valid" so it isn't matched by the external scanner
 {)
 ```
 
-## Opening Parenthesis, Closing Brace [pending, error]
+## Opening Parenthesis, Closing Brace [error]
 
 ```r
 (}
 ```
 
-## Opening Parenthesis, Closing Bracket [pending, error]
+## Opening Parenthesis, Closing Bracket [error]
 
 ```r
 (]
