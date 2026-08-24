@@ -275,7 +275,7 @@ RRoot {
 }
 ```
 
-## Dollar, At, Namespace, Namespace Internal With Expression RHS [error]
+## Dollar, at, namespace, namespace internal with expression RHS [error]
 
 ```r
 # These nodes allows an optional RHS, and the RHS must be a string/identifier,
@@ -476,7 +476,7 @@ test.R:7:7 parse ━━━━━━━━━━━━━━━━━━━━━
     8 │
 ```
 
-## Dollar No RHS [error]
+## Dollar no RHS [error]
 
 ```r
 foo$
@@ -517,7 +517,7 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
     2 │
 ```
 
-## Slot No RHS [error]
+## Slot no RHS [error]
 
 ```r
 foo@
@@ -558,7 +558,7 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
     2 │
 ```
 
-## Dollar, At, Namespace, Namespace Internal With `if` RHS [error]
+## Dollar, at, namespace, namespace internal with `if` RHS [error]
 
 ```r
 # The RHS's of these nodes are restricted to strings and identifiers, and the RHS
@@ -774,7 +774,7 @@ test.R:9:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │
 ```
 
-## Dollar, At, Namespace, Namespace Internal With Newline Before Operator [error]
+## Dollar, at, namespace, namespace internal with newline before operator [error]
 
 ```r
 # Newlines are not allowed before the operator, so none of these are valid
@@ -902,7 +902,7 @@ test.R:12:1 parse ━━━━━━━━━━━━━━━━━━━━�
     13 │
 ```
 
-## Extract Operators
+## Extract operators
 
 ```r
 a$b
@@ -1198,7 +1198,7 @@ RRoot {
 }
 ```
 
-## Extract With A Literal RHS [error]
+## Extract with a literal RHS [error]
 
 ```r
 # TODO: tree-sitter-r currently allows an `optional()` RHS, but our grammar
@@ -1703,7 +1703,7 @@ test.R:29:3 parse ━━━━━━━━━━━━━━━━━━━━�
     30 │
 ```
 
-## Dollar Tolerates A Newline
+## Dollar tolerates a newline
 
 ```r
 df$

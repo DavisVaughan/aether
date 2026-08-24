@@ -1,4 +1,4 @@
-## Help Operator
+## Help operator
 
 ```r
 a ? b

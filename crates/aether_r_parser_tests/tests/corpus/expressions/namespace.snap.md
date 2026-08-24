@@ -308,7 +308,7 @@ test.R:1:4 parse ━━━━━━━━━━━━━━━━━━━━━
     3 │ foo:::bar(1)
 ```
 
-## Namespace With Missing RHS [error]
+## Namespace with missing RHS [error]
 
 ```r
 # It's nice that `::` allows an optional RHS and enforces that it can only be a
@@ -410,7 +410,7 @@ test.R:5:16 parse ━━━━━━━━━━━━━━━━━━━━�
     7 │ library()
 ```
 
-## Namespace Operators
+## Namespace operators
 
 ```r
 a::b
@@ -760,7 +760,7 @@ RRoot {
 }
 ```
 
-## Namespace With A Literal RHS [error]
+## Namespace with a literal RHS [error]
 
 ```r
 # TODO: tree-sitter-r currently allows an `optional()` RHS, but our grammar
@@ -1371,7 +1371,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
     2 │
 ```
 
-## Call On The Left Of `::` [error]
+## Call on the left of `::` [error]
 
 ```r
 a()::b
@@ -1425,7 +1425,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
     2 │
 ```
 
-## Call On The Left Of `:::` [error]
+## Call on the left of `:::` [error]
 
 ```r
 a():::b
@@ -1479,7 +1479,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
     2 │
 ```
 
-## Namespace Newline Is Significant Only Outside Parens
+## Namespace newline is significant only outside parens
 
 ```r
 f(stats::

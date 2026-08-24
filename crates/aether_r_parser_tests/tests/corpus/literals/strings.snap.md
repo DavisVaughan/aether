@@ -86,7 +86,7 @@ RRoot {
 }
 ```
 
-## Strings Without Content
+## Strings without content
 
 ```r
 ""
@@ -114,7 +114,7 @@ RRoot {
 }
 ```
 
-## Strings With Escape Sequences
+## Strings with escape sequences
 
 ```r
 "\\"
@@ -451,7 +451,7 @@ RRoot {
 }
 ```
 
-## Raw Strings
+## Raw strings
 
 ```r
 r"(raw string)"
@@ -727,7 +727,7 @@ RRoot {
 }
 ```
 
-## Unclosed Double Quote [error]
+## Unclosed double quote [error]
 
 ```r
 "\"
@@ -766,7 +766,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │
 ```
 
-## Unclosed Single Quote [error]
+## Unclosed single quote [error]
 
 ```r
 '\'
@@ -805,7 +805,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │
 ```
 
-## Unclosed Raw String [error]
+## Unclosed raw string [error]
 
 ```r
 r"(
@@ -847,7 +847,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │
 ```
 
-## String Values
+## String values
 
 ```r
 "hi there!"

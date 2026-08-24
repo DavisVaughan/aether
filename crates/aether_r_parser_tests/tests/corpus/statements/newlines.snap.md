@@ -91,7 +91,7 @@ RRoot {
 }
 ```
 
-## Two Expressions On One Line [error]
+## Two expressions on one line [error]
 
 ```r
 1 2
@@ -134,7 +134,7 @@ test.R:1:3 parse ━━━━━━━━━━━━━━━━━━━━━
     2 │
 ```
 
-## Two Expressions On One Line Inside Braces [error]
+## Two expressions on one line inside braces [error]
 
 ```r
 { 1 2 }
@@ -186,7 +186,7 @@ test.R:1:5 parse ━━━━━━━━━━━━━━━━━━━━━
     2 │
 ```
 
-## A Comment Does Not Hide A Line Break
+## A comment does not hide a line break
 
 Lexer's `after_line_break` flag is sticky across trivia
 

@@ -26,7 +26,7 @@ foo:::..1
 ..1:::..1
 ```
 
-## Namespace With Missing RHS [error]
+## Namespace with missing RHS [error]
 
 ```r
 # It's nice that `::` allows an optional RHS and enforces that it can only be a
@@ -42,7 +42,7 @@ library()
 3
 ```
 
-## Namespace Operators
+## Namespace operators
 
 ```r
 a::b
@@ -79,7 +79,7 @@ a:::..1
 ..1:::..1
 ```
 
-## Namespace With A Literal RHS [error]
+## Namespace with a literal RHS [error]
 
 ```r
 # TODO: tree-sitter-r currently allows an `optional()` RHS, but our grammar
@@ -125,19 +125,19 @@ a::b::c
 a:::b:::c
 ```
 
-## Call On The Left Of `::` [error]
+## Call on the left of `::` [error]
 
 ```r
 a()::b
 ```
 
-## Call On The Left Of `:::` [error]
+## Call on the left of `:::` [error]
 
 ```r
 a():::b
 ```
 
-## Namespace Newline Is Significant Only Outside Parens
+## Namespace newline is significant only outside parens
 
 ```r
 f(stats::

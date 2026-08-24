@@ -100,7 +100,7 @@ RRoot {
 }
 ```
 
-## Semicolon At Start Of File [error]
+## Semicolon at start of file [error]
 
 ```r
 ;
@@ -139,7 +139,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
   i At top level, a `;` must directly follow an expression.
 ```
 
-## Semicolon Before The First Expression [error]
+## Semicolon before the first expression [error]
 
 ```r
 ;1
@@ -176,7 +176,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
   i At top level, a `;` must directly follow an expression.
 ```
 
-## Semicolon At End Of File
+## Semicolon at end of file
 
 ```r
 # https://github.com/posit-dev/air/issues/238
@@ -198,7 +198,7 @@ RRoot {
 }
 ```
 
-## Two Semicolons At End Of File [error]
+## Two semicolons at end of file [error]
 
 ```r
 1;;
@@ -235,7 +235,7 @@ test.R:1:3 parse ━━━━━━━━━━━━━━━━━━━━━
   i At top level, a `;` must directly follow an expression.
 ```
 
-## Semicolon On Its Own Line At End Of File [error]
+## Semicolon on its own line at end of file [error]
 
 ```r
 1
@@ -276,7 +276,7 @@ test.R:3:1 parse ━━━━━━━━━━━━━━━━━━━━━
   i At top level, a `;` must directly follow an expression.
 ```
 
-## A Semicolon With No Expression Is An Error At Top Level [error]
+## A semicolon with no expression is an error at top level [error]
 
 ```r
 ;
@@ -529,7 +529,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
   i At top level, a `;` must directly follow an expression.
 ```
 
-## A Semicolon With No Expression Is Allowed Inside Braces
+## A semicolon with no expression is allowed inside braces
 
 ```r
 {
@@ -758,7 +758,7 @@ RRoot {
 }
 ```
 
-## A Semicolon Terminates Any Kind Of Statement
+## A semicolon terminates any kind of statement
 
 ```r
 x <- 1;

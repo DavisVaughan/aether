@@ -41,25 +41,25 @@ function(x = function() {}) {}
 function() for(i in 1:5) i
 ```
 
-## Function No Body [error]
+## Function no body [error]
 
 ```r
 function(x, y)
 ```
 
-## Function No Body With Assignment [error]
+## Function no body with assignment [error]
 
 ```r
 x <- function(x, y)
 ```
 
-## Function No Body Inside Another Function [error]
+## Function no body inside another function [error]
 
 ```r
 function(x = function()) {}
 ```
 
-## Function Definitions
+## Function definitions
 
 ```r
 function() 1
@@ -81,7 +81,7 @@ function(
 \(x, y) 1
 ```
 
-## A Body Stops At The Binary `?`
+## A body stops at the binary `?`
 
 Weirdly in R, help is precedence 1 and function and loop bodies are precedence 2.
 So `function() x ? y` must parse as `(function () x) ? y`.
@@ -98,7 +98,7 @@ function() a = b
 1 + function(x) x + 2
 ```
 
-## A Definition With No Parameter List [error]
+## A definition with no parameter list [error]
 
 ```r
 function 1

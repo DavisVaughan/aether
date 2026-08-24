@@ -72,7 +72,7 @@ x <- -.66
 0x1.1L
 ```
 
-## Scientific Notation Floats
+## Scientific notation floats
 
 ```r
 1e322
@@ -96,7 +96,7 @@ x <- -.66
 0x.1i
 ```
 
-## Integer Values
+## Integer values
 
 ```r
 1L
@@ -136,7 +136,7 @@ x <- -.66
 0x1.1p1L
 ```
 
-## Double Values
+## Double values
 
 ```r
 1
@@ -178,7 +178,7 @@ x <- -.66
 0x1.1p1
 ```
 
-## Complex Values
+## Complex values
 
 ```r
 1i

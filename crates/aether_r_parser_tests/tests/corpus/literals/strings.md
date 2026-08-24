@@ -15,14 +15,14 @@ bar'
 '}'
 ```
 
-## Strings Without Content
+## Strings without content
 
 ```r
 ""
 ''
 ```
 
-## Strings With Escape Sequences
+## Strings with escape sequences
 
 ```r
 "\\"
@@ -80,7 +80,7 @@ bar'
 '\''
 ```
 
-## Raw Strings
+## Raw strings
 
 ```r
 r"(raw string)"
@@ -132,26 +132,26 @@ r'(")'
 r()
 ```
 
-## Unclosed Double Quote [error]
+## Unclosed double quote [error]
 
 ```r
 "\"
 ```
 
-## Unclosed Single Quote [error]
+## Unclosed single quote [error]
 
 ```r
 '\'
 ```
 
-## Unclosed Raw String [error]
+## Unclosed raw string [error]
 
 ```r
 r"(
 "
 ```
 
-## String Values
+## String values
 
 ```r
 "hi there!"

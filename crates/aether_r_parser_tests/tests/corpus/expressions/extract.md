@@ -22,7 +22,7 @@ foo@...
 foo@..1
 ```
 
-## Dollar, At, Namespace, Namespace Internal With Expression RHS [error]
+## Dollar, at, namespace, namespace internal with expression RHS [error]
 
 ```r
 # These nodes allows an optional RHS, and the RHS must be a string/identifier,
@@ -34,19 +34,19 @@ foo::{bar}
 foo:::{bar}
 ```
 
-## Dollar No RHS [error]
+## Dollar no RHS [error]
 
 ```r
 foo$
 ```
 
-## Slot No RHS [error]
+## Slot no RHS [error]
 
 ```r
 foo@
 ```
 
-## Dollar, At, Namespace, Namespace Internal With `if` RHS [error]
+## Dollar, at, namespace, namespace internal with `if` RHS [error]
 
 ```r
 # The RHS's of these nodes are restricted to strings and identifiers, and the RHS
@@ -59,7 +59,7 @@ foo::if
 foo:::if
 ```
 
-## Dollar, At, Namespace, Namespace Internal With Newline Before Operator [error]
+## Dollar, at, namespace, namespace internal with newline before operator [error]
 
 ```r
 # Newlines are not allowed before the operator, so none of these are valid
@@ -76,7 +76,7 @@ x
 :::y
 ```
 
-## Extract Operators
+## Extract operators
 
 ```r
 a$b
@@ -107,7 +107,7 @@ a$..10
 a@..10
 ```
 
-## Extract With A Literal RHS [error]
+## Extract with a literal RHS [error]
 
 ```r
 # TODO: tree-sitter-r currently allows an `optional()` RHS, but our grammar
@@ -141,7 +141,7 @@ a@(b)
 a@{ b }
 ```
 
-## Dollar Tolerates A Newline
+## Dollar tolerates a newline
 
 ```r
 df$

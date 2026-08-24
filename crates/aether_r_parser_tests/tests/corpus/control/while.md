@@ -14,13 +14,13 @@ while(TRUE)
   next
 ```
 
-## While No Body [error]
+## While no body [error]
 
 ```r
 while (a < b)
 ```
 
-## While With Braces
+## While with braces
 
 ```r
 while(TRUE) FALSE
@@ -36,7 +36,7 @@ while(fn()) {
 }
 ```
 
-## A `while` With No Condition [error]
+## A `while` with no condition [error]
 
 ```r
 while () b

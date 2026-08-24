@@ -266,7 +266,7 @@ RRoot {
 }
 ```
 
-## Complex If Expression [error]
+## Complex if expression [error]
 
 ```r
 # Invalid at top level due to newline before `else`, so not a real if statement
@@ -1075,7 +1075,7 @@ test.R:5:3 parse ━━━━━━━━━━━━━━━━━━━━━
     6 │
 ```
 
-## If With Comments And `else`-Like Identifiers
+## If with comments and `else`-like identifiers
 
 ```r
 if (a) 1
@@ -1445,7 +1445,7 @@ RRoot {
 }
 ```
 
-## If And Else
+## If and else
 
 ```r
 if (a) 1
@@ -1575,7 +1575,7 @@ RRoot {
 }
 ```
 
-## A Consequence And An Alternative Stop At The Binary `?`
+## A consequence and an alternative stop at the binary `?`
 
 Both share the rank a function or loop body has, so `if (a) b ? c` must parse as
 `(if (a) b) ? c`.
@@ -1704,7 +1704,7 @@ RRoot {
 }
 ```
 
-## A Newline Before `else` At Top Level [error]
+## A newline before `else` at top level [error]
 
 Fatal here. The `if` ends at the consequence and the `else` is left over.
 
@@ -1757,7 +1757,7 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
     3 │
 ```
 
-## A Newline Before `else` Inside A Delimiter
+## A newline before `else` inside a delimiter
 
 Newlines carry no meaning inside `(`, `[`, or `[[`
 
@@ -1905,7 +1905,7 @@ RRoot {
 }
 ```
 
-## A Newline Between `else` And Its Alternative
+## A newline between `else` and its alternative
 
 Allowed even at top level, unlike a newline before the `else` itself (r-lib/tree-sitter-r#141).
 
@@ -1943,7 +1943,7 @@ RRoot {
 }
 ```
 
-## An `if` With No Condition [error]
+## An `if` with no condition [error]
 
 ```r
 if () 1

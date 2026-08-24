@@ -1,4 +1,4 @@
-## Lambda Function
+## Lambda function
 
 ```r
 a <- \(arg) arg

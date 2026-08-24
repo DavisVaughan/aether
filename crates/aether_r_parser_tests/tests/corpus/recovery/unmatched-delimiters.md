@@ -1,65 +1,65 @@
-## Closing Brace [error]
+## Closing brace [error]
 
 ```r
 }
 ```
 
-## Closing Parenthesis [error]
+## Closing parenthesis [error]
 
 ```r
 )
 ```
 
-## Closing Bracket [error]
+## Closing bracket [error]
 
 ```r
 ]
 ```
 
-## Opening Brace, Closing Parenthesis [error]
+## Opening brace, closing parenthesis [error]
 
 ```r
 # Parenthesis is "not valid" so it isn't matched by the external scanner
 {)
 ```
 
-## Opening Parenthesis, Closing Brace [error]
+## Opening parenthesis, closing brace [error]
 
 ```r
 (}
 ```
 
-## Opening Parenthesis, Closing Bracket [error]
+## Opening parenthesis, closing bracket [error]
 
 ```r
 (]
 ```
 
-## Opening Bracket2, Unmatched Closing Bracket [error]
+## Opening bracket2, unmatched closing bracket [error]
 
 ```r
 x[[2]
 ```
 
-## Opening Bracket and Bracket2, Unmatched Closing Bracket [error]
+## Opening bracket and bracket2, unmatched closing bracket [error]
 
 ```r
 x[y[[2]
 ```
 
-## Opening Bracket2 and Bracket, Matched Closing Bracket [error]
+## Opening bracket2 and bracket, matched closing bracket [error]
 
 ```r
 x[[y[2]
 ```
 
-## Opening Bracket2 and Bracket, Unmatched Closing Bracket [error]
+## Opening bracket2 and bracket, unmatched closing bracket [error]
 
 ```r
 x[[y[2]]
 ```
 
-## An Argument Name Cut Off By The End Of The File [error]
+## An argument name cut off by the end of the file [error]
 
 ```r
 f(a

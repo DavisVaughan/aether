@@ -10,7 +10,7 @@ a && b(c) && d
 val <- foo %>% bar(1) %>% baz()
 ```
 
-## Precedence Tests
+## Precedence tests
 
 ```r
 A$"B"^NA
@@ -18,7 +18,7 @@ a::b$c
 a$b?c
 ```
 
-## Complex Expressions
+## Complex expressions
 
 ```r
 repeat if (1) TRUE else repeat 42
@@ -34,7 +34,7 @@ TRUE = FALSE ? NA
 TRUE ? FALSE = NA
 ```
 
-## Subset and Subset2 Precedence
+## Subset and subset2 precedence
 
 ```r
 a[[b[1]]]

@@ -16,7 +16,7 @@ foo[1, 2]
 foo[x=1,,y=3,4]
 ```
 
-## Nested Brackets
+## Nested brackets
 
 ```r
 x[a[b]]
@@ -26,7 +26,7 @@ x[[a[[b]]]]
 x[y[z[[a]]]]
 ```
 
-## Subset Arguments
+## Subset arguments
 
 ```r
 fn

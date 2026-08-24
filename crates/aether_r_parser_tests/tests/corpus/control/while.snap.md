@@ -99,7 +99,7 @@ RRoot {
 }
 ```
 
-## While No Body [error]
+## While no body [error]
 
 ```r
 while (a < b)
@@ -142,7 +142,7 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │
 ```
 
-## While With Braces
+## While with braces
 
 ```r
 while(TRUE) FALSE
@@ -236,7 +236,7 @@ RRoot {
 }
 ```
 
-## A `while` With No Condition [error]
+## A `while` with no condition [error]
 
 ```r
 while () b

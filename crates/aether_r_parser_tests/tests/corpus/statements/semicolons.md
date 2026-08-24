@@ -17,33 +17,33 @@
 1; # comment
 ```
 
-## Semicolon At Start Of File [error]
+## Semicolon at start of file [error]
 
 ```r
 ;
 1
 ```
 
-## Semicolon Before The First Expression [error]
+## Semicolon before the first expression [error]
 
 ```r
 ;1
 ```
 
-## Semicolon At End Of File
+## Semicolon at end of file
 
 ```r
 # https://github.com/posit-dev/air/issues/238
 1;
 ```
 
-## Two Semicolons At End Of File [error]
+## Two semicolons at end of file [error]
 
 ```r
 1;;
 ```
 
-## Semicolon On Its Own Line At End Of File [error]
+## Semicolon on its own line at end of file [error]
 
 ```r
 1
@@ -51,7 +51,7 @@
 ;
 ```
 
-## A Semicolon With No Expression Is An Error At Top Level [error]
+## A semicolon with no expression is an error at top level [error]
 
 ```r
 ;
@@ -84,7 +84,7 @@ The comment has no expression to attach to, so it lands on the `;`.
 ;# comment
 ```
 
-## A Semicolon With No Expression Is Allowed Inside Braces
+## A semicolon with no expression is allowed inside braces
 
 ```r
 {
@@ -131,7 +131,7 @@ The comment has no expression to attach to, so it lands on the `;`.
 }
 ```
 
-## A Semicolon Terminates Any Kind Of Statement
+## A semicolon terminates any kind of statement
 
 ```r
 x <- 1;

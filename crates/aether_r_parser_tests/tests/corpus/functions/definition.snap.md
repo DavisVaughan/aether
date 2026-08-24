@@ -364,7 +364,7 @@ RRoot {
 }
 ```
 
-## Function No Body [error]
+## Function no body [error]
 
 ```r
 function(x, y)
@@ -415,7 +415,7 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │
 ```
 
-## Function No Body With Assignment [error]
+## Function no body with assignment [error]
 
 ```r
 x <- function(x, y)
@@ -472,7 +472,7 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │
 ```
 
-## Function No Body Inside Another Function [error]
+## Function no body inside another function [error]
 
 ```r
 function(x = function()) {}
@@ -531,7 +531,7 @@ test.R:1:24 parse ━━━━━━━━━━━━━━━━━━━━�
     2 │
 ```
 
-## Function Definitions
+## Function definitions
 
 ```r
 function() 1
@@ -941,7 +941,7 @@ RRoot {
 }
 ```
 
-## A Body Stops At The Binary `?`
+## A body stops at the binary `?`
 
 Weirdly in R, help is precedence 1 and function and loop bodies are precedence 2.
 So `function() x ? y` must parse as `(function () x) ? y`.
@@ -1112,7 +1112,7 @@ RRoot {
 }
 ```
 
-## A Definition With No Parameter List [error]
+## A definition with no parameter list [error]
 
 ```r
 function 1
