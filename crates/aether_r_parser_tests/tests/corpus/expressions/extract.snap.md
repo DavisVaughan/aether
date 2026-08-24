@@ -864,12 +864,12 @@ RRoot {
 ```diagnostics
 test.R:3:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an expression but instead found '$'.
+  × Expected an expression but instead found '$y'.
 
     1 │ # Newlines are not allowed before the operator, so none of these are valid
     2 │ x
   > 3 │ $y
-      │ ^
+      │ ^^
     4 │
     5 │ x
 
@@ -878,17 +878,17 @@ test.R:3:1 parse ━━━━━━━━━━━━━━━━━━━━━
     1 │ # Newlines are not allowed before the operator, so none of these are valid
     2 │ x
   > 3 │ $y
-      │ ^
+      │ ^^
     4 │
     5 │ x
 
 test.R:6:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an expression but instead found '@'.
+  × Expected an expression but instead found '@y'.
 
     5 │ x
   > 6 │ @y
-      │ ^
+      │ ^^
     7 │
     8 │ x
 
@@ -896,17 +896,17 @@ test.R:6:1 parse ━━━━━━━━━━━━━━━━━━━━━
 
     5 │ x
   > 6 │ @y
-      │ ^
+      │ ^^
     7 │
     8 │ x
 
 test.R:9:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an expression but instead found '::'.
+  × Expected an expression but instead found '::y'.
 
      8 │ x
    > 9 │ ::y
-       │ ^^
+       │ ^^^
     10 │
     11 │ x
 
@@ -914,24 +914,24 @@ test.R:9:1 parse ━━━━━━━━━━━━━━━━━━━━━
 
      8 │ x
    > 9 │ ::y
-       │ ^^
+       │ ^^^
     10 │
     11 │ x
 
 test.R:12:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an expression but instead found ':::'.
+  × Expected an expression but instead found ':::y'.
 
     11 │ x
   > 12 │ :::y
-       │ ^^^
+       │ ^^^^
     13 │
 
   i Expected an expression here.
 
     11 │ x
   > 12 │ :::y
-       │ ^^^
+       │ ^^^^
     13 │
 ```
 

@@ -703,12 +703,12 @@ RRoot {
 ```diagnostics
 test.R:5:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an expression but instead found 'else'.
+  × Expected an expression but instead found 'else {'.
 
     3 │   1
     4 │ }
   > 5 │ else {
-      │ ^^^^
+      │ ^^^^^^
     6 │   2
     7 │ }
 
@@ -717,7 +717,7 @@ test.R:5:1 parse ━━━━━━━━━━━━━━━━━━━━━
     3 │   1
     4 │ }
   > 5 │ else {
-      │ ^^^^
+      │ ^^^^^^
     6 │   2
     7 │ }
 
@@ -1777,18 +1777,18 @@ RRoot {
 ```diagnostics
 test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Expected an expression but instead found 'else'.
+  × Expected an expression but instead found 'else 2'.
 
     1 │ if (a) 1
   > 2 │ else 2
-      │ ^^^^
+      │ ^^^^^^
     3 │
 
   i Expected an expression here.
 
     1 │ if (a) 1
   > 2 │ else 2
-      │ ^^^^
+      │ ^^^^^^
     3 │
 ```
 

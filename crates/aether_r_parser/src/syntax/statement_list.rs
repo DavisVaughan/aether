@@ -65,21 +65,22 @@ fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
                         }
                     }
                     Absent => {
-                        p.error(diagnostics::expected_expression(p, p.cur_range()));
-
                         // Consume everything until next statement separator as
                         // bogus, and always at least one token so that the
                         // statement list keeps progressing
                         let bogus = p.start();
+                        let mut progress = ParserProgress::default();
                         p.bump_any();
                         while !p.at(T![EOF])
                             && !p.at(close)
                             && !p.at(T![;])
                             && !p.has_preceding_line_break()
                         {
+                            progress.assert_progressing(p);
                             p.bump_any();
                         }
-                        bogus.complete(p, R_BOGUS_EXPRESSION);
+                        let bogus = bogus.complete(p, R_BOGUS_EXPRESSION);
+                        p.error(diagnostics::expected_expression(p, bogus.range(p)));
                     }
                 }
 

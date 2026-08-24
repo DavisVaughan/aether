@@ -131,6 +131,14 @@ pub(crate) fn expected_function_body(p: &RParser, range: TextRange) -> ParseDiag
     expected_node("function body", range, p)
 }
 
+pub(crate) fn expected_if_body(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("if body", range, p)
+}
+
+pub(crate) fn expected_else_body(p: &RParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("else body", range, p)
+}
+
 /// Two expressions with nothing between them, as in `1 2`
 pub(crate) fn expected_statement_separator(
     previous: TextRange,
