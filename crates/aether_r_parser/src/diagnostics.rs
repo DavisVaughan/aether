@@ -50,29 +50,6 @@ pub(crate) fn unterminated_string(open: TextRange, eof: TextRange) -> ParseDiagn
     )
 }
 
-/// Like [biome_parser::diagnostic::expected_node()], but without the duplicative hint
-fn expected_node(name: &str, range: TextRange, p: &RParser) -> ParseDiagnostic {
-    let article = article_for(name);
-
-    let message = if p.source().text().text_len() <= range.start() {
-        format!("Expected {article} {name} but instead found the end of the file.")
-    } else {
-        format!(
-            "Expected {article} {name} but instead found '{}'.",
-            p.text(range)
-        )
-    };
-
-    ParseDiagnostic::new(message, range)
-}
-
-fn article_for(name: &str) -> &'static str {
-    match name.bytes().next() {
-        Some(b'a' | b'e' | b'i' | b'o' | b'u') => "an",
-        _ => "a",
-    }
-}
-
 pub(crate) fn expected_expression(p: &RParser, range: TextRange) -> ParseDiagnostic {
     expected_node("expression", range, p)
 }
@@ -112,10 +89,6 @@ pub(crate) fn namespace_rhs_selector_after_line_break(
         format!("A newline is not allowed between `{operator}` and the name that follows."),
         operator_range,
     )
-}
-
-fn text_of(operator: RSyntaxKind) -> &'static str {
-    operator.to_string().unwrap_or("operator")
 }
 
 /// The whole `(...)` group of a function definition is missing, as in `function 1`
@@ -177,4 +150,31 @@ pub(crate) fn expected_statement_separator(
 pub(crate) fn unexpected_semicolon(range: TextRange) -> ParseDiagnostic {
     ParseDiagnostic::new("Unexpected `;`.", range)
         .with_hint("At top level, a `;` must directly follow an expression.")
+}
+
+/// Like [biome_parser::diagnostic::expected_node()], but without the duplicative hint
+fn expected_node(name: &str, range: TextRange, p: &RParser) -> ParseDiagnostic {
+    let article = article_for(name);
+
+    let message = if p.source().text().text_len() <= range.start() {
+        format!("Expected {article} {name} but instead found the end of the file.")
+    } else {
+        format!(
+            "Expected {article} {name} but instead found '{}'.",
+            p.text(range)
+        )
+    };
+
+    ParseDiagnostic::new(message, range)
+}
+
+fn article_for(name: &str) -> &'static str {
+    match name.bytes().next() {
+        Some(b'a' | b'e' | b'i' | b'o' | b'u') => "an",
+        _ => "a",
+    }
+}
+
+fn text_of(operator: RSyntaxKind) -> &'static str {
+    operator.to_string().unwrap_or("operator")
 }
