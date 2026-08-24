@@ -32,12 +32,6 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
   > 1 │ }
       │ ^
     2 │
-
-  i Expected an expression here.
-
-  > 1 │ }
-      │ ^
-    2 │
 ```
 
 ## Closing Parenthesis [error]
@@ -71,12 +65,6 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
   > 1 │ )
       │ ^
     2 │
-
-  i Expected an expression here.
-
-  > 1 │ )
-      │ ^
-    2 │
 ```
 
 ## Closing Bracket [error]
@@ -106,12 +94,6 @@ RRoot {
 test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected an expression but instead found ']'.
-
-  > 1 │ ]
-      │ ^
-    2 │
-
-  i Expected an expression here.
 
   > 1 │ ]
       │ ^
@@ -155,13 +137,6 @@ RRoot {
 test.R:2:2 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected an expression but instead found ')'.
-
-    1 │ # Parenthesis is "not valid" so it isn't matched by the external scanner
-  > 2 │ {)
-      │  ^
-    3 │
-
-  i Expected an expression here.
 
     1 │ # Parenthesis is "not valid" so it isn't matched by the external scanner
   > 2 │ {)
@@ -224,12 +199,6 @@ test.R:1:2 parse ━━━━━━━━━━━━━━━━━━━━━
   > 1 │ (}
       │  ^
     2 │
-
-  i Expected an expression here.
-
-  > 1 │ (}
-      │  ^
-    2 │
 ```
 
 ## Opening Parenthesis, Closing Bracket [error]
@@ -267,12 +236,6 @@ RRoot {
 test.R:1:2 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected an expression but instead found ']'.
-
-  > 1 │ (]
-      │  ^
-    2 │
-
-  i Expected an expression here.
 
   > 1 │ (]
       │  ^

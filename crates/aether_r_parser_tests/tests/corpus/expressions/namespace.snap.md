@@ -153,8 +153,6 @@ test.R:1:4 parse ━━━━━━━━━━━━━━━━━━━━━
       │    ^^
     2 │ foo::bar
     3 │ foo::bar(1)
-
-  i `::` and its name must be on the same line.
 ```
 
 ## Namespace get internal [error]
@@ -309,8 +307,6 @@ test.R:1:4 parse ━━━━━━━━━━━━━━━━━━━━━
       │    ^^^
     2 │ foo:::bar
     3 │ foo:::bar(1)
-
-  i `:::` and its name must be on the same line.
 ```
 
 ## Namespace With Missing RHS [error]

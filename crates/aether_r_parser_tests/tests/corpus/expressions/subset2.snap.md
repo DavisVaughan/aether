@@ -482,13 +482,6 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
   > 2 │ ]
       │ ^
     3 │
-
-  i Expected an expression here.
-
-    1 │ x[["a"]
-  > 2 │ ]
-      │ ^
-    3 │
 ```
 
 ## Empty Subset2 Joins Its `]]`

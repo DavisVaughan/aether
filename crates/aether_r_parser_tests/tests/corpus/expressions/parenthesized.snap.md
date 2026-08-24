@@ -187,12 +187,6 @@ test.R:1:2 parse ━━━━━━━━━━━━━━━━━━━━━
   > 1 │ ()
       │  ^
     2 │
-
-  i Expected an expression here.
-
-  > 1 │ ()
-      │  ^
-    2 │
 ```
 
 ## Not A Parenthesized Expression 2 [error]
@@ -254,14 +248,6 @@ test.R:3:3 parse ━━━━━━━━━━━━━━━━━━━━━
 test.R:4:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected an expression but instead found ')'.
-
-    2 │   1
-    3 │   2
-  > 4 │ )
-      │ ^
-    5 │
-
-  i Expected an expression here.
 
     2 │   1
     3 │   2
@@ -452,12 +438,6 @@ test.R:1:2 parse ━━━━━━━━━━━━━━━━━━━━━
   > 1 │ ()
       │  ^
     2 │
-
-  i Expected an expression here.
-
-  > 1 │ ()
-      │  ^
-    2 │
 ```
 
 ## Multiple Expressions In Parentheses [error]
@@ -519,14 +499,6 @@ test.R:3:3 parse ━━━━━━━━━━━━━━━━━━━━━
 test.R:4:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected an expression but instead found ')'.
-
-    2 │   a
-    3 │   b
-  > 4 │ )
-      │ ^
-    5 │
-
-  i Expected an expression here.
 
     2 │   a
     3 │   b

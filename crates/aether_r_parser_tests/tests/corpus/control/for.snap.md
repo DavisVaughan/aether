@@ -316,12 +316,6 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
     1 │ for (i in 1:5)
   > 2 │
       │
-
-  i Expected a loop body here.
-
-    1 │ for (i in 1:5)
-  > 2 │
-      │
 ```
 
 ## For With Comments
@@ -570,12 +564,6 @@ test.R:1:6 parse ━━━━━━━━━━━━━━━━━━━━━
   > 1 │ for (1 in x) y
       │      ^
     2 │
-
-  i Expected a loop variable here.
-
-  > 1 │ for (1 in x) y
-      │      ^
-    2 │
 ```
 
 ## A `for` With No Variable [error]
@@ -617,12 +605,6 @@ test.R:1:6 parse ━━━━━━━━━━━━━━━━━━━━━
   > 1 │ for (in x) y
       │      ^^
     2 │
-
-  i Expected a loop variable here.
-
-  > 1 │ for (in x) y
-      │      ^^
-    2 │
 ```
 
 ## A `for` With No Sequence [error]
@@ -660,12 +642,6 @@ RRoot {
 test.R:1:10 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a loop sequence but instead found ')'.
-
-  > 1 │ for (i in) y
-      │          ^
-    2 │
-
-  i Expected a loop sequence here.
 
   > 1 │ for (i in) y
       │          ^

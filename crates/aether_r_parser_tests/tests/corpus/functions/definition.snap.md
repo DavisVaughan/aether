@@ -414,12 +414,6 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
     1 │ function(x, y)
   > 2 │
       │
-
-  i Expected a function body here.
-
-    1 │ function(x, y)
-  > 2 │
-      │
 ```
 
 ## Function No Body With Assignment [error]
@@ -473,12 +467,6 @@ RRoot {
 test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a function body but instead found the end of the file.
-
-    1 │ x <- function(x, y)
-  > 2 │
-      │
-
-  i Expected a function body here.
 
     1 │ x <- function(x, y)
   > 2 │
@@ -538,12 +526,6 @@ RRoot {
 test.R:1:24 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a function body but instead found ')'.
-
-  > 1 │ function(x = function()) {}
-      │                        ^
-    2 │
-
-  i Expected a function body here.
 
   > 1 │ function(x = function()) {}
       │                        ^
@@ -1186,13 +1168,6 @@ test.R:1:10 parse ━━━━━━━━━━━━━━━━━━━━�
     2 │ \ 1
     3 │ function
 
-  i Expected a parameter list here.
-
-  > 1 │ function 1
-      │          ^
-    2 │ \ 1
-    3 │ function
-
 test.R:2:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a parameter list but instead found '1'.
@@ -1203,24 +1178,9 @@ test.R:2:3 parse ━━━━━━━━━━━━━━━━━━━━━
     3 │ function
     4 │
 
-  i Expected a parameter list here.
-
-    1 │ function 1
-  > 2 │ \ 1
-      │   ^
-    3 │ function
-    4 │
-
 test.R:4:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a parameter list but instead found the end of the file.
-
-    2 │ \ 1
-    3 │ function
-  > 4 │
-      │
-
-  i Expected a parameter list here.
 
     2 │ \ 1
     3 │ function

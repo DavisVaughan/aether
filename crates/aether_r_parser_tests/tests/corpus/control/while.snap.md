@@ -141,12 +141,6 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
     1 │ while (a < b)
   > 2 │
       │
-
-  i Expected a loop body here.
-
-    1 │ while (a < b)
-  > 2 │
-      │
 ```
 
 ## While With Braces
@@ -274,12 +268,6 @@ RRoot {
 test.R:1:8 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a condition but instead found ')'.
-
-  > 1 │ while () b
-      │        ^
-    2 │
-
-  i Expected a condition here.
 
   > 1 │ while () b
       │        ^

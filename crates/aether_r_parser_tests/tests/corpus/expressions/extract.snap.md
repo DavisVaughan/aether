@@ -873,26 +873,9 @@ test.R:3:1 parse ━━━━━━━━━━━━━━━━━━━━━
     4 │
     5 │ x
 
-  i Expected an expression here.
-
-    1 │ # Newlines are not allowed before the operator, so none of these are valid
-    2 │ x
-  > 3 │ $y
-      │ ^^
-    4 │
-    5 │ x
-
 test.R:6:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected an expression but instead found '@y'.
-
-    5 │ x
-  > 6 │ @y
-      │ ^^
-    7 │
-    8 │ x
-
-  i Expected an expression here.
 
     5 │ x
   > 6 │ @y
@@ -910,24 +893,9 @@ test.R:9:1 parse ━━━━━━━━━━━━━━━━━━━━━
     10 │
     11 │ x
 
-  i Expected an expression here.
-
-     8 │ x
-   > 9 │ ::y
-       │ ^^^
-    10 │
-    11 │ x
-
 test.R:12:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected an expression but instead found ':::y'.
-
-    11 │ x
-  > 12 │ :::y
-       │ ^^^^
-    13 │
-
-  i Expected an expression here.
 
     11 │ x
   > 12 │ :::y

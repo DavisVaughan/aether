@@ -1359,13 +1359,6 @@ test.R:2:9 parse ━━━━━━━━━━━━━━━━━━━━━
   > 2 │ fn(NA = )
       │         ^
     3 │
-
-  i Expected an expression here.
-
-    1 │ # Unlike `NULL`, other keywords like `NA` aren't allowed here
-  > 2 │ fn(NA = )
-      │         ^
-    3 │
 ```
 
 ## Not A Call, Subset, Or Subset2 [error]
@@ -1450,24 +1443,9 @@ test.R:5:1 parse ━━━━━━━━━━━━━━━━━━━━━
     6 │
     7 │ foo
 
-  i Expected an expression here.
-
-    4 │ foo
-  > 5 │ [bar]
-      │ ^^^^^
-    6 │
-    7 │ foo
-
 test.R:8:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected an expression but instead found '[[x]]'.
-
-    7 │ foo
-  > 8 │ [[x]]
-      │ ^^^^^
-    9 │
-
-  i Expected an expression here.
 
     7 │ foo
   > 8 │ [[x]]
@@ -2922,24 +2900,9 @@ test.R:1:4 parse ━━━━━━━━━━━━━━━━━━━━━
     2 │ fn(a, * 1)
     3 │ fn(a = * 1)
 
-  i Expected an expression here.
-
-  > 1 │ fn(* 1)
-      │    ^^^
-    2 │ fn(a, * 1)
-    3 │ fn(a = * 1)
-
 test.R:2:7 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected an expression but instead found '* 1'.
-
-    1 │ fn(* 1)
-  > 2 │ fn(a, * 1)
-      │       ^^^
-    3 │ fn(a = * 1)
-    4 │ fn(,, * 1)
-
-  i Expected an expression here.
 
     1 │ fn(* 1)
   > 2 │ fn(a, * 1)
@@ -2958,26 +2921,9 @@ test.R:3:8 parse ━━━━━━━━━━━━━━━━━━━━━
     4 │ fn(,, * 1)
     5 │
 
-  i Expected an expression here.
-
-    1 │ fn(* 1)
-    2 │ fn(a, * 1)
-  > 3 │ fn(a = * 1)
-      │        ^^^
-    4 │ fn(,, * 1)
-    5 │
-
 test.R:4:7 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected an expression but instead found '* 1'.
-
-    2 │ fn(a, * 1)
-    3 │ fn(a = * 1)
-  > 4 │ fn(,, * 1)
-      │       ^^^
-    5 │
-
-  i Expected an expression here.
 
     2 │ fn(a, * 1)
     3 │ fn(a = * 1)
@@ -3058,23 +3004,9 @@ test.R:1:3 parse ━━━━━━━━━━━━━━━━━━━━━
     2 │ x[[* 1]]
     3 │
 
-  i Expected an expression here.
-
-  > 1 │ x[* 1]
-      │   ^^^
-    2 │ x[[* 1]]
-    3 │
-
 test.R:2:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected an expression but instead found '* 1'.
-
-    1 │ x[* 1]
-  > 2 │ x[[* 1]]
-      │    ^^^
-    3 │
-
-  i Expected an expression here.
 
     1 │ x[* 1]
   > 2 │ x[[* 1]]
