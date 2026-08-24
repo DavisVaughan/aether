@@ -137,7 +137,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
     2 │ 1
     3 │
 
-  i Outside of `{}`, a `;` must follow an expression that ends on the same line.
+  i At top level, a `;` must directly follow an expression.
 ```
 
 ## Semicolon Before The First Expression [error]
@@ -174,7 +174,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │ ^
     2 │
 
-  i Outside of `{}`, a `;` must follow an expression that ends on the same line.
+  i At top level, a `;` must directly follow an expression.
 ```
 
 ## Semicolon At End Of File [deviation]
@@ -233,7 +233,7 @@ test.R:1:3 parse ━━━━━━━━━━━━━━━━━━━━━
       │   ^
     2 │
 
-  i Outside of `{}`, a `;` must follow an expression that ends on the same line.
+  i At top level, a `;` must directly follow an expression.
 ```
 
 ## Semicolon On Its Own Line At End Of File [error]
@@ -274,7 +274,7 @@ test.R:3:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │ ^
     4 │
 
-  i Outside of `{}`, a `;` must follow an expression that ends on the same line.
+  i At top level, a `;` must directly follow an expression.
 ```
 
 ## A Semicolon With No Expression Is An Error At Top Level [error]
@@ -305,7 +305,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │ ^
     2 │
 
-  i Outside of `{}`, a `;` must follow an expression that ends on the same line.
+  i At top level, a `;` must directly follow an expression.
 ```
 
 ```r
@@ -338,7 +338,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │ ^
     2 │
 
-  i Outside of `{}`, a `;` must follow an expression that ends on the same line.
+  i At top level, a `;` must directly follow an expression.
 
 test.R:1:2 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -348,7 +348,7 @@ test.R:1:2 parse ━━━━━━━━━━━━━━━━━━━━━
       │  ^
     2 │
 
-  i Outside of `{}`, a `;` must follow an expression that ends on the same line.
+  i At top level, a `;` must directly follow an expression.
 ```
 
 ```r
@@ -383,7 +383,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │ ^
     2 │
 
-  i Outside of `{}`, a `;` must follow an expression that ends on the same line.
+  i At top level, a `;` must directly follow an expression.
 ```
 
 ```r
@@ -418,7 +418,7 @@ test.R:1:3 parse ━━━━━━━━━━━━━━━━━━━━━
       │   ^
     2 │
 
-  i Outside of `{}`, a `;` must follow an expression that ends on the same line.
+  i At top level, a `;` must directly follow an expression.
 ```
 
 ```r
@@ -459,7 +459,7 @@ test.R:1:3 parse ━━━━━━━━━━━━━━━━━━━━━
       │   ^
     2 │
 
-  i Outside of `{}`, a `;` must follow an expression that ends on the same line.
+  i At top level, a `;` must directly follow an expression.
 ```
 
 ```r
@@ -496,7 +496,7 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │ ^
     3 │
 
-  i Outside of `{}`, a `;` must follow an expression that ends on the same line.
+  i At top level, a `;` must directly follow an expression.
 ```
 
 The comment has no expression to attach to, so it lands on the `;`.
@@ -527,7 +527,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
       │ ^
     2 │
 
-  i Outside of `{}`, a `;` must follow an expression that ends on the same line.
+  i At top level, a `;` must directly follow an expression.
 ```
 
 ## A Semicolon With No Expression Is Allowed Inside Braces [deviation]
