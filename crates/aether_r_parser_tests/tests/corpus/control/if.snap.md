@@ -712,15 +712,6 @@ test.R:5:1 parse ━━━━━━━━━━━━━━━━━━━━━
     6 │   2
     7 │ }
 
-  i Expected an expression here.
-
-    3 │   1
-    4 │ }
-  > 5 │ else {
-      │ ^^^^^^
-    6 │   2
-    7 │ }
-
 test.R:7:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected an expression but instead found '}'.
@@ -732,27 +723,9 @@ test.R:7:1 parse ━━━━━━━━━━━━━━━━━━━━━
     8 │
     9 │ # Invalid for same reason as above
 
-  i Expected an expression here.
-
-    5 │ else {
-    6 │   2
-  > 7 │ }
-      │ ^
-    8 │
-    9 │ # Invalid for same reason as above
-
 test.R:12:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected an expression but instead found 'else'.
-
-    10 │ if (TRUE)
-    11 │   1
-  > 12 │ else
-       │ ^^^^
-    13 │   2
-    14 │
-
-  i Expected an expression here.
 
     10 │ if (TRUE)
     11 │   1
@@ -1783,13 +1756,6 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
   > 2 │ else 2
       │ ^^^^^^
     3 │
-
-  i Expected an expression here.
-
-    1 │ if (a) 1
-  > 2 │ else 2
-      │ ^^^^^^
-    3 │
 ```
 
 ## A Newline Before `else` Inside A Delimiter
@@ -2010,12 +1976,6 @@ RRoot {
 test.R:1:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a condition but instead found ')'.
-
-  > 1 │ if () 1
-      │     ^
-    2 │
-
-  i Expected a condition here.
 
   > 1 │ if () 1
       │     ^

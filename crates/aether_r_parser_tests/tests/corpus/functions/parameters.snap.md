@@ -468,24 +468,9 @@ test.R:1:12 parse ━━━━━━━━━━━━━━━━━━━━�
     2 │ function(a,) 1
     3 │ function(,) 1
 
-  i Expected a parameter name here.
-
-  > 1 │ function(a,,b) 1
-      │            ^
-    2 │ function(a,) 1
-    3 │ function(,) 1
-
 test.R:2:12 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a parameter name but instead found ')'.
-
-    1 │ function(a,,b) 1
-  > 2 │ function(a,) 1
-      │            ^
-    3 │ function(,) 1
-    4 │
-
-  i Expected a parameter name here.
 
     1 │ function(a,,b) 1
   > 2 │ function(a,) 1
@@ -503,25 +488,9 @@ test.R:3:10 parse ━━━━━━━━━━━━━━━━━━━━�
       │          ^
     4 │
 
-  i Expected a parameter name here.
-
-    1 │ function(a,,b) 1
-    2 │ function(a,) 1
-  > 3 │ function(,) 1
-      │          ^
-    4 │
-
 test.R:3:11 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a parameter name but instead found ')'.
-
-    1 │ function(a,,b) 1
-    2 │ function(a,) 1
-  > 3 │ function(,) 1
-      │           ^
-    4 │
-
-  i Expected a parameter name here.
 
     1 │ function(a,,b) 1
     2 │ function(a,) 1
@@ -634,24 +603,9 @@ test.R:1:10 parse ━━━━━━━━━━━━━━━━━━━━�
     2 │ function("a") x
     3 │ function(a$b) x
 
-  i Expected a parameter name here.
-
-  > 1 │ function(1) x
-      │          ^
-    2 │ function("a") x
-    3 │ function(a$b) x
-
 test.R:2:10 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a parameter name but instead found '"a"'.
-
-    1 │ function(1) x
-  > 2 │ function("a") x
-      │          ^^^
-    3 │ function(a$b) x
-    4 │
-
-  i Expected a parameter name here.
 
     1 │ function(1) x
   > 2 │ function("a") x
@@ -822,24 +776,9 @@ test.R:1:10 parse ━━━━━━━━━━━━━━━━━━━━�
     2 │ function("a" = 1) x
     3 │ function(a, 1 = 2, b) x
 
-  i Expected a parameter name here.
-
-  > 1 │ function(1 = 2) x
-      │          ^
-    2 │ function("a" = 1) x
-    3 │ function(a, 1 = 2, b) x
-
 test.R:2:10 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a parameter name but instead found '"a"'.
-
-    1 │ function(1 = 2) x
-  > 2 │ function("a" = 1) x
-      │          ^^^
-    3 │ function(a, 1 = 2, b) x
-    4 │ function(= 1) x
-
-  i Expected a parameter name here.
 
     1 │ function(1 = 2) x
   > 2 │ function("a" = 1) x
@@ -858,26 +797,9 @@ test.R:3:13 parse ━━━━━━━━━━━━━━━━━━━━�
     4 │ function(= 1) x
     5 │
 
-  i Expected a parameter name here.
-
-    1 │ function(1 = 2) x
-    2 │ function("a" = 1) x
-  > 3 │ function(a, 1 = 2, b) x
-      │             ^
-    4 │ function(= 1) x
-    5 │
-
 test.R:4:10 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a parameter name but instead found '='.
-
-    2 │ function("a" = 1) x
-    3 │ function(a, 1 = 2, b) x
-  > 4 │ function(= 1) x
-      │          ^
-    5 │
-
-  i Expected a parameter name here.
 
     2 │ function("a" = 1) x
     3 │ function(a, 1 = 2, b) x
@@ -989,12 +911,6 @@ RRoot {
 test.R:1:14 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected an expression but instead found ')'.
-
-  > 1 │ function(x = ) 1
-      │              ^
-    2 │
-
-  i Expected an expression here.
 
   > 1 │ function(x = ) 1
       │              ^

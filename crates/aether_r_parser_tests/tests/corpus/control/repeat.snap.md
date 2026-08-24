@@ -55,12 +55,6 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
     1 │ repeat
   > 2 │
       │
-
-  i Expected a loop body here.
-
-    1 │ repeat
-  > 2 │
-      │
 ```
 
 ## Repeat With Braces
