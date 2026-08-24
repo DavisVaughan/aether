@@ -143,7 +143,7 @@ fn parse_argument_name_clause(p: &mut RParser) {
         IDENT if p.nth_at(1, T![=]) => {
             let clause = p.start();
             let name = p.start();
-            p.bump_any();
+            p.bump(IDENT);
             name.complete(p, R_IDENTIFIER);
             p.bump(T![=]);
             clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
@@ -151,7 +151,7 @@ fn parse_argument_name_clause(p: &mut RParser) {
         DOTS if p.nth_at(1, T![=]) => {
             let clause = p.start();
             let name = p.start();
-            p.bump_any();
+            p.bump(DOTS);
             name.complete(p, R_DOTS);
             p.bump(T![=]);
             clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
@@ -159,7 +159,7 @@ fn parse_argument_name_clause(p: &mut RParser) {
         DOTDOTI if p.nth_at(1, T![=]) => {
             let clause = p.start();
             let name = p.start();
-            p.bump_any();
+            p.bump(DOTDOTI);
             name.complete(p, R_DOT_DOT_I);
             p.bump(T![=]);
             clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
@@ -167,7 +167,7 @@ fn parse_argument_name_clause(p: &mut RParser) {
         T![null] if p.nth_at(1, T![=]) => {
             let clause = p.start();
             let name = p.start();
-            p.bump_any();
+            p.bump(T![null]);
             name.complete(p, R_NULL_EXPRESSION);
             p.bump(T![=]);
             clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
