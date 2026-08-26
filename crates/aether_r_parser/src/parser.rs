@@ -24,6 +24,24 @@ pub(crate) struct RParser<'src> {
     depth: u32,
 }
 
+/// One nesting level, left again when this drops
+pub(crate) struct Nesting<'p, 'src> {
+    parser: &'p mut RParser<'src>,
+}
+
+impl<'src> Nesting<'_, 'src> {
+    /// The parser this level borrows, to go on parsing with
+    pub(crate) fn parser(&mut self) -> &mut RParser<'src> {
+        self.parser
+    }
+}
+
+impl Drop for Nesting<'_, '_> {
+    fn drop(&mut self) {
+        self.parser.depth -= 1;
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum Scope {
     #[default]
@@ -76,22 +94,17 @@ impl<'src> RParser<'src> {
         self.scope
     }
 
-    /// Runs `f` one level deeper, or returns `None` at [`MAX_NESTING_DEPTH`]
+    /// Enters one nesting level, or returns `None` at [`MAX_NESTING_DEPTH`]
     ///
-    /// A closure rather than a pair of methods so that the level cannot be
-    /// entered without being left again, whatever `f` returns.
-    pub(crate) fn with_nesting<F, R>(&mut self, f: F) -> Option<R>
-    where
-        F: FnOnce(&mut Self) -> R,
-    {
+    /// The level is left again when the returned [`Nesting`] drops, so a caller
+    /// cannot leak one down an early return.
+    pub(crate) fn nest(&mut self) -> Option<Nesting<'_, 'src>> {
         if self.depth == MAX_NESTING_DEPTH {
             return None;
         }
 
         self.depth += 1;
-        let result = f(self);
-        self.depth -= 1;
-        Some(result)
+        Some(Nesting { parser: self })
     }
 
     pub(crate) fn re_lex(&mut self, context: RReLexContext) -> RSyntaxKind {

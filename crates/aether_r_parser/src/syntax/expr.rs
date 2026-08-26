@@ -46,19 +46,15 @@ pub(crate) fn parse_expression_with_binding_power(
         BindingPower::HIGHEST
     );
 
-    match p.with_nesting(|p| parse_expression_pratt(p, current_binding_power)) {
-        Some(syntax) => syntax,
-        None => {
-            // Nothing is consumed, so the caller recovers over the tokens we
-            // refused exactly as it would over any other unparseable text
-            p.error(diagnostics::nested_too_deeply(p.cur_range()));
-            Absent
-        }
-    }
-}
+    // Held to the end of the function, so every `return` below leaves the level
+    let Some(mut nesting) = p.nest() else {
+        // Nothing is consumed, so the caller recovers over the tokens we
+        // refused exactly as it would over any other unparseable text
+        p.error(diagnostics::nested_too_deeply(p.cur_range()));
+        return Absent;
+    };
+    let p = nesting.parser();
 
-/// The Pratt loop
-fn parse_expression_pratt(p: &mut RParser, current_binding_power: BindingPower) -> ParsedSyntax {
     let mut lhs = match p.cur() {
         kind @ T![?] => parse_unary_expression(p, kind, BindingPower::UNARY_HELP),
         kind @ T![~] => parse_unary_expression(p, kind, BindingPower::UNARY_TILDE),
