@@ -1,3 +1,4 @@
+/// Binary operator associativity, taken from `gram.y`
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum Associativity {
     Left,
