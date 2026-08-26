@@ -1,6 +1,7 @@
 use crate::diagnostics;
 use crate::parser::{RParser, Scope};
-use crate::syntax::expr::{parse_body, parse_expression};
+use crate::syntax::body::parse_body_expression;
+use crate::syntax::expr::parse_expression;
 use aether_r_syntax::RSyntaxKind::{R_ELSE_CLAUSE, R_IF_STATEMENT};
 use aether_r_syntax::T;
 use biome_parser::CompletedMarker;
@@ -20,7 +21,7 @@ pub(crate) fn parse_if_statement(p: &mut RParser) -> CompletedMarker {
     // body: treated like any other expression, but `?` comes before them in the
     // precedence table. In gram.y a loop body is left associative and an `if`
     // body is right associative one rank up, but they shake out the same
-    parse_body(p).or_add_diagnostic(p, diagnostics::expected_if_body);
+    parse_body_expression(p).or_add_diagnostic(p, diagnostics::expected_if_body);
     parse_else_clause(p);
 
     m.complete(p, R_IF_STATEMENT)
@@ -38,6 +39,6 @@ fn parse_else_clause(p: &mut RParser) {
 
     let m = p.start();
     p.bump(T![else]);
-    parse_body(p).or_add_diagnostic(p, diagnostics::expected_else_body);
+    parse_body_expression(p).or_add_diagnostic(p, diagnostics::expected_else_body);
     m.complete(p, R_ELSE_CLAUSE);
 }
