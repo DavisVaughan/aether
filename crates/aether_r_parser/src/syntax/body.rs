@@ -3,7 +3,7 @@ use crate::syntax::binding_power::BindingPower;
 use crate::syntax::expr::parse_expression_with_binding_power;
 use biome_parser::parsed_syntax::ParsedSyntax;
 
-/// Parse a function or loop body
+/// Parse a function, loop, or if body
 ///
 /// Generally treated like a normal expression, but R's precedence table puts
 /// `?` at a lower binding power than a function or loop body, so `function() a ? b`
