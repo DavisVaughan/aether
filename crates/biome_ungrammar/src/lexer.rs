@@ -1,5 +1,6 @@
 //! Simple hand-written ungrammar lexer
-use crate::error::{Result, bail};
+use crate::error::Result;
+use crate::error::bail;
 
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) enum TokenKind {

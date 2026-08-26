@@ -1,19 +1,28 @@
 #[cfg(test)]
 mod tests;
 
-use crate::diagnostics::{
-    unexpected_character, unterminated_backtick_identifier, unterminated_exponent,
-    unterminated_hexadecimal, unterminated_hexadecimal_binary_exponent, unterminated_special,
-    unterminated_string,
-};
-use aether_r_syntax::RSyntaxKind::{self, *};
+use crate::diagnostics::unexpected_character;
+use crate::diagnostics::unterminated_backtick_identifier;
+use crate::diagnostics::unterminated_exponent;
+use crate::diagnostics::unterminated_hexadecimal;
+use crate::diagnostics::unterminated_hexadecimal_binary_exponent;
+use crate::diagnostics::unterminated_special;
+use crate::diagnostics::unterminated_string;
+use aether_r_syntax::RSyntaxKind;
+use aether_r_syntax::RSyntaxKind::*;
 use aether_r_syntax::T;
 use biome_parser::diagnostic::ParseDiagnostic;
-use biome_parser::lexer::{
-    LexContext, Lexer, LexerCheckpoint, LexerWithCheckpoint, ReLexer, TokenFlags,
-};
-use biome_rowan::{SyntaxKind, TextRange, TextSize};
-use unicode_ident::{is_xid_continue, is_xid_start};
+use biome_parser::lexer::LexContext;
+use biome_parser::lexer::Lexer;
+use biome_parser::lexer::LexerCheckpoint;
+use biome_parser::lexer::LexerWithCheckpoint;
+use biome_parser::lexer::ReLexer;
+use biome_parser::lexer::TokenFlags;
+use biome_rowan::SyntaxKind;
+use biome_rowan::TextRange;
+use biome_rowan::TextSize;
+use unicode_ident::is_xid_continue;
+use unicode_ident::is_xid_start;
 
 /// Lex context for R
 ///

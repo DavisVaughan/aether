@@ -2,7 +2,8 @@ use crate::kind_src::AstSrc;
 use crate::kind_src::Field;
 use crate::language_kind::LanguageKind;
 use biome_string_case::Case;
-use quote::{format_ident, quote};
+use quote::format_ident;
+use quote::quote;
 use xtask::Result;
 
 pub fn generate_node_factory(ast: &AstSrc, language_kind: LanguageKind) -> Result<String> {

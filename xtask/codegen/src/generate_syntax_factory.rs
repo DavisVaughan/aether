@@ -1,9 +1,12 @@
 use super::kind_src::AstSrc;
-use crate::generate_nodes::{get_field_predicate, group_fields_for_ordering, token_kind_to_code};
+use crate::generate_nodes::get_field_predicate;
+use crate::generate_nodes::group_fields_for_ordering;
+use crate::generate_nodes::token_kind_to_code;
 use crate::language_kind::LanguageKind;
 use biome_string_case::Case;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::format_ident;
+use quote::quote;
 use xtask::Result;
 
 pub fn generate_syntax_factory(ast: &AstSrc, language_kind: LanguageKind) -> Result<String> {

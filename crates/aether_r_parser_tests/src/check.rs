@@ -1,11 +1,21 @@
-use crate::document::{Block, Cell, Expectation};
-use aether_r_parser::{RParse, RParserOptions, parse};
-use aether_r_syntax::{RSyntaxNode, TextRange};
-use biome_console::fmt::{Formatter, Termcolor};
+use crate::document::Block;
+use crate::document::Cell;
+use crate::document::Expectation;
+use aether_r_parser::RParse;
+use aether_r_parser::RParserOptions;
+use aether_r_parser::parse;
+use aether_r_syntax::RSyntaxNode;
+use aether_r_syntax::TextRange;
+use biome_console::fmt::Formatter;
+use biome_console::fmt::Termcolor;
 use biome_console::markup;
-use biome_diagnostics::{Diagnostic, DiagnosticExt, PrintDiagnostic, termcolor::NoColor};
+use biome_diagnostics::Diagnostic;
+use biome_diagnostics::DiagnosticExt;
+use biome_diagnostics::PrintDiagnostic;
+use biome_diagnostics::termcolor::NoColor;
 use biome_parser::diagnostic::ParseDiagnostic;
-use biome_rowan::{SyntaxKind, SyntaxNode};
+use biome_rowan::SyntaxKind;
+use biome_rowan::SyntaxNode;
 
 #[derive(Debug)]
 pub enum CheckError {

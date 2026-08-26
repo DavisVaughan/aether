@@ -5,7 +5,8 @@ use aether_r_syntax::RSyntaxKind;
 use biome_parser::Parser;
 use biome_parser::diagnostic::ParseDiagnostic;
 use biome_parser::token_source::TokenSource;
-use biome_rowan::{TextLen, TextRange};
+use biome_rowan::TextLen;
+use biome_rowan::TextRange;
 
 /// A backtick-quoted name that runs to the end of the file
 pub(crate) fn unterminated_backtick_identifier(open: TextRange, eof: TextRange) -> ParseDiagnostic {

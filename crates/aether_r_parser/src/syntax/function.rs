@@ -1,16 +1,31 @@
 use crate::diagnostics;
-use crate::parser::{RParser, Scope};
+use crate::parser::RParser;
+use crate::parser::Scope;
 use crate::syntax::body::parse_body_expression;
 use crate::syntax::expr::parse_expression;
-use aether_r_syntax::RSyntaxKind::{
-    self, DOTDOTI, DOTS, IDENT, R_BOGUS_PARAMETER_NAME, R_DOT_DOT_I, R_DOTS, R_FUNCTION_DEFINITION,
-    R_IDENTIFIER, R_PARAMETER, R_PARAMETER_DEFAULT, R_PARAMETER_LIST, R_PARAMETERS,
-};
+use aether_r_syntax::RSyntaxKind;
+use aether_r_syntax::RSyntaxKind::DOTDOTI;
+use aether_r_syntax::RSyntaxKind::DOTS;
+use aether_r_syntax::RSyntaxKind::IDENT;
+use aether_r_syntax::RSyntaxKind::R_BOGUS_PARAMETER_NAME;
+use aether_r_syntax::RSyntaxKind::R_DOT_DOT_I;
+use aether_r_syntax::RSyntaxKind::R_DOTS;
+use aether_r_syntax::RSyntaxKind::R_FUNCTION_DEFINITION;
+use aether_r_syntax::RSyntaxKind::R_IDENTIFIER;
+use aether_r_syntax::RSyntaxKind::R_PARAMETER;
+use aether_r_syntax::RSyntaxKind::R_PARAMETER_DEFAULT;
+use aether_r_syntax::RSyntaxKind::R_PARAMETER_LIST;
+use aether_r_syntax::RSyntaxKind::R_PARAMETERS;
 use aether_r_syntax::T;
 use biome_parser::CompletedMarker;
+use biome_parser::Parser;
+use biome_parser::ParserProgress;
+use biome_parser::TokenSet;
 use biome_parser::parse_recovery::ParseRecoveryTokenSet;
-use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
-use biome_parser::{Parser, ParserProgress, TokenSet, token_set};
+use biome_parser::parsed_syntax::ParsedSyntax;
+use biome_parser::parsed_syntax::ParsedSyntax::Absent;
+use biome_parser::parsed_syntax::ParsedSyntax::Present;
+use biome_parser::token_set;
 
 pub(crate) fn parse_function_definition(p: &mut RParser, kind: RSyntaxKind) -> CompletedMarker {
     let m = p.start();

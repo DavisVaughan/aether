@@ -1,5 +1,7 @@
 use super::*;
-use aether_r_syntax::RSyntaxKind::{R_BRACK, R_BRACK2, R_DOUBLE_LITERAL};
+use aether_r_syntax::RSyntaxKind::R_BRACK;
+use aether_r_syntax::RSyntaxKind::R_BRACK2;
+use aether_r_syntax::RSyntaxKind::R_DOUBLE_LITERAL;
 use biome_parser::prelude::NthToken;
 use biome_rowan::TextSize;
 

@@ -1,9 +1,11 @@
 use crate::lexer::RReLexContext;
 use crate::options::RParserOptions;
 use crate::token_source::RTokenSource;
-use aether_r_syntax::{RSyntaxKind, T};
+use aether_r_syntax::RSyntaxKind;
+use aether_r_syntax::T;
 use biome_parser::ParserContext;
-use biome_parser::diagnostic::{ParseDiagnostic, merge_diagnostics};
+use biome_parser::diagnostic::ParseDiagnostic;
+use biome_parser::diagnostic::merge_diagnostics;
 use biome_parser::event::Event;
 use biome_parser::prelude::*;
 

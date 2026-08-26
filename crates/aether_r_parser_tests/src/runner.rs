@@ -1,4 +1,5 @@
-use crate::check::{CheckError, check};
+use crate::check::CheckError;
+use crate::check::check;
 use crate::corpus;
 use crate::document::Document;
 use std::fmt::Write as _;

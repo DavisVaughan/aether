@@ -73,6 +73,11 @@ Rationale that is genuinely worth keeping belongs in
 `plans/aether-implementation-plan.md` or `docs/deviations.md`, not in a
 doc-comment.
 
+## Imports
+
+One `use` per line, never `use foo::{a, b}`. Stable rustfmt can't enforce this
+(`imports_granularity` is nightly-only), so watch for it by hand in review.
+
 ## Reference implementations
 
 - `tree-sitter-r` (r-lib) — especially `src/scanner.c` and the long comments in

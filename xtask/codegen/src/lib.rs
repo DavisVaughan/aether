@@ -16,7 +16,9 @@ mod termcolorful;
 use bpaf::Bpaf;
 use std::path::Path;
 
-use xtask::{glue::fs2, Mode, Result};
+use xtask::glue::fs2;
+use xtask::Mode;
+use xtask::Result;
 
 pub use self::ast::generate_ast;
 

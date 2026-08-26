@@ -1,10 +1,16 @@
 use crate::diagnostics;
-use crate::parser::{RParser, Scope};
+use crate::parser::RParser;
+use crate::parser::Scope;
 use crate::syntax::expr::parse_expression;
-use aether_r_syntax::RSyntaxKind::{self, R_BOGUS_EXPRESSION, R_STATEMENT, R_STATEMENT_LIST};
+use aether_r_syntax::RSyntaxKind;
+use aether_r_syntax::RSyntaxKind::R_BOGUS_EXPRESSION;
+use aether_r_syntax::RSyntaxKind::R_STATEMENT;
+use aether_r_syntax::RSyntaxKind::R_STATEMENT_LIST;
 use aether_r_syntax::T;
-use biome_parser::parsed_syntax::ParsedSyntax::{Absent, Present};
-use biome_parser::{Parser, ParserProgress};
+use biome_parser::Parser;
+use biome_parser::ParserProgress;
+use biome_parser::parsed_syntax::ParsedSyntax::Absent;
+use biome_parser::parsed_syntax::ParsedSyntax::Present;
 
 /// Runs to `close` and never stops short of it
 ///

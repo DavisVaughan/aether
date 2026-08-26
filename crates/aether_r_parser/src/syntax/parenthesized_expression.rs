@@ -1,5 +1,6 @@
 use crate::diagnostics;
-use crate::parser::{RParser, Scope};
+use crate::parser::RParser;
+use crate::parser::Scope;
 use crate::syntax::expr::parse_expression;
 use aether_r_syntax::RSyntaxKind::R_PARENTHESIZED_EXPRESSION;
 use aether_r_syntax::T;

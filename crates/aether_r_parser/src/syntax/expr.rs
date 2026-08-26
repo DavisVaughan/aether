@@ -8,15 +8,15 @@ use crate::syntax::associativity::Associativity;
 use crate::syntax::binary::parse_binary_expression;
 use crate::syntax::binding_power::BindingPower;
 use crate::syntax::braced_statements::parse_braced_statements;
-use crate::syntax::call::{
-    parse_call_expression, parse_subset_expression, parse_subset2_expression,
-};
+use crate::syntax::call::parse_call_expression;
+use crate::syntax::call::parse_subset_expression;
+use crate::syntax::call::parse_subset2_expression;
 use crate::syntax::extract::parse_extract_expression;
 use crate::syntax::function::parse_function_definition;
 use crate::syntax::if_statement::parse_if_statement;
-use crate::syntax::loop_statements::{
-    parse_for_statement, parse_repeat_statement, parse_while_statement,
-};
+use crate::syntax::loop_statements::parse_for_statement;
+use crate::syntax::loop_statements::parse_repeat_statement;
+use crate::syntax::loop_statements::parse_while_statement;
 use crate::syntax::namespace::parse_namespace_expression;
 use crate::syntax::parenthesized_expression::parse_parenthesized_expression;
 use crate::syntax::unary::parse_unary_expression;
@@ -24,7 +24,9 @@ use aether_r_syntax::RSyntaxKind::*;
 use aether_r_syntax::T;
 use biome_parser::Parser;
 use biome_parser::ParserProgress;
-use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
+use biome_parser::parsed_syntax::ParsedSyntax;
+use biome_parser::parsed_syntax::ParsedSyntax::Absent;
+use biome_parser::parsed_syntax::ParsedSyntax::Present;
 
 pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
     parse_expression_with_binding_power(p, BindingPower::LOWEST)

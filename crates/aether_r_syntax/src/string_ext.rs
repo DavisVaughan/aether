@@ -1,9 +1,12 @@
 use crate::RStringValue;
-use crate::RSyntaxKind::{
-    R_DOUBLE_QUOTED_STRING_LITERAL, R_RAW_STRING_LITERAL, R_SINGLE_QUOTED_STRING_LITERAL,
-};
+use crate::RSyntaxKind::R_DOUBLE_QUOTED_STRING_LITERAL;
+use crate::RSyntaxKind::R_RAW_STRING_LITERAL;
+use crate::RSyntaxKind::R_SINGLE_QUOTED_STRING_LITERAL;
 use crate::RSyntaxToken;
-use biome_rowan::{SyntaxResult, TextRange, TextSize, TokenText};
+use biome_rowan::SyntaxResult;
+use biome_rowan::TextRange;
+use biome_rowan::TextSize;
+use biome_rowan::TokenText;
 
 impl RStringValue {
     /// The text between the delimiters
@@ -47,9 +50,11 @@ fn inner_string_range(token: &RSyntaxToken) -> TextRange {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::RSyntaxKind::{self, R_STRING_VALUE};
+    use crate::RSyntaxKind;
+    use crate::RSyntaxKind::R_STRING_VALUE;
     use crate::RSyntaxNode;
-    use biome_rowan::{AstNode, TriviaPiece};
+    use biome_rowan::AstNode;
+    use biome_rowan::TriviaPiece;
 
     /// The parser cannot be reached from here, so the token is built by hand.
     /// `lexer/tests/strings.rs` is what pins that the lexer really produces it.

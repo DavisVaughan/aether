@@ -4,11 +4,10 @@ pub mod accept;
 pub mod glue;
 
 use bpaf::Bpaf;
-use std::{
-    env,
-    fmt::Display,
-    path::{Path, PathBuf},
-};
+use std::env;
+use std::fmt::Display;
+use std::path::Path;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, Bpaf)]
 #[bpaf(options)]
@@ -18,9 +17,15 @@ pub enum TaskCommand {
     Accept,
 }
 
-pub use crate::glue::{pushd, pushenv};
+pub use crate::glue::pushd;
+pub use crate::glue::pushenv;
 
-pub use anyhow::{anyhow, bail, ensure, Context as _, Error, Result};
+pub use anyhow::anyhow;
+pub use anyhow::bail;
+pub use anyhow::ensure;
+pub use anyhow::Context as _;
+pub use anyhow::Error;
+pub use anyhow::Result;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Mode {

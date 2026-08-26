@@ -1,5 +1,7 @@
 use crate::Result;
-use aether_r_parser_tests::{check, corpus, Document};
+use aether_r_parser_tests::check;
+use aether_r_parser_tests::corpus;
+use aether_r_parser_tests::Document;
 use std::fs;
 
 pub fn accept() -> Result<()> {

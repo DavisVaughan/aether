@@ -1,16 +1,28 @@
 use crate::diagnostics;
-use crate::parser::{RParser, Scope};
+use crate::parser::RParser;
+use crate::parser::Scope;
 use crate::syntax::body::parse_body_expression;
 use crate::syntax::expr::parse_expression;
-use aether_r_syntax::RSyntaxKind::{
-    self, DOTDOTI, DOTS, IDENT, R_BOGUS_FOR_VARIABLE, R_DOT_DOT_I, R_DOTS, R_FOR_STATEMENT,
-    R_IDENTIFIER, R_REPEAT_STATEMENT, R_WHILE_STATEMENT,
-};
+use aether_r_syntax::RSyntaxKind;
+use aether_r_syntax::RSyntaxKind::DOTDOTI;
+use aether_r_syntax::RSyntaxKind::DOTS;
+use aether_r_syntax::RSyntaxKind::IDENT;
+use aether_r_syntax::RSyntaxKind::R_BOGUS_FOR_VARIABLE;
+use aether_r_syntax::RSyntaxKind::R_DOT_DOT_I;
+use aether_r_syntax::RSyntaxKind::R_DOTS;
+use aether_r_syntax::RSyntaxKind::R_FOR_STATEMENT;
+use aether_r_syntax::RSyntaxKind::R_IDENTIFIER;
+use aether_r_syntax::RSyntaxKind::R_REPEAT_STATEMENT;
+use aether_r_syntax::RSyntaxKind::R_WHILE_STATEMENT;
 use aether_r_syntax::T;
 use biome_parser::CompletedMarker;
+use biome_parser::Parser;
+use biome_parser::TokenSet;
 use biome_parser::parse_recovery::ParseRecoveryTokenSet;
-use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
-use biome_parser::{Parser, TokenSet, token_set};
+use biome_parser::parsed_syntax::ParsedSyntax;
+use biome_parser::parsed_syntax::ParsedSyntax::Absent;
+use biome_parser::parsed_syntax::ParsedSyntax::Present;
+use biome_parser::token_set;
 
 /// Where a `for` variable may stop: at the `in` that follows it, or at an end
 ///

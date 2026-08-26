@@ -1,17 +1,36 @@
 use crate::diagnostics;
-use crate::parser::{RParser, Scope};
+use crate::parser::RParser;
+use crate::parser::Scope;
 use crate::syntax::expr::parse_expression;
-use aether_r_syntax::RSyntaxKind::{
-    self, DOTDOTI, DOTS, IDENT, R_ARGUMENT, R_ARGUMENT_LIST, R_ARGUMENT_NAME_CLAUSE,
-    R_BOGUS_EXPRESSION, R_CALL, R_CALL_ARGUMENTS, R_DOT_DOT_I, R_DOTS,
-    R_DOUBLE_QUOTED_STRING_LITERAL, R_IDENTIFIER, R_NULL_EXPRESSION, R_RAW_STRING_LITERAL,
-    R_SINGLE_QUOTED_STRING_LITERAL, R_STRING_VALUE, R_SUBSET, R_SUBSET_ARGUMENTS, R_SUBSET2,
-    R_SUBSET2_ARGUMENTS,
-};
+use aether_r_syntax::RSyntaxKind;
+use aether_r_syntax::RSyntaxKind::DOTDOTI;
+use aether_r_syntax::RSyntaxKind::DOTS;
+use aether_r_syntax::RSyntaxKind::IDENT;
+use aether_r_syntax::RSyntaxKind::R_ARGUMENT;
+use aether_r_syntax::RSyntaxKind::R_ARGUMENT_LIST;
+use aether_r_syntax::RSyntaxKind::R_ARGUMENT_NAME_CLAUSE;
+use aether_r_syntax::RSyntaxKind::R_BOGUS_EXPRESSION;
+use aether_r_syntax::RSyntaxKind::R_CALL;
+use aether_r_syntax::RSyntaxKind::R_CALL_ARGUMENTS;
+use aether_r_syntax::RSyntaxKind::R_DOT_DOT_I;
+use aether_r_syntax::RSyntaxKind::R_DOTS;
+use aether_r_syntax::RSyntaxKind::R_DOUBLE_QUOTED_STRING_LITERAL;
+use aether_r_syntax::RSyntaxKind::R_IDENTIFIER;
+use aether_r_syntax::RSyntaxKind::R_NULL_EXPRESSION;
+use aether_r_syntax::RSyntaxKind::R_RAW_STRING_LITERAL;
+use aether_r_syntax::RSyntaxKind::R_SINGLE_QUOTED_STRING_LITERAL;
+use aether_r_syntax::RSyntaxKind::R_STRING_VALUE;
+use aether_r_syntax::RSyntaxKind::R_SUBSET;
+use aether_r_syntax::RSyntaxKind::R_SUBSET_ARGUMENTS;
+use aether_r_syntax::RSyntaxKind::R_SUBSET2;
+use aether_r_syntax::RSyntaxKind::R_SUBSET2_ARGUMENTS;
 use aether_r_syntax::T;
 use biome_parser::CompletedMarker;
+use biome_parser::Parser;
+use biome_parser::ParserProgress;
+use biome_parser::TokenSet;
 use biome_parser::parse_recovery::ParseRecoveryTokenSet;
-use biome_parser::{Parser, ParserProgress, TokenSet, token_set};
+use biome_parser::token_set;
 
 pub(crate) fn parse_call_expression(p: &mut RParser, lhs: CompletedMarker) -> CompletedMarker {
     let m = lhs.precede(p);
