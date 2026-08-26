@@ -12,11 +12,11 @@ use biome_parser::parse_recovery::ParseRecoveryTokenSet;
 use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
 use biome_parser::{Parser, ParserProgress, TokenSet, token_set};
 
-pub(crate) fn parse_function_definition(p: &mut RParser) -> CompletedMarker {
-    debug_assert!(p.at(T![function]) || p.at(T!["\\"]));
+pub(crate) fn parse_function_definition(p: &mut RParser, keyword: RSyntaxKind) -> CompletedMarker {
+    debug_assert!(keyword == T![function] || keyword == T!["\\"]);
 
     let m = p.start();
-    p.bump_any();
+    p.bump(keyword);
 
     if p.at(T!['(']) {
         parse_parameters(p);

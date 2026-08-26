@@ -9,7 +9,7 @@ pub(crate) fn parse_extract_expression(p: &mut RParser, lhs: CompletedMarker) ->
     let operator = p.cur();
     let operator_range = p.cur_range();
     let m = lhs.precede(p);
-    p.bump_any();
+    p.bump(operator);
     parse_selector(p).or_add_diagnostic(p, |_, range| {
         diagnostics::expected_rhs_selector(operator, operator_range, range)
     });
