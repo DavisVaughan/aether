@@ -363,8 +363,10 @@ factory emits. `formatter_crate_name()` and `xtask/codegen/src/formatter.rs` wer
 dropped — aether has no formatter crate, and air keeps its own codegen for that.
 
 The hand-written files in the syntax crate (`lib.rs`, `syntax_node.rs`,
-`call_ext.rs`, `argument_ext.rs`) came along too. They are not generated, and
-air's formatter uses them, so they must be here for the swap-in to work.
+`argument_ext.rs`, `string_ext.rs`) came along too. They are not generated.
+`call_ext.rs` and `lib.rs`'s `OperatorPrecedence` came along at first but were
+later removed as formatter-only dead weight with no caller in aether — see
+deviation 15 in `docs/deviations.md`.
 
 Phase 2's acceptance check — that aether's generated output is byte-identical to
 air's after `s/air_r_/aether_r_/g` — passed at the time and is not re-run. What
