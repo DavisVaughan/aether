@@ -38,6 +38,7 @@ since the ledger runs ahead of the parser.
 | 13 | `AnyRParameterName` | 3 variants, no bogus | new `RBogusParameterName` kind added as a fourth variant, so a parameter that is not a name is contained in its slot instead of collapsing the list around it |
 | 11b | A `;` with no expression before it on the same line | accepted silently everywhere | an error at top level, as R requires; accepted inside `{}`, as R does |
 | 14 | The `for` variable | `RIdentifier` only, so `for (... in x) y` collapses the whole file to one bogus node | new `AnyRForVariable` union of `RIdentifier`, `RDots`, `RDotDotI`, and a new `RBogusForVariable`, so `...` and `..i` are taken as R takes them |
+| 15 | `OperatorPrecedence` and `call_ext.rs` | vendored into `air_r_syntax`, used by the formatter | not carried into `aether_r_syntax`; not a tree-shape deviation |
 
 ### 1. Semicolons are real tokens
 
@@ -1063,6 +1064,34 @@ file where aether does not. `A `for` Variable That Is Not A Name` and `A `for`
 With No Variable` cover the bogus kind and need no marker, being `[error]`. The
 imported `For` test exercises `...` and `..i` too, and disagrees with
 tree-sitter-r's tree for the same reason.
+
+### 15. `OperatorPrecedence` and `call_ext.rs` are not carried over
+
+Phase 2 vendored `air_r_syntax`'s hand-written files wholesale, on the reasoning
+that "air's formatter uses them, so they must be here for the swap-in to work."
+This entry narrows that: two of them are formatter-only and gain nothing from
+living in the parser's own crate ahead of time.
+
+`OperatorPrecedence` duplicated `crates/aether_r_parser/src/syntax/binding_power.rs`'s
+`BindingPower` under different names for the same token set, unused by anything
+in `aether_r_parser` — the Pratt loop has its own binding power table and never
+called `try_from_binary_operator()`. `call_ext.rs`'s `RCall::is_test_call()` is
+formatter policy (recognizing `test_that()`-shaped calls to format their brace
+argument specially), with no caller anywhere in the parser or its tests.
+
+Both are deleted from `aether_r_syntax`, not deprioritized: `argument_ext.rs` and
+`string_ext.rs` stay, since the parser or its tests reach through them today.
+
+Why: keeping formatter-only code in the parser crate ahead of the formatter's own
+existence means maintaining it against a moving target with no test coverage to
+catch drift. `BindingPower`'s reordering under deviation work would have to be
+mirrored into `OperatorPrecedence` by hand, unverified, for a table that would go
+untouched until air's formatter port begins.
+
+Swap-in cost: whoever ports air's formatter recreates both from air's original
+`air_r_syntax` source — this is a straight vendor, not a rewrite, since aether's
+`RSyntaxKind` and node shapes are otherwise unchanged from air's for every token
+and node either file touches.
 
 ## tree-sitter-r vs. R
 
