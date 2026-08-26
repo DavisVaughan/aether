@@ -1,8 +1,10 @@
 use crate::diagnostics;
-use crate::parser::{RParser, Scope};
+use crate::parser::RParser;
+use crate::parser::Scope;
 use crate::syntax::body::parse_body_expression;
 use crate::syntax::expr::parse_expression;
-use aether_r_syntax::RSyntaxKind::{R_ELSE_CLAUSE, R_IF_STATEMENT};
+use aether_r_syntax::RSyntaxKind::R_ELSE_CLAUSE;
+use aether_r_syntax::RSyntaxKind::R_IF_STATEMENT;
 use aether_r_syntax::T;
 use biome_parser::CompletedMarker;
 use biome_parser::Parser;

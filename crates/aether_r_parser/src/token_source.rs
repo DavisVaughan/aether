@@ -1,13 +1,18 @@
 #[cfg(test)]
 mod tests;
 
-use crate::lexer::{RLexContext, RLexer, RReLexContext};
-use aether_r_syntax::RSyntaxKind::{self, EOF};
+use crate::lexer::RLexContext;
+use crate::lexer::RLexer;
+use crate::lexer::RReLexContext;
+use aether_r_syntax::RSyntaxKind;
+use aether_r_syntax::RSyntaxKind::EOF;
 use biome_parser::diagnostic::ParseDiagnostic;
 use biome_parser::lexer::BufferedLexer;
-use biome_parser::prelude::{TokenSource, Trivia};
+use biome_parser::prelude::TokenSource;
+use biome_parser::prelude::Trivia;
 use biome_parser::token_source::TokenSourceWithBufferedLexer;
-use biome_rowan::{TextRange, TriviaPieceKind};
+use biome_rowan::TextRange;
+use biome_rowan::TriviaPieceKind;
 
 pub(crate) struct RTokenSource<'src> {
     lexer: BufferedLexer<RSyntaxKind, RLexer<'src>>,

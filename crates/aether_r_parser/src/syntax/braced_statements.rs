@@ -1,4 +1,5 @@
-use crate::parser::{RParser, Scope};
+use crate::parser::RParser;
+use crate::parser::Scope;
 use crate::syntax::statement_list::parse_statement_list;
 use aether_r_syntax::RSyntaxKind::R_BRACED_STATEMENTS;
 use aether_r_syntax::T;

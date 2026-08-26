@@ -1,6 +1,7 @@
 //! Scratchpad. Run it with `just quick`.
 
-use aether_r_parser::{RParserOptions, parse};
+use aether_r_parser::RParserOptions;
+use aether_r_parser::parse;
 
 #[ignore]
 #[test]

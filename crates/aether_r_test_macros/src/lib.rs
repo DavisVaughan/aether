@@ -1,8 +1,12 @@
 use proc_macro::TokenStream;
-use proc_macro2::{Ident, Span, TokenStream as TokenStream2, TokenTree};
+use proc_macro2::Ident;
+use proc_macro2::Span;
+use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::TokenTree;
 use quote::quote;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 
 /// Expands to one `#[test] fn` per `*.md` under `directory`
 ///
