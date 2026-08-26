@@ -8,6 +8,7 @@ mod expr;
 mod extract;
 mod function;
 mod if_statement;
+mod literal;
 mod loop_statements;
 mod namespace;
 mod parenthesized_expression;

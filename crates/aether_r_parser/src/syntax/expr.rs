@@ -14,6 +14,7 @@ use crate::syntax::call::parse_subset2_expression;
 use crate::syntax::extract::parse_extract_expression;
 use crate::syntax::function::parse_function_definition;
 use crate::syntax::if_statement::parse_if_statement;
+use crate::syntax::literal::parse_literal_expression;
 use crate::syntax::loop_statements::parse_for_statement;
 use crate::syntax::loop_statements::parse_repeat_statement;
 use crate::syntax::loop_statements::parse_while_statement;
@@ -48,93 +49,29 @@ pub(crate) fn parse_expression_with_binding_power(
         kind @ T![~] => parse_unary_expression(p, kind, BindingPower::UNARY_TILDE),
         kind @ T![!] => parse_unary_expression(p, kind, BindingPower::UNARY_NOT),
         kind @ (T![+] | T![-]) => parse_unary_expression(p, kind, BindingPower::UNARY_PLUS_MINUS),
-        R_INTEGER_LITERAL => {
-            let m = p.start();
-            p.bump(R_INTEGER_LITERAL);
-            m.complete(p, R_INTEGER_VALUE)
-        }
-        R_DOUBLE_LITERAL => {
-            let m = p.start();
-            p.bump(R_DOUBLE_LITERAL);
-            m.complete(p, R_DOUBLE_VALUE)
-        }
-        R_COMPLEX_LITERAL => {
-            let m = p.start();
-            p.bump(R_COMPLEX_LITERAL);
-            m.complete(p, R_COMPLEX_VALUE)
-        }
-        IDENT => {
-            let m = p.start();
-            p.bump(IDENT);
-            m.complete(p, R_IDENTIFIER)
-        }
-        DOTS => {
-            let m = p.start();
-            p.bump(DOTS);
-            m.complete(p, R_DOTS)
-        }
-        DOTDOTI => {
-            let m = p.start();
-            p.bump(DOTDOTI);
-            m.complete(p, R_DOT_DOT_I)
-        }
-        T![next] => {
-            let m = p.start();
-            p.bump(T![next]);
-            m.complete(p, R_NEXT_EXPRESSION)
-        }
-        T![break] => {
-            let m = p.start();
-            p.bump(T![break]);
-            m.complete(p, R_BREAK_EXPRESSION)
-        }
-        T![true] => {
-            let m = p.start();
-            p.bump(T![true]);
-            m.complete(p, R_TRUE_EXPRESSION)
-        }
-        T![false] => {
-            let m = p.start();
-            p.bump(T![false]);
-            m.complete(p, R_FALSE_EXPRESSION)
-        }
-        T![null] => {
-            let m = p.start();
-            p.bump(T![null]);
-            m.complete(p, R_NULL_EXPRESSION)
-        }
-        T![inf] => {
-            let m = p.start();
-            p.bump(T![inf]);
-            m.complete(p, R_INF_EXPRESSION)
-        }
-        T![nan] => {
-            let m = p.start();
-            p.bump(T![nan]);
-            m.complete(p, R_NAN_EXPRESSION)
-        }
+        R_INTEGER_LITERAL => parse_literal_expression(p, R_INTEGER_LITERAL, R_INTEGER_VALUE),
+        R_DOUBLE_LITERAL => parse_literal_expression(p, R_DOUBLE_LITERAL, R_DOUBLE_VALUE),
+        R_COMPLEX_LITERAL => parse_literal_expression(p, R_COMPLEX_LITERAL, R_COMPLEX_VALUE),
+        IDENT => parse_literal_expression(p, IDENT, R_IDENTIFIER),
+        DOTS => parse_literal_expression(p, DOTS, R_DOTS),
+        DOTDOTI => parse_literal_expression(p, DOTDOTI, R_DOT_DOT_I),
+        T![next] => parse_literal_expression(p, T![next], R_NEXT_EXPRESSION),
+        T![break] => parse_literal_expression(p, T![break], R_BREAK_EXPRESSION),
+        T![true] => parse_literal_expression(p, T![true], R_TRUE_EXPRESSION),
+        T![false] => parse_literal_expression(p, T![false], R_FALSE_EXPRESSION),
+        T![null] => parse_literal_expression(p, T![null], R_NULL_EXPRESSION),
+        T![inf] => parse_literal_expression(p, T![inf], R_INF_EXPRESSION),
+        T![nan] => parse_literal_expression(p, T![nan], R_NAN_EXPRESSION),
         kind @ (T![na_logical]
         | T![na_integer]
         | T![na_double]
         | T![na_complex]
-        | T![na_character]) => {
-            let m = p.start();
-            p.bump(kind);
-            m.complete(p, R_NA_EXPRESSION)
-        }
-        ERROR_TOKEN => {
-            // Lexer already raised `unexpected_character()`
-            let m = p.start();
-            p.bump(ERROR_TOKEN);
-            m.complete(p, R_BOGUS_EXPRESSION)
-        }
+        | T![na_character]) => parse_literal_expression(p, kind, R_NA_EXPRESSION),
+        // Lexer already raised `unexpected_character()`
+        ERROR_TOKEN => parse_literal_expression(p, ERROR_TOKEN, R_BOGUS_EXPRESSION),
         kind @ (R_SINGLE_QUOTED_STRING_LITERAL
         | R_DOUBLE_QUOTED_STRING_LITERAL
-        | R_RAW_STRING_LITERAL) => {
-            let m = p.start();
-            p.bump(kind);
-            m.complete(p, R_STRING_VALUE)
-        }
+        | R_RAW_STRING_LITERAL) => parse_literal_expression(p, kind, R_STRING_VALUE),
         kind @ (T![function] | T!["\\"]) => parse_function_definition(p, kind),
         T![if] => parse_if_statement(p),
         T![for] => parse_for_statement(p),

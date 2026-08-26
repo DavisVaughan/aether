@@ -2,6 +2,7 @@ use crate::diagnostics;
 use crate::parser::RParser;
 use crate::parser::Scope;
 use crate::syntax::expr::parse_expression;
+use crate::syntax::literal::parse_literal_expression;
 use aether_r_syntax::RSyntaxKind;
 use aether_r_syntax::RSyntaxKind::DOTDOTI;
 use aether_r_syntax::RSyntaxKind::DOTS;
@@ -161,33 +162,25 @@ fn parse_argument_name_clause(p: &mut RParser) {
     match p.cur() {
         IDENT if p.nth_at(1, T![=]) => {
             let clause = p.start();
-            let name = p.start();
-            p.bump(IDENT);
-            name.complete(p, R_IDENTIFIER);
+            parse_literal_expression(p, IDENT, R_IDENTIFIER);
             p.bump(T![=]);
             clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
         }
         DOTS if p.nth_at(1, T![=]) => {
             let clause = p.start();
-            let name = p.start();
-            p.bump(DOTS);
-            name.complete(p, R_DOTS);
+            parse_literal_expression(p, DOTS, R_DOTS);
             p.bump(T![=]);
             clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
         }
         DOTDOTI if p.nth_at(1, T![=]) => {
             let clause = p.start();
-            let name = p.start();
-            p.bump(DOTDOTI);
-            name.complete(p, R_DOT_DOT_I);
+            parse_literal_expression(p, DOTDOTI, R_DOT_DOT_I);
             p.bump(T![=]);
             clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
         }
         T![null] if p.nth_at(1, T![=]) => {
             let clause = p.start();
-            let name = p.start();
-            p.bump(T![null]);
-            name.complete(p, R_NULL_EXPRESSION);
+            parse_literal_expression(p, T![null], R_NULL_EXPRESSION);
             p.bump(T![=]);
             clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
         }
@@ -197,9 +190,7 @@ fn parse_argument_name_clause(p: &mut RParser) {
             if p.nth_at(1, T![=]) =>
         {
             let clause = p.start();
-            let name = p.start();
-            p.bump(kind);
-            name.complete(p, R_STRING_VALUE);
+            parse_literal_expression(p, kind, R_STRING_VALUE);
             p.bump(T![=]);
             clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
         }
