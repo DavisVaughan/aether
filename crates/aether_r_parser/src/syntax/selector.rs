@@ -1,4 +1,5 @@
 use crate::parser::RParser;
+use crate::syntax::literal::parse_literal_expression;
 use aether_r_syntax::RSyntaxKind::DOTDOTI;
 use aether_r_syntax::RSyntaxKind::DOTS;
 use aether_r_syntax::RSyntaxKind::IDENT;
@@ -20,28 +21,12 @@ use biome_parser::parsed_syntax::ParsedSyntax::Present;
 /// [crate::syntax::namespace::parse_namespace_expression()]
 pub(crate) fn parse_selector(p: &mut RParser) -> ParsedSyntax {
     match p.cur() {
-        IDENT => {
-            let m = p.start();
-            p.bump(IDENT);
-            Present(m.complete(p, R_IDENTIFIER))
-        }
-        DOTS => {
-            let m = p.start();
-            p.bump(DOTS);
-            Present(m.complete(p, R_DOTS))
-        }
-        DOTDOTI => {
-            let m = p.start();
-            p.bump(DOTDOTI);
-            Present(m.complete(p, R_DOT_DOT_I))
-        }
+        IDENT => Present(parse_literal_expression(p, IDENT, R_IDENTIFIER)),
+        DOTS => Present(parse_literal_expression(p, DOTS, R_DOTS)),
+        DOTDOTI => Present(parse_literal_expression(p, DOTDOTI, R_DOT_DOT_I)),
         kind @ (R_SINGLE_QUOTED_STRING_LITERAL
         | R_DOUBLE_QUOTED_STRING_LITERAL
-        | R_RAW_STRING_LITERAL) => {
-            let m = p.start();
-            p.bump(kind);
-            Present(m.complete(p, R_STRING_VALUE))
-        }
+        | R_RAW_STRING_LITERAL) => Present(parse_literal_expression(p, kind, R_STRING_VALUE)),
         _ => Absent,
     }
 }

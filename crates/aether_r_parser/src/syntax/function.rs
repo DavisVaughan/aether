@@ -3,6 +3,7 @@ use crate::parser::RParser;
 use crate::parser::Scope;
 use crate::syntax::body::parse_body_expression;
 use crate::syntax::expr::parse_expression;
+use crate::syntax::literal::parse_literal_expression;
 use aether_r_syntax::RSyntaxKind;
 use aether_r_syntax::RSyntaxKind::DOTDOTI;
 use aether_r_syntax::RSyntaxKind::DOTS;
@@ -108,21 +109,9 @@ fn parse_parameter(p: &mut RParser) {
 /// identifier | `...` | `..i`
 fn parse_parameter_name(p: &mut RParser) -> ParsedSyntax {
     match p.cur() {
-        IDENT => {
-            let m = p.start();
-            p.bump(IDENT);
-            Present(m.complete(p, R_IDENTIFIER))
-        }
-        DOTS => {
-            let m = p.start();
-            p.bump(DOTS);
-            Present(m.complete(p, R_DOTS))
-        }
-        DOTDOTI => {
-            let m = p.start();
-            p.bump(DOTDOTI);
-            Present(m.complete(p, R_DOT_DOT_I))
-        }
+        IDENT => Present(parse_literal_expression(p, IDENT, R_IDENTIFIER)),
+        DOTS => Present(parse_literal_expression(p, DOTS, R_DOTS)),
+        DOTDOTI => Present(parse_literal_expression(p, DOTDOTI, R_DOT_DOT_I)),
         _ => Absent,
     }
 }
