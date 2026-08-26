@@ -6,7 +6,7 @@ use biome_parser::parsed_syntax::ParsedSyntax;
 /// Parse a function, loop, or if body
 ///
 /// Generally treated like a normal expression, but R's precedence table puts
-/// `?` at a lower binding power than a function or loop body, so `function() a ? b`
+/// `?` at a lower binding power than a function, loop, or if body, so `function() a ? b`
 /// needs to parse as `(function () a) ? b`.
 pub(crate) fn parse_body_expression(p: &mut RParser) -> ParsedSyntax {
     // Treated as left associative
