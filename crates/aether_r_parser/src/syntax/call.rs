@@ -172,12 +172,14 @@ fn parse_argument_name_clause(p: &mut RParser) {
             p.bump(T![=]);
             clause.complete(p, R_ARGUMENT_NAME_CLAUSE);
         }
-        R_SINGLE_QUOTED_STRING_LITERAL | R_DOUBLE_QUOTED_STRING_LITERAL | R_RAW_STRING_LITERAL
+        kind @ (R_SINGLE_QUOTED_STRING_LITERAL
+        | R_DOUBLE_QUOTED_STRING_LITERAL
+        | R_RAW_STRING_LITERAL)
             if p.nth_at(1, T![=]) =>
         {
             let clause = p.start();
             let name = p.start();
-            p.bump_any();
+            p.bump(kind);
             name.complete(p, R_STRING_VALUE);
             p.bump(T![=]);
             clause.complete(p, R_ARGUMENT_NAME_CLAUSE);

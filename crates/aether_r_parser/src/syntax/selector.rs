@@ -27,9 +27,11 @@ pub(crate) fn parse_selector(p: &mut RParser) -> ParsedSyntax {
             p.bump(DOTDOTI);
             Present(m.complete(p, R_DOT_DOT_I))
         }
-        R_SINGLE_QUOTED_STRING_LITERAL | R_DOUBLE_QUOTED_STRING_LITERAL | R_RAW_STRING_LITERAL => {
+        kind @ (R_SINGLE_QUOTED_STRING_LITERAL
+        | R_DOUBLE_QUOTED_STRING_LITERAL
+        | R_RAW_STRING_LITERAL) => {
             let m = p.start();
-            p.bump_any();
+            p.bump(kind);
             Present(m.complete(p, R_STRING_VALUE))
         }
         _ => Absent,
