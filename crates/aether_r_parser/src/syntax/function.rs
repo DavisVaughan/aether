@@ -12,9 +12,9 @@ use biome_parser::parse_recovery::ParseRecoveryTokenSet;
 use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
 use biome_parser::{Parser, ParserProgress, TokenSet, token_set};
 
-pub(crate) fn parse_function_definition(p: &mut RParser, keyword: RSyntaxKind) -> CompletedMarker {
+pub(crate) fn parse_function_definition(p: &mut RParser, kind: RSyntaxKind) -> CompletedMarker {
     let m = p.start();
-    p.bump(keyword);
+    p.bump(kind);
 
     if p.at(T!['(']) {
         parse_parameters(p);
