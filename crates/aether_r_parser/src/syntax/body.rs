@@ -10,6 +10,6 @@ use biome_parser::parsed_syntax::ParsedSyntax;
 /// needs to parse as `(function () a) ? b`.
 pub(crate) fn parse_body_expression(p: &mut RParser) -> ParsedSyntax {
     // Treated as left associative
-    let binding_power = BindingPower::FUNCTION_OR_LOOP.increment();
+    let binding_power = BindingPower::FUNCTION_OR_LOOP_OR_IF.increment();
     parse_expression_with_binding_power(p, binding_power)
 }

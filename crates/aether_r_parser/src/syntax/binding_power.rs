@@ -8,7 +8,7 @@ impl BindingPower {
     // Taken from R's `gram.y`
     pub(crate) const BINARY_HELP: Self = Self(1);
     pub(crate) const UNARY_HELP: Self = Self(1);
-    pub(crate) const FUNCTION_OR_LOOP: Self = Self(2);
+    pub(crate) const FUNCTION_OR_LOOP_OR_IF: Self = Self(2);
     pub(crate) const BINARY_LEFT_ASSIGN: Self = Self(3);
     pub(crate) const BINARY_EQUALS_ASSIGN: Self = Self(4);
     pub(crate) const BINARY_RIGHT_ASSIGN: Self = Self(5);
