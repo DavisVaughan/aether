@@ -13,8 +13,6 @@ use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
 use biome_parser::{Parser, ParserProgress, TokenSet, token_set};
 
 pub(crate) fn parse_function_definition(p: &mut RParser, keyword: RSyntaxKind) -> CompletedMarker {
-    debug_assert!(keyword == T![function] || keyword == T!["\\"]);
-
     let m = p.start();
     p.bump(keyword);
 
