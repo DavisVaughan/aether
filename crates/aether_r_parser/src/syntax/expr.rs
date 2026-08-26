@@ -157,8 +157,8 @@ pub(crate) fn parse_expression_with_binding_power(
             T!['('] => parse_call_expression(p, lhs),
             T!['['] => parse_subset_expression(p, lhs),
             T!["[["] => parse_subset2_expression(p, lhs),
-            T![$] | T![@] => parse_extract_expression(p, lhs),
-            T![::] | T![:::] => parse_namespace_expression(p, lhs),
+            kind @ (T![$] | T![@]) => parse_extract_expression(p, lhs, kind),
+            kind @ (T![::] | T![:::]) => parse_namespace_expression(p, lhs, kind),
             T![?] if BindingPower::BINARY_HELP >= current_binding_power => parse_binary_expression(
                 p,
                 lhs,

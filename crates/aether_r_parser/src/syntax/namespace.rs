@@ -2,6 +2,7 @@ use crate::diagnostics;
 use crate::parser::RParser;
 use crate::syntax::selector::parse_selector;
 use aether_r_syntax::AnyRSelector;
+use aether_r_syntax::RSyntaxKind;
 use aether_r_syntax::RSyntaxKind::{R_BOGUS_SELECTOR, R_NAMESPACE_EXPRESSION};
 use biome_parser::CompletedMarker;
 use biome_parser::Parser;
@@ -10,8 +11,8 @@ use biome_rowan::AstNode;
 pub(crate) fn parse_namespace_expression(
     p: &mut RParser,
     mut lhs: CompletedMarker,
+    kind: RSyntaxKind,
 ) -> CompletedMarker {
-    let kind = p.cur();
     let kind_range = p.cur_range();
 
     // `::` and `:::` restrict their left operand as well, and it is already parsed
