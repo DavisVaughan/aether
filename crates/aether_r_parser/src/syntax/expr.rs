@@ -42,9 +42,9 @@ pub(crate) fn parse_expression_with_binding_power(
     );
 
     let mut lhs = match p.cur() {
-        T![?] => parse_unary_expression(p, T![?], BindingPower::UNARY_HELP),
-        T![~] => parse_unary_expression(p, T![~], BindingPower::UNARY_TILDE),
-        T![!] => parse_unary_expression(p, T![!], BindingPower::UNARY_NOT),
+        kind @ T![?] => parse_unary_expression(p, kind, BindingPower::UNARY_HELP),
+        kind @ T![~] => parse_unary_expression(p, kind, BindingPower::UNARY_TILDE),
+        kind @ T![!] => parse_unary_expression(p, kind, BindingPower::UNARY_NOT),
         kind @ (T![+] | T![-]) => parse_unary_expression(p, kind, BindingPower::UNARY_PLUS_MINUS),
         R_INTEGER_LITERAL => {
             let m = p.start();
@@ -159,13 +159,15 @@ pub(crate) fn parse_expression_with_binding_power(
             T!["[["] => parse_subset2_expression(p, lhs),
             kind @ (T![$] | T![@]) => parse_extract_expression(p, lhs, kind),
             kind @ (T![::] | T![:::]) => parse_namespace_expression(p, lhs, kind),
-            T![?] if BindingPower::BINARY_HELP >= current_binding_power => parse_binary_expression(
-                p,
-                lhs,
-                T![?],
-                BindingPower::BINARY_HELP,
-                Associativity::BINARY_HELP,
-            ),
+            kind @ T![?] if BindingPower::BINARY_HELP >= current_binding_power => {
+                parse_binary_expression(
+                    p,
+                    lhs,
+                    kind,
+                    BindingPower::BINARY_HELP,
+                    Associativity::BINARY_HELP,
+                )
+            }
             kind @ (T![<-] | T![<<-] | T![:=])
                 if BindingPower::BINARY_LEFT_ASSIGN >= current_binding_power =>
             {
@@ -177,11 +179,11 @@ pub(crate) fn parse_expression_with_binding_power(
                     Associativity::BINARY_LEFT_ASSIGN,
                 )
             }
-            T![=] if BindingPower::BINARY_EQUALS_ASSIGN >= current_binding_power => {
+            kind @ T![=] if BindingPower::BINARY_EQUALS_ASSIGN >= current_binding_power => {
                 parse_binary_expression(
                     p,
                     lhs,
-                    T![=],
+                    kind,
                     BindingPower::BINARY_EQUALS_ASSIGN,
                     Associativity::BINARY_EQUALS_ASSIGN,
                 )
@@ -197,11 +199,11 @@ pub(crate) fn parse_expression_with_binding_power(
                     Associativity::BINARY_RIGHT_ASSIGN,
                 )
             }
-            T![~] if BindingPower::BINARY_TILDE >= current_binding_power => {
+            kind @ T![~] if BindingPower::BINARY_TILDE >= current_binding_power => {
                 parse_binary_expression(
                     p,
                     lhs,
-                    T![~],
+                    kind,
                     BindingPower::BINARY_TILDE,
                     Associativity::BINARY_TILDE,
                 )
@@ -266,11 +268,11 @@ pub(crate) fn parse_expression_with_binding_power(
                     Associativity::BINARY_SPECIAL_OR_PIPE,
                 )
             }
-            T![:] if BindingPower::BINARY_COLON >= current_binding_power => {
+            kind @ T![:] if BindingPower::BINARY_COLON >= current_binding_power => {
                 parse_binary_expression(
                     p,
                     lhs,
-                    T![:],
+                    kind,
                     BindingPower::BINARY_COLON,
                     Associativity::BINARY_COLON,
                 )
