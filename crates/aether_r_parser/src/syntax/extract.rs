@@ -6,12 +6,12 @@ use biome_parser::CompletedMarker;
 use biome_parser::Parser;
 
 pub(crate) fn parse_extract_expression(p: &mut RParser, lhs: CompletedMarker) -> CompletedMarker {
-    let operator = p.cur();
-    let operator_range = p.cur_range();
+    let kind = p.cur();
+    let kind_range = p.cur_range();
     let m = lhs.precede(p);
-    p.bump(operator);
+    p.bump(kind);
     parse_selector(p).or_add_diagnostic(p, |_, range| {
-        diagnostics::expected_rhs_selector(operator, operator_range, range)
+        diagnostics::expected_rhs_selector(kind, kind_range, range)
     });
     m.complete(p, R_EXTRACT_EXPRESSION)
 }
