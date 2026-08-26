@@ -17,7 +17,6 @@ pub(crate) fn parse_binary_expression(
         Associativity::Left => binding_power.increment(),
         Associativity::Right => binding_power,
     };
-
     let m = lhs.precede(p);
     p.bump_any();
     parse_expression_with_binding_power(p, binding_power)
