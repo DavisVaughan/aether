@@ -3,32 +3,23 @@
 
 use std::vec;
 
-use crate::generate_macros::generate_macros;
 use crate::generate_node_factory::generate_node_factory;
-use crate::generate_nodes::generate_nodes;
 use crate::generate_nodes_mut::generate_nodes_mut;
 use crate::generate_syntax_factory::generate_syntax_factory;
-use crate::generate_syntax_kinds::generate_syntax_kinds;
-use crate::kind_src::AstEnumSrc;
-use crate::kind_src::AstListSeparatorConfiguration;
-use crate::kind_src::AstListSrc;
-use crate::kind_src::AstNodeSrc;
-use crate::kind_src::AstSrc;
-use crate::kind_src::Field;
-use crate::kind_src::TokenKind;
-use crate::language_kind::LanguageKind;
-use crate::language_kind::ALL_LANGUAGE_KIND;
-use crate::termcolorful::println_string_with_fg_color;
-use crate::termcolorful::Color;
-use crate::update;
+use crate::kind_src::{
+    AstEnumSrc, AstListSeparatorConfiguration, AstListSrc, AstNodeSrc, AstSrc, Field, TokenKind,
+};
+use crate::language_kind::{LanguageKind, ALL_LANGUAGE_KIND};
+use crate::termcolorful::{println_string_with_fg_color, Color};
 use crate::Mode;
+use crate::{
+    generate_macros::generate_macros, generate_nodes::generate_nodes,
+    generate_syntax_kinds::generate_syntax_kinds, update,
+};
 use biome_string_case::Case;
-use biome_ungrammar::Grammar;
-use biome_ungrammar::Rule;
-use biome_ungrammar::Token;
+use biome_ungrammar::{Grammar, Rule, Token};
 use std::str::FromStr;
-use xtask::project_root;
-use xtask::Result;
+use xtask::{project_root, Result};
 
 // these node won't generate any code
 pub const SYNTAX_ELEMENT_TYPE: &str = "SyntaxElement";

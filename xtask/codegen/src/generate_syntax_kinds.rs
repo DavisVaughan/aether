@@ -2,11 +2,8 @@ use crate::kind_src::KindsSrc;
 use crate::language_kind::LanguageKind;
 use crate::Result;
 use biome_string_case::Case;
-use proc_macro2::Literal;
-use proc_macro2::Punct;
-use proc_macro2::Spacing;
-use quote::format_ident;
-use quote::quote;
+use proc_macro2::{Literal, Punct, Spacing};
+use quote::{format_ident, quote};
 
 pub fn generate_syntax_kinds(grammar: KindsSrc, language_kind: LanguageKind) -> Result<String> {
     let syntax_kind = language_kind.syntax_kind();

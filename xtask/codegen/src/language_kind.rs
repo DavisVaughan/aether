@@ -2,11 +2,8 @@ use std::str::FromStr;
 
 use crate::kind_src::KindsSrc;
 use crate::r_kinds_src::R_KINDS_SRC;
-use proc_macro2::Ident;
-use proc_macro2::Span;
-use proc_macro2::TokenStream;
-use quote::format_ident;
-use quote::quote;
+use proc_macro2::{Ident, Span, TokenStream};
+use quote::{format_ident, quote};
 
 pub const LANGUAGE_PREFIXES: [&str; 1] = ["r_"];
 

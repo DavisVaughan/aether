@@ -1,8 +1,6 @@
-use crate::kind_src::AstSrc;
-use crate::kind_src::Field;
+use crate::kind_src::{AstSrc, Field};
 use crate::language_kind::LanguageKind;
-use quote::format_ident;
-use quote::quote;
+use quote::{format_ident, quote};
 use xtask::Result;
 
 pub fn generate_nodes_mut(ast: &AstSrc, language_kind: LanguageKind) -> Result<String> {

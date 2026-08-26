@@ -1,24 +1,20 @@
 //! A shell but bad, some cross platform glue code
 
-use std::cell::RefCell;
-use std::env;
-use std::ffi::OsString;
-use std::io::Write;
-use std::path::Path;
-use std::path::PathBuf;
-use std::process::Command;
-use std::process::Stdio;
+use std::{
+    cell::RefCell,
+    env,
+    ffi::OsString,
+    io::Write,
+    path::{Path, PathBuf},
+    process::{Command, Stdio},
+};
 
-use anyhow::bail;
-use anyhow::Context;
-use anyhow::Result;
+use anyhow::{bail, Context, Result};
 
 pub mod fs2 {
-    use std::fs;
-    use std::path::Path;
+    use std::{fs, path::Path};
 
-    use anyhow::Context;
-    use anyhow::Result;
+    use anyhow::{Context, Result};
 
     pub fn read_dir<P: AsRef<Path>>(path: P) -> Result<fs::ReadDir> {
         let path = path.as_ref();

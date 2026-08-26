@@ -2,8 +2,7 @@ use super::kind_src::AstSrc;
 use crate::language_kind::LanguageKind;
 use crate::Result;
 use biome_string_case::Case;
-use quote::format_ident;
-use quote::quote;
+use quote::{format_ident, quote};
 
 pub fn generate_macros(ast: &AstSrc, language_kind: LanguageKind) -> Result<String> {
     let syntax_kind = language_kind.syntax_kind();

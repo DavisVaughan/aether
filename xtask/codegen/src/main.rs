@@ -1,11 +1,7 @@
-use xtask::project_root;
-use xtask::pushd;
-use xtask::Result;
+use xtask::{project_root, pushd, Result};
 
 use xtask::Mode::Overwrite;
-use xtask_codegen::generate_ast;
-use xtask_codegen::task_command;
-use xtask_codegen::TaskCommand;
+use xtask_codegen::{generate_ast, task_command, TaskCommand};
 
 fn main() -> Result<()> {
     let _d = pushd(project_root());
