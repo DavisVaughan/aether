@@ -1,6 +1,7 @@
 use crate::diagnostics;
 use crate::parser::{RParser, Scope};
-use crate::syntax::expr::{parse_body, parse_expression};
+use crate::syntax::body::parse_body_expression;
+use crate::syntax::expr::parse_expression;
 use aether_r_syntax::RSyntaxKind::{
     self, DOTDOTI, DOTS, IDENT, R_BOGUS_PARAMETER_NAME, R_DOT_DOT_I, R_DOTS, R_FUNCTION_DEFINITION,
     R_IDENTIFIER, R_PARAMETER, R_PARAMETER_DEFAULT, R_PARAMETER_LIST, R_PARAMETERS,
@@ -23,7 +24,7 @@ pub(crate) fn parse_function_definition(p: &mut RParser) -> CompletedMarker {
         p.error(diagnostics::expected_parameters(p, p.cur_range()));
     }
 
-    parse_body(p).or_add_diagnostic(p, diagnostics::expected_function_body);
+    parse_body_expression(p).or_add_diagnostic(p, diagnostics::expected_function_body);
 
     m.complete(p, R_FUNCTION_DEFINITION)
 }

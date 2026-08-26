@@ -1,34 +1,16 @@
 use crate::diagnostics;
 use crate::parser::{RParser, Scope};
 use crate::syntax::expr::parse_expression;
-use aether_r_syntax::RSyntaxKind::{
-    self, R_BOGUS_EXPRESSION, R_BRACED_STATEMENTS, R_ROOT, R_STATEMENT, R_STATEMENT_LIST,
-};
+use aether_r_syntax::RSyntaxKind::{self, R_BOGUS_EXPRESSION, R_STATEMENT, R_STATEMENT_LIST};
 use aether_r_syntax::T;
-use biome_parser::CompletedMarker;
 use biome_parser::parsed_syntax::ParsedSyntax::{Absent, Present};
 use biome_parser::{Parser, ParserProgress};
 
-pub(crate) fn parse_root(p: &mut RParser) {
-    let m = p.start();
-    p.eat(T![UNICODE_BOM]);
-    parse_statement_list(p, T![EOF]);
-    p.expect(T![EOF]);
-    m.complete(p, R_ROOT);
-}
-
-pub(crate) fn parse_braced_statements(p: &mut RParser) -> CompletedMarker {
-    let m = p.start();
-    p.with_scope(Scope::Brace, |p| {
-        p.bump(T!['{']);
-        parse_statement_list(p, T!['}']);
-    });
-    p.expect(T!['}']);
-    m.complete(p, R_BRACED_STATEMENTS)
-}
-
 /// Runs to `close` and never stops short of it
-fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
+///
+/// Used by [crate::syntax::root::parse_root()] and
+/// [crate::syntax::braced_statements::parse_braced_statements()]
+pub(crate) fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
     let statement_list = p.start();
     let mut progress = ParserProgress::default();
 
