@@ -1,5 +1,6 @@
 //! Constructors for every diagnostic aether emits
 
+use crate::parser::MAX_NESTING_DEPTH;
 use crate::parser::RParser;
 use aether_r_syntax::RSyntaxKind;
 use biome_parser::Parser;
@@ -53,6 +54,13 @@ pub(crate) fn unterminated_string(open: TextRange, eof: TextRange) -> ParseDiagn
 
 pub(crate) fn expected_expression(p: &RParser, range: TextRange) -> ParseDiagnostic {
     expected_node("expression", range, p)
+}
+
+/// Expressions nested past [`crate::parser::MAX_NESTING_DEPTH`]
+pub(crate) fn nested_too_deeply(range: TextRange) -> ParseDiagnostic {
+    ParseDiagnostic::new("This expression is nested too deeply.", range).with_hint(format!(
+        "Expressions may not nest more than {MAX_NESTING_DEPTH} levels deep."
+    ))
 }
 
 /// The name on the right of `$`, `@`, `::`, or `:::` is missing

@@ -9,11 +9,19 @@ use biome_parser::diagnostic::merge_diagnostics;
 use biome_parser::event::Event;
 use biome_parser::prelude::*;
 
+/// How deeply expressions may nest
+///
+/// A level costs a stack frame, and running out of stack aborts the process
+/// instead of panicking, so this is what keeps invariant 3 true. Real R never
+/// comes close; repeated `-`, `(`, or `{` is what gets here.
+pub(crate) const MAX_NESTING_DEPTH: u32 = 256;
+
 pub(crate) struct RParser<'src> {
     context: ParserContext<RSyntaxKind>,
     source: RTokenSource<'src>,
     options: RParserOptions,
     scope: Scope,
+    depth: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -44,6 +52,7 @@ impl<'src> RParser<'src> {
             source: RTokenSource::from_str(source),
             options,
             scope: Scope::default(),
+            depth: 0,
         }
     }
 
@@ -65,6 +74,24 @@ impl<'src> RParser<'src> {
 
     pub(crate) fn scope(&self) -> Scope {
         self.scope
+    }
+
+    /// Runs `f` one level deeper, or returns `None` at [`MAX_NESTING_DEPTH`]
+    ///
+    /// A closure rather than a pair of methods so that the level cannot be
+    /// entered without being left again, whatever `f` returns.
+    pub(crate) fn with_nesting<F, R>(&mut self, f: F) -> Option<R>
+    where
+        F: FnOnce(&mut Self) -> R,
+    {
+        if self.depth == MAX_NESTING_DEPTH {
+            return None;
+        }
+
+        self.depth += 1;
+        let result = f(self);
+        self.depth -= 1;
+        Some(result)
     }
 
     pub(crate) fn re_lex(&mut self, context: RReLexContext) -> RSyntaxKind {
