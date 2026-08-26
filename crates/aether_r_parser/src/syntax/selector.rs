@@ -7,6 +7,9 @@ use biome_parser::Parser;
 use biome_parser::parsed_syntax::ParsedSyntax::{self, Absent, Present};
 
 /// identifier | string | `...` | `..i`
+///
+/// Used by [crate::syntax::extract::parse_extract_expression()] and
+/// [crate::syntax::namespace::parse_namespace_expression()]
 pub(crate) fn parse_selector(p: &mut RParser) -> ParsedSyntax {
     match p.cur() {
         IDENT => {
