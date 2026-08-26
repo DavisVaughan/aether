@@ -1,17 +1,11 @@
 //! Simple hand-written ungrammar parser.
 use std::collections::HashMap;
 
-use crate::Grammar;
-use crate::Node;
-use crate::NodeData;
-use crate::Rule;
-use crate::Token;
-use crate::TokenData;
-use crate::error::Result;
-use crate::error::format_err;
-use crate::lexer;
-use crate::lexer::CombinatorKind;
-use crate::lexer::TokenKind;
+use crate::{
+    Grammar, Node, NodeData, Rule, Token, TokenData,
+    error::{Result, format_err},
+    lexer::{self, CombinatorKind, TokenKind},
+};
 
 macro_rules! bail {
     ($loc:expr, $($tt:tt)*) => {{

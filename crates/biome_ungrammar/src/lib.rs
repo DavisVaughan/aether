@@ -14,11 +14,9 @@ mod error;
 mod lexer;
 mod parser;
 
-use std::ops;
-use std::str::FromStr;
+use std::{ops, str::FromStr};
 
-pub use error::Error;
-pub use error::Result;
+pub use error::{Error, Result};
 
 /// A node, like `A = 'b' | 'c'`.
 ///
