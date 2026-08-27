@@ -69,12 +69,10 @@ a tokio worker:
 Roughly 3 KB of input was enough. Runs that parsed and then `mem::forget`-ed the
 result confirmed the abort was inside `parse()` itself, not in tree teardown.
 
-The fix adds `MAX_NESTING_DEPTH = 256` and `RParser::nest()`, which hands back a
-`Nesting` guard that leaves the level when it drops. Every nesting path in the
-grammar bottoms out in the Pratt loop, so the one guard at the top of
-`parse_expression_with_binding_power()` covers all of them. Refusing consumes
-nothing, so callers recover over the offending tokens exactly as they do over any
-other unparseable text.
+The fix adds `MAX_NESTING_DEPTH = 256` and `RParser::with_recursion_guard()`, and
+wraps the Pratt loop in it. Every nesting path in the grammar bottoms out there,
+so one guard covers all of them. Refusing consumes nothing, so callers recover
+over the offending tokens exactly as they do over any other unparseable text.
 
 Prior art, since it is easy to assume otherwise: **neither ruff nor rust-analyzer
 nor biome does this.** Ruff has no depth limit at all — past
