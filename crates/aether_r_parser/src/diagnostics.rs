@@ -7,6 +7,7 @@ use biome_parser::diagnostic::ParseDiagnostic;
 use biome_parser::token_source::TokenSource;
 use biome_rowan::TextLen;
 use biome_rowan::TextRange;
+use std::borrow::Cow;
 
 /// A backtick-quoted name that runs to the end of the file
 pub(crate) fn unterminated_backtick_identifier(open: TextRange, eof: TextRange) -> ParseDiagnostic {
@@ -162,11 +163,23 @@ fn expected_node(name: &str, range: TextRange, p: &RParser) -> ParseDiagnostic {
     } else {
         format!(
             "Expected {article} {name} but instead found '{}'.",
-            p.text(range)
+            truncated(p.text(range))
         )
     };
 
     ParseDiagnostic::new(message, range)
+}
+
+const MAX_TRUNCATED_LEN: usize = 40;
+
+fn truncated(text: &str) -> Cow<'_, str> {
+    if text.chars().count() <= MAX_TRUNCATED_LEN {
+        Cow::Borrowed(text)
+    } else {
+        let mut truncated: String = text.chars().take(MAX_TRUNCATED_LEN).collect();
+        truncated.push('…');
+        Cow::Owned(truncated)
+    }
 }
 
 fn article_for(name: &str) -> &'static str {
