@@ -648,11 +648,11 @@ impl<'src> RLexer<'src> {
     /// `(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d+)?`
     fn consume_number(&mut self) -> RSyntaxKind {
         let start = self.text_position();
-        self.consume_digits(u8::is_ascii_digit);
+        self.consume_digits();
 
         if self.current_byte() == Some(b'.') {
             self.advance(1);
-            self.consume_digits(u8::is_ascii_digit);
+            self.consume_digits();
         }
 
         if matches!(self.current_byte(), Some(b'e' | b'E')) {
@@ -684,11 +684,11 @@ impl<'src> RLexer<'src> {
             return self.consume_suffix();
         }
 
-        self.consume_digits(u8::is_ascii_hexdigit);
+        self.consume_hex_digits();
 
         if self.current_byte() == Some(b'.') {
             self.advance(1);
-            self.consume_digits(u8::is_ascii_hexdigit);
+            self.consume_hex_digits();
         }
 
         if matches!(self.current_byte(), Some(b'p' | b'P')) {
@@ -720,13 +720,22 @@ impl<'src> RLexer<'src> {
             self.advance(1);
         }
 
-        self.consume_digits(u8::is_ascii_digit)
+        self.consume_digits()
     }
 
     /// Whether any digit was consumed
-    fn consume_digits(&mut self, is_digit: fn(&u8) -> bool) -> bool {
+    fn consume_digits(&mut self) -> bool {
         let start = self.position;
-        while matches!(self.current_byte(), Some(byte) if is_digit(&byte)) {
+        while matches!(self.current_byte(), Some(byte) if byte.is_ascii_digit()) {
+            self.advance(1);
+        }
+        self.position != start
+    }
+
+    /// Whether any digit was consumed
+    fn consume_hex_digits(&mut self) -> bool {
+        let start = self.position;
+        while matches!(self.current_byte(), Some(byte) if byte.is_ascii_hexdigit()) {
             self.advance(1);
         }
         self.position != start
