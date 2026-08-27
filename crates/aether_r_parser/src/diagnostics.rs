@@ -7,6 +7,7 @@ use biome_parser::diagnostic::ParseDiagnostic;
 use biome_parser::token_source::TokenSource;
 use biome_rowan::TextLen;
 use biome_rowan::TextRange;
+use std::borrow::Cow;
 
 /// A backtick-quoted name that runs to the end of the file
 pub(crate) fn unterminated_backtick_identifier(open: TextRange, eof: TextRange) -> ParseDiagnostic {
@@ -162,11 +163,23 @@ fn expected_node(name: &str, range: TextRange, p: &RParser) -> ParseDiagnostic {
     } else {
         format!(
             "Expected {article} {name} but instead found '{}'.",
-            p.text(range)
+            truncate(p.text(range))
         )
     };
 
     ParseDiagnostic::new(message, range)
+}
+
+fn truncate(text: &str) -> Cow<'_, str> {
+    const MAX_LEN: usize = 40;
+
+    if text.chars().count() <= MAX_LEN {
+        Cow::Borrowed(text)
+    } else {
+        let mut truncated: String = text.chars().take(MAX_LEN).collect();
+        truncated.push_str("...");
+        Cow::Owned(truncated)
+    }
 }
 
 fn article_for(name: &str) -> &'static str {
@@ -178,4 +191,33 @@ fn article_for(name: &str) -> &'static str {
 
 fn text_of(operator: RSyntaxKind) -> &'static str {
     operator.to_string().unwrap_or("operator")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn truncate_keeps_short_text_untouched() {
+        assert!(matches!(truncate("abc"), Cow::Borrowed("abc")));
+    }
+
+    #[test]
+    fn truncate_keeps_exactly_max_len_untouched() {
+        let text = "a".repeat(40);
+        assert!(matches!(truncate(&text), Cow::Borrowed(borrowed) if borrowed == text));
+    }
+
+    #[test]
+    fn truncate_cuts_and_appends_dots_past_max_len() {
+        let text = "a".repeat(41);
+        let expected = format!("{}...", "a".repeat(40));
+        assert_eq!(&*truncate(&text), expected);
+    }
+
+    #[test]
+    fn truncate_counts_chars_not_bytes() {
+        let text = "é".repeat(41);
+        assert_eq!(&*truncate(&text), format!("{}...", "é".repeat(40)));
+    }
 }
