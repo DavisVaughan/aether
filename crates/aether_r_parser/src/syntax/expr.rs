@@ -40,12 +40,6 @@ pub(crate) fn parse_expression_with_binding_power(
     p: &mut RParser,
     current_binding_power: BindingPower,
 ) -> ParsedSyntax {
-    debug_assert!(
-        current_binding_power <= BindingPower::HIGHEST,
-        "{current_binding_power:?} must not exceed {:?}.",
-        BindingPower::HIGHEST
-    );
-
     match p.with_recursion_guard(|p| {
         parse_expression_with_binding_power_impl(p, current_binding_power)
     }) {
@@ -64,6 +58,12 @@ fn parse_expression_with_binding_power_impl(
     p: &mut RParser,
     current_binding_power: BindingPower,
 ) -> ParsedSyntax {
+    debug_assert!(
+        current_binding_power <= BindingPower::HIGHEST,
+        "{current_binding_power:?} must not exceed {:?}.",
+        BindingPower::HIGHEST
+    );
+
     let mut lhs = match p.cur() {
         kind @ T![?] => parse_unary_expression(p, kind, BindingPower::UNARY_HELP),
         kind @ T![~] => parse_unary_expression(p, kind, BindingPower::UNARY_TILDE),
