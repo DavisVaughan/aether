@@ -182,6 +182,35 @@ fn truncate(text: &str) -> Cow<'_, str> {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn truncate_keeps_short_text_untouched() {
+        assert!(matches!(truncate("abc"), Cow::Borrowed("abc")));
+    }
+
+    #[test]
+    fn truncate_keeps_exactly_max_len_untouched() {
+        let text = "a".repeat(40);
+        assert!(matches!(truncate(&text), Cow::Borrowed(borrowed) if borrowed == text));
+    }
+
+    #[test]
+    fn truncate_cuts_and_appends_dots_past_max_len() {
+        let text = "a".repeat(41);
+        let expected = format!("{}...", "a".repeat(40));
+        assert_eq!(&*truncate(&text), expected);
+    }
+
+    #[test]
+    fn truncate_counts_chars_not_bytes() {
+        let text = "é".repeat(41);
+        assert_eq!(&*truncate(&text), format!("{}...", "é".repeat(40)));
+    }
+}
+
 fn article_for(name: &str) -> &'static str {
     match name.bytes().next() {
         Some(b'a' | b'e' | b'i' | b'o' | b'u') => "an",
