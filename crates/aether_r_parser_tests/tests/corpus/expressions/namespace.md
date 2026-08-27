@@ -25,9 +25,8 @@ foo:::..1
 ## Namespace with missing RHS [error]
 
 ```r
-# It's nice that `::` allows an optional RHS and enforces that it can only be a
-# string or identifier, so this gives us a pretty clean tree even though it is
-# invalid R code.
+# It's nice that `::` enforces that its RHS can only be a string or identifier,
+# so this gives us a pretty clean tree even though it is invalid R code.
 # https://github.com/r-lib/tree-sitter-r/issues/65
 library(dplyr::)
 
@@ -77,23 +76,9 @@ a:::..1
 
 ## Namespace with a literal RHS [error]
 
+The RHS slot is left missing rather than swallowing the invalid right-hand side.
+
 ```r
-# TODO: tree-sitter-r currently allows an `optional()` RHS, but our grammar
-# requires a RHS, so we get `missing (required)`. These should eventually be
-# parse errors if we can switch tree-sitter-r away from using `optional()`.
-# For example, `a::1` gives:
-
-#> RNamespaceExpression {
-#>     left: RIdentifier {
-#>         name_token: IDENT@0..6 "a" [Newline("\n"), Whitespace("    ")] [],
-#>     },
-#>     operator: COLON2@6..8 "::" [] [],
-#>     right: missing (required),
-#> },
-#> RDoubleValue {
-#>     value_token: R_DOUBLE_LITERAL@8..9 "1" [] [],
-#> },
-
 a::1
 a::NA
 a::NULL

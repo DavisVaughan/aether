@@ -19,7 +19,7 @@
 ## Opening brace, closing parenthesis [error]
 
 ```r
-# Parenthesis is "not valid" so it isn't matched by the external scanner
+# Parenthesis is "not valid" so it isn't matched as a closer for the `{`
 {)
 ```
 

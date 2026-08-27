@@ -762,16 +762,15 @@ test.R:12:1 parse ━━━━━━━━━━━━━━━━━━━━�
 }
 
 # Non-ASCII, but considered `iswalnum()` in R with UTF-8 locale.
-# Not considered `iswalnum()` in our scanner with C locale, but
-# our overapproximation with `>= 128` allows this and aligns with R.
+# Our lexer uses `XID_Continue`, which allows this and aligns with R.
 {
   if (TRUE) 1
   elseμ <- 1
 }
 
 # Non-ASCII (U+00B7), rejected by R as syntax error since `iswalnum()` returns false.
-# Our overapproximation with `>= 128` allows this, but that's ok since the R
-# side behavior is a syntax error.
+# `XID_Continue` allows this, but that's ok since the R side behavior is a
+# syntax error.
 {
   if (TRUE) 1
   else· <- 1
@@ -928,18 +927,18 @@ RRoot {
         },
         RStatement {
             expression: RBracedStatements {
-                l_curly_token: L_CURLY@191..392 "{" [Newline("\n"), Newline("\n"), Comments("# Non-ASCII, but cons ..."), Newline("\n"), Comments("# Not considered `isw ..."), Newline("\n"), Comments("# our overapproximati ..."), Newline("\n")] [],
+                l_curly_token: L_CURLY@191..329 "{" [Newline("\n"), Newline("\n"), Comments("# Non-ASCII, but cons ..."), Newline("\n"), Comments("# Our lexer uses `XID ..."), Newline("\n")] [],
                 statements: RStatementList [
                     RStatement {
                         expression: RIfStatement {
-                            if_token: IF_KW@392..398 "if" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
-                            l_paren_token: L_PAREN@398..399 "(" [] [],
+                            if_token: IF_KW@329..335 "if" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                            l_paren_token: L_PAREN@335..336 "(" [] [],
                             condition: RTrueExpression {
-                                true_token: TRUE_KW@399..403 "TRUE" [] [],
+                                true_token: TRUE_KW@336..340 "TRUE" [] [],
                             },
-                            r_paren_token: R_PAREN@403..405 ")" [] [Whitespace(" ")],
+                            r_paren_token: R_PAREN@340..342 ")" [] [Whitespace(" ")],
                             consequence: RDoubleValue {
-                                value_token: R_DOUBLE_LITERAL@405..406 "1" [] [],
+                                value_token: R_DOUBLE_LITERAL@342..343 "1" [] [],
                             },
                             else_clause: missing (optional),
                         },
@@ -948,34 +947,34 @@ RRoot {
                     RStatement {
                         expression: RBinaryExpression {
                             left: RIdentifier {
-                                name_token: IDENT@406..416 "elseμ" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                                name_token: IDENT@343..353 "elseμ" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                             },
-                            operator: ASSIGN@416..419 "<-" [] [Whitespace(" ")],
+                            operator: ASSIGN@353..356 "<-" [] [Whitespace(" ")],
                             right: RDoubleValue {
-                                value_token: R_DOUBLE_LITERAL@419..420 "1" [] [],
+                                value_token: R_DOUBLE_LITERAL@356..357 "1" [] [],
                             },
                         },
                         semicolon_token: missing (optional),
                     },
                 ],
-                r_curly_token: R_CURLY@420..422 "}" [Newline("\n")] [],
+                r_curly_token: R_CURLY@357..359 "}" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RBracedStatements {
-                l_curly_token: L_CURLY@422..623 "{" [Newline("\n"), Newline("\n"), Comments("# Non-ASCII (U+00B7), ..."), Newline("\n"), Comments("# Our overapproximati ..."), Newline("\n"), Comments("# side behavior is a  ..."), Newline("\n")] [],
+                l_curly_token: L_CURLY@359..539 "{" [Newline("\n"), Newline("\n"), Comments("# Non-ASCII (U+00B7), ..."), Newline("\n"), Comments("# `XID_Continue` allo ..."), Newline("\n"), Comments("# syntax error."), Newline("\n")] [],
                 statements: RStatementList [
                     RStatement {
                         expression: RIfStatement {
-                            if_token: IF_KW@623..629 "if" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
-                            l_paren_token: L_PAREN@629..630 "(" [] [],
+                            if_token: IF_KW@539..545 "if" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                            l_paren_token: L_PAREN@545..546 "(" [] [],
                             condition: RTrueExpression {
-                                true_token: TRUE_KW@630..634 "TRUE" [] [],
+                                true_token: TRUE_KW@546..550 "TRUE" [] [],
                             },
-                            r_paren_token: R_PAREN@634..636 ")" [] [Whitespace(" ")],
+                            r_paren_token: R_PAREN@550..552 ")" [] [Whitespace(" ")],
                             consequence: RDoubleValue {
-                                value_token: R_DOUBLE_LITERAL@636..637 "1" [] [],
+                                value_token: R_DOUBLE_LITERAL@552..553 "1" [] [],
                             },
                             else_clause: missing (optional),
                         },
@@ -984,22 +983,22 @@ RRoot {
                     RStatement {
                         expression: RBinaryExpression {
                             left: RIdentifier {
-                                name_token: IDENT@637..647 "else·" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                                name_token: IDENT@553..563 "else·" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                             },
-                            operator: ASSIGN@647..650 "<-" [] [Whitespace(" ")],
+                            operator: ASSIGN@563..566 "<-" [] [Whitespace(" ")],
                             right: RDoubleValue {
-                                value_token: R_DOUBLE_LITERAL@650..651 "1" [] [],
+                                value_token: R_DOUBLE_LITERAL@566..567 "1" [] [],
                             },
                         },
                         semicolon_token: missing (optional),
                     },
                 ],
-                r_curly_token: R_CURLY@651..653 "}" [Newline("\n")] [],
+                r_curly_token: R_CURLY@567..569 "}" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@653..654 "" [Newline("\n")] [],
+    eof_token: EOF@569..570 "" [Newline("\n")] [],
 }
 ```
 

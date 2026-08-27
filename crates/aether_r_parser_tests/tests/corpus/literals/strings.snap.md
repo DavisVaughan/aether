@@ -478,7 +478,7 @@ r"(raw
 string
 )"
 
-# Empty strings with no `string_content` node
+# Empty raw strings
 r"()"
 r'()'
 R"{}"
@@ -611,62 +611,62 @@ RRoot {
         },
         RStatement {
             expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@214..267 "r\"()\"" [Newline("\n"), Newline("\n"), Comments("# Empty strings with  ..."), Newline("\n")] [],
+                value: R_RAW_STRING_LITERAL@214..241 "r\"()\"" [Newline("\n"), Newline("\n"), Comments("# Empty raw strings"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@267..273 "r'()'" [Newline("\n")] [],
+                value: R_RAW_STRING_LITERAL@241..247 "r'()'" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@273..279 "R\"{}\"" [Newline("\n")] [],
+                value: R_RAW_STRING_LITERAL@247..253 "R\"{}\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@279..289 "r\"--[]--\"" [Newline("\n")] [],
+                value: R_RAW_STRING_LITERAL@253..263 "r\"--[]--\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@289..348 "r\"(  hello)\"" [Newline("\n"), Newline("\n"), Comments("# Leading whitespace  ..."), Newline("\n")] [],
+                value: R_RAW_STRING_LITERAL@263..322 "r\"(  hello)\"" [Newline("\n"), Newline("\n"), Comments("# Leading whitespace  ..."), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@348..361 "r\"(\\nhello)\"" [Newline("\n")] [],
+                value: R_RAW_STRING_LITERAL@322..335 "r\"(\\nhello)\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@361..374 "r\"(\nhello\n)\"" [Newline("\n")] [],
+                value: R_RAW_STRING_LITERAL@335..348 "r\"(\nhello\n)\"" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RCall {
                 function: RIdentifier {
-                    name_token: IDENT@374..376 "f" [Newline("\n")] [],
+                    name_token: IDENT@348..350 "f" [Newline("\n")] [],
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@376..377 "(" [] [],
+                    l_paren_token: L_PAREN@350..351 "(" [] [],
                     items: RArgumentList [
                         RArgument {
                             name_clause: missing (optional),
                             value: RStringValue {
-                                value: R_RAW_STRING_LITERAL@377..391 "r\"(\\nhello\\n)\"" [] [],
+                                value: R_RAW_STRING_LITERAL@351..365 "r\"(\\nhello\\n)\"" [] [],
                             },
                         },
                     ],
-                    r_paren_token: R_PAREN@391..392 ")" [] [],
+                    r_paren_token: R_PAREN@365..366 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
@@ -674,56 +674,56 @@ RRoot {
         RStatement {
             expression: RCall {
                 function: RIdentifier {
-                    name_token: IDENT@392..394 "f" [Newline("\n")] [],
+                    name_token: IDENT@366..368 "f" [Newline("\n")] [],
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@394..395 "(" [] [],
+                    l_paren_token: L_PAREN@368..369 "(" [] [],
                     items: RArgumentList [
                         RArgument {
                             name_clause: missing (optional),
                             value: RStringValue {
-                                value: R_RAW_STRING_LITERAL@395..407 "r\"(\nhello\n)\"" [] [],
+                                value: R_RAW_STRING_LITERAL@369..381 "r\"(\nhello\n)\"" [] [],
                             },
                         },
                     ],
-                    r_paren_token: R_PAREN@407..408 ")" [] [],
+                    r_paren_token: R_PAREN@381..382 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@408..444 "r'(a)'" [Newline("\n"), Newline("\n"), Comments("# Single quoted raw s ..."), Newline("\n")] [],
+                value: R_RAW_STRING_LITERAL@382..418 "r'(a)'" [Newline("\n"), Newline("\n"), Comments("# Single quoted raw s ..."), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@444..451 "r'(')'" [Newline("\n")] [],
+                value: R_RAW_STRING_LITERAL@418..425 "r'(')'" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RStringValue {
-                value: R_RAW_STRING_LITERAL@451..458 "r'(\")'" [Newline("\n")] [],
+                value: R_RAW_STRING_LITERAL@425..432 "r'(\")'" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RCall {
                 function: RIdentifier {
-                    name_token: IDENT@458..461 "r" [Newline("\n"), Newline("\n")] [],
+                    name_token: IDENT@432..435 "r" [Newline("\n"), Newline("\n")] [],
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@461..462 "(" [] [],
+                    l_paren_token: L_PAREN@435..436 "(" [] [],
                     items: RArgumentList [],
-                    r_paren_token: R_PAREN@462..463 ")" [] [],
+                    r_paren_token: R_PAREN@436..437 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@463..464 "" [Newline("\n")] [],
+    eof_token: EOF@437..438 "" [Newline("\n")] [],
 }
 ```
 

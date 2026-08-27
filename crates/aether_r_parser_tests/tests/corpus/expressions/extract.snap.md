@@ -278,9 +278,9 @@ RRoot {
 ## Dollar, at, namespace, namespace internal with expression RHS [error]
 
 ```r
-# These nodes allows an optional RHS, and the RHS must be a string/identifier,
-# so we nicely get a true node here alongside the braces. Even if that's not
-# parsable R code, it's useful for completions and highlighting.
+# The RHS of these nodes must be a string/identifier, so we nicely get a true
+# node here alongside the braces. Even if that's not parsable R code, it's
+# useful for completions and highlighting.
 foo${bar}
 foo@{bar}
 foo::{bar}
@@ -294,105 +294,105 @@ RRoot {
         RStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
-                    name_token: IDENT@0..224 "foo" [Comments("# These nodes allows  ..."), Newline("\n"), Comments("# so we nicely get a  ..."), Newline("\n"), Comments("# parsable R code, it ..."), Newline("\n")] [],
+                    name_token: IDENT@0..199 "foo" [Comments("# The RHS of these no ..."), Newline("\n"), Comments("# node here alongside ..."), Newline("\n"), Comments("# useful for completi ..."), Newline("\n")] [],
                 },
-                operator: DOLLAR@224..225 "$" [] [],
+                operator: DOLLAR@199..200 "$" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RBracedStatements {
-                l_curly_token: L_CURLY@225..226 "{" [] [],
+                l_curly_token: L_CURLY@200..201 "{" [] [],
                 statements: RStatementList [
                     RStatement {
                         expression: RIdentifier {
-                            name_token: IDENT@226..229 "bar" [] [],
+                            name_token: IDENT@201..204 "bar" [] [],
                         },
                         semicolon_token: missing (optional),
                     },
                 ],
-                r_curly_token: R_CURLY@229..230 "}" [] [],
+                r_curly_token: R_CURLY@204..205 "}" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
-                    name_token: IDENT@230..234 "foo" [Newline("\n")] [],
+                    name_token: IDENT@205..209 "foo" [Newline("\n")] [],
                 },
-                operator: AT@234..235 "@" [] [],
+                operator: AT@209..210 "@" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RBracedStatements {
-                l_curly_token: L_CURLY@235..236 "{" [] [],
+                l_curly_token: L_CURLY@210..211 "{" [] [],
                 statements: RStatementList [
                     RStatement {
                         expression: RIdentifier {
-                            name_token: IDENT@236..239 "bar" [] [],
+                            name_token: IDENT@211..214 "bar" [] [],
                         },
                         semicolon_token: missing (optional),
                     },
                 ],
-                r_curly_token: R_CURLY@239..240 "}" [] [],
+                r_curly_token: R_CURLY@214..215 "}" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RNamespaceExpression {
                 left: RIdentifier {
-                    name_token: IDENT@240..244 "foo" [Newline("\n")] [],
+                    name_token: IDENT@215..219 "foo" [Newline("\n")] [],
                 },
-                operator: COLON2@244..246 "::" [] [],
+                operator: COLON2@219..221 "::" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RBracedStatements {
-                l_curly_token: L_CURLY@246..247 "{" [] [],
+                l_curly_token: L_CURLY@221..222 "{" [] [],
                 statements: RStatementList [
                     RStatement {
                         expression: RIdentifier {
-                            name_token: IDENT@247..250 "bar" [] [],
+                            name_token: IDENT@222..225 "bar" [] [],
                         },
                         semicolon_token: missing (optional),
                     },
                 ],
-                r_curly_token: R_CURLY@250..251 "}" [] [],
+                r_curly_token: R_CURLY@225..226 "}" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RNamespaceExpression {
                 left: RIdentifier {
-                    name_token: IDENT@251..255 "foo" [Newline("\n")] [],
+                    name_token: IDENT@226..230 "foo" [Newline("\n")] [],
                 },
-                operator: COLON3@255..258 ":::" [] [],
+                operator: COLON3@230..233 ":::" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RBracedStatements {
-                l_curly_token: L_CURLY@258..259 "{" [] [],
+                l_curly_token: L_CURLY@233..234 "{" [] [],
                 statements: RStatementList [
                     RStatement {
                         expression: RIdentifier {
-                            name_token: IDENT@259..262 "bar" [] [],
+                            name_token: IDENT@234..237 "bar" [] [],
                         },
                         semicolon_token: missing (optional),
                     },
                 ],
-                r_curly_token: R_CURLY@262..263 "}" [] [],
+                r_curly_token: R_CURLY@237..238 "}" [] [],
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@263..264 "" [Newline("\n")] [],
+    eof_token: EOF@238..239 "" [Newline("\n")] [],
 }
 ```
 
@@ -401,8 +401,8 @@ test.R:4:5 parse ━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    2 │ # so we nicely get a true node here alongside the braces. Even if that's not
-    3 │ # parsable R code, it's useful for completions and highlighting.
+    2 │ # node here alongside the braces. Even if that's not parsable R code, it's
+    3 │ # useful for completions and highlighting.
   > 4 │ foo${bar}
       │     ^
     5 │ foo@{bar}
@@ -410,8 +410,8 @@ test.R:4:5 parse ━━━━━━━━━━━━━━━━━━━━━
 
   i `$` requires a name on the right.
 
-    2 │ # so we nicely get a true node here alongside the braces. Even if that's not
-    3 │ # parsable R code, it's useful for completions and highlighting.
+    2 │ # node here alongside the braces. Even if that's not parsable R code, it's
+    3 │ # useful for completions and highlighting.
   > 4 │ foo${bar}
       │    ^
     5 │ foo@{bar}
@@ -421,7 +421,7 @@ test.R:5:5 parse ━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    3 │ # parsable R code, it's useful for completions and highlighting.
+    3 │ # useful for completions and highlighting.
     4 │ foo${bar}
   > 5 │ foo@{bar}
       │     ^
@@ -430,7 +430,7 @@ test.R:5:5 parse ━━━━━━━━━━━━━━━━━━━━━
 
   i `@` requires a name on the right.
 
-    3 │ # parsable R code, it's useful for completions and highlighting.
+    3 │ # useful for completions and highlighting.
     4 │ foo${bar}
   > 5 │ foo@{bar}
       │    ^
@@ -561,10 +561,9 @@ test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━
 ## Dollar, at, namespace, namespace internal with `if` RHS [error]
 
 ```r
-# The RHS's of these nodes are restricted to strings and identifiers, and the RHS
-# is optional. This ends up trying to match to an `if_statement` node, leaving the RHS
-# empty, and then the `if_statement` node errors because it doesn't have a `(`. This
-# is actually pretty decent behavior.
+# The RHS's of these nodes are restricted to strings and identifiers, so the RHS
+# is left empty and the `if` goes on to be its own statement, which then errors
+# because it doesn't have a `(`. This is actually pretty decent behavior.
 foo$if
 foo@if
 foo::if
@@ -578,49 +577,49 @@ RRoot {
         RStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
-                    name_token: IDENT@0..295 "foo" [Comments("# The RHS's of these  ..."), Newline("\n"), Comments("# is optional. This e ..."), Newline("\n"), Comments("# empty, and then the ..."), Newline("\n"), Comments("# is actually pretty  ..."), Newline("\n")] [],
+                    name_token: IDENT@0..238 "foo" [Comments("# The RHS's of these  ..."), Newline("\n"), Comments("# is left empty and t ..."), Newline("\n"), Comments("# because it doesn't  ..."), Newline("\n")] [],
                 },
-                operator: DOLLAR@295..296 "$" [] [],
+                operator: DOLLAR@238..239 "$" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RIfStatement {
-                if_token: IF_KW@296..298 "if" [] [],
+                if_token: IF_KW@239..241 "if" [] [],
                 l_paren_token: missing (required),
                 condition: RExtractExpression {
                     left: RIdentifier {
-                        name_token: IDENT@298..302 "foo" [Newline("\n")] [],
+                        name_token: IDENT@241..245 "foo" [Newline("\n")] [],
                     },
-                    operator: AT@302..303 "@" [] [],
+                    operator: AT@245..246 "@" [] [],
                     right: missing (required),
                 },
                 r_paren_token: missing (required),
                 consequence: RIfStatement {
-                    if_token: IF_KW@303..305 "if" [] [],
+                    if_token: IF_KW@246..248 "if" [] [],
                     l_paren_token: missing (required),
                     condition: RNamespaceExpression {
                         left: RIdentifier {
-                            name_token: IDENT@305..309 "foo" [Newline("\n")] [],
+                            name_token: IDENT@248..252 "foo" [Newline("\n")] [],
                         },
-                        operator: COLON2@309..311 "::" [] [],
+                        operator: COLON2@252..254 "::" [] [],
                         right: missing (required),
                     },
                     r_paren_token: missing (required),
                     consequence: RIfStatement {
-                        if_token: IF_KW@311..313 "if" [] [],
+                        if_token: IF_KW@254..256 "if" [] [],
                         l_paren_token: missing (required),
                         condition: RNamespaceExpression {
                             left: RIdentifier {
-                                name_token: IDENT@313..317 "foo" [Newline("\n")] [],
+                                name_token: IDENT@256..260 "foo" [Newline("\n")] [],
                             },
-                            operator: COLON3@317..320 ":::" [] [],
+                            operator: COLON3@260..263 ":::" [] [],
                             right: missing (required),
                         },
                         r_paren_token: missing (required),
                         consequence: RIfStatement {
-                            if_token: IF_KW@320..322 "if" [] [],
+                            if_token: IF_KW@263..265 "if" [] [],
                             l_paren_token: missing (required),
                             condition: missing (required),
                             r_paren_token: missing (required),
@@ -636,141 +635,141 @@ RRoot {
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@322..323 "" [Newline("\n")] [],
+    eof_token: EOF@265..266 "" [Newline("\n")] [],
 }
 ```
 
 ```diagnostics
+test.R:4:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a name.
+
+    2 │ # is left empty and the `if` goes on to be its own statement, which then errors
+    3 │ # because it doesn't have a `(`. This is actually pretty decent behavior.
+  > 4 │ foo$if
+      │     ^^
+    5 │ foo@if
+    6 │ foo::if
+
+  i `$` requires a name on the right.
+
+    2 │ # is left empty and the `if` goes on to be its own statement, which then errors
+    3 │ # because it doesn't have a `(`. This is actually pretty decent behavior.
+  > 4 │ foo$if
+      │    ^
+    5 │ foo@if
+    6 │ foo::if
+
+test.R:5:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × expected `(` but instead found `foo`
+
+    3 │ # because it doesn't have a `(`. This is actually pretty decent behavior.
+    4 │ foo$if
+  > 5 │ foo@if
+      │ ^^^
+    6 │ foo::if
+    7 │ foo:::if
+
+  i Remove foo
+
 test.R:5:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    3 │ # empty, and then the `if_statement` node errors because it doesn't have a `(`. This
-    4 │ # is actually pretty decent behavior.
-  > 5 │ foo$if
+    3 │ # because it doesn't have a `(`. This is actually pretty decent behavior.
+    4 │ foo$if
+  > 5 │ foo@if
       │     ^^
-    6 │ foo@if
-    7 │ foo::if
+    6 │ foo::if
+    7 │ foo:::if
 
-  i `$` requires a name on the right.
+  i `@` requires a name on the right.
 
-    3 │ # empty, and then the `if_statement` node errors because it doesn't have a `(`. This
-    4 │ # is actually pretty decent behavior.
-  > 5 │ foo$if
+    3 │ # because it doesn't have a `(`. This is actually pretty decent behavior.
+    4 │ foo$if
+  > 5 │ foo@if
       │    ^
-    6 │ foo@if
-    7 │ foo::if
+    6 │ foo::if
+    7 │ foo:::if
 
 test.R:6:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × expected `(` but instead found `foo`
 
-    4 │ # is actually pretty decent behavior.
-    5 │ foo$if
-  > 6 │ foo@if
+    4 │ foo$if
+    5 │ foo@if
+  > 6 │ foo::if
       │ ^^^
-    7 │ foo::if
-    8 │ foo:::if
+    7 │ foo:::if
+    8 │
 
   i Remove foo
 
-test.R:6:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:6:6 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    4 │ # is actually pretty decent behavior.
-    5 │ foo$if
-  > 6 │ foo@if
-      │     ^^
-    7 │ foo::if
-    8 │ foo:::if
+    4 │ foo$if
+    5 │ foo@if
+  > 6 │ foo::if
+      │      ^^
+    7 │ foo:::if
+    8 │
 
-  i `@` requires a name on the right.
+  i `::` requires a name on the right.
 
-    4 │ # is actually pretty decent behavior.
-    5 │ foo$if
-  > 6 │ foo@if
-      │    ^
-    7 │ foo::if
-    8 │ foo:::if
+    4 │ foo$if
+    5 │ foo@if
+  > 6 │ foo::if
+      │    ^^
+    7 │ foo:::if
+    8 │
 
 test.R:7:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × expected `(` but instead found `foo`
 
-    5 │ foo$if
-    6 │ foo@if
-  > 7 │ foo::if
+    5 │ foo@if
+    6 │ foo::if
+  > 7 │ foo:::if
       │ ^^^
-    8 │ foo:::if
-    9 │
+    8 │
 
   i Remove foo
 
-test.R:7:6 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:7:7 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    5 │ foo$if
-    6 │ foo@if
-  > 7 │ foo::if
-      │      ^^
-    8 │ foo:::if
-    9 │
-
-  i `::` requires a name on the right.
-
-    5 │ foo$if
-    6 │ foo@if
-  > 7 │ foo::if
-      │    ^^
-    8 │ foo:::if
-    9 │
-
-test.R:8:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × expected `(` but instead found `foo`
-
-    6 │ foo@if
-    7 │ foo::if
-  > 8 │ foo:::if
-      │ ^^^
-    9 │
-
-  i Remove foo
-
-test.R:8:7 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Expected a name.
-
-    6 │ foo@if
-    7 │ foo::if
-  > 8 │ foo:::if
+    5 │ foo@if
+    6 │ foo::if
+  > 7 │ foo:::if
       │       ^^
-    9 │
+    8 │
 
   i `:::` requires a name on the right.
 
-    6 │ foo@if
-    7 │ foo::if
-  > 8 │ foo:::if
+    5 │ foo@if
+    6 │ foo::if
+  > 7 │ foo:::if
       │    ^^^
-    9 │
+    8 │
 
-test.R:9:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:8:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × expected `(` but instead the file ends
 
-    7 │ foo::if
-    8 │ foo:::if
-  > 9 │
+    6 │ foo::if
+    7 │ foo:::if
+  > 8 │
       │
 
   i the file ends here
 
-    7 │ foo::if
-    8 │ foo:::if
-  > 9 │
+    6 │ foo::if
+    7 │ foo:::if
+  > 8 │
       │
 ```
 
@@ -1200,23 +1199,9 @@ RRoot {
 
 ## Extract with a literal RHS [error]
 
+The RHS slot is left missing rather than swallowing the invalid right-hand side.
+
 ```r
-# TODO: tree-sitter-r currently allows an `optional()` RHS, but our grammar
-# requires a RHS, so we get `missing (required)`. These should eventually be
-# parse errors if we can switch tree-sitter-r away from using `optional()`.
-# For example, `a$1` gives:
-
-#> RExtractExpression {
-#>     left: RDoubleValue {
-#>         value_token: R_DOUBLE_LITERAL@10..16 "1" [Newline("\n"), Whitespace("    ")] [],
-#>     },
-#>     operator: DOLLAR@16..17 "$" [] [],
-#>     right: missing (required),
-#> },
-#> RDoubleValue {
-#>     value_token: R_DOUBLE_LITERAL@17..18 "2" [] [],
-#> },
-
 a$1
 a$NA
 a$NULL
@@ -1239,64 +1224,64 @@ RRoot {
         RStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
-                    name_token: IDENT@0..575 "a" [Comments("# TODO: tree-sitter-r ..."), Newline("\n"), Comments("# requires a RHS, so  ..."), Newline("\n"), Comments("# parse errors if we  ..."), Newline("\n"), Comments("# For example, `a$1`  ..."), Newline("\n"), Newline("\n"), Comments("#> RExtractExpression {"), Newline("\n"), Comments("#>     left: RDoubleV ..."), Newline("\n"), Comments("#>         value_toke ..."), Newline("\n"), Comments("#>     },"), Newline("\n"), Comments("#>     operator: DOLL ..."), Newline("\n"), Comments("#>     right: missing ..."), Newline("\n"), Comments("#> },"), Newline("\n"), Comments("#> RDoubleValue {"), Newline("\n"), Comments("#>     value_token: R ..."), Newline("\n"), Comments("#> },"), Newline("\n"), Newline("\n")] [],
+                    name_token: IDENT@0..1 "a" [] [],
                 },
-                operator: DOLLAR@575..576 "$" [] [],
+                operator: DOLLAR@1..2 "$" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RDoubleValue {
-                value_token: R_DOUBLE_LITERAL@576..577 "1" [] [],
+                value_token: R_DOUBLE_LITERAL@2..3 "1" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
-                    name_token: IDENT@577..579 "a" [Newline("\n")] [],
+                    name_token: IDENT@3..5 "a" [Newline("\n")] [],
                 },
-                operator: DOLLAR@579..580 "$" [] [],
+                operator: DOLLAR@5..6 "$" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RNaExpression {
-                value: NA_LOGICAL_KW@580..582 "NA" [] [],
+                value: NA_LOGICAL_KW@6..8 "NA" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
-                    name_token: IDENT@582..584 "a" [Newline("\n")] [],
+                    name_token: IDENT@8..10 "a" [Newline("\n")] [],
                 },
-                operator: DOLLAR@584..585 "$" [] [],
+                operator: DOLLAR@10..11 "$" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RNullExpression {
-                null_token: NULL_KW@585..589 "NULL" [] [],
+                null_token: NULL_KW@11..15 "NULL" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
-                    name_token: IDENT@589..591 "a" [Newline("\n")] [],
+                    name_token: IDENT@15..17 "a" [Newline("\n")] [],
                 },
-                operator: DOLLAR@591..592 "$" [] [],
+                operator: DOLLAR@17..18 "$" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RTrueExpression {
-                true_token: TRUE_KW@592..596 "TRUE" [] [],
+                true_token: TRUE_KW@18..22 "TRUE" [] [],
             },
             semicolon_token: missing (optional),
         },
@@ -1304,22 +1289,22 @@ RRoot {
             expression: RCall {
                 function: RExtractExpression {
                     left: RIdentifier {
-                        name_token: IDENT@596..598 "a" [Newline("\n")] [],
+                        name_token: IDENT@22..24 "a" [Newline("\n")] [],
                     },
-                    operator: DOLLAR@598..599 "$" [] [],
+                    operator: DOLLAR@24..25 "$" [] [],
                     right: missing (required),
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@599..600 "(" [] [],
+                    l_paren_token: L_PAREN@25..26 "(" [] [],
                     items: RArgumentList [
                         RArgument {
                             name_clause: missing (optional),
                             value: RIdentifier {
-                                name_token: IDENT@600..601 "b" [] [],
+                                name_token: IDENT@26..27 "b" [] [],
                             },
                         },
                     ],
-                    r_paren_token: R_PAREN@601..602 ")" [] [],
+                    r_paren_token: R_PAREN@27..28 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
@@ -1327,89 +1312,89 @@ RRoot {
         RStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
-                    name_token: IDENT@602..604 "a" [Newline("\n")] [],
+                    name_token: IDENT@28..30 "a" [Newline("\n")] [],
                 },
-                operator: DOLLAR@604..605 "$" [] [],
+                operator: DOLLAR@30..31 "$" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RBracedStatements {
-                l_curly_token: L_CURLY@605..607 "{" [] [Whitespace(" ")],
+                l_curly_token: L_CURLY@31..33 "{" [] [Whitespace(" ")],
                 statements: RStatementList [
                     RStatement {
                         expression: RIdentifier {
-                            name_token: IDENT@607..609 "b" [] [Whitespace(" ")],
+                            name_token: IDENT@33..35 "b" [] [Whitespace(" ")],
                         },
                         semicolon_token: missing (optional),
                     },
                 ],
-                r_curly_token: R_CURLY@609..610 "}" [] [],
+                r_curly_token: R_CURLY@35..36 "}" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
-                    name_token: IDENT@610..613 "a" [Newline("\n"), Newline("\n")] [],
+                    name_token: IDENT@36..39 "a" [Newline("\n"), Newline("\n")] [],
                 },
-                operator: AT@613..614 "@" [] [],
+                operator: AT@39..40 "@" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RDoubleValue {
-                value_token: R_DOUBLE_LITERAL@614..615 "1" [] [],
+                value_token: R_DOUBLE_LITERAL@40..41 "1" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
-                    name_token: IDENT@615..617 "a" [Newline("\n")] [],
+                    name_token: IDENT@41..43 "a" [Newline("\n")] [],
                 },
-                operator: AT@617..618 "@" [] [],
+                operator: AT@43..44 "@" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RNaExpression {
-                value: NA_LOGICAL_KW@618..620 "NA" [] [],
+                value: NA_LOGICAL_KW@44..46 "NA" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
-                    name_token: IDENT@620..622 "a" [Newline("\n")] [],
+                    name_token: IDENT@46..48 "a" [Newline("\n")] [],
                 },
-                operator: AT@622..623 "@" [] [],
+                operator: AT@48..49 "@" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RNullExpression {
-                null_token: NULL_KW@623..627 "NULL" [] [],
+                null_token: NULL_KW@49..53 "NULL" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
-                    name_token: IDENT@627..629 "a" [Newline("\n")] [],
+                    name_token: IDENT@53..55 "a" [Newline("\n")] [],
                 },
-                operator: AT@629..630 "@" [] [],
+                operator: AT@55..56 "@" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RTrueExpression {
-                true_token: TRUE_KW@630..634 "TRUE" [] [],
+                true_token: TRUE_KW@56..60 "TRUE" [] [],
             },
             semicolon_token: missing (optional),
         },
@@ -1417,22 +1402,22 @@ RRoot {
             expression: RCall {
                 function: RExtractExpression {
                     left: RIdentifier {
-                        name_token: IDENT@634..636 "a" [Newline("\n")] [],
+                        name_token: IDENT@60..62 "a" [Newline("\n")] [],
                     },
-                    operator: AT@636..637 "@" [] [],
+                    operator: AT@62..63 "@" [] [],
                     right: missing (required),
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@637..638 "(" [] [],
+                    l_paren_token: L_PAREN@63..64 "(" [] [],
                     items: RArgumentList [
                         RArgument {
                             name_clause: missing (optional),
                             value: RIdentifier {
-                                name_token: IDENT@638..639 "b" [] [],
+                                name_token: IDENT@64..65 "b" [] [],
                             },
                         },
                     ],
-                    r_paren_token: R_PAREN@639..640 ")" [] [],
+                    r_paren_token: R_PAREN@65..66 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
@@ -1440,267 +1425,263 @@ RRoot {
         RStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
-                    name_token: IDENT@640..642 "a" [Newline("\n")] [],
+                    name_token: IDENT@66..68 "a" [Newline("\n")] [],
                 },
-                operator: AT@642..643 "@" [] [],
+                operator: AT@68..69 "@" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RBracedStatements {
-                l_curly_token: L_CURLY@643..645 "{" [] [Whitespace(" ")],
+                l_curly_token: L_CURLY@69..71 "{" [] [Whitespace(" ")],
                 statements: RStatementList [
                     RStatement {
                         expression: RIdentifier {
-                            name_token: IDENT@645..647 "b" [] [Whitespace(" ")],
+                            name_token: IDENT@71..73 "b" [] [Whitespace(" ")],
                         },
                         semicolon_token: missing (optional),
                     },
                 ],
-                r_curly_token: R_CURLY@647..648 "}" [] [],
+                r_curly_token: R_CURLY@73..74 "}" [] [],
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@648..649 "" [Newline("\n")] [],
+    eof_token: EOF@74..75 "" [Newline("\n")] [],
 }
 ```
 
 ```diagnostics
-test.R:17:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:1:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    15 │ #> },
-    16 │
-  > 17 │ a$1
-       │   ^
-    18 │ a$NA
-    19 │ a$NULL
+  > 1 │ a$1
+      │   ^
+    2 │ a$NA
+    3 │ a$NULL
 
   i `$` requires a name on the right.
 
-    15 │ #> },
-    16 │
-  > 17 │ a$1
-       │  ^
-    18 │ a$NA
-    19 │ a$NULL
+  > 1 │ a$1
+      │  ^
+    2 │ a$NA
+    3 │ a$NULL
 
-test.R:18:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:2:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    17 │ a$1
-  > 18 │ a$NA
+    1 │ a$1
+  > 2 │ a$NA
+      │   ^^
+    3 │ a$NULL
+    4 │ a$TRUE
+
+  i `$` requires a name on the right.
+
+    1 │ a$1
+  > 2 │ a$NA
+      │  ^
+    3 │ a$NULL
+    4 │ a$TRUE
+
+test.R:3:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a name.
+
+    1 │ a$1
+    2 │ a$NA
+  > 3 │ a$NULL
+      │   ^^^^
+    4 │ a$TRUE
+    5 │ a$(b)
+
+  i `$` requires a name on the right.
+
+    1 │ a$1
+    2 │ a$NA
+  > 3 │ a$NULL
+      │  ^
+    4 │ a$TRUE
+    5 │ a$(b)
+
+test.R:4:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a name.
+
+    2 │ a$NA
+    3 │ a$NULL
+  > 4 │ a$TRUE
+      │   ^^^^
+    5 │ a$(b)
+    6 │ a${ b }
+
+  i `$` requires a name on the right.
+
+    2 │ a$NA
+    3 │ a$NULL
+  > 4 │ a$TRUE
+      │  ^
+    5 │ a$(b)
+    6 │ a${ b }
+
+test.R:5:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a name.
+
+    3 │ a$NULL
+    4 │ a$TRUE
+  > 5 │ a$(b)
+      │   ^
+    6 │ a${ b }
+    7 │
+
+  i `$` requires a name on the right.
+
+    3 │ a$NULL
+    4 │ a$TRUE
+  > 5 │ a$(b)
+      │  ^
+    6 │ a${ b }
+    7 │
+
+test.R:6:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a name.
+
+    4 │ a$TRUE
+    5 │ a$(b)
+  > 6 │ a${ b }
+      │   ^
+    7 │
+    8 │ a@1
+
+  i `$` requires a name on the right.
+
+    4 │ a$TRUE
+    5 │ a$(b)
+  > 6 │ a${ b }
+      │  ^
+    7 │
+    8 │ a@1
+
+test.R:8:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a name.
+
+     6 │ a${ b }
+     7 │
+   > 8 │ a@1
+       │   ^
+     9 │ a@NA
+    10 │ a@NULL
+
+  i `@` requires a name on the right.
+
+     6 │ a${ b }
+     7 │
+   > 8 │ a@1
+       │  ^
+     9 │ a@NA
+    10 │ a@NULL
+
+test.R:9:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected a name.
+
+     8 │ a@1
+   > 9 │ a@NA
        │   ^^
-    19 │ a$NULL
-    20 │ a$TRUE
+    10 │ a@NULL
+    11 │ a@TRUE
 
-  i `$` requires a name on the right.
+  i `@` requires a name on the right.
 
-    17 │ a$1
-  > 18 │ a$NA
+     8 │ a@1
+   > 9 │ a@NA
        │  ^
-    19 │ a$NULL
-    20 │ a$TRUE
+    10 │ a@NULL
+    11 │ a@TRUE
 
-test.R:19:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:10:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    17 │ a$1
-    18 │ a$NA
-  > 19 │ a$NULL
+     8 │ a@1
+     9 │ a@NA
+  > 10 │ a@NULL
        │   ^^^^
-    20 │ a$TRUE
-    21 │ a$(b)
+    11 │ a@TRUE
+    12 │ a@(b)
 
-  i `$` requires a name on the right.
+  i `@` requires a name on the right.
 
-    17 │ a$1
-    18 │ a$NA
-  > 19 │ a$NULL
+     8 │ a@1
+     9 │ a@NA
+  > 10 │ a@NULL
        │  ^
-    20 │ a$TRUE
-    21 │ a$(b)
+    11 │ a@TRUE
+    12 │ a@(b)
 
-test.R:20:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:11:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    18 │ a$NA
-    19 │ a$NULL
-  > 20 │ a$TRUE
+     9 │ a@NA
+    10 │ a@NULL
+  > 11 │ a@TRUE
        │   ^^^^
-    21 │ a$(b)
-    22 │ a${ b }
+    12 │ a@(b)
+    13 │ a@{ b }
 
-  i `$` requires a name on the right.
+  i `@` requires a name on the right.
 
-    18 │ a$NA
-    19 │ a$NULL
-  > 20 │ a$TRUE
+     9 │ a@NA
+    10 │ a@NULL
+  > 11 │ a@TRUE
        │  ^
-    21 │ a$(b)
-    22 │ a${ b }
+    12 │ a@(b)
+    13 │ a@{ b }
 
-test.R:21:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:12:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    19 │ a$NULL
-    20 │ a$TRUE
-  > 21 │ a$(b)
+    10 │ a@NULL
+    11 │ a@TRUE
+  > 12 │ a@(b)
        │   ^
-    22 │ a${ b }
-    23 │
+    13 │ a@{ b }
+    14 │
 
-  i `$` requires a name on the right.
+  i `@` requires a name on the right.
 
-    19 │ a$NULL
-    20 │ a$TRUE
-  > 21 │ a$(b)
+    10 │ a@NULL
+    11 │ a@TRUE
+  > 12 │ a@(b)
        │  ^
-    22 │ a${ b }
-    23 │
+    13 │ a@{ b }
+    14 │
 
-test.R:22:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:13:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    20 │ a$TRUE
-    21 │ a$(b)
-  > 22 │ a${ b }
+    11 │ a@TRUE
+    12 │ a@(b)
+  > 13 │ a@{ b }
        │   ^
-    23 │
-    24 │ a@1
-
-  i `$` requires a name on the right.
-
-    20 │ a$TRUE
-    21 │ a$(b)
-  > 22 │ a${ b }
-       │  ^
-    23 │
-    24 │ a@1
-
-test.R:24:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Expected a name.
-
-    22 │ a${ b }
-    23 │
-  > 24 │ a@1
-       │   ^
-    25 │ a@NA
-    26 │ a@NULL
+    14 │
 
   i `@` requires a name on the right.
 
-    22 │ a${ b }
-    23 │
-  > 24 │ a@1
+    11 │ a@TRUE
+    12 │ a@(b)
+  > 13 │ a@{ b }
        │  ^
-    25 │ a@NA
-    26 │ a@NULL
-
-test.R:25:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Expected a name.
-
-    24 │ a@1
-  > 25 │ a@NA
-       │   ^^
-    26 │ a@NULL
-    27 │ a@TRUE
-
-  i `@` requires a name on the right.
-
-    24 │ a@1
-  > 25 │ a@NA
-       │  ^
-    26 │ a@NULL
-    27 │ a@TRUE
-
-test.R:26:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Expected a name.
-
-    24 │ a@1
-    25 │ a@NA
-  > 26 │ a@NULL
-       │   ^^^^
-    27 │ a@TRUE
-    28 │ a@(b)
-
-  i `@` requires a name on the right.
-
-    24 │ a@1
-    25 │ a@NA
-  > 26 │ a@NULL
-       │  ^
-    27 │ a@TRUE
-    28 │ a@(b)
-
-test.R:27:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Expected a name.
-
-    25 │ a@NA
-    26 │ a@NULL
-  > 27 │ a@TRUE
-       │   ^^^^
-    28 │ a@(b)
-    29 │ a@{ b }
-
-  i `@` requires a name on the right.
-
-    25 │ a@NA
-    26 │ a@NULL
-  > 27 │ a@TRUE
-       │  ^
-    28 │ a@(b)
-    29 │ a@{ b }
-
-test.R:28:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Expected a name.
-
-    26 │ a@NULL
-    27 │ a@TRUE
-  > 28 │ a@(b)
-       │   ^
-    29 │ a@{ b }
-    30 │
-
-  i `@` requires a name on the right.
-
-    26 │ a@NULL
-    27 │ a@TRUE
-  > 28 │ a@(b)
-       │  ^
-    29 │ a@{ b }
-    30 │
-
-test.R:29:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Expected a name.
-
-    27 │ a@TRUE
-    28 │ a@(b)
-  > 29 │ a@{ b }
-       │   ^
-    30 │
-
-  i `@` requires a name on the right.
-
-    27 │ a@TRUE
-    28 │ a@(b)
-  > 29 │ a@{ b }
-       │  ^
-    30 │
+    14 │
 ```
 
 ## Dollar tolerates a newline

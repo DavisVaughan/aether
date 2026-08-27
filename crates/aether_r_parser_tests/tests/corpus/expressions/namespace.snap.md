@@ -259,9 +259,8 @@ test.R:1:4 parse ━━━━━━━━━━━━━━━━━━━━━
 ## Namespace with missing RHS [error]
 
 ```r
-# It's nice that `::` allows an optional RHS and enforces that it can only be a
-# string or identifier, so this gives us a pretty clean tree even though it is
-# invalid R code.
+# It's nice that `::` enforces that its RHS can only be a string or identifier,
+# so this gives us a pretty clean tree even though it is invalid R code.
 # https://github.com/r-lib/tree-sitter-r/issues/65
 library(dplyr::)
 
@@ -279,23 +278,23 @@ RRoot {
         RStatement {
             expression: RCall {
                 function: RIdentifier {
-                    name_token: IDENT@0..235 "library" [Comments("# It's nice that `::` ..."), Newline("\n"), Comments("# string or identifie ..."), Newline("\n"), Comments("# invalid R code."), Newline("\n"), Comments("# https://github.com/ ..."), Newline("\n")] [],
+                    name_token: IDENT@0..211 "library" [Comments("# It's nice that `::` ..."), Newline("\n"), Comments("# so this gives us a  ..."), Newline("\n"), Comments("# https://github.com/ ..."), Newline("\n")] [],
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@235..236 "(" [] [],
+                    l_paren_token: L_PAREN@211..212 "(" [] [],
                     items: RArgumentList [
                         RArgument {
                             name_clause: missing (optional),
                             value: RNamespaceExpression {
                                 left: RIdentifier {
-                                    name_token: IDENT@236..241 "dplyr" [] [],
+                                    name_token: IDENT@212..217 "dplyr" [] [],
                                 },
-                                operator: COLON2@241..243 "::" [] [],
+                                operator: COLON2@217..219 "::" [] [],
                                 right: missing (required),
                             },
                         },
                     ],
-                    r_paren_token: R_PAREN@243..244 ")" [] [],
+                    r_paren_token: R_PAREN@219..220 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
@@ -303,59 +302,59 @@ RRoot {
         RStatement {
             expression: RCall {
                 function: RIdentifier {
-                    name_token: IDENT@244..253 "library" [Newline("\n"), Newline("\n")] [],
+                    name_token: IDENT@220..229 "library" [Newline("\n"), Newline("\n")] [],
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@253..254 "(" [] [],
+                    l_paren_token: L_PAREN@229..230 "(" [] [],
                     items: RArgumentList [],
-                    r_paren_token: R_PAREN@254..255 ")" [] [],
+                    r_paren_token: R_PAREN@230..231 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RDoubleValue {
-                value_token: R_DOUBLE_LITERAL@255..258 "1" [Newline("\n"), Newline("\n")] [],
+                value_token: R_DOUBLE_LITERAL@231..234 "1" [Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RDoubleValue {
-                value_token: R_DOUBLE_LITERAL@258..260 "2" [Newline("\n")] [],
+                value_token: R_DOUBLE_LITERAL@234..236 "2" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RDoubleValue {
-                value_token: R_DOUBLE_LITERAL@260..262 "3" [Newline("\n")] [],
+                value_token: R_DOUBLE_LITERAL@236..238 "3" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@262..263 "" [Newline("\n")] [],
+    eof_token: EOF@238..239 "" [Newline("\n")] [],
 }
 ```
 
 ```diagnostics
-test.R:5:16 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:4:16 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    3 │ # invalid R code.
-    4 │ # https://github.com/r-lib/tree-sitter-r/issues/65
-  > 5 │ library(dplyr::)
+    2 │ # so this gives us a pretty clean tree even though it is invalid R code.
+    3 │ # https://github.com/r-lib/tree-sitter-r/issues/65
+  > 4 │ library(dplyr::)
       │                ^
-    6 │
-    7 │ library()
+    5 │
+    6 │ library()
 
   i `::` requires a name on the right.
 
-    3 │ # invalid R code.
-    4 │ # https://github.com/r-lib/tree-sitter-r/issues/65
-  > 5 │ library(dplyr::)
+    2 │ # so this gives us a pretty clean tree even though it is invalid R code.
+    3 │ # https://github.com/r-lib/tree-sitter-r/issues/65
+  > 4 │ library(dplyr::)
       │              ^^
-    6 │
-    7 │ library()
+    5 │
+    6 │ library()
 ```
 
 ## Namespace operators
@@ -710,23 +709,9 @@ RRoot {
 
 ## Namespace with a literal RHS [error]
 
+The RHS slot is left missing rather than swallowing the invalid right-hand side.
+
 ```r
-# TODO: tree-sitter-r currently allows an `optional()` RHS, but our grammar
-# requires a RHS, so we get `missing (required)`. These should eventually be
-# parse errors if we can switch tree-sitter-r away from using `optional()`.
-# For example, `a::1` gives:
-
-#> RNamespaceExpression {
-#>     left: RIdentifier {
-#>         name_token: IDENT@0..6 "a" [Newline("\n"), Whitespace("    ")] [],
-#>     },
-#>     operator: COLON2@6..8 "::" [] [],
-#>     right: missing (required),
-#> },
-#> RDoubleValue {
-#>     value_token: R_DOUBLE_LITERAL@8..9 "1" [] [],
-#> },
-
 a::1
 a::NA
 a::NULL
@@ -749,64 +734,64 @@ RRoot {
         RStatement {
             expression: RNamespaceExpression {
                 left: RIdentifier {
-                    name_token: IDENT@0..560 "a" [Comments("# TODO: tree-sitter-r ..."), Newline("\n"), Comments("# requires a RHS, so  ..."), Newline("\n"), Comments("# parse errors if we  ..."), Newline("\n"), Comments("# For example, `a::1` ..."), Newline("\n"), Newline("\n"), Comments("#> RNamespaceExpressi ..."), Newline("\n"), Comments("#>     left: RIdentif ..."), Newline("\n"), Comments("#>         name_token ..."), Newline("\n"), Comments("#>     },"), Newline("\n"), Comments("#>     operator: COLO ..."), Newline("\n"), Comments("#>     right: missing ..."), Newline("\n"), Comments("#> },"), Newline("\n"), Comments("#> RDoubleValue {"), Newline("\n"), Comments("#>     value_token: R ..."), Newline("\n"), Comments("#> },"), Newline("\n"), Newline("\n")] [],
+                    name_token: IDENT@0..1 "a" [] [],
                 },
-                operator: COLON2@560..562 "::" [] [],
+                operator: COLON2@1..3 "::" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RDoubleValue {
-                value_token: R_DOUBLE_LITERAL@562..563 "1" [] [],
+                value_token: R_DOUBLE_LITERAL@3..4 "1" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RNamespaceExpression {
                 left: RIdentifier {
-                    name_token: IDENT@563..565 "a" [Newline("\n")] [],
+                    name_token: IDENT@4..6 "a" [Newline("\n")] [],
                 },
-                operator: COLON2@565..567 "::" [] [],
+                operator: COLON2@6..8 "::" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RNaExpression {
-                value: NA_LOGICAL_KW@567..569 "NA" [] [],
+                value: NA_LOGICAL_KW@8..10 "NA" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RNamespaceExpression {
                 left: RIdentifier {
-                    name_token: IDENT@569..571 "a" [Newline("\n")] [],
+                    name_token: IDENT@10..12 "a" [Newline("\n")] [],
                 },
-                operator: COLON2@571..573 "::" [] [],
+                operator: COLON2@12..14 "::" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RNullExpression {
-                null_token: NULL_KW@573..577 "NULL" [] [],
+                null_token: NULL_KW@14..18 "NULL" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RNamespaceExpression {
                 left: RIdentifier {
-                    name_token: IDENT@577..579 "a" [Newline("\n")] [],
+                    name_token: IDENT@18..20 "a" [Newline("\n")] [],
                 },
-                operator: COLON2@579..581 "::" [] [],
+                operator: COLON2@20..22 "::" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RTrueExpression {
-                true_token: TRUE_KW@581..585 "TRUE" [] [],
+                true_token: TRUE_KW@22..26 "TRUE" [] [],
             },
             semicolon_token: missing (optional),
         },
@@ -814,22 +799,22 @@ RRoot {
             expression: RCall {
                 function: RNamespaceExpression {
                     left: RIdentifier {
-                        name_token: IDENT@585..587 "a" [Newline("\n")] [],
+                        name_token: IDENT@26..28 "a" [Newline("\n")] [],
                     },
-                    operator: COLON2@587..589 "::" [] [],
+                    operator: COLON2@28..30 "::" [] [],
                     right: missing (required),
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@589..590 "(" [] [],
+                    l_paren_token: L_PAREN@30..31 "(" [] [],
                     items: RArgumentList [
                         RArgument {
                             name_clause: missing (optional),
                             value: RIdentifier {
-                                name_token: IDENT@590..591 "b" [] [],
+                                name_token: IDENT@31..32 "b" [] [],
                             },
                         },
                     ],
-                    r_paren_token: R_PAREN@591..592 ")" [] [],
+                    r_paren_token: R_PAREN@32..33 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
@@ -837,89 +822,89 @@ RRoot {
         RStatement {
             expression: RNamespaceExpression {
                 left: RIdentifier {
-                    name_token: IDENT@592..594 "a" [Newline("\n")] [],
+                    name_token: IDENT@33..35 "a" [Newline("\n")] [],
                 },
-                operator: COLON2@594..596 "::" [] [],
+                operator: COLON2@35..37 "::" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RBracedStatements {
-                l_curly_token: L_CURLY@596..598 "{" [] [Whitespace(" ")],
+                l_curly_token: L_CURLY@37..39 "{" [] [Whitespace(" ")],
                 statements: RStatementList [
                     RStatement {
                         expression: RIdentifier {
-                            name_token: IDENT@598..600 "b" [] [Whitespace(" ")],
+                            name_token: IDENT@39..41 "b" [] [Whitespace(" ")],
                         },
                         semicolon_token: missing (optional),
                     },
                 ],
-                r_curly_token: R_CURLY@600..601 "}" [] [],
+                r_curly_token: R_CURLY@41..42 "}" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RNamespaceExpression {
                 left: RIdentifier {
-                    name_token: IDENT@601..604 "a" [Newline("\n"), Newline("\n")] [],
+                    name_token: IDENT@42..45 "a" [Newline("\n"), Newline("\n")] [],
                 },
-                operator: COLON3@604..607 ":::" [] [],
+                operator: COLON3@45..48 ":::" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RDoubleValue {
-                value_token: R_DOUBLE_LITERAL@607..608 "1" [] [],
+                value_token: R_DOUBLE_LITERAL@48..49 "1" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RNamespaceExpression {
                 left: RIdentifier {
-                    name_token: IDENT@608..610 "a" [Newline("\n")] [],
+                    name_token: IDENT@49..51 "a" [Newline("\n")] [],
                 },
-                operator: COLON3@610..613 ":::" [] [],
+                operator: COLON3@51..54 ":::" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RNaExpression {
-                value: NA_LOGICAL_KW@613..615 "NA" [] [],
+                value: NA_LOGICAL_KW@54..56 "NA" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RNamespaceExpression {
                 left: RIdentifier {
-                    name_token: IDENT@615..617 "a" [Newline("\n")] [],
+                    name_token: IDENT@56..58 "a" [Newline("\n")] [],
                 },
-                operator: COLON3@617..620 ":::" [] [],
+                operator: COLON3@58..61 ":::" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RNullExpression {
-                null_token: NULL_KW@620..624 "NULL" [] [],
+                null_token: NULL_KW@61..65 "NULL" [] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RNamespaceExpression {
                 left: RIdentifier {
-                    name_token: IDENT@624..626 "a" [Newline("\n")] [],
+                    name_token: IDENT@65..67 "a" [Newline("\n")] [],
                 },
-                operator: COLON3@626..629 ":::" [] [],
+                operator: COLON3@67..70 ":::" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RTrueExpression {
-                true_token: TRUE_KW@629..633 "TRUE" [] [],
+                true_token: TRUE_KW@70..74 "TRUE" [] [],
             },
             semicolon_token: missing (optional),
         },
@@ -927,22 +912,22 @@ RRoot {
             expression: RCall {
                 function: RNamespaceExpression {
                     left: RIdentifier {
-                        name_token: IDENT@633..635 "a" [Newline("\n")] [],
+                        name_token: IDENT@74..76 "a" [Newline("\n")] [],
                     },
-                    operator: COLON3@635..638 ":::" [] [],
+                    operator: COLON3@76..79 ":::" [] [],
                     right: missing (required),
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@638..639 "(" [] [],
+                    l_paren_token: L_PAREN@79..80 "(" [] [],
                     items: RArgumentList [
                         RArgument {
                             name_clause: missing (optional),
                             value: RIdentifier {
-                                name_token: IDENT@639..640 "b" [] [],
+                                name_token: IDENT@80..81 "b" [] [],
                             },
                         },
                     ],
-                    r_paren_token: R_PAREN@640..641 ")" [] [],
+                    r_paren_token: R_PAREN@81..82 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
@@ -950,267 +935,263 @@ RRoot {
         RStatement {
             expression: RNamespaceExpression {
                 left: RIdentifier {
-                    name_token: IDENT@641..643 "a" [Newline("\n")] [],
+                    name_token: IDENT@82..84 "a" [Newline("\n")] [],
                 },
-                operator: COLON3@643..646 ":::" [] [],
+                operator: COLON3@84..87 ":::" [] [],
                 right: missing (required),
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RBracedStatements {
-                l_curly_token: L_CURLY@646..648 "{" [] [Whitespace(" ")],
+                l_curly_token: L_CURLY@87..89 "{" [] [Whitespace(" ")],
                 statements: RStatementList [
                     RStatement {
                         expression: RIdentifier {
-                            name_token: IDENT@648..650 "b" [] [Whitespace(" ")],
+                            name_token: IDENT@89..91 "b" [] [Whitespace(" ")],
                         },
                         semicolon_token: missing (optional),
                     },
                 ],
-                r_curly_token: R_CURLY@650..651 "}" [] [],
+                r_curly_token: R_CURLY@91..92 "}" [] [],
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@651..652 "" [Newline("\n")] [],
+    eof_token: EOF@92..93 "" [Newline("\n")] [],
 }
 ```
 
 ```diagnostics
-test.R:17:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:1:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    15 │ #> },
-    16 │
-  > 17 │ a::1
-       │    ^
-    18 │ a::NA
-    19 │ a::NULL
+  > 1 │ a::1
+      │    ^
+    2 │ a::NA
+    3 │ a::NULL
 
   i `::` requires a name on the right.
 
-    15 │ #> },
-    16 │
-  > 17 │ a::1
-       │  ^^
-    18 │ a::NA
-    19 │ a::NULL
+  > 1 │ a::1
+      │  ^^
+    2 │ a::NA
+    3 │ a::NULL
 
-test.R:18:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:2:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    17 │ a::1
-  > 18 │ a::NA
-       │    ^^
-    19 │ a::NULL
-    20 │ a::TRUE
+    1 │ a::1
+  > 2 │ a::NA
+      │    ^^
+    3 │ a::NULL
+    4 │ a::TRUE
 
   i `::` requires a name on the right.
 
-    17 │ a::1
-  > 18 │ a::NA
-       │  ^^
-    19 │ a::NULL
-    20 │ a::TRUE
+    1 │ a::1
+  > 2 │ a::NA
+      │  ^^
+    3 │ a::NULL
+    4 │ a::TRUE
 
-test.R:19:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:3:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    17 │ a::1
-    18 │ a::NA
-  > 19 │ a::NULL
-       │    ^^^^
-    20 │ a::TRUE
-    21 │ a::(b)
+    1 │ a::1
+    2 │ a::NA
+  > 3 │ a::NULL
+      │    ^^^^
+    4 │ a::TRUE
+    5 │ a::(b)
 
   i `::` requires a name on the right.
 
-    17 │ a::1
-    18 │ a::NA
-  > 19 │ a::NULL
-       │  ^^
-    20 │ a::TRUE
-    21 │ a::(b)
+    1 │ a::1
+    2 │ a::NA
+  > 3 │ a::NULL
+      │  ^^
+    4 │ a::TRUE
+    5 │ a::(b)
 
-test.R:20:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:4:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    18 │ a::NA
-    19 │ a::NULL
-  > 20 │ a::TRUE
-       │    ^^^^
-    21 │ a::(b)
-    22 │ a::{ b }
+    2 │ a::NA
+    3 │ a::NULL
+  > 4 │ a::TRUE
+      │    ^^^^
+    5 │ a::(b)
+    6 │ a::{ b }
 
   i `::` requires a name on the right.
 
-    18 │ a::NA
-    19 │ a::NULL
-  > 20 │ a::TRUE
-       │  ^^
-    21 │ a::(b)
-    22 │ a::{ b }
+    2 │ a::NA
+    3 │ a::NULL
+  > 4 │ a::TRUE
+      │  ^^
+    5 │ a::(b)
+    6 │ a::{ b }
 
-test.R:21:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:5:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    19 │ a::NULL
-    20 │ a::TRUE
-  > 21 │ a::(b)
-       │    ^
-    22 │ a::{ b }
-    23 │
+    3 │ a::NULL
+    4 │ a::TRUE
+  > 5 │ a::(b)
+      │    ^
+    6 │ a::{ b }
+    7 │
 
   i `::` requires a name on the right.
 
-    19 │ a::NULL
-    20 │ a::TRUE
-  > 21 │ a::(b)
-       │  ^^
-    22 │ a::{ b }
-    23 │
+    3 │ a::NULL
+    4 │ a::TRUE
+  > 5 │ a::(b)
+      │  ^^
+    6 │ a::{ b }
+    7 │
 
-test.R:22:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:6:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    20 │ a::TRUE
-    21 │ a::(b)
-  > 22 │ a::{ b }
-       │    ^
-    23 │
-    24 │ a:::1
+    4 │ a::TRUE
+    5 │ a::(b)
+  > 6 │ a::{ b }
+      │    ^
+    7 │
+    8 │ a:::1
 
   i `::` requires a name on the right.
 
-    20 │ a::TRUE
-    21 │ a::(b)
-  > 22 │ a::{ b }
-       │  ^^
-    23 │
-    24 │ a:::1
+    4 │ a::TRUE
+    5 │ a::(b)
+  > 6 │ a::{ b }
+      │  ^^
+    7 │
+    8 │ a:::1
 
-test.R:24:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:8:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    22 │ a::{ b }
-    23 │
-  > 24 │ a:::1
+     6 │ a::{ b }
+     7 │
+   > 8 │ a:::1
        │     ^
-    25 │ a:::NA
-    26 │ a:::NULL
+     9 │ a:::NA
+    10 │ a:::NULL
 
   i `:::` requires a name on the right.
 
-    22 │ a::{ b }
-    23 │
-  > 24 │ a:::1
+     6 │ a::{ b }
+     7 │
+   > 8 │ a:::1
        │  ^^^
-    25 │ a:::NA
-    26 │ a:::NULL
+     9 │ a:::NA
+    10 │ a:::NULL
 
-test.R:25:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:9:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    24 │ a:::1
-  > 25 │ a:::NA
+     8 │ a:::1
+   > 9 │ a:::NA
        │     ^^
-    26 │ a:::NULL
-    27 │ a:::TRUE
+    10 │ a:::NULL
+    11 │ a:::TRUE
 
   i `:::` requires a name on the right.
 
-    24 │ a:::1
-  > 25 │ a:::NA
+     8 │ a:::1
+   > 9 │ a:::NA
        │  ^^^
-    26 │ a:::NULL
-    27 │ a:::TRUE
+    10 │ a:::NULL
+    11 │ a:::TRUE
 
-test.R:26:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:10:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    24 │ a:::1
-    25 │ a:::NA
-  > 26 │ a:::NULL
+     8 │ a:::1
+     9 │ a:::NA
+  > 10 │ a:::NULL
        │     ^^^^
-    27 │ a:::TRUE
-    28 │ a:::(b)
+    11 │ a:::TRUE
+    12 │ a:::(b)
 
   i `:::` requires a name on the right.
 
-    24 │ a:::1
-    25 │ a:::NA
-  > 26 │ a:::NULL
+     8 │ a:::1
+     9 │ a:::NA
+  > 10 │ a:::NULL
        │  ^^^
-    27 │ a:::TRUE
-    28 │ a:::(b)
+    11 │ a:::TRUE
+    12 │ a:::(b)
 
-test.R:27:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:11:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    25 │ a:::NA
-    26 │ a:::NULL
-  > 27 │ a:::TRUE
+     9 │ a:::NA
+    10 │ a:::NULL
+  > 11 │ a:::TRUE
        │     ^^^^
-    28 │ a:::(b)
-    29 │ a:::{ b }
+    12 │ a:::(b)
+    13 │ a:::{ b }
 
   i `:::` requires a name on the right.
 
-    25 │ a:::NA
-    26 │ a:::NULL
-  > 27 │ a:::TRUE
+     9 │ a:::NA
+    10 │ a:::NULL
+  > 11 │ a:::TRUE
        │  ^^^
-    28 │ a:::(b)
-    29 │ a:::{ b }
+    12 │ a:::(b)
+    13 │ a:::{ b }
 
-test.R:28:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:12:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    26 │ a:::NULL
-    27 │ a:::TRUE
-  > 28 │ a:::(b)
+    10 │ a:::NULL
+    11 │ a:::TRUE
+  > 12 │ a:::(b)
        │     ^
-    29 │ a:::{ b }
-    30 │
+    13 │ a:::{ b }
+    14 │
 
   i `:::` requires a name on the right.
 
-    26 │ a:::NULL
-    27 │ a:::TRUE
-  > 28 │ a:::(b)
+    10 │ a:::NULL
+    11 │ a:::TRUE
+  > 12 │ a:::(b)
        │  ^^^
-    29 │ a:::{ b }
-    30 │
+    13 │ a:::{ b }
+    14 │
 
-test.R:29:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:13:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a name.
 
-    27 │ a:::TRUE
-    28 │ a:::(b)
-  > 29 │ a:::{ b }
+    11 │ a:::TRUE
+    12 │ a:::(b)
+  > 13 │ a:::{ b }
        │     ^
-    30 │
+    14 │
 
   i `:::` requires a name on the right.
 
-    27 │ a:::TRUE
-    28 │ a:::(b)
-  > 29 │ a:::{ b }
+    11 │ a:::TRUE
+    12 │ a:::(b)
+  > 13 │ a:::{ b }
        │  ^^^
-    30 │
+    14 │
 ```
 
 ## Chained `::` [error]

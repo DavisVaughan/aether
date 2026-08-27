@@ -58,7 +58,7 @@ switch(typeof(x), NULL = this, integer = that)
 fn(return = TRUE)
 fn(return = )
 
-# One specific example from #189
+# One specific example from r-lib/tree-sitter-r#189
 switch(
   x,
   return = ,
@@ -183,7 +183,7 @@ fn(
   NULL = ,
 )
 
-# Standard call as of https://github.com/r-lib/tree-sitter-r/pull/197
+# A standard call, not a special node (https://github.com/r-lib/tree-sitter-r/pull/197)
 return()
 ```
 

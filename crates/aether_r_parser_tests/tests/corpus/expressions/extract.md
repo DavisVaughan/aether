@@ -25,9 +25,9 @@ foo@..1
 ## Dollar, at, namespace, namespace internal with expression RHS [error]
 
 ```r
-# These nodes allows an optional RHS, and the RHS must be a string/identifier,
-# so we nicely get a true node here alongside the braces. Even if that's not
-# parsable R code, it's useful for completions and highlighting.
+# The RHS of these nodes must be a string/identifier, so we nicely get a true
+# node here alongside the braces. Even if that's not parsable R code, it's
+# useful for completions and highlighting.
 foo${bar}
 foo@{bar}
 foo::{bar}
@@ -49,10 +49,9 @@ foo@
 ## Dollar, at, namespace, namespace internal with `if` RHS [error]
 
 ```r
-# The RHS's of these nodes are restricted to strings and identifiers, and the RHS
-# is optional. This ends up trying to match to an `if_statement` node, leaving the RHS
-# empty, and then the `if_statement` node errors because it doesn't have a `(`. This
-# is actually pretty decent behavior.
+# The RHS's of these nodes are restricted to strings and identifiers, so the RHS
+# is left empty and the `if` goes on to be its own statement, which then errors
+# because it doesn't have a `(`. This is actually pretty decent behavior.
 foo$if
 foo@if
 foo::if
@@ -109,23 +108,9 @@ a@..10
 
 ## Extract with a literal RHS [error]
 
+The RHS slot is left missing rather than swallowing the invalid right-hand side.
+
 ```r
-# TODO: tree-sitter-r currently allows an `optional()` RHS, but our grammar
-# requires a RHS, so we get `missing (required)`. These should eventually be
-# parse errors if we can switch tree-sitter-r away from using `optional()`.
-# For example, `a$1` gives:
-
-#> RExtractExpression {
-#>     left: RDoubleValue {
-#>         value_token: R_DOUBLE_LITERAL@10..16 "1" [Newline("\n"), Whitespace("    ")] [],
-#>     },
-#>     operator: DOLLAR@16..17 "$" [] [],
-#>     right: missing (required),
-#> },
-#> RDoubleValue {
-#>     value_token: R_DOUBLE_LITERAL@17..18 "2" [] [],
-#> },
-
 a$1
 a$NA
 a$NULL

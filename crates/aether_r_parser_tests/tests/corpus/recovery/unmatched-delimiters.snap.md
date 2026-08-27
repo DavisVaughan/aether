@@ -102,7 +102,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
 ## Opening brace, closing parenthesis [error]
 
 ```r
-# Parenthesis is "not valid" so it isn't matched by the external scanner
+# Parenthesis is "not valid" so it isn't matched as a closer for the `{`
 {)
 ```
 
@@ -137,7 +137,7 @@ test.R:2:2 parse ━━━━━━━━━━━━━━━━━━━━━
 
   × Expected an expression but instead found ')'.
 
-    1 │ # Parenthesis is "not valid" so it isn't matched by the external scanner
+    1 │ # Parenthesis is "not valid" so it isn't matched as a closer for the `{`
   > 2 │ {)
       │  ^
     3 │
@@ -146,14 +146,14 @@ test.R:3:1 parse ━━━━━━━━━━━━━━━━━━━━━
 
   × expected `}` but instead the file ends
 
-    1 │ # Parenthesis is "not valid" so it isn't matched by the external scanner
+    1 │ # Parenthesis is "not valid" so it isn't matched as a closer for the `{`
     2 │ {)
   > 3 │
       │
 
   i the file ends here
 
-    1 │ # Parenthesis is "not valid" so it isn't matched by the external scanner
+    1 │ # Parenthesis is "not valid" so it isn't matched as a closer for the `{`
     2 │ {)
   > 3 │
       │

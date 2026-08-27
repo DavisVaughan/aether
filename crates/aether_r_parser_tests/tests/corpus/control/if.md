@@ -145,16 +145,15 @@ if (TRUE) 1 else
 }
 
 # Non-ASCII, but considered `iswalnum()` in R with UTF-8 locale.
-# Not considered `iswalnum()` in our scanner with C locale, but
-# our overapproximation with `>= 128` allows this and aligns with R.
+# Our lexer uses `XID_Continue`, which allows this and aligns with R.
 {
   if (TRUE) 1
   elseμ <- 1
 }
 
 # Non-ASCII (U+00B7), rejected by R as syntax error since `iswalnum()` returns false.
-# Our overapproximation with `>= 128` allows this, but that's ok since the R
-# side behavior is a syntax error.
+# `XID_Continue` allows this, but that's ok since the R side behavior is a
+# syntax error.
 {
   if (TRUE) 1
   else· <- 1
