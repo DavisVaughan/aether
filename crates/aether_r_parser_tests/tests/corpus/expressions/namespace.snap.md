@@ -261,7 +261,7 @@ test.R:1:4 parse ━━━━━━━━━━━━━━━━━━━━━
 ```r
 # It's nice that `::` enforces that its RHS can only be a string or identifier,
 # so this gives us a pretty clean tree even though it is invalid R code.
-# https://github.com/r-lib/tree-sitter-r/issues/65
+# r-lib/tree-sitter-r#65
 library(dplyr::)
 
 library()
@@ -278,23 +278,23 @@ RRoot {
         RStatement {
             expression: RCall {
                 function: RIdentifier {
-                    name_token: IDENT@0..211 "library" [Comments("# It's nice that `::` ..."), Newline("\n"), Comments("# so this gives us a  ..."), Newline("\n"), Comments("# https://github.com/ ..."), Newline("\n")] [],
+                    name_token: IDENT@0..185 "library" [Comments("# It's nice that `::` ..."), Newline("\n"), Comments("# so this gives us a  ..."), Newline("\n"), Comments("# r-lib/tree-sitter-r#65"), Newline("\n")] [],
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@211..212 "(" [] [],
+                    l_paren_token: L_PAREN@185..186 "(" [] [],
                     items: RArgumentList [
                         RArgument {
                             name_clause: missing (optional),
                             value: RNamespaceExpression {
                                 left: RIdentifier {
-                                    name_token: IDENT@212..217 "dplyr" [] [],
+                                    name_token: IDENT@186..191 "dplyr" [] [],
                                 },
-                                operator: COLON2@217..219 "::" [] [],
+                                operator: COLON2@191..193 "::" [] [],
                                 right: missing (required),
                             },
                         },
                     ],
-                    r_paren_token: R_PAREN@219..220 ")" [] [],
+                    r_paren_token: R_PAREN@193..194 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
@@ -302,36 +302,36 @@ RRoot {
         RStatement {
             expression: RCall {
                 function: RIdentifier {
-                    name_token: IDENT@220..229 "library" [Newline("\n"), Newline("\n")] [],
+                    name_token: IDENT@194..203 "library" [Newline("\n"), Newline("\n")] [],
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@229..230 "(" [] [],
+                    l_paren_token: L_PAREN@203..204 "(" [] [],
                     items: RArgumentList [],
-                    r_paren_token: R_PAREN@230..231 ")" [] [],
+                    r_paren_token: R_PAREN@204..205 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RDoubleValue {
-                value_token: R_DOUBLE_LITERAL@231..234 "1" [Newline("\n"), Newline("\n")] [],
+                value_token: R_DOUBLE_LITERAL@205..208 "1" [Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RDoubleValue {
-                value_token: R_DOUBLE_LITERAL@234..236 "2" [Newline("\n")] [],
+                value_token: R_DOUBLE_LITERAL@208..210 "2" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RDoubleValue {
-                value_token: R_DOUBLE_LITERAL@236..238 "3" [Newline("\n")] [],
+                value_token: R_DOUBLE_LITERAL@210..212 "3" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@238..239 "" [Newline("\n")] [],
+    eof_token: EOF@212..213 "" [Newline("\n")] [],
 }
 ```
 
@@ -341,7 +341,7 @@ test.R:4:16 parse ━━━━━━━━━━━━━━━━━━━━�
   × Expected a name.
 
     2 │ # so this gives us a pretty clean tree even though it is invalid R code.
-    3 │ # https://github.com/r-lib/tree-sitter-r/issues/65
+    3 │ # r-lib/tree-sitter-r#65
   > 4 │ library(dplyr::)
       │                ^
     5 │
@@ -350,7 +350,7 @@ test.R:4:16 parse ━━━━━━━━━━━━━━━━━━━━�
   i `::` requires a name on the right.
 
     2 │ # so this gives us a pretty clean tree even though it is invalid R code.
-    3 │ # https://github.com/r-lib/tree-sitter-r/issues/65
+    3 │ # r-lib/tree-sitter-r#65
   > 4 │ library(dplyr::)
       │              ^^
     5 │

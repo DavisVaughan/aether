@@ -142,7 +142,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
 ## Semicolon at end of file
 
 ```r
-# https://github.com/posit-dev/air/issues/238
+# posit-dev/air#238
 1;
 ```
 
@@ -152,12 +152,12 @@ RRoot {
     statements: RStatementList [
         RStatement {
             expression: RDoubleValue {
-                value_token: R_DOUBLE_LITERAL@0..47 "1" [Comments("# https://github.com/ ..."), Newline("\n")] [],
+                value_token: R_DOUBLE_LITERAL@0..21 "1" [Comments("# posit-dev/air#238"), Newline("\n")] [],
             },
-            semicolon_token: SEMICOLON@47..48 ";" [] [],
+            semicolon_token: SEMICOLON@21..22 ";" [] [],
         },
     ],
-    eof_token: EOF@48..49 "" [Newline("\n")] [],
+    eof_token: EOF@22..23 "" [Newline("\n")] [],
 }
 ```
 

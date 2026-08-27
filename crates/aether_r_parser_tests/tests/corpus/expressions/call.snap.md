@@ -1928,7 +1928,7 @@ fn(
   NULL = ,
 )
 
-# A standard call, not a special node (https://github.com/r-lib/tree-sitter-r/pull/197)
+# A standard call, not a special node (r-lib/tree-sitter-r#197)
 return()
 ```
 
@@ -2628,18 +2628,18 @@ RRoot {
         RStatement {
             expression: RCall {
                 function: RIdentifier {
-                    name_token: IDENT@468..564 "return" [Newline("\n"), Newline("\n"), Comments("# A standard call, no ..."), Newline("\n")] [],
+                    name_token: IDENT@468..540 "return" [Newline("\n"), Newline("\n"), Comments("# A standard call, no ..."), Newline("\n")] [],
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@564..565 "(" [] [],
+                    l_paren_token: L_PAREN@540..541 "(" [] [],
                     items: RArgumentList [],
-                    r_paren_token: R_PAREN@565..566 ")" [] [],
+                    r_paren_token: R_PAREN@541..542 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@566..567 "" [Newline("\n")] [],
+    eof_token: EOF@542..543 "" [Newline("\n")] [],
 }
 ```
 

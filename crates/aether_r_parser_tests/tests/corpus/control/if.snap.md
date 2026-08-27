@@ -1006,7 +1006,7 @@ RRoot {
 
 ```r
 # Correctly treats `else.x` as a single identifier, not as `else` followed by `.x`,
-# but should really be a syntax error. See https://github.com/r-lib/tree-sitter-r/issues/194.
+# but should really be a syntax error. See r-lib/tree-sitter-r#194.
 if (TRUE) {
   1
 } else.x
@@ -1018,23 +1018,23 @@ RRoot {
     statements: RStatementList [
         RStatement {
             expression: RIfStatement {
-                if_token: IF_KW@0..181 "if" [Comments("# Correctly treats `e ..."), Newline("\n"), Comments("# but should really b ..."), Newline("\n")] [Whitespace(" ")],
-                l_paren_token: L_PAREN@181..182 "(" [] [],
+                if_token: IF_KW@0..155 "if" [Comments("# Correctly treats `e ..."), Newline("\n"), Comments("# but should really b ..."), Newline("\n")] [Whitespace(" ")],
+                l_paren_token: L_PAREN@155..156 "(" [] [],
                 condition: RTrueExpression {
-                    true_token: TRUE_KW@182..186 "TRUE" [] [],
+                    true_token: TRUE_KW@156..160 "TRUE" [] [],
                 },
-                r_paren_token: R_PAREN@186..188 ")" [] [Whitespace(" ")],
+                r_paren_token: R_PAREN@160..162 ")" [] [Whitespace(" ")],
                 consequence: RBracedStatements {
-                    l_curly_token: L_CURLY@188..189 "{" [] [],
+                    l_curly_token: L_CURLY@162..163 "{" [] [],
                     statements: RStatementList [
                         RStatement {
                             expression: RDoubleValue {
-                                value_token: R_DOUBLE_LITERAL@189..193 "1" [Newline("\n"), Whitespace("  ")] [],
+                                value_token: R_DOUBLE_LITERAL@163..167 "1" [Newline("\n"), Whitespace("  ")] [],
                             },
                             semicolon_token: missing (optional),
                         },
                     ],
-                    r_curly_token: R_CURLY@193..196 "}" [Newline("\n")] [Whitespace(" ")],
+                    r_curly_token: R_CURLY@167..170 "}" [Newline("\n")] [Whitespace(" ")],
                 },
                 else_clause: missing (optional),
             },
@@ -1042,12 +1042,12 @@ RRoot {
         },
         RStatement {
             expression: RIdentifier {
-                name_token: IDENT@196..202 "else.x" [] [],
+                name_token: IDENT@170..176 "else.x" [] [],
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@202..203 "" [Newline("\n")] [],
+    eof_token: EOF@176..177 "" [Newline("\n")] [],
 }
 ```
 
@@ -1065,7 +1065,7 @@ test.R:5:3 parse ━━━━━━━━━━━━━━━━━━━━━
   i The first expression ends here.
 
     1 │ # Correctly treats `else.x` as a single identifier, not as `else` followed by `.x`,
-    2 │ # but should really be a syntax error. See https://github.com/r-lib/tree-sitter-r/issues/194.
+    2 │ # but should really be a syntax error. See r-lib/tree-sitter-r#194.
   > 3 │ if (TRUE) {
       │ ^^^^^^^^^^^
   > 4 │   1

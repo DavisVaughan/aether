@@ -27,7 +27,7 @@ foo:::..1
 ```r
 # It's nice that `::` enforces that its RHS can only be a string or identifier,
 # so this gives us a pretty clean tree even though it is invalid R code.
-# https://github.com/r-lib/tree-sitter-r/issues/65
+# r-lib/tree-sitter-r#65
 library(dplyr::)
 
 library()

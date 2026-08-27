@@ -183,7 +183,7 @@ fn(
   NULL = ,
 )
 
-# A standard call, not a special node (https://github.com/r-lib/tree-sitter-r/pull/197)
+# A standard call, not a special node (r-lib/tree-sitter-r#197)
 return()
 ```
 
