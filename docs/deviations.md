@@ -4,7 +4,7 @@ Aether produces the same Rowan tree as air's tree-sitter-based parser, except
 where this file says otherwise. Everything below is deliberate.
 
 It's written for whoever updates air or ark to sit on top of aether. Most
-entries are diagnostics only — same tree, more errors reported. The ones that
+entries are diagnostics only: same tree, more errors reported. The ones that
 actually change the tree, and so need code changes downstream, are semicolons
 and statements, strings, the new bogus node kinds, `ERROR_TOKEN`, the `for`
 variable, and whitespace attachment.
@@ -41,7 +41,7 @@ RStatementList [
 ]
 ```
 
-Both of `RStatement`'s slots are optional — the same trick `RArgument` uses —
+Both of `RStatement`'s slots are optional, the same trick `RArgument` uses,
 because R allows `;;` and a leading `;` inside `{}`:
 
 ```r
@@ -99,8 +99,8 @@ grammar.
 
 ## A string is one token
 
-tree-sitter-r spells a string as a node over three children — an open delimiter,
-an optional content, and a close — and air's walker carries that through:
+tree-sitter-r spells a string as a node over three children (an open delimiter,
+an optional content, and a close), and air's walker carries that through:
 
 ```
 RStringValue {
@@ -121,8 +121,8 @@ RStringValue {
 `R_SINGLE_QUOTED_STRING_LITERAL`, `R_DOUBLE_QUOTED_STRING_LITERAL`, and
 `R_RAW_STRING_LITERAL` are new; `STRING_OPEN`, `STRING_CONTENT`, and
 `STRING_CLOSE` are gone. The body is reached through
-`RStringValue::inner_string_text()`, which unescapes nothing — `"a\nb"` comes
-back with a literal backslash and `n`.
+`RStringValue::inner_string_text()`, which unescapes nothing: `"a\nb"` comes back
+with a literal backslash and `n`.
 
 Why:
 
@@ -135,8 +135,8 @@ Why:
 - The optional content slot existed only because an empty body emits nothing. A
   required `value` slot says what's true.
 
-- It's what the rest of the lexer already does — a backtick-quoted name is one
-  `IDENT` scanned to its close — and what `biome_js_parser` does with
+- It's what the rest of the lexer already does. A backtick-quoted name is one
+  `IDENT` scanned to its close, and `biome_js_parser` does the same with
   `JS_STRING_LITERAL`.
 
 Three kinds rather than one because the lexer already knows which delimiter it
@@ -148,12 +148,12 @@ inside `AnyRValue`, `AnyRSelector`, and `AnyRArgumentName`, three more generated
 formatter files, and a break to air's `call_ext.rs`.
 
 For air, this is smaller than the file count suggests. `air_r_parser`'s
-`parse.rs` and `treesitter.rs` go away with the swap anyway — their
+`parse.rs` and `treesitter.rs` go away with the swap anyway. Their
 `handle_string_value_enter()` / `handle_string_content_enter()` walker is exactly
 what aether replaces. What's left is `r.ungram` and `r_kinds_src.rs` plus
 codegen, the two exhaustive matches in `air_r_syntax/src/lib.rs`,
 `string_value.rs` (three writes become one, and `RStringValueFields`
-destructures to `{ value }`), and `string_content.rs` — see below.
+destructures to `{ value }`), and `string_content.rs`, which is covered below.
 `call_ext.rs` and the `AnyR*::RStringValue(node) => node.format()` arms are
 untouched, which was one of the reasons for a single node type.
 
@@ -168,8 +168,8 @@ debug_assert!(
 );
 ```
 
-That's false by construction now — there's no open token left to hold the
-trivia, so the one literal token owns the string's leading and trailing pieces.
+That's false by construction now. There's no open token left to hold the trivia,
+so the one literal token owns the string's leading and trailing pieces.
 
 Deleting the assert isn't enough, because the code leans on it.
 `normalize_string_content_token()` reads `token.text()`, while `fmt()` passes
@@ -191,41 +191,40 @@ attaches each space as *trailing* trivia of the token before it, so `1` carries
 
 Air also has a second rule: whitespace immediately before a newline is trailing,
 but only if some token still follows later in the file. So the same two spaces
-are trailing in `1 + \n1` and leading in `1  \n `. Aether has no such rule — both
-are trailing.
+are trailing in `1 + \n1` and leading in `1  \n `. Aether has no such rule, and
+both are trailing.
 
 Comments and newlines attach identically under both rules, by inspection rather
 than luck. Air's comment rule is "trailing iff no newline seen yet and this isn't
 the first token of the file", including its deliberate choice to ignore the
-end-of-file case so `1 #` ends with a trailing comment;
-`JsTokenSource`'s latching bool computes the same predicate. Newlines are
-leading under both. So the deviation is confined to whitespace pieces that don't
-end their line.
+end-of-file case so `1 #` ends with a trailing comment. `JsTokenSource`'s
+latching bool computes the same predicate. Newlines are leading under both. So
+the deviation is confined to whitespace pieces that don't end their line.
 
 Why deviate: air's rule needs a one-piece lookahead and a decision that can't be
-made until the gap's terminator is known — about sixty lines, a held-back piece,
-and a fixup after the loop. The JS rule is a latching bool and twelve lines.
-Every other Biome parser uses the JS rule; air is the outlier for no recorded
-reason. And whitespace attachment has no user-visible consequence, because a
-formatter regenerates whitespace from its own IR rather than reading it off the
-source trivia.
+made until the gap's terminator is known. That's about sixty lines, a held-back
+piece, and a fixup after the loop. The JS rule is a latching bool and twelve
+lines. Every other Biome parser uses the JS rule; air is the outlier for no
+recorded reason. And whitespace attachment has no user-visible consequence,
+because a formatter regenerates whitespace from its own IR rather than reading it
+off the source trivia.
 
 Nothing in air reads attachment polarity. Audited rather than assumed:
 
 - `has_leading_newline()` has six call sites in `air_r_formatter`
   (`if_statement.rs:200,217,223`, `function_definition.rs:154`,
-  `parameters.rs:121`, `binary_expression.rs:470,927`). These are user-visible —
+  `parameters.rs:121`, `binary_expression.rs:470,927`). These are user-visible:
   they decide whether a binary expression breaks and whether `else` takes its own
   line. All unaffected, since newline pieces are leading under both rules.
 
 - `lsp/src/handlers_format.rs:169` walks both trivia lists but explicitly skips
   whitespace and newline pieces. It's looking for comments.
 
-- Nothing else. `air_r_syntax/src/lib.rs:322` is the kind → `TriviaPieceKind`
+- Nothing else. `air_r_syntax/src/lib.rs:322` is the kind to `TriviaPieceKind`
   mapping, and `air_r_formatter/src/comments.rs` reads no trivia lists at all.
 
 That audit is an argument, not a proof. Air's formatter snapshot suite is the
-experiment that settles it — run it *before* changing the formatter, so a
+experiment that settles it. Run it *before* changing the formatter, so a
 whitespace regression can't hide inside the semicolon churn. If a non-semicolon
 file moves, this deviation has failed, and the retreat is one function.
 
@@ -246,14 +245,14 @@ file, and the LSP shows a single whole-file error. Nothing is walkable.
 Aether puts bogus nodes at the smallest node that failed and keeps going, so the
 rest of the file still produces real nodes and each error carries its own range.
 This is the most user-visible win of the whole project and belongs in air's
-changelog. Every consumer of the tree — formatter, LSP, lint rules — goes from
-"no information" to "information everywhere except the broken span".
+changelog. Every consumer of the tree (formatter, LSP, lint rules) goes from "no
+information" to "information everywhere except the broken span".
 
 ## Three new bogus node kinds
 
 `AnyRSelector`, `AnyRParameterName`, and `AnyRForVariable` are restricted unions
 with no bogus variant, which sounds harmless and isn't. On a failed cast the
-generated factory doesn't panic — it degrades the node, and the degradation
+generated factory doesn't panic. It degrades the node, and the degradation
 climbs. `R_NAMESPACE_EXPRESSION.to_bogus()` is `R_BOGUS_EXPRESSION`, so `a::b::c`
 collapses the whole namespace expression instead of containing the damage in the
 `left` slot. Round-trip still passes, so nothing in the test harness notices; you
@@ -263,7 +262,7 @@ Parameters are worse, because `RParameterList` is a separated list generated wit
 `RParameter::can_cast`. For `function(1, b) x` the chain runs: bogus name fails
 the `name` slot, so `R_PARAMETER` degrades to `R_BOGUS`; that isn't an
 `RParameter`, so `R_PARAMETER_LIST` degrades; that isn't an `RParameterList`, so
-`R_PARAMETERS` goes too. One bad token takes the whole definition — parameters,
+`R_PARAMETERS` goes too. One bad token takes the whole definition: parameters,
 body, and all.
 
 So aether adds `RBogusSelector`, `RBogusParameterName`, and `RBogusForVariable`,
@@ -295,36 +294,36 @@ RFunctionDefinition {
 ```
 
 Three kinds rather than one shared one, even though the accepted token sets
-overlap heavily: the positions accept different things — a string is a selector
-but not a parameter name — Biome's convention is one bogus kind per restricted
+overlap heavily: the positions accept different things (a string is a selector
+but not a parameter name), Biome's convention is one bogus kind per restricted
 position (`js.ungram` has ten), and a walker seeing `R_BOGUS_PARAMETER_NAME`
 knows what broke without inspecting the parent.
 
 The real node kinds keep their existing `to_bogus()` mappings. `to_bogus()`
 answers "this node kind failed to build, what does it degrade to", which is about
-the node, not the slot it sits in — `R_IDENTIFIER` and `R_STRING_VALUE` appear in
+the node, not the slot it sits in. `R_IDENTIFIER` and `R_STRING_VALUE` appear in
 plenty of non-selector positions.
 
 Each kind has exactly one construction site:
 
-- `RBogusSelector` — the *left* of `::` and `:::`, never the right. The operand
-  is already parsed by the time the operator is read, so containing it costs no
+- `RBogusSelector`: the *left* of `::` and `:::`, never the right. The operand is
+  already parsed by the time the operator is read, so containing it costs no
   tokens.
 
-- `RBogusParameterName` — in `parse_parameter()`, when a name is absent and the
+- `RBogusParameterName`: in `parse_parameter()`, when a name is absent and the
   list hasn't ended. Tokens up to the next boundary are recovered into it. A name
   absent *at* a boundary is the hole case, `function(a,,b)`, which is diagnosed
   the same way but consumes nothing, so the empty `RParameter` stays empty.
 
-- `RBogusForVariable` — in `parse_for_statement()`, same shape: tokens up to the
+- `RBogusForVariable`: in `parse_for_statement()`, same shape: tokens up to the
   `in` are recovered into it, and `for (in x) y` consumes nothing and leaves the
   slot missing.
 
 The three kinds are appended before `__LAST`, so nothing renumbers. For air,
 `RSyntaxKind`, `nodes.rs`, and both factories are generated, so they follow from
 air's own codegen. The hand-written work is `is_bogus()` and `to_bogus()` in
-`air_r_syntax/src/lib.rs`, plus one formatter rule file per kind — nearly free,
-since air's bogus rules are empty impls its codegen stubs out:
+`air_r_syntax/src/lib.rs`, plus one formatter rule file per kind. That's nearly
+free, since air's bogus rules are empty impls its codegen stubs out:
 
 ```rust
 impl FormatBogusNodeRule<RBogusSelector> for FormatRBogusSelector {}
@@ -335,8 +334,8 @@ Each union's format rule gains one more arm in the same generated pass.
 ## The `for` variable takes `...` and `..i`
 
 Air types the variable slot as `RIdentifier`. tree-sitter-r types the same field
-as `_identifier`, which is `identifier`, `dots`, *and* `dot_dot_i`, and R agrees
-— this runs and prints `1` then `2`:
+as `_identifier`, which is `identifier`, `dots`, *and* `dot_dot_i`, and R agrees.
+This runs and prints `1` then `2`:
 
 ```r
 for (... in 1:2) print(get("..."))
@@ -353,7 +352,7 @@ R_BOGUS
   EOF
 ```
 
-And no diagnostic comes with it — `air_r_parser::parse().error()` is `None`. This
+And no diagnostic comes with it: `air_r_parser::parse().error()` is `None`. This
 is valid R that silently loses its tree.
 
 Aether widens the slot:
@@ -377,8 +376,8 @@ AnyRForVariable =
 ```
 
 tree-sitter-r produces an `ERROR` node. Aether reports each of these from the
-lexer — `Unexpected character`, `Unterminated string.`,
-`Unterminated backtick-quoted name.` — and hands the text on as an `ERROR_TOKEN`,
+lexer (`Unexpected character`, `Unterminated string.`, and
+`Unterminated backtick-quoted name.`) and hands the text on as an `ERROR_TOKEN`,
 which the parser can only wrap in a bogus node. The file never parses cleanly,
 and the text survives into the tree where a reader can see it.
 
@@ -391,7 +390,7 @@ is, so `x <- €` would build a well-formed binary expression with an
 `R_IDENTIFIER` on the right. The diagnostic would be there, but the tree would
 assert that `€` is a name, and round-trip passes either way so nothing would
 catch it. `ERROR_TOKEN` starts no production, so the damage is contained by
-construction. Every other Biome grammar declares this kind — js, css, json,
+construction. Every other Biome grammar declares this kind: js, css, json,
 graphql, grit, html, markdown, yaml. Air managed without it only because air has
 no lexer.
 
@@ -412,7 +411,7 @@ knew where the token ended.
 - Runs to EOF. `consume_string()` and `consume_backtick_identifier()` have no
   line-based stop, so `x <- "abc` followed by five hundred lines produces one
   token covering all five hundred. A well-formed kind there would assert that the
-  rest of the file is a string. `biome_js_parser` draws the same line —
+  rest of the file is a string. `biome_js_parser` draws the same line:
   `read_str_literal` returns `ERROR_TOKEN` when `consume_str_literal()` fails.
 
 Recovery doesn't suffer, since these tokens eat the rest of the file and there's
@@ -421,12 +420,12 @@ nothing after them to recover into.
 The cost, recorded honestly: the tree stops recording *which* construct broke,
 because the `ERROR_TOKEN` arm builds `R_BOGUS_EXPRESSION` rather than
 `R_BOGUS_VALUE`. The diagnostic still names it, so a human loses nothing and a
-tree walker does. Nothing downstream is affected today — air refuses to format
-any file with parse errors, and ark reads tree-sitter directly.
+tree walker does. Nothing downstream is affected today, since air refuses to
+format any file with parse errors and ark reads tree-sitter directly.
 
 For air, `RSyntaxKind` is generated, so the kind follows from codegen once
 `r_kinds_src.rs` carries it. The hand-written work is the `is_bogus()` /
-`to_bogus()` arms — `ERROR_TOKEN` isn't bogus itself and degrades to `R_BOGUS`
+`to_bogus()` arms. `ERROR_TOKEN` isn't bogus itself and degrades to `R_BOGUS`
 like every other token. The formatter needs nothing, since `FormatBogusNodeRule`
 prints verbatim and never inspects the kinds inside. Unlike the bogus node kinds
 this one does renumber, since token kinds precede node kinds in the generated
@@ -436,8 +435,8 @@ enum, but nothing depends on the numbering.
 
 Same tree as air, more diagnostics.
 
-tree-sitter-r declares the RHS of `extract_operator` as `optional()` on purpose —
-its grammar comment says this is so `dplyr::` still yields a namespace node with
+tree-sitter-r declares the RHS of `extract_operator` as `optional()` on purpose.
+Its grammar comment says this is so `dplyr::` still yields a namespace node with
 a known package name for completions. Air's `r.ungram` already declares the slot
 required, so `a$` walks to an `RExtractExpression` with `right: missing
 (required)` and no diagnostic at all. That test lives in air's
@@ -445,9 +444,9 @@ required, so `a$` walks to an `RExtractExpression` with `right: missing
 
 Aether needs no grammar change; the deviation is in the parser.
 
-- `a$b`, `a$"b"`, `a$...`, `a$..1` → clean `R_EXTRACT_EXPRESSION`.
+- `a$b`, `a$"b"`, `a$...`, `a$..1` produce a clean `R_EXTRACT_EXPRESSION`.
 
-- `a$` → `R_EXTRACT_EXPRESSION` with `right` missing and an
+- `a$` produces an `R_EXTRACT_EXPRESSION` with `right` missing and an
   `expected_rhs_selector` diagnostic just past the operator, plus a secondary
   label on the operator. The message names the operator, so `$`, `@`, `::`, and
   `:::` each read differently:
@@ -467,26 +466,26 @@ Aether needs no grammar change; the deviation is in the parser.
       │      ^^
   ```
 
-- `a$1`, `a$NA`, `a$NULL`, `a$TRUE`, `a$(b)`, `a${b}`, `a$if` → same treatment.
-  The RHS is present but isn't a valid selector, so the slot is left missing and
-  labelled. Nothing is consumed, so the `1`, the `{b}`, or the whole `if`
-  statement goes on to be parsed as the next statement, exactly as under
+- `a$1`, `a$NA`, `a$NULL`, `a$TRUE`, `a$(b)`, `a${b}`, `a$if` get the same
+  treatment. The RHS is present but isn't a valid selector, so the slot is left
+  missing and labelled. Nothing is consumed, so the `1`, the `{b}`, or the whole
+  `if` statement goes on to be parsed as the next statement, exactly as under
   tree-sitter. `a$(b)` is the one that doesn't become a sibling: `(` is postfix,
   so both parsers read a call whose function is the incomplete extract
   expression.
 
 `missing (required)` with no diagnostic is a silent hole in the tree. The
 completions argument behind tree-sitter's `optional()` is served just as well by
-an `R_EXTRACT_EXPRESSION` that carries a diagnostic — the `left` slot is still
-there to complete from.
+an `R_EXTRACT_EXPRESSION` that carries a diagnostic, since the `left` slot is
+still there to complete from.
 
 Nothing is consumed because the imported corpus argues for it in its own
-comments. On `foo${bar}` — "we nicely get a true node here alongside the braces …
-it's useful for completions and highlighting" — and on `foo$if` — "this is
-actually pretty decent behavior". Swallowing the RHS into a bogus node destroys
-exactly that. And `$` sits in R's `EatLines` set, so `df$` at the end of a line
-would eat the *next* line's first construct — while `df$` is the language's
-completion trigger and its most common incomplete state.
+comments. On `foo${bar}`: "we nicely get a true node here alongside the braces …
+it's useful for completions and highlighting". On `foo$if`: "this is actually
+pretty decent behavior". Swallowing the RHS into a bogus node destroys exactly
+that. And `$` sits in R's `EatLines` set, so `df$` at the end of a line would eat
+the *next* line's first construct, while `df$` is the language's completion
+trigger and its most common incomplete state.
 
 `::` and `:::` add two wrinkles of their own.
 
@@ -521,7 +520,7 @@ Expected a newline or a `;` between two expressions.
 ```
 
 at the second expression, with the first labelled as the one that already ended.
-The tree is the same either way — two statements — so this is diagnostics only.
+The tree is the same either way, two statements, so this is diagnostics only.
 
 The alternative is silence on a class of typo the language really does reject.
 This rule is also what makes `1foo`, `0x`, and `a$1` land as two statements with
@@ -578,8 +577,8 @@ top-level half and accepts the braced half, which is R's rule exactly.
 
 The condition is one line to state: an `RStatement` with no expression is an
 error at top level. That's precisely the set R rejects, so the rule needs no case
-analysis beyond the scope it's in. No shape change — the `;` is still a token on
-a statement of its own.
+analysis beyond the scope it's in. No shape change: the `;` is still a token on a
+statement of its own.
 
 ## `L` and `i` belong to the number
 
@@ -588,9 +587,9 @@ regex, so the `L` is a token of its own. Two things follow, and aether disagrees
 with both.
 
 `extras` may fall between the two tokens, so `1 L` comes out as a single
-`integer` spanning the space. Aether can't reproduce that even in principle —
-`R_INTEGER_LITERAL` is one token in air's kind list, and one token can't span a
-gap.
+`integer` spanning the space. Aether can't reproduce that even in principle,
+because `R_INTEGER_LITERAL` is one token in air's kind list, and one token can't
+span a gap.
 
 And the `L` competes with `identifier` on length, so a name that merely starts
 with a suffix wins outright: `1Li` is the float `1` followed by the name `Li`.
@@ -615,7 +614,7 @@ tree to compare against in the first place.
 
 R's rule can't disagree with R about a program R accepts, because it never looks
 past the suffix. The lookahead rule can only differ on programs R rejects, and
-there it puts the error one token earlier than R does — for a byte of lookahead
+there it puts the error one token earlier than R does, for a byte of lookahead
 nothing else in the lexer needed.
 
 ## An unfinished number keeps its token and gets a diagnostic
@@ -623,7 +622,7 @@ nothing else in the lexer needed.
 A `0x` commits to a hexadecimal and an `e` or `p` commits to an exponent. When
 what comes next isn't there, tree-sitter-r un-matches the longer token and
 re-splits the bytes into something shorter that happens to be valid: `0x` becomes
-the number `0` and the name `x`. Where even that's unnecessary it just accepts —
+the number `0` and the name `x`. Where even that's unnecessary it just accepts:
 its `_number_literal` regex ends `[eE][+-]?\d*`, so `1e` and `1e+` are whole
 floats.
 
@@ -634,8 +633,8 @@ R rejects all of them, from the lexer, at the start of the literal:
 Error: unexpected input in "1e"
 ```
 
-Aether follows R on the verdict and keeps the token — the literal spans
-everything consumed and carries a diagnostic.
+Aether follows R on the verdict and keeps the token. The literal spans everything
+consumed and carries a diagnostic.
 
 | source | tree-sitter-r | aether |
 |---|---|---|
@@ -648,7 +647,7 @@ everything consumed and carries a diagnostic.
 | `1e+` | `float 1e+` | `R_DOUBLE_LITERAL@0..3` |
 | `1east` | `float 1e`, `identifier ast` | `R_DOUBLE_LITERAL@0..2`, then `identifier ast` |
 
-The token boundaries barely change — `1east` splits the same way either way — so
+The token boundaries barely change (`1east` splits the same way either way), so
 this buys almost nothing in tree shape and everything in the message. Without it,
 `0x` isn't silently accepted either: it lexes as two expressions on one line and
 reports "Expected a newline or a `;` between two expressions.", which is a
@@ -672,20 +671,20 @@ R's `SpecialValue` excludes only the newline, so `%a\b%` is an ordinary
 `SPECIAL`, and aether takes the whole operator as one token.
 
 Nothing is gained by rejecting a program R accepts, and a backslash carries no
-meaning inside `%...%` for the lexer to act on — there are no escapes there, so
+meaning inside `%...%` for the lexer to act on. There are no escapes there, so
 it's one more character in the operator's name. The newline is different, since R
 stops at it too.
 
 ## `OperatorPrecedence` and `call_ext.rs` aren't here
 
-Not a tree-shape deviation — just a note so nobody goes looking.
+Not a tree-shape deviation, just a note so nobody goes looking.
 
 Both are formatter-only, so they aren't in `aether_r_syntax`.
 `OperatorPrecedence` duplicated `binding_power.rs`'s `BindingPower` under
 different names for the same token set, and the Pratt loop never called it.
-`RCall::is_test_call()` is formatter policy — recognizing `test_that()`-shaped
-calls so their brace argument formats specially — with no caller in the parser or
-its tests.
+`RCall::is_test_call()` is formatter policy: it recognizes `test_that()`-shaped
+calls so their brace argument formats specially. It has no caller in the parser
+or its tests.
 
 Keeping formatter-only code here would mean maintaining it against a moving
 target with no test coverage to catch drift. Reordering `BindingPower` would have
@@ -696,8 +695,9 @@ touches until air's formatter port begins.
 through them today.
 
 Whoever ports air's formatter recreates both from air's original `air_r_syntax`
-source. That's a straight vendor, not a rewrite — aether's `RSyntaxKind` and node
-shapes are unchanged from air's for every token and node either file touches.
+source. That's a straight vendor, not a rewrite, since aether's `RSyntaxKind` and
+node shapes are unchanged from air's for every token and node either file
+touches.
 
 ## tree-sitter-r vs. R
 
@@ -715,7 +715,7 @@ without ever seeing the closing `%` and still returns a `SPECIAL` token.
 tree-sitter-r's regex requires the closing `%`, so it errors, and aether errors
 too.
 
-Aether does copy R for the neighbouring case — an unterminated `%...%` cut short
+Aether does copy R for the neighbouring case, an unterminated `%...%` cut short
 by a newline. R ungets the newline before reporting, so the error stays local and
 the next line parses normally. Aether stops before the newline too, keeping the
 partial `%foo` as a `SPECIAL` token with the diagnostic attached. That isn't a
