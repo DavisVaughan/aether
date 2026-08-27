@@ -163,21 +163,21 @@ fn expected_node(name: &str, range: TextRange, p: &RParser) -> ParseDiagnostic {
     } else {
         format!(
             "Expected {article} {name} but instead found '{}'.",
-            truncated(p.text(range))
+            truncate(p.text(range))
         )
     };
 
     ParseDiagnostic::new(message, range)
 }
 
-const MAX_TRUNCATED_LEN: usize = 40;
+fn truncate(text: &str) -> Cow<'_, str> {
+    const MAX_LEN: usize = 40;
 
-fn truncated(text: &str) -> Cow<'_, str> {
-    if text.chars().count() <= MAX_TRUNCATED_LEN {
+    if text.chars().count() <= MAX_LEN {
         Cow::Borrowed(text)
     } else {
-        let mut truncated: String = text.chars().take(MAX_TRUNCATED_LEN).collect();
-        truncated.push('…');
+        let mut truncated: String = text.chars().take(MAX_LEN).collect();
+        truncated.push_str("...");
         Cow::Owned(truncated)
     }
 }
