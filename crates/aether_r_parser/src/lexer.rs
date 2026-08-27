@@ -723,6 +723,7 @@ impl<'src> RLexer<'src> {
         self.consume_digits()
     }
 
+    /// Whether any digit was consumed
     fn consume_digits(&mut self) -> bool {
         let start = self.position;
         while matches!(self.current_byte(), Some(byte) if byte.is_ascii_digit()) {
@@ -731,6 +732,7 @@ impl<'src> RLexer<'src> {
         self.position != start
     }
 
+    /// Whether any digit was consumed
     fn consume_hex_digits(&mut self) -> bool {
         let start = self.position;
         while matches!(self.current_byte(), Some(byte) if byte.is_ascii_hexdigit()) {
