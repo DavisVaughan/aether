@@ -63,7 +63,7 @@ impl<'src> RTokenSource<'src> {
     }
 
     /// Re-lexes the current token. Buffered lookahead is cleared if the kind
-    /// changes, and otherwise preserved and rewound around
+    /// changes
     pub(crate) fn re_lex(&mut self, context: RReLexContext) -> RSyntaxKind {
         self.lexer.re_lex(context)
     }
