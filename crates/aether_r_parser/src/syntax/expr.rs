@@ -67,7 +67,9 @@ pub(crate) fn parse_expression_with_binding_power(
         | T![na_double]
         | T![na_complex]
         | T![na_character]) => parse_literal_expression(p, kind, R_NA_EXPRESSION),
-        // Lexer already raised `unexpected_character()`
+        // Every ERROR_TOKEN already carries a lexer diagnostic, from
+        // `unexpected_character()`, `unterminated_string()`, or
+        // `unterminated_backtick_identifier()`
         ERROR_TOKEN => parse_literal_expression(p, ERROR_TOKEN, R_BOGUS_EXPRESSION),
         kind @ (R_SINGLE_QUOTED_STRING_LITERAL
         | R_DOUBLE_QUOTED_STRING_LITERAL
