@@ -3,7 +3,6 @@
 //! https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html
 //! https://kevinushey.github.io/blog/2016/02/12/top-down-operator-precedence-parsing-with-r/
 
-use crate::diagnostics;
 use crate::parser::RParser;
 use crate::syntax::associativity::Associativity;
 use crate::syntax::binary::parse_binary_expression;
@@ -34,27 +33,8 @@ pub(crate) fn parse_expression(p: &mut RParser) -> ParsedSyntax {
     parse_expression_with_binding_power(p, BindingPower::LOWEST)
 }
 
-/// Every nesting level in the grammar reaches the Pratt loop, so guarding it
-/// here is what bounds the parser's recursion, and with it the depth of the tree
-pub(crate) fn parse_expression_with_binding_power(
-    p: &mut RParser,
-    current_binding_power: BindingPower,
-) -> ParsedSyntax {
-    match p.with_recursion_guard(|p| {
-        parse_expression_with_binding_power_impl(p, current_binding_power)
-    }) {
-        Some(syntax) => syntax,
-        None => {
-            // Nothing is consumed, so the caller recovers over the tokens we
-            // refused exactly as it would over any other unparseable text
-            p.error(diagnostics::nested_too_deeply(p.cur_range()));
-            Absent
-        }
-    }
-}
-
 /// The Pratt loop
-fn parse_expression_with_binding_power_impl(
+pub(crate) fn parse_expression_with_binding_power(
     p: &mut RParser,
     current_binding_power: BindingPower,
 ) -> ParsedSyntax {

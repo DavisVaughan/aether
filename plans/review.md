@@ -19,23 +19,21 @@ else here.
 
 | # | Finding | Kind | Status |
 |---|---|---|---|
-| 1 | Unbounded expression nesting aborts the process | Correctness | ✅ Fixed on `feature/guard` |
-| 2 | Deep trees from *iterative* parsing still abort | Correctness | Open |
-| 3 | `expected_node()` interpolates an unbounded span into the message | Correctness / perf | Open |
-| 4 | `position as u32` truncates silently | Correctness | Open |
-| 5 | `RTokenSource::re_lex()` doc-comment is wrong | Docs | Open |
-| 6 | `ERROR_TOKEN` comment in `expr.rs` is incomplete | Docs | Open |
-| 7 | Upstream: `BufferedLexer::re_lex()` drops lookahead diagnostics | Correctness | Open, not reachable today |
-| 8 | The Pratt loop's 13 binary arms | Simplification | Open |
-| 9 | `parse_argument_name_clause()` repeats itself five times | Simplification | Open |
-| 10 | Three near-identical name parsers | Simplification | Open |
-| 11 | `check()` rebuilds the red tree four times | Simplification | Open |
-| 12 | `consume_digits()` takes a function pointer | Performance | Open |
-| 13 | `try_from_raw_string_open()` scans an unbounded hyphen run | Performance | Open |
-| 14 | `parse_with_cache()` is private and its cache is thrown away | Design | Open |
-| 15 | Nothing bounds the number of diagnostics | Robustness | Open |
-| 16 | `has_bogus_nodes_or_missing_required_children()` greps the `Debug` output | Test quality | Open |
-| 17 | The lexer test `render()` runs on every call, not just failures | Test quality | Open |
+| 1 | `expected_node()` interpolates an unbounded span into the message | Correctness / perf | Open |
+| 2 | `position as u32` truncates silently | Correctness | Open |
+| 3 | `RTokenSource::re_lex()` doc-comment is wrong | Docs | Open |
+| 4 | `ERROR_TOKEN` comment in `expr.rs` is incomplete | Docs | Open |
+| 5 | Upstream: `BufferedLexer::re_lex()` drops lookahead diagnostics | Correctness | Open, not reachable today |
+| 6 | The Pratt loop's 13 binary arms | Simplification | Open |
+| 7 | `parse_argument_name_clause()` repeats itself five times | Simplification | Open |
+| 8 | Three near-identical name parsers | Simplification | Open |
+| 9 | `check()` rebuilds the red tree four times | Simplification | Open |
+| 10 | `consume_digits()` takes a function pointer | Performance | Open |
+| 11 | `try_from_raw_string_open()` scans an unbounded hyphen run | Performance | Open |
+| 12 | `parse_with_cache()` is private and its cache is thrown away | Design | Open |
+| 13 | Nothing bounds the number of diagnostics | Robustness | Open |
+| 14 | `has_bogus_nodes_or_missing_required_children()` greps the `Debug` output | Test quality | Open |
+| 15 | The lexer test `render()` runs on every call, not just failures | Test quality | Open |
 
 Where the review measured something and found it *fine*, that is recorded too —
 see [Measured and left alone](#measured-and-left-alone). Do not "optimize" the
@@ -43,91 +41,9 @@ lexer scan loops without reading that section first.
 
 ---
 
-## 1. Unbounded expression nesting aborts the process
+## 1. `expected_node()` interpolates an unbounded span into the message
 
-✅ **Fixed** on `feature/guard` (commit `e45006f`). Recorded here so the
-reasoning is not lost, and because finding 2 is the half that is still open.
-
-`parse_expression_with_binding_power()` recursed once per nesting level with no
-limit. Exhausting the stack raises `SIGABRT`, not a panic, so no caller can
-catch it — air's LSP would die rather than report an error. That is a direct
-break of invariant 3.
-
-Measured in release on a 2 MiB stack, the default for both a spawned thread and
-a tokio worker:
-
-| Input | OK at | Aborts at |
-|---|---|---|
-| `"-".repeat(n) + "1"` | 1600 | 3200 |
-| `"(".repeat(n) + "1" + ")".repeat(n)` | 1600 | 3200 |
-| `"{".repeat(n) + "1" + "}".repeat(n)` | 1600 | 3200 |
-| `"if (a) ".repeat(n) + "1"` | 1600 | 3200 |
-| `"f(".repeat(n) + "1" + ")".repeat(n)` | 1600 | 3200 |
-| `"a<-".repeat(n) + "1"` | 1600 | 3200 |
-| `"2^".repeat(n) + "1"` | 1600 | 3200 |
-
-Roughly 3 KB of input was enough. Runs that parsed and then `mem::forget`-ed the
-result confirmed the abort was inside `parse()` itself, not in tree teardown.
-
-The fix adds `MAX_NESTING_DEPTH = 256` and `RParser::with_recursion_guard()`, and
-wraps the Pratt loop in it. Every nesting path in the grammar bottoms out there,
-so one guard covers all of them. Refusing consumes nothing, so callers recover
-over the offending tokens exactly as they do over any other unparseable text.
-
-Prior art, since it is easy to assume otherwise: **neither ruff nor rust-analyzer
-nor biome does this.** Ruff has no depth limit at all — past
-`MAX_UNCHECKED_RECURSION_DEPTH = 20` it grows the stack with the `stacker` crate
-and keeps going. rust-analyzer has a global *step* limit (`PARSER_STEP_LIMIT`)
-that asserts "the parser seems stuck", which is biome's `ParserProgress` idea
-scaled up, not a nesting bound. Biome has neither.
-
----
-
-## 2. Deep trees built *iteratively* still abort
-
-**Open. This is the half of finding 1 that the depth guard does not cover, and
-it needs a different fix.**
-
-The Pratt loop's postfix arms (`(`, `[`, `[[`, `$`, `@`, `::`, `:::`) and its
-left-associative binary arms are iterative. They build an arbitrarily deep
-left-nested tree without deep parser recursion, so `MAX_NESTING_DEPTH` never
-trips. But `biome_rowan` walks the tree recursively in `Drop`, `Display`, and
-`Debug`, so the overflow just moves from parsing to everything afterwards.
-
-Reproduce, on a 2 MiB stack:
-
-```rust
-let source = format!("f{}", "()".repeat(50_000));
-let parsed = parse(&source, RParserOptions::default());
-parsed.syntax().to_string();   // stack overflow, SIGABRT
-```
-
-`n = 12_800` survives, `n = 50_000` does not. Same for `"1".to_string() +
-&"+1".repeat(n)` and `"a".to_string() + &"$b".repeat(n)`.
-
-**Do not fix this by counting loop iterations toward `MAX_NESTING_DEPTH`.** A cap
-of 256 would reject a 257-term sum, which is ordinary R and must keep parsing.
-
-Real options, roughly in order of appeal:
-
-- Leave it. 50,000 chained calls is far less plausible than 3,000 nested parens,
-  and the depth guard already removed the reachable case. Document the residual
-  and move on.
-
-- `stacker::maybe_grow` at the recursive tree walks, the way ruff does it for
-  parsing. Costs a dependency and only moves the ceiling.
-
-- An explicit worklist in the walks that matter. This is upstream in
-  `biome_rowan`, not something aether can fix locally.
-
-Whoever picks this up should first decide whether it is worth fixing at all;
-that decision is the deliverable, not necessarily a patch.
-
----
-
-## 3. `expected_node()` interpolates an unbounded span into the message
-
-`crates/aether_r_parser/src/diagnostics.rs:165-178`
+`crates/aether_r_parser/src/diagnostics.rs:157-170`
 
 ```rust
 format!("Expected {article} {name} but instead found '{}'.", p.text(range))
@@ -166,7 +82,7 @@ Touches all ten `expected_*` constructors, since they all funnel through
 
 ---
 
-## 4. `position as u32` truncates silently
+## 2. `position as u32` truncates silently
 
 `crates/aether_r_parser/src/lexer.rs:218`, `:235`, `:342`
 
@@ -187,7 +103,7 @@ Line 235 is a `debug_assert!` and can use `text_position()` too.
 
 ---
 
-## 5. `RTokenSource::re_lex()` doc-comment is wrong
+## 3. `RTokenSource::re_lex()` doc-comment is wrong
 
 `crates/aether_r_parser/src/token_source.rs:65`
 
@@ -207,13 +123,13 @@ if new_kind != current_kind {
 ```
 
 Rewrite the comment to say what actually happens. The distinction matters —
-see finding 7.
+see finding 5.
 
 ---
 
-## 6. `ERROR_TOKEN` comment in `expr.rs` is incomplete
+## 4. `ERROR_TOKEN` comment in `expr.rs` is incomplete
 
-`crates/aether_r_parser/src/syntax/expr.rs:85`
+`crates/aether_r_parser/src/syntax/expr.rs:70`
 
 ```rust
 // Lexer already raised `unexpected_character()`
@@ -227,7 +143,7 @@ invariant 2 true here. Say that instead of naming one of the three producers.
 
 ---
 
-## 7. Upstream: `BufferedLexer::re_lex()` drops lookahead diagnostics
+## 5. Upstream: `BufferedLexer::re_lex()` drops lookahead diagnostics
 
 **Not reachable in aether today.** Recorded so it is not rediscovered from
 scratch, and because it constrains how lookahead may grow.
@@ -248,9 +164,9 @@ fix belongs upstream in `biome_parser`.
 
 ---
 
-## 8. The Pratt loop's 13 binary arms
+## 6. The Pratt loop's 13 binary arms
 
-`crates/aether_r_parser/src/syntax/expr.rs:116-247` — roughly 140 lines
+`crates/aether_r_parser/src/syntax/expr.rs:101-232` — roughly 140 lines
 
 Thirteen arms, each structurally identical:
 
@@ -289,7 +205,7 @@ the corpus should stay byte-identical through `just accept`.
 
 ---
 
-## 9. `parse_argument_name_clause()` repeats itself five times
+## 7. `parse_argument_name_clause()` repeats itself five times
 
 `crates/aether_r_parser/src/syntax/call.rs:161-198`
 
@@ -323,14 +239,14 @@ fn parse_argument_name_clause(p: &mut RParser) {
 
 Keep the lookahead *after* the kind match, as above, so `nth_at()` is still only
 called for the five kinds that can start a name — that ordering is load-bearing
-for finding 7.
+for finding 5.
 
 The two comments above the function (why `NULL` is accepted here and nowhere
 else, and why one token of lookahead is needed) are worth keeping.
 
 ---
 
-## 10. Three near-identical name parsers
+## 8. Three near-identical name parsers
 
 - `crates/aether_r_parser/src/syntax/function.rs:110` — `parse_parameter_name()`
 
@@ -347,7 +263,7 @@ and diagnostics — those genuinely differ and should not be merged.
 
 ---
 
-## 11. `check()` rebuilds the red tree four times
+## 9. `check()` rebuilds the red tree four times
 
 `crates/aether_r_parser_tests/src/check.rs:34`, `:36`, `:45`, `:67`
 
@@ -367,7 +283,7 @@ a worked example of the thing the API docs warn against.
 
 ---
 
-## 12. `consume_digits()` takes a function pointer
+## 10. `consume_digits()` takes a function pointer
 
 `crates/aether_r_parser/src/lexer.rs:727`
 
@@ -387,7 +303,7 @@ because it is free, not because it is urgent.
 
 ---
 
-## 13. `try_from_raw_string_open()` scans an unbounded hyphen run
+## 11. `try_from_raw_string_open()` scans an unbounded hyphen run
 
 `crates/aether_r_parser/src/lexer.rs:74`
 
@@ -404,7 +320,7 @@ and 4M in 3.9 ms — linear, not a problem today. This is tidiness.
 
 ---
 
-## 14. `parse_with_cache()` is private and its cache is thrown away
+## 12. `parse_with_cache()` is private and its cache is thrown away
 
 `crates/aether_r_parser/src/parse.rs:83-100`
 
@@ -430,7 +346,7 @@ code.
 
 ---
 
-## 15. Nothing bounds the number of diagnostics
+## 13. Nothing bounds the number of diagnostics
 
 A degenerate file produces one diagnostic per offending token, with no cap:
 
@@ -444,13 +360,13 @@ hundreds of megabytes of resident memory for a pathological input. Linear, not
 quadratic — but unbounded.
 
 Biome does not cap either, so this is inherited and arguably fine. Worth a
-decision rather than a silent inheritance, especially combined with finding 3,
+decision rather than a silent inheritance, especially combined with finding 1,
 which multiplies the per-diagnostic cost. If it is to be capped, the natural
 place is `RParser::finish()`.
 
 ---
 
-## 16. `has_bogus_nodes_or_missing_required_children()` greps the `Debug` output
+## 14. `has_bogus_nodes_or_missing_required_children()` greps the `Debug` output
 
 `crates/aether_r_parser_tests/src/check.rs:107`
 
@@ -470,7 +386,7 @@ so the coupling fails loudly instead of silently.
 
 ---
 
-## 17. The lexer test `render()` runs on every call, not just failures
+## 15. The lexer test `render()` runs on every call, not just failures
 
 `crates/aether_r_parser/src/lexer/tests.rs:81` and `:135`
 
