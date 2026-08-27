@@ -648,11 +648,11 @@ impl<'src> RLexer<'src> {
     /// `(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d+)?`
     fn consume_number(&mut self) -> RSyntaxKind {
         let start = self.text_position();
-        self.consume_decimal_digits();
+        self.consume_digits();
 
         if self.current_byte() == Some(b'.') {
             self.advance(1);
-            self.consume_decimal_digits();
+            self.consume_digits();
         }
 
         if matches!(self.current_byte(), Some(b'e' | b'E')) {
@@ -720,10 +720,10 @@ impl<'src> RLexer<'src> {
             self.advance(1);
         }
 
-        self.consume_decimal_digits()
+        self.consume_digits()
     }
 
-    fn consume_decimal_digits(&mut self) -> bool {
+    fn consume_digits(&mut self) -> bool {
         let start = self.position;
         while matches!(self.current_byte(), Some(byte) if byte.is_ascii_digit()) {
             self.advance(1);
