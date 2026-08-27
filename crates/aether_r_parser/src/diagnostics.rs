@@ -182,6 +182,17 @@ fn truncate(text: &str) -> Cow<'_, str> {
     }
 }
 
+fn article_for(name: &str) -> &'static str {
+    match name.bytes().next() {
+        Some(b'a' | b'e' | b'i' | b'o' | b'u') => "an",
+        _ => "a",
+    }
+}
+
+fn text_of(operator: RSyntaxKind) -> &'static str {
+    operator.to_string().unwrap_or("operator")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -209,15 +220,4 @@ mod tests {
         let text = "é".repeat(41);
         assert_eq!(&*truncate(&text), format!("{}...", "é".repeat(40)));
     }
-}
-
-fn article_for(name: &str) -> &'static str {
-    match name.bytes().next() {
-        Some(b'a' | b'e' | b'i' | b'o' | b'u') => "an",
-        _ => "a",
-    }
-}
-
-fn text_of(operator: RSyntaxKind) -> &'static str {
-    operator.to_string().unwrap_or("operator")
 }
