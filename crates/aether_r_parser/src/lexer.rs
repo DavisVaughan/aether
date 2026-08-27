@@ -215,7 +215,7 @@ impl<'src> Lexer<'src> for RLexer<'src> {
 
     /// There's only one "Regular" context for R
     fn next_token(&mut self, _context: Self::LexContext) -> Self::Kind {
-        self.current_start = TextSize::from(self.position as u32);
+        self.current_start = self.text_position();
         self.current_flags = TokenFlags::empty();
 
         let kind = if self.is_eof() { EOF } else { self.lex_token() };
@@ -232,7 +232,7 @@ impl<'src> Lexer<'src> for RLexer<'src> {
             self.after_line_break = false;
         }
 
-        debug_assert!(self.current_start <= TextSize::from(self.position as u32));
+        debug_assert!(self.current_start <= self.text_position());
         kind
     }
 
@@ -339,7 +339,7 @@ impl<'src> ReLexer<'src> for RLexer<'src> {
 impl<'src> LexerWithCheckpoint<'src> for RLexer<'src> {
     fn checkpoint(&self) -> LexerCheckpoint<Self::Kind> {
         LexerCheckpoint {
-            position: TextSize::from(self.position as u32),
+            position: self.text_position(),
             current_start: self.current_start,
             current_kind: self.current_kind,
             current_flags: self.current_flags,
