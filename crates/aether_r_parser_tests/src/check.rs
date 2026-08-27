@@ -32,8 +32,9 @@ pub enum CheckError {
 pub fn check(block: &Block, expectation: Expectation) -> Result<Vec<Cell>, CheckError> {
     let parsed = parse(&block.source, RParserOptions::default());
     let ast = format!("{:#?}", parsed.tree());
+    let root = parsed.syntax();
 
-    let round_tripped = parsed.syntax().to_string();
+    let round_tripped = root.to_string();
     if round_tripped != block.source {
         return Err(CheckError::RoundTrip {
             expected: block.source.clone(),
@@ -42,7 +43,7 @@ pub fn check(block: &Block, expectation: Expectation) -> Result<Vec<Cell>, Check
     }
 
     let has_errors = parsed.has_errors();
-    let has_bogus = has_bogus_nodes_or_missing_required_children(&ast, &parsed.syntax());
+    let has_bogus = has_bogus_nodes_or_missing_required_children(&ast, &root);
 
     match expectation {
         Expectation::Error => {
@@ -64,7 +65,7 @@ pub fn check(block: &Block, expectation: Expectation) -> Result<Vec<Cell>, Check
         }
     }
 
-    let unexplained = undiagnosed_bogus_nodes(&parsed.syntax(), parsed.diagnostics());
+    let unexplained = undiagnosed_bogus_nodes(&root, parsed.diagnostics());
     if !unexplained.is_empty() {
         return Err(CheckError::UndiagnosedBogusNode {
             ranges: unexplained
