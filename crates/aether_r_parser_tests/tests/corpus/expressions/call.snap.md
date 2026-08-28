@@ -1047,7 +1047,7 @@ RRoot {
 fn(return = TRUE)
 fn(return = )
 
-# One specific example from #189
+# One specific example from r-lib/tree-sitter-r#189
 switch(
   x,
   return = ,
@@ -1109,40 +1109,40 @@ RRoot {
         RStatement {
             expression: RCall {
                 function: RIdentifier {
-                    name_token: IDENT@164..205 "switch" [Newline("\n"), Newline("\n"), Comments("# One specific exampl ..."), Newline("\n")] [],
+                    name_token: IDENT@164..224 "switch" [Newline("\n"), Newline("\n"), Comments("# One specific exampl ..."), Newline("\n")] [],
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@205..206 "(" [] [],
+                    l_paren_token: L_PAREN@224..225 "(" [] [],
                     items: RArgumentList [
                         RArgument {
                             name_clause: missing (optional),
                             value: RIdentifier {
-                                name_token: IDENT@206..210 "x" [Newline("\n"), Whitespace("  ")] [],
+                                name_token: IDENT@225..229 "x" [Newline("\n"), Whitespace("  ")] [],
                             },
                         },
-                        COMMA@210..211 "," [] [],
+                        COMMA@229..230 "," [] [],
                         RArgument {
                             name_clause: RArgumentNameClause {
                                 name: RIdentifier {
-                                    name_token: IDENT@211..221 "return" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
+                                    name_token: IDENT@230..240 "return" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                                 },
-                                eq_token: EQUAL@221..223 "=" [] [Whitespace(" ")],
+                                eq_token: EQUAL@240..242 "=" [] [Whitespace(" ")],
                             },
                             value: missing (optional),
                         },
-                        COMMA@223..224 "," [] [],
+                        COMMA@242..243 "," [] [],
                         RArgument {
                             name_clause: missing (optional),
                             value: missing (optional),
                         },
                     ],
-                    r_paren_token: R_PAREN@224..226 ")" [Newline("\n")] [],
+                    r_paren_token: R_PAREN@243..245 ")" [Newline("\n")] [],
                 },
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@226..227 "" [Newline("\n")] [],
+    eof_token: EOF@245..246 "" [Newline("\n")] [],
 }
 ```
 
@@ -1928,7 +1928,7 @@ fn(
   NULL = ,
 )
 
-# Standard call as of https://github.com/r-lib/tree-sitter-r/pull/197
+# A standard call, not a special node (r-lib/tree-sitter-r#197)
 return()
 ```
 
@@ -2628,18 +2628,18 @@ RRoot {
         RStatement {
             expression: RCall {
                 function: RIdentifier {
-                    name_token: IDENT@468..546 "return" [Newline("\n"), Newline("\n"), Comments("# Standard call as of ..."), Newline("\n")] [],
+                    name_token: IDENT@468..540 "return" [Newline("\n"), Newline("\n"), Comments("# A standard call, no ..."), Newline("\n")] [],
                 },
                 arguments: RCallArguments {
-                    l_paren_token: L_PAREN@546..547 "(" [] [],
+                    l_paren_token: L_PAREN@540..541 "(" [] [],
                     items: RArgumentList [],
-                    r_paren_token: R_PAREN@547..548 ")" [] [],
+                    r_paren_token: R_PAREN@541..542 ")" [] [],
                 },
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@548..549 "" [Newline("\n")] [],
+    eof_token: EOF@542..543 "" [Newline("\n")] [],
 }
 ```
 

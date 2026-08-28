@@ -107,7 +107,7 @@ r"(raw
 string
 )"
 
-# Empty strings with no `string_content` node
+# Empty raw strings
 r"()"
 r'()'
 R"{}"

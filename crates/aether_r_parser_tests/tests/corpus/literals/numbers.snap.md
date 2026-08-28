@@ -11,7 +11,7 @@
 1e5L
 # Technically, R parses these as floats with a warning, but for our purposes this is good enough
 0.1L
-# https://github.com/r-lib/tree-sitter-r/pull/198
+# r-lib/tree-sitter-r#198
 .1L
 ```
 
@@ -63,12 +63,12 @@ RRoot {
         },
         RStatement {
             expression: RIntegerValue {
-                value_token: R_INTEGER_LITERAL@128..182 ".1L" [Newline("\n"), Comments("# https://github.com/ ..."), Newline("\n")] [],
+                value_token: R_INTEGER_LITERAL@128..158 ".1L" [Newline("\n"), Comments("# r-lib/tree-sitter-r ..."), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@182..183 "" [Newline("\n")] [],
+    eof_token: EOF@158..159 "" [Newline("\n")] [],
 }
 ```
 
@@ -527,7 +527,7 @@ RRoot {
 1i
 0i
 1.1i
-# https://github.com/r-lib/tree-sitter-r/pull/198
+# r-lib/tree-sitter-r#198
 .1i
 1e10i
 .1e10i
@@ -559,36 +559,36 @@ RRoot {
         },
         RStatement {
             expression: RComplexValue {
-                value_token: R_COMPLEX_LITERAL@10..64 ".1i" [Newline("\n"), Comments("# https://github.com/ ..."), Newline("\n")] [],
+                value_token: R_COMPLEX_LITERAL@10..40 ".1i" [Newline("\n"), Comments("# r-lib/tree-sitter-r ..."), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RComplexValue {
-                value_token: R_COMPLEX_LITERAL@64..70 "1e10i" [Newline("\n")] [],
+                value_token: R_COMPLEX_LITERAL@40..46 "1e10i" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RComplexValue {
-                value_token: R_COMPLEX_LITERAL@70..77 ".1e10i" [Newline("\n")] [],
+                value_token: R_COMPLEX_LITERAL@46..53 ".1e10i" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RComplexValue {
-                value_token: R_COMPLEX_LITERAL@77..82 "0x1i" [Newline("\n")] [],
+                value_token: R_COMPLEX_LITERAL@53..58 "0x1i" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
         RStatement {
             expression: RComplexValue {
-                value_token: R_COMPLEX_LITERAL@82..88 "0x.1i" [Newline("\n")] [],
+                value_token: R_COMPLEX_LITERAL@58..64 "0x.1i" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@88..89 "" [Newline("\n")] [],
+    eof_token: EOF@64..65 "" [Newline("\n")] [],
 }
 ```
 
@@ -600,7 +600,7 @@ RRoot {
 1e6
 0x123F
 
-# https://github.com/r-lib/tree-sitter-r/pull/198
+# r-lib/tree-sitter-r#198
 .1
 ```
 
@@ -634,12 +634,12 @@ RRoot {
         },
         RStatement {
             expression: RDoubleValue {
-                value_token: R_DOUBLE_LITERAL@16..70 ".1" [Newline("\n"), Newline("\n"), Comments("# https://github.com/ ..."), Newline("\n")] [],
+                value_token: R_DOUBLE_LITERAL@16..46 ".1" [Newline("\n"), Newline("\n"), Comments("# r-lib/tree-sitter-r ..."), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@70..71 "" [Newline("\n")] [],
+    eof_token: EOF@46..47 "" [Newline("\n")] [],
 }
 ```
 

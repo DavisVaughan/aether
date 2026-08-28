@@ -52,7 +52,11 @@ if (TRUE)
   1
 else
   2
+```
 
+## Complex if expression - 2
+
+```r
 # Valid inside `{` only due to special `else` handling with newlines
 {
   if (TRUE) {
@@ -145,16 +149,15 @@ if (TRUE) 1 else
 }
 
 # Non-ASCII, but considered `iswalnum()` in R with UTF-8 locale.
-# Not considered `iswalnum()` in our scanner with C locale, but
-# our overapproximation with `>= 128` allows this and aligns with R.
+# Our lexer uses `XID_Continue`, which allows this and aligns with R.
 {
   if (TRUE) 1
   elseμ <- 1
 }
 
 # Non-ASCII (U+00B7), rejected by R as syntax error since `iswalnum()` returns false.
-# Our overapproximation with `>= 128` allows this, but that's ok since the R
-# side behavior is a syntax error.
+# `XID_Continue` allows this, but that's ok since the R side behavior is a
+# syntax error.
 {
   if (TRUE) 1
   else· <- 1
@@ -165,7 +168,8 @@ if (TRUE) 1 else
 
 ```r
 # Correctly treats `else.x` as a single identifier, not as `else` followed by `.x`,
-# but should really be a syntax error. See https://github.com/r-lib/tree-sitter-r/issues/194.
+# which also throws a diagnostic about a missing statement separator.
+# See r-lib/tree-sitter-r#194.
 if (TRUE) {
   1
 } else.x

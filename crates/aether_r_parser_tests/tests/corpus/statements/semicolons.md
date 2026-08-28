@@ -27,7 +27,7 @@
 ## Semicolon at end of file
 
 ```r
-# https://github.com/posit-dev/air/issues/238
+# posit-dev/air#238
 1;
 ```
 

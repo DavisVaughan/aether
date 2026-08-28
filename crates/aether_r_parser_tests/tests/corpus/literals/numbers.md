@@ -9,7 +9,7 @@
 1e5L
 # Technically, R parses these as floats with a warning, but for our purposes this is good enough
 0.1L
-# https://github.com/r-lib/tree-sitter-r/pull/198
+# r-lib/tree-sitter-r#198
 .1L
 ```
 
@@ -102,7 +102,7 @@ x <- -.66
 1i
 0i
 1.1i
-# https://github.com/r-lib/tree-sitter-r/pull/198
+# r-lib/tree-sitter-r#198
 .1i
 1e10i
 .1e10i
@@ -118,7 +118,7 @@ x <- -.66
 1e6
 0x123F
 
-# https://github.com/r-lib/tree-sitter-r/pull/198
+# r-lib/tree-sitter-r#198
 .1
 ```
 
