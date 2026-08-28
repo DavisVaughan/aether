@@ -3,11 +3,6 @@
 A hand-written Rust parser for R, built on Biome's parser infrastructure,
 producing the same Rowan tree as `posit-dev/air`'s tree-sitter-based parser.
 
-The implementation plan is in `plans/aether-implementation-plan.md`, staged into
-fourteen phases. This file describes the repo as it will be; a command or
-directory that does not exist yet belongs to a phase that has not landed. Phase 1
-is the workspace itself.
-
 ## Commands
 
 Tests run under [cargo-nextest](https://nexte.st), not `cargo test`.
@@ -69,14 +64,12 @@ not obvious from the code; never restate it, and never write a paragraph of
 rationale. If a comment is going to end up being long, do not write it. Long
 comments should be written by a human.
 
-Rationale that is genuinely worth keeping belongs in
-`plans/aether-implementation-plan.md` or `docs/deviations.md`, not in a
-doc-comment.
+Rationale that is genuinely worth keeping belongs in `docs/deviations.md`, not in
+a doc-comment.
 
 ## Prose
 
-Applies to comments, doc-comments, corpus test prose, and everything in `docs/`
-and `plans/`.
+Applies to comments, doc-comments, corpus test prose, and everything in `docs/`.
 
 - Write for an easy read. Plain words over jargon, short sentences over long
   ones. If a term needs its own explanation, it is probably the wrong term.
