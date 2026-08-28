@@ -52,7 +52,11 @@ if (TRUE)
   1
 else
   2
+```
 
+## Complex if expression - 2
+
+```r
 # Valid inside `{` only due to special `else` handling with newlines
 {
   if (TRUE) {
