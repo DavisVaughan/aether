@@ -8,8 +8,22 @@ x %>% y
 x %>% 2 %>% z
 x %some text% y
 x %//% y
+```
 
-# Not specials, but hard to test errors `%\%`, `%%%`
+## A backslash inside a special is ordinary text
+
+R's `SpecialValue` excludes only the newline, so the whole operator is one token.
+
+```r
+x %\% y
+```
+
+## An unterminated special [error]
+
+The `%%` closes first, leaving a `%` with no partner before the newline.
+
+```r
+x %%% y
 ```
 
 ## Pipe

@@ -10,8 +10,6 @@ x %>% y
 x %>% 2 %>% z
 x %some text% y
 x %//% y
-
-# Not specials, but hard to test errors `%\%`, `%%%`
 ```
 
 ```cst
@@ -109,8 +107,88 @@ RRoot {
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@69..124 "" [Newline("\n"), Newline("\n"), Comments("# Not specials, but h ..."), Newline("\n")] [],
+    eof_token: EOF@69..70 "" [Newline("\n")] [],
 }
+```
+
+## A backslash inside a special is ordinary text
+
+R's `SpecialValue` excludes only the newline, so the whole operator is one token.
+
+```r
+x %\% y
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RBinaryExpression {
+                left: RIdentifier {
+                    name_token: IDENT@0..2 "x" [] [Whitespace(" ")],
+                },
+                operator: SPECIAL@2..6 "%\\%" [] [Whitespace(" ")],
+                right: RIdentifier {
+                    name_token: IDENT@6..7 "y" [] [],
+                },
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@7..8 "" [Newline("\n")] [],
+}
+```
+
+## An unterminated special [error]
+
+The `%%` closes first, leaving a `%` with no partner before the newline.
+
+```r
+x %%% y
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RBinaryExpression {
+                left: RBinaryExpression {
+                    left: RIdentifier {
+                        name_token: IDENT@0..2 "x" [] [Whitespace(" ")],
+                    },
+                    operator: SPECIAL@2..4 "%%" [] [],
+                    right: missing (required),
+                },
+                operator: SPECIAL@4..7 "% y" [] [],
+                right: missing (required),
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@7..8 "" [Newline("\n")] [],
+}
+```
+
+```diagnostics
+test.R:1:5 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Unterminated `%` operator.
+
+  > 1 │ x %%% y
+      │     ^
+    2 │
+
+  i A `%...%` operator must be closed by a second `%` on the same line.
+
+test.R:2:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Expected an expression but instead found the end of the file.
+
+    1 │ x %%% y
+  > 2 │
+      │
 ```
 
 ## Pipe
