@@ -1,7 +1,6 @@
-## Namespace get [error]
+## Namespace get
 
 ```r
-foo::
 foo::bar
 foo::bar(1)
 foo::...
@@ -10,10 +9,9 @@ foo::..1
 ..1::foo
 ```
 
-## Namespace get internal [error]
+## Namespace get internal
 
 ```r
-foo:::
 foo:::bar
 foo:::bar(1)
 foo:::...
@@ -35,6 +33,16 @@ library()
 1
 2
 3
+```
+
+## Namespace with missing RHS - 2 [error]
+
+```r
+foo::
+```
+
+```r
+foo:::
 ```
 
 ## Namespace operators
