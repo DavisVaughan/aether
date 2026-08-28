@@ -164,7 +164,8 @@ if (TRUE) 1 else
 
 ```r
 # Correctly treats `else.x` as a single identifier, not as `else` followed by `.x`,
-# but should really be a syntax error. See r-lib/tree-sitter-r#194.
+# which also throws a diagnostic about a missing statement separator.
+# See r-lib/tree-sitter-r#194.
 if (TRUE) {
   1
 } else.x

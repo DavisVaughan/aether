@@ -1006,7 +1006,8 @@ RRoot {
 
 ```r
 # Correctly treats `else.x` as a single identifier, not as `else` followed by `.x`,
-# but should really be a syntax error. See r-lib/tree-sitter-r#194.
+# which also throws a diagnostic about a missing statement separator.
+# See r-lib/tree-sitter-r#194.
 if (TRUE) {
   1
 } else.x
@@ -1018,23 +1019,23 @@ RRoot {
     statements: RStatementList [
         RStatement {
             expression: RIfStatement {
-                if_token: IF_KW@0..155 "if" [Comments("# Correctly treats `e ..."), Newline("\n"), Comments("# but should really b ..."), Newline("\n")] [Whitespace(" ")],
-                l_paren_token: L_PAREN@155..156 "(" [] [],
+                if_token: IF_KW@0..188 "if" [Comments("# Correctly treats `e ..."), Newline("\n"), Comments("# which also throws a ..."), Newline("\n"), Comments("# See r-lib/tree-sitt ..."), Newline("\n")] [Whitespace(" ")],
+                l_paren_token: L_PAREN@188..189 "(" [] [],
                 condition: RTrueExpression {
-                    true_token: TRUE_KW@156..160 "TRUE" [] [],
+                    true_token: TRUE_KW@189..193 "TRUE" [] [],
                 },
-                r_paren_token: R_PAREN@160..162 ")" [] [Whitespace(" ")],
+                r_paren_token: R_PAREN@193..195 ")" [] [Whitespace(" ")],
                 consequence: RBracedStatements {
-                    l_curly_token: L_CURLY@162..163 "{" [] [],
+                    l_curly_token: L_CURLY@195..196 "{" [] [],
                     statements: RStatementList [
                         RStatement {
                             expression: RDoubleValue {
-                                value_token: R_DOUBLE_LITERAL@163..167 "1" [Newline("\n"), Whitespace("  ")] [],
+                                value_token: R_DOUBLE_LITERAL@196..200 "1" [Newline("\n"), Whitespace("  ")] [],
                             },
                             semicolon_token: missing (optional),
                         },
                     ],
-                    r_curly_token: R_CURLY@167..170 "}" [Newline("\n")] [Whitespace(" ")],
+                    r_curly_token: R_CURLY@200..203 "}" [Newline("\n")] [Whitespace(" ")],
                 },
                 else_clause: missing (optional),
             },
@@ -1042,36 +1043,36 @@ RRoot {
         },
         RStatement {
             expression: RIdentifier {
-                name_token: IDENT@170..176 "else.x" [] [],
+                name_token: IDENT@203..209 "else.x" [] [],
             },
             semicolon_token: missing (optional),
         },
     ],
-    eof_token: EOF@176..177 "" [Newline("\n")] [],
+    eof_token: EOF@209..210 "" [Newline("\n")] [],
 }
 ```
 
 ```diagnostics
-test.R:5:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.R:6:3 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Expected a newline or a `;` between two expressions.
 
-    3 │ if (TRUE) {
-    4 │   1
-  > 5 │ } else.x
+    4 │ if (TRUE) {
+    5 │   1
+  > 6 │ } else.x
       │   ^^^^^^
-    6 │
+    7 │
 
   i The first expression ends here.
 
-    1 │ # Correctly treats `else.x` as a single identifier, not as `else` followed by `.x`,
-    2 │ # but should really be a syntax error. See r-lib/tree-sitter-r#194.
-  > 3 │ if (TRUE) {
+    2 │ # which also throws a diagnostic about a missing statement separator.
+    3 │ # See r-lib/tree-sitter-r#194.
+  > 4 │ if (TRUE) {
       │ ^^^^^^^^^^^
-  > 4 │   1
-  > 5 │ } else.x
+  > 5 │   1
+  > 6 │ } else.x
       │ ^
-    6 │
+    7 │
 ```
 
 ## If with comments
