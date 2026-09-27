@@ -134,7 +134,6 @@ impl RawStringBracket {
             b'(' => Some(Self::Paren),
             b'[' => Some(Self::Bracket),
             b'{' => Some(Self::Brace),
-            // Undocumented, but `RawStringValue()` in R's `gram.y` accepts it
             b'|' => Some(Self::Pipe),
             _ => None,
         }
