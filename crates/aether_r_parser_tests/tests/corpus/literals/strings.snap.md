@@ -727,6 +727,87 @@ RRoot {
 }
 ```
 
+## Raw strings with `|`
+
+R accepts `|` as a raw string delimiter, though `?Quotes` doesn't say so.
+
+```r
+r"|raw string|"
+R'|raw string|'
+r"--|a|--"
+
+r"||"
+r"|||"
+r"|a|b|"
+r"-|a|-|-"
+
+r"|(|"
+r"(|)"
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RStringValue {
+                value: R_RAW_STRING_LITERAL@0..15 "r\"|raw string|\"" [] [],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RStringValue {
+                value: R_RAW_STRING_LITERAL@15..31 "R'|raw string|'" [Newline("\n")] [],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RStringValue {
+                value: R_RAW_STRING_LITERAL@31..42 "r\"--|a|--\"" [Newline("\n")] [],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RStringValue {
+                value: R_RAW_STRING_LITERAL@42..49 "r\"||\"" [Newline("\n"), Newline("\n")] [],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RStringValue {
+                value: R_RAW_STRING_LITERAL@49..56 "r\"|||\"" [Newline("\n")] [],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RStringValue {
+                value: R_RAW_STRING_LITERAL@56..65 "r\"|a|b|\"" [Newline("\n")] [],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RStringValue {
+                value: R_RAW_STRING_LITERAL@65..76 "r\"-|a|-|-\"" [Newline("\n")] [],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RStringValue {
+                value: R_RAW_STRING_LITERAL@76..84 "r\"|(|\"" [Newline("\n"), Newline("\n")] [],
+            },
+            semicolon_token: missing (optional),
+        },
+        RStatement {
+            expression: RStringValue {
+                value: R_RAW_STRING_LITERAL@84..91 "r\"(|)\"" [Newline("\n")] [],
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@91..92 "" [Newline("\n")] [],
+}
+```
+
 ## Unclosed double quote [error]
 
 ```r
@@ -844,6 +925,43 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
     1 │ r"(
     2 │ "
   > 3 │
+      │
+```
+
+```r
+r"|"
+```
+
+```cst
+RRoot {
+    bom_token: missing (optional),
+    statements: RStatementList [
+        RStatement {
+            expression: RBogusExpression {
+                items: [
+                    ERROR_TOKEN@0..5 "r\"|\"\n" [] [],
+                ],
+            },
+            semicolon_token: missing (optional),
+        },
+    ],
+    eof_token: EOF@5..5 "" [] [],
+}
+```
+
+```diagnostics
+test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Unterminated string.
+
+  > 1 │ r"|"
+      │ ^^^
+    2 │
+
+  i Reached the end of the file looking for a closing delimiter.
+
+    1 │ r"|"
+  > 2 │
       │
 ```
 

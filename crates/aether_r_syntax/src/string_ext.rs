@@ -102,12 +102,14 @@ mod tests {
         assert_inner(R_RAW_STRING_LITERAL, "r\"(a)\"", "a", range(3, 4));
         assert_inner(R_RAW_STRING_LITERAL, "r\"---(a)---\"", "a", range(6, 7));
         assert_inner(R_RAW_STRING_LITERAL, "R'--[a]--'", "a", range(5, 6));
+        assert_inner(R_RAW_STRING_LITERAL, "r\"-|a|-\"", "a", range(4, 5));
     }
 
     /// A closing bracket that does not close belongs to the content
     #[test]
     fn a_raw_string_containing_its_own_bracket() {
         assert_inner(R_RAW_STRING_LITERAL, "r\"(())\"", "()", range(3, 5));
+        assert_inner(R_RAW_STRING_LITERAL, "r\"|a|b|\"", "a|b", range(3, 6));
     }
 
     #[test]

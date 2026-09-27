@@ -132,6 +132,24 @@ r'(")'
 r()
 ```
 
+## Raw strings with `|`
+
+R accepts `|` as a raw string delimiter, though `?Quotes` doesn't say so.
+
+```r
+r"|raw string|"
+R'|raw string|'
+r"--|a|--"
+
+r"||"
+r"|||"
+r"|a|b|"
+r"-|a|-|-"
+
+r"|(|"
+r"(|)"
+```
+
 ## Unclosed double quote [error]
 
 ```r
@@ -149,6 +167,10 @@ r()
 ```r
 r"(
 "
+```
+
+```r
+r"|"
 ```
 
 ## String values
