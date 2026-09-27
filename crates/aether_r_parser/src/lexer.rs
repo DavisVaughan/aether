@@ -125,6 +125,7 @@ pub(crate) enum RawStringBracket {
     Paren,
     Bracket,
     Brace,
+    Pipe,
 }
 
 impl RawStringBracket {
@@ -133,6 +134,8 @@ impl RawStringBracket {
             b'(' => Some(Self::Paren),
             b'[' => Some(Self::Bracket),
             b'{' => Some(Self::Brace),
+            // Undocumented, but `RawStringValue()` in R's `gram.y` accepts it
+            b'|' => Some(Self::Pipe),
             _ => None,
         }
     }
@@ -142,6 +145,7 @@ impl RawStringBracket {
             Self::Paren => b')',
             Self::Bracket => b']',
             Self::Brace => b'}',
+            Self::Pipe => b'|',
         }
     }
 }

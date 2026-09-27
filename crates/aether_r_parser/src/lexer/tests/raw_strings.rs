@@ -5,6 +5,7 @@ fn every_bracket_pair() {
     assert_lex!("r\"(abc)\"", R_RAW_STRING_LITERAL: 8);
     assert_lex!("r\"[abc]\"", R_RAW_STRING_LITERAL: 8);
     assert_lex!("r\"{abc}\"", R_RAW_STRING_LITERAL: 8);
+    assert_lex!("r\"|abc|\"", R_RAW_STRING_LITERAL: 8);
 }
 
 #[test]
@@ -12,12 +13,14 @@ fn hyphen_counts() {
     assert_lex!("r\"(a)\"", R_RAW_STRING_LITERAL: 6);
     assert_lex!("r\"-(a)-\"", R_RAW_STRING_LITERAL: 8);
     assert_lex!("r\"---(a)---\"", R_RAW_STRING_LITERAL: 12);
+    assert_lex!("r\"--|a|--\"", R_RAW_STRING_LITERAL: 10);
 }
 
 #[test]
 fn uppercase_prefix_and_single_quotes() {
     assert_lex!("R'---[x]---'", R_RAW_STRING_LITERAL: 12);
     assert_lex!("R\"(x)\"", R_RAW_STRING_LITERAL: 6);
+    assert_lex!("R'|x|'", R_RAW_STRING_LITERAL: 6);
 }
 
 /// A closing bracket that turns out not to start the closing sequence is
@@ -28,6 +31,9 @@ fn uppercase_prefix_and_single_quotes() {
 fn a_bracket_that_does_not_close() {
     assert_lex!("r\"(())\"", R_RAW_STRING_LITERAL: 7);
     assert_lex!("r\"-())-\"", R_RAW_STRING_LITERAL: 8);
+    assert_lex!("r\"|||\"", R_RAW_STRING_LITERAL: 6);
+    assert_lex!("r\"|a|b|\"", R_RAW_STRING_LITERAL: 8);
+    assert_lex!("r\"-|a|-|-\"", R_RAW_STRING_LITERAL: 10);
 }
 
 /// The bracket matches but the hyphen count does not, so the string never
@@ -40,6 +46,7 @@ fn the_hyphen_count_has_to_match() {
 #[test]
 fn unterminated_runs_to_the_end_of_the_file() {
     assert_lex_err!("r\"(abc", ERROR_TOKEN: 6 => "Unterminated string");
+    assert_lex_err!("r\"|abc", ERROR_TOKEN: 6 => "Unterminated string");
 }
 
 /// The prefix has to be complete, so anything short of it falls through to the

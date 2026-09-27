@@ -6,8 +6,8 @@ where this file says otherwise. Everything below is deliberate.
 It's written for whoever updates air or ark to sit on top of aether. Most
 entries are diagnostics only: same tree, more errors reported. The ones that
 actually change the tree, and so need code changes downstream, are semicolons
-and statements, strings, the new bogus node kinds, `ERROR_TOKEN`, the `for`
-variable, and whitespace attachment.
+and statements, strings, `|` raw strings, the new bogus node kinds,
+`ERROR_TOKEN`, the `for` variable, and whitespace attachment.
 
 The last section is different: places where tree-sitter-r already disagrees with
 R and aether follows tree-sitter anyway. Inherited quirks, logged so nobody
@@ -181,6 +181,27 @@ wrong bytes in release. So `normalize_string_content_token()` must read
 
 Normalizing the whole token rather than just the content is otherwise identical
 in effect, since no delimiter contains `\r\n`.
+
+## `|` opens a raw string
+
+R accepts `|` as a raw string delimiter alongside `(`, `[`, and `{`. `?Quotes`
+doesn't mention it, but `RawStringValue()` in `src/main/gram.y` accepts it:
+
+```
+> r"-|a|b|-"
+[1] "a|b"
+```
+
+tree-sitter-r only knows the three brackets, so it reads `r"|a|"` as the name `r`
+followed by the string `"|a|"`:
+
+```
+(program
+  (identifier)
+  (string))
+```
+
+Aether follows R and lexes one `R_RAW_STRING_LITERAL`.
 
 ## Whitespace attaches to the token before it
 
