@@ -10,7 +10,7 @@
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBogusExpression {
                 items: [
                     R_CURLY@0..1 "}" [] [],
@@ -43,7 +43,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBogusExpression {
                 items: [
                     R_PAREN@0..1 ")" [] [],
@@ -76,7 +76,7 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBogusExpression {
                 items: [
                     R_BRACK@0..1 "]" [] [],
@@ -110,11 +110,11 @@ test.R:1:1 parse ━━━━━━━━━━━━━━━━━━━━━
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@0..74 "{" [Comments("# Parenthesis is \"not ..."), Newline("\n")] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RBogusExpression {
                             items: [
                                 R_PAREN@74..75 ")" [] [],
@@ -169,7 +169,7 @@ test.R:3:1 parse ━━━━━━━━━━━━━━━━━━━━━
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RParenthesizedExpression {
                 l_paren_token: L_PAREN@0..1 "(" [] [],
                 body: missing (required),
@@ -177,7 +177,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBogusExpression {
                 items: [
                     R_CURLY@1..2 "}" [] [],
@@ -210,7 +210,7 @@ test.R:1:2 parse ━━━━━━━━━━━━━━━━━━━━━
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RParenthesizedExpression {
                 l_paren_token: L_PAREN@0..1 "(" [] [],
                 body: missing (required),
@@ -218,7 +218,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBogusExpression {
                 items: [
                     R_BRACK@1..2 "]" [] [],
@@ -251,7 +251,7 @@ x[[2]
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RSubset2 {
                 function: RIdentifier {
                     name_token: IDENT@0..1 "x" [] [],
@@ -271,7 +271,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBogusExpression {
                 items: [
                     R_BRACK@4..5 "]" [] [],
@@ -306,7 +306,7 @@ x[y[[2]
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RSubset {
                 function: RIdentifier {
                     name_token: IDENT@0..1 "x" [] [],
@@ -367,7 +367,7 @@ x[[y[2]
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RSubset2 {
                 function: RIdentifier {
                     name_token: IDENT@0..1 "x" [] [],
@@ -432,7 +432,7 @@ x[[y[2]]
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RSubset2 {
                 function: RIdentifier {
                     name_token: IDENT@0..1 "x" [] [],
@@ -466,7 +466,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBogusExpression {
                 items: [
                     R_BRACK@7..8 "]" [] [],
@@ -501,7 +501,7 @@ f(a
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RCall {
                 function: RIdentifier {
                     name_token: IDENT@0..1 "f" [] [],
@@ -550,7 +550,7 @@ f(a=
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RCall {
                 function: RIdentifier {
                     name_token: IDENT@0..1 "f" [] [],

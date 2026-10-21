@@ -4,7 +4,8 @@ use crate::parser::Scope;
 use crate::syntax::expr::parse_expression;
 use aether_r_syntax::RSyntaxKind;
 use aether_r_syntax::RSyntaxKind::R_BOGUS_EXPRESSION;
-use aether_r_syntax::RSyntaxKind::R_STATEMENT;
+use aether_r_syntax::RSyntaxKind::R_EMPTY_STATEMENT;
+use aether_r_syntax::RSyntaxKind::R_EXPRESSION_STATEMENT;
 use aether_r_syntax::RSyntaxKind::R_STATEMENT_LIST;
 use aether_r_syntax::T;
 use biome_parser::Parser;
@@ -29,14 +30,14 @@ pub(crate) fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
             T![;] => {
                 if p.scope() == Scope::TopLevel {
                     // At top level, a semicolon must be preceded by an
-                    // expression that ends on the same line, i.e. `;;` and
-                    // `1\n;` aren't legal. Inside braces, semicolons may
-                    // appear even without an expression, so `{ ;; }` and
-                    // `{ 1\n; }` are fine. In those cases, the statement is
-                    // missing its optional expression.
+                    // expression that ends on the same line, i.e. a lone `;` at
+                    // top level isn't legal. Inside braces, semicolons may
+                    // appear even without an expression, so `{ ; }`, `{ ;; }`,
+                    // and `{ 1\n; }` are fine.
                     p.error(diagnostics::unexpected_semicolon(p.cur_range()));
                 }
                 p.bump(T![;]);
+                statement.complete(p, R_EMPTY_STATEMENT);
             }
             _ => {
                 match parse_expression(p) {
@@ -73,10 +74,9 @@ pub(crate) fn parse_statement_list(p: &mut RParser, close: RSyntaxKind) {
                 if !p.has_preceding_line_break() {
                     p.eat(T![;]);
                 }
+                statement.complete(p, R_EXPRESSION_STATEMENT);
             }
         }
-
-        statement.complete(p, R_STATEMENT);
     }
 
     statement_list.complete(p, R_STATEMENT_LIST);

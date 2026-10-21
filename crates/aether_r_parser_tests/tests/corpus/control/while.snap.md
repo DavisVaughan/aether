@@ -20,7 +20,7 @@ while(TRUE)
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RWhileStatement {
                 while_token: WHILE_KW@0..5 "while" [] [],
                 l_paren_token: L_PAREN@5..6 "(" [] [],
@@ -34,7 +34,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RWhileStatement {
                 while_token: WHILE_KW@17..24 "while" [Newline("\n"), Newline("\n")] [],
                 l_paren_token: L_PAREN@24..25 "(" [] [],
@@ -66,7 +66,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RWhileStatement {
                 while_token: WHILE_KW@44..51 "while" [Newline("\n"), Newline("\n")] [],
                 l_paren_token: L_PAREN@51..52 "(" [] [],
@@ -80,7 +80,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RWhileStatement {
                 while_token: WHILE_KW@65..72 "while" [Newline("\n"), Newline("\n")] [],
                 l_paren_token: L_PAREN@72..73 "(" [] [],
@@ -109,7 +109,7 @@ while (a < b)
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RWhileStatement {
                 while_token: WHILE_KW@0..6 "while" [] [Whitespace(" ")],
                 l_paren_token: L_PAREN@6..7 "(" [] [],
@@ -162,7 +162,7 @@ while(fn()) {
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RWhileStatement {
                 while_token: WHILE_KW@0..5 "while" [] [],
                 l_paren_token: L_PAREN@5..6 "(" [] [],
@@ -176,7 +176,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RWhileStatement {
                 while_token: WHILE_KW@17..24 "while" [Newline("\n"), Newline("\n")] [],
                 l_paren_token: L_PAREN@24..25 "(" [] [],
@@ -192,7 +192,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RWhileStatement {
                 while_token: WHILE_KW@33..40 "while" [Newline("\n"), Newline("\n")] [],
                 l_paren_token: L_PAREN@40..41 "(" [] [],
@@ -208,7 +208,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RWhileStatement {
                 while_token: WHILE_KW@48..55 "while" [Newline("\n"), Newline("\n")] [],
                 l_paren_token: L_PAREN@55..56 "(" [] [],
@@ -246,7 +246,7 @@ while () b
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RWhileStatement {
                 while_token: WHILE_KW@0..6 "while" [] [Whitespace(" ")],
                 l_paren_token: L_PAREN@6..7 "(" [] [],

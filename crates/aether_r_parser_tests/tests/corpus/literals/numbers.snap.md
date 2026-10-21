@@ -19,49 +19,49 @@
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@0..6 "12332L" [] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@6..9 "0L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@9..13 "12L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@13..18 "1e1L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@18..21 "1L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@21..26 "1e5L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@26..128 "0.1L" [Newline("\n"), Comments("# Technically, R pars ..."), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@128..158 ".1L" [Newline("\n"), Comments("# r-lib/tree-sitter-r ..."), Newline("\n")] [],
             },
@@ -86,31 +86,31 @@ x <- -.66
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@0..3 ".66" [] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@3..7 ".11" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@7..16 "123.4123" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@16..22 ".1234" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RIdentifier {
                     name_token: IDENT@22..25 "x" [Newline("\n")] [Whitespace(" ")],
@@ -196,265 +196,265 @@ RRoot {
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@0..18 "0x123" [Comments("# `x` vs `X`"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@18..24 "0X123" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@24..54 "0xDEAD" [Newline("\n"), Newline("\n"), Comments("# Numbers and letters"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@54..61 "0XDEAD" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@61..69 "0x1f2F3" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@69..77 "0X1f2F3" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@77..97 "0x0p0" [Newline("\n"), Newline("\n"), Comments("# `p` vs `P`"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@97..103 "0x0P0" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@103..111 "0x0p123" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@111..119 "0x0P123" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@119..141 "0x0p+0" [Newline("\n"), Newline("\n"), Comments("# `+` and `-`"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@141..148 "0x0p-0" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@148..157 "0x0p+123" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@157..166 "0x0p-123" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@166..187 "0x." [Newline("\n"), Newline("\n"), Comments("# Decimal point"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@187..192 "0x1." [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@192..197 "0x.1" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@197..203 "0x1.1" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@203..240 "0x.p1" [Newline("\n"), Newline("\n"), Comments("# Decimal point with  ..."), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@240..247 "0x1.p1" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@247..254 "0x.1p1" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@254..262 "0x1.1p1" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@262..284 "0x123L" [Newline("\n"), Newline("\n"), Comments("# As integers"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@284..291 "0X123L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@291..299 "0xDEADL" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@299..307 "0XDEADL" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@307..316 "0x1f2F3L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@316..325 "0X1f2F3L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@325..332 "0x0p0L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@332..339 "0x0P0L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@339..348 "0x0p123L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@348..357 "0x0P123L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@357..365 "0x0p+0L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@365..373 "0x0p-0L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@373..383 "0x0p+123L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@383..393 "0x0p-123L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@393..398 "0x.L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@398..404 "0x1.L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@404..410 "0x.1L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@410..417 "0x1.1L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@417..424 "0x.p1L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@424..432 "0x1.p1L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@432..440 "0x.1p1L" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIntegerValue {
                 value_token: R_INTEGER_LITERAL@440..449 "0x1.1p1L" [Newline("\n")] [],
             },
@@ -480,37 +480,37 @@ RRoot {
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@0..5 "1e322" [] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@5..10 "1e-3" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@10..15 "1e+3" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@15..22 "1.8e10" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@22..28 "1.e10" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@28..33 "1e10" [Newline("\n")] [],
             },
@@ -539,49 +539,49 @@ RRoot {
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RComplexValue {
                 value_token: R_COMPLEX_LITERAL@0..2 "1i" [] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RComplexValue {
                 value_token: R_COMPLEX_LITERAL@2..5 "0i" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RComplexValue {
                 value_token: R_COMPLEX_LITERAL@5..10 "1.1i" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RComplexValue {
                 value_token: R_COMPLEX_LITERAL@10..40 ".1i" [Newline("\n"), Comments("# r-lib/tree-sitter-r ..."), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RComplexValue {
                 value_token: R_COMPLEX_LITERAL@40..46 "1e10i" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RComplexValue {
                 value_token: R_COMPLEX_LITERAL@46..53 ".1e10i" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RComplexValue {
                 value_token: R_COMPLEX_LITERAL@53..58 "0x1i" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RComplexValue {
                 value_token: R_COMPLEX_LITERAL@58..64 "0x.1i" [Newline("\n")] [],
             },
@@ -608,31 +608,31 @@ RRoot {
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@0..1 "1" [] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@1..5 "2.5" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@5..9 "1e6" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@9..16 "0x123F" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@16..46 ".1" [Newline("\n"), Newline("\n"), Comments("# r-lib/tree-sitter-r ..."), Newline("\n")] [],
             },
@@ -655,19 +655,19 @@ RRoot {
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RComplexValue {
                 value_token: R_COMPLEX_LITERAL@0..4 "2.5i" [] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RComplexValue {
                 value_token: R_COMPLEX_LITERAL@4..9 "1e6i" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RComplexValue {
                 value_token: R_COMPLEX_LITERAL@9..17 "0x123Fi" [Newline("\n")] [],
             },

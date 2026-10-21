@@ -47,7 +47,7 @@ function() for(i in 1:5) i
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@0..8 "function" [] [],
                 parameters: RParameters {
@@ -61,7 +61,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@12..21 "function" [Newline("\n")] [],
                 parameters: RParameters {
@@ -77,7 +77,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@26..35 "function" [Newline("\n")] [],
                 parameters: RParameters {
@@ -102,7 +102,7 @@ RRoot {
                 body: RBracedStatements {
                     l_curly_token: L_CURLY@48..49 "{" [] [],
                     statements: RStatementList [
-                        RStatement {
+                        RExpressionStatement {
                             expression: RIdentifier {
                                 name_token: IDENT@49..56 "arg2" [Newline("\n"), Whitespace("  ")] [],
                             },
@@ -114,7 +114,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@58..68 "function" [Newline("\n"), Newline("\n")] [],
                 parameters: RParameters {
@@ -149,7 +149,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@87..97 "function" [Newline("\n"), Newline("\n")] [],
                 parameters: RParameters {
@@ -191,7 +191,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@133..143 "function" [Newline("\n"), Newline("\n")] [],
                 parameters: RParameters {
@@ -205,7 +205,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@151..161 "function" [Newline("\n"), Newline("\n")] [],
                 parameters: RParameters {
@@ -225,7 +225,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@170..180 "function" [Newline("\n"), Newline("\n")] [],
                 parameters: RParameters {
@@ -245,7 +245,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@190..200 "function" [Newline("\n"), Newline("\n")] [],
                 parameters: RParameters {
@@ -265,7 +265,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@236..246 "function" [Newline("\n"), Newline("\n")] [],
                 parameters: RParameters {
@@ -289,7 +289,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@262..272 "function" [Newline("\n"), Newline("\n")] [],
                 parameters: RParameters {
@@ -327,7 +327,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@294..337 "function" [Newline("\n"), Newline("\n"), Comments("# With no intermediat ..."), Newline("\n")] [],
                 parameters: RParameters {
@@ -374,7 +374,7 @@ function(x, y)
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@0..8 "function" [] [],
                 parameters: RParameters {
@@ -425,7 +425,7 @@ x <- function(x, y)
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RIdentifier {
                     name_token: IDENT@0..2 "x" [] [Whitespace(" ")],
@@ -482,7 +482,7 @@ function(x = function()) {}
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@0..8 "function" [] [],
                 parameters: RParameters {
@@ -556,7 +556,7 @@ function(
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@0..8 "function" [] [],
                 parameters: RParameters {
@@ -577,7 +577,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@13..22 "function" [Newline("\n")] [],
                 parameters: RParameters {
@@ -611,7 +611,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@34..43 "function" [Newline("\n")] [],
                 parameters: RParameters {
@@ -632,7 +632,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@65..74 "function" [Newline("\n")] [],
                 parameters: RParameters {
@@ -653,7 +653,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@81..90 "function" [Newline("\n")] [],
                 parameters: RParameters {
@@ -688,7 +688,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@103..112 "function" [Newline("\n")] [],
                 parameters: RParameters {
@@ -733,7 +733,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@133..142 "function" [Newline("\n")] [],
                 parameters: RParameters {
@@ -795,7 +795,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@176..185 "function" [Newline("\n")] [],
                 parameters: RParameters {
@@ -867,7 +867,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@227..236 "function" [Newline("\n")] [],
                 parameters: RParameters {
@@ -893,7 +893,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: BACKSLASH@264..267 "\\" [Newline("\n"), Newline("\n")] [],
                 parameters: RParameters {
@@ -941,7 +941,7 @@ function() a ? b ? c
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RFunctionDefinition {
                     name: FUNCTION_KW@0..8 "function" [] [],
@@ -961,7 +961,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RBinaryExpression {
                     left: RFunctionDefinition {
@@ -987,7 +987,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RUnaryExpression {
                 operator: WAT@37..39 "?" [Newline("\n")] [],
                 argument: RFunctionDefinition {
@@ -1019,7 +1019,7 @@ function() a = b
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@0..8 "function" [] [],
                 parameters: RParameters {
@@ -1039,7 +1039,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@17..26 "function" [Newline("\n")] [],
                 parameters: RParameters {
@@ -1059,7 +1059,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RDoubleValue {
                     value_token: R_DOUBLE_LITERAL@34..37 "1" [Newline("\n")] [Whitespace(" ")],
@@ -1109,7 +1109,7 @@ function
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@0..9 "function" [] [Whitespace(" ")],
                 parameters: missing (required),
@@ -1119,7 +1119,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: BACKSLASH@10..13 "\\" [Newline("\n")] [Whitespace(" ")],
                 parameters: missing (required),
@@ -1129,7 +1129,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: FUNCTION_KW@14..23 "function" [Newline("\n")] [],
                 parameters: missing (required),

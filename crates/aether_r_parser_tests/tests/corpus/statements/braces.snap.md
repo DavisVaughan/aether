@@ -42,7 +42,7 @@
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@0..1 "{" [] [],
                 statements: RStatementList [],
@@ -50,11 +50,11 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@2..5 "{" [Newline("\n"), Newline("\n")] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RDoubleValue {
                             value_token: R_DOUBLE_LITERAL@5..6 "1" [] [],
                         },
@@ -65,17 +65,17 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@7..10 "{" [Newline("\n"), Newline("\n")] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RDoubleValue {
                             value_token: R_DOUBLE_LITERAL@10..11 "1" [] [],
                         },
                         semicolon_token: SEMICOLON@11..13 ";" [] [Whitespace(" ")],
                     },
-                    RStatement {
+                    RExpressionStatement {
                         expression: RDoubleValue {
                             value_token: R_DOUBLE_LITERAL@13..14 "2" [] [],
                         },
@@ -86,17 +86,17 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@15..18 "{" [Newline("\n"), Newline("\n")] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RDoubleValue {
                             value_token: R_DOUBLE_LITERAL@18..19 "1" [] [],
                         },
                         semicolon_token: SEMICOLON@19..20 ";" [] [],
                     },
-                    RStatement {
+                    RExpressionStatement {
                         expression: RDoubleValue {
                             value_token: R_DOUBLE_LITERAL@20..22 "2" [Newline("\n")] [],
                         },
@@ -107,17 +107,17 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@23..26 "{" [Newline("\n"), Newline("\n")] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RDoubleValue {
                             value_token: R_DOUBLE_LITERAL@26..27 "1" [] [],
                         },
                         semicolon_token: missing (optional),
                     },
-                    RStatement {
+                    RExpressionStatement {
                         expression: RDoubleValue {
                             value_token: R_DOUBLE_LITERAL@27..29 "2" [Newline("\n")] [],
                         },
@@ -128,17 +128,17 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@31..34 "{" [Newline("\n"), Newline("\n")] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RDoubleValue {
                             value_token: R_DOUBLE_LITERAL@34..36 "1" [Newline("\n")] [],
                         },
                         semicolon_token: missing (optional),
                     },
-                    RStatement {
+                    RExpressionStatement {
                         expression: RDoubleValue {
                             value_token: R_DOUBLE_LITERAL@36..38 "2" [Newline("\n")] [],
                         },
@@ -149,7 +149,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@40..43 "{" [Newline("\n"), Newline("\n")] [],
                 statements: RStatementList [],
@@ -157,17 +157,17 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@46..49 "{" [Newline("\n"), Newline("\n")] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RDoubleValue {
                             value_token: R_DOUBLE_LITERAL@49..53 "1" [Newline("\n"), Whitespace("  ")] [],
                         },
                         semicolon_token: missing (optional),
                     },
-                    RStatement {
+                    RExpressionStatement {
                         expression: RBinaryExpression {
                             left: RDoubleValue {
                                 value_token: R_DOUBLE_LITERAL@53..58 "2" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
@@ -179,7 +179,7 @@ RRoot {
                         },
                         semicolon_token: missing (optional),
                     },
-                    RStatement {
+                    RExpressionStatement {
                         expression: RBinaryExpression {
                             left: RDoubleValue {
                                 value_token: R_DOUBLE_LITERAL@61..66 "3" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
@@ -196,11 +196,11 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@75..100 "{" [Newline("\n"), Newline("\n"), Comments("# comment1"), Newline("\n")] [Whitespace(" "), Comments("# comment2")],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RDoubleValue {
                             value_token: R_DOUBLE_LITERAL@100..115 "1" [Newline("\n"), Whitespace("  ")] [Whitespace(" "), Comments("# comment3")],
                         },

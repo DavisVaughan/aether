@@ -23,7 +23,7 @@ for (x in y
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RForStatement {
                 for_token: FOR_KW@0..4 "for" [] [Whitespace(" ")],
                 l_paren_token: L_PAREN@4..5 "(" [] [],
@@ -41,7 +41,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RForStatement {
                 for_token: FOR_KW@16..22 "for" [Newline("\n"), Newline("\n")] [Whitespace(" ")],
                 l_paren_token: L_PAREN@22..23 "(" [] [],
@@ -62,7 +62,7 @@ RRoot {
                 body: RBracedStatements {
                     l_curly_token: L_CURLY@33..34 "{" [] [],
                     statements: RStatementList [
-                        RStatement {
+                        RExpressionStatement {
                             expression: RForStatement {
                                 for_token: FOR_KW@34..41 "for" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                                 l_paren_token: L_PAREN@41..42 "(" [] [],
@@ -77,7 +77,7 @@ RRoot {
                                 body: RBracedStatements {
                                     l_curly_token: L_CURLY@51..52 "{" [] [],
                                     statements: RStatementList [
-                                        RStatement {
+                                        RExpressionStatement {
                                             expression: RIdentifier {
                                                 name_token: IDENT@52..58 "z" [Newline("\n"), Whitespace("    ")] [],
                                             },
@@ -95,7 +95,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RForStatement {
                 for_token: FOR_KW@64..70 "for" [Newline("\n"), Newline("\n")] [Whitespace(" ")],
                 l_paren_token: L_PAREN@70..71 "(" [] [],
@@ -131,7 +131,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RForStatement {
                 for_token: FOR_KW@97..103 "for" [Newline("\n"), Newline("\n")] [Whitespace(" ")],
                 l_paren_token: L_PAREN@103..104 "(" [] [],
@@ -170,7 +170,7 @@ for (i in 1:5)
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RForStatement {
                 for_token: FOR_KW@0..4 "for" [] [Whitespace(" ")],
                 l_paren_token: L_PAREN@4..5 "(" [] [],
@@ -229,7 +229,7 @@ for # dangling1
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RForStatement {
                 for_token: FOR_KW@0..4 "for" [] [Whitespace(" ")],
                 l_paren_token: L_PAREN@4..5 "(" [] [],
@@ -247,7 +247,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RForStatement {
                 for_token: FOR_KW@14..20 "for" [Newline("\n"), Newline("\n")] [Whitespace(" ")],
                 l_paren_token: L_PAREN@20..21 "(" [] [],
@@ -265,7 +265,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RForStatement {
                 for_token: FOR_KW@70..87 "for" [Newline("\n"), Newline("\n")] [Whitespace(" "), Comments("# dangling1")],
                 l_paren_token: L_PAREN@87..103 "(" [Newline("\n"), Whitespace("  ")] [Whitespace(" "), Comments("# dangling2")],
@@ -301,7 +301,7 @@ for (..1 in 1:2) print(get("..1"))
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RForStatement {
                 for_token: FOR_KW@0..4 "for" [] [Whitespace(" ")],
                 l_paren_token: L_PAREN@4..5 "(" [] [],
@@ -353,7 +353,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RForStatement {
                 for_token: FOR_KW@34..39 "for" [Newline("\n")] [Whitespace(" ")],
                 l_paren_token: L_PAREN@39..40 "(" [] [],
@@ -420,7 +420,7 @@ for (1 in x) y
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RForStatement {
                 for_token: FOR_KW@0..4 "for" [] [Whitespace(" ")],
                 l_paren_token: L_PAREN@4..5 "(" [] [],
@@ -465,7 +465,7 @@ for (in x) y
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RForStatement {
                 for_token: FOR_KW@0..4 "for" [] [Whitespace(" ")],
                 l_paren_token: L_PAREN@4..5 "(" [] [],
@@ -506,7 +506,7 @@ for (i in) y
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RForStatement {
                 for_token: FOR_KW@0..4 "for" [] [Whitespace(" ")],
                 l_paren_token: L_PAREN@4..5 "(" [] [],

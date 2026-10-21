@@ -23,7 +23,7 @@ c <- \(fun, ...) fun(...)
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RIdentifier {
                     name_token: IDENT@0..2 "a" [] [Whitespace(" ")],
@@ -50,7 +50,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RIdentifier {
                     name_token: IDENT@15..18 "b" [Newline("\n")] [Whitespace(" ")],
@@ -105,7 +105,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RIdentifier {
                     name_token: IDENT@53..56 "c" [Newline("\n")] [Whitespace(" ")],
@@ -153,7 +153,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RBinaryExpression {
                     left: RBinaryExpression {
@@ -170,7 +170,7 @@ RRoot {
                         function: RBracedStatements {
                             l_curly_token: L_CURLY@87..88 "{" [] [],
                             statements: RStatementList [
-                                RStatement {
+                                RExpressionStatement {
                                     expression: RFunctionDefinition {
                                         name: BACKSLASH@88..89 "\\" [] [],
                                         parameters: RParameters {
@@ -224,7 +224,7 @@ RRoot {
                     function: RBracedStatements {
                         l_curly_token: L_CURLY@112..113 "{" [] [],
                         statements: RStatementList [
-                            RStatement {
+                            RExpressionStatement {
                                 expression: RFunctionDefinition {
                                     name: BACKSLASH@113..114 "\\" [] [],
                                     parameters: RParameters {
@@ -271,12 +271,12 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RCall {
                 function: RBracedStatements {
                     l_curly_token: L_CURLY@127..129 "{" [Newline("\n")] [],
                     statements: RStatementList [
-                        RStatement {
+                        RExpressionStatement {
                             expression: RFunctionDefinition {
                                 name: BACKSLASH@129..130 "\\" [] [],
                                 parameters: RParameters {
@@ -319,7 +319,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: BACKSLASH@146..148 "\\" [Newline("\n")] [],
                 parameters: RParameters {
@@ -339,7 +339,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: BACKSLASH@156..158 "\\" [Newline("\n")] [],
                 parameters: RParameters {
@@ -359,7 +359,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFunctionDefinition {
                 name: BACKSLASH@169..429 "\\" [Newline("\n"), Newline("\n"), Comments("# Not currently allow ..."), Newline("\n"), Comments("# `'\\\\'` would need t ..."), Newline("\n")] [],
                 parameters: RParameters {

@@ -21,13 +21,13 @@ apple
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RIdentifier {
                 name_token: IDENT@0..5 "apple" [] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RParenthesizedExpression {
                 l_paren_token: L_PAREN@5..7 "(" [Newline("\n")] [],
                 body: RIdentifier {
@@ -37,17 +37,17 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@14..17 "{" [Newline("\n"), Newline("\n")] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RIdentifier {
                             name_token: IDENT@17..25 "apple" [Newline("\n"), Whitespace("  ")] [],
                         },
                         semicolon_token: missing (optional),
                     },
-                    RStatement {
+                    RExpressionStatement {
                         expression: RParenthesizedExpression {
                             l_paren_token: L_PAREN@25..29 "(" [Newline("\n"), Whitespace("  ")] [],
                             body: RIdentifier {
@@ -62,7 +62,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RParenthesizedExpression {
                 l_paren_token: L_PAREN@38..41 "(" [Newline("\n"), Newline("\n")] [],
                 body: RCall {
@@ -101,13 +101,13 @@ RRoot {
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@0..2 "1" [] [Whitespace(" ")],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@2..3 "2" [] [],
             },
@@ -144,17 +144,17 @@ test.R:1:3 parse ━━━━━━━━━━━━━━━━━━━━━
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@0..2 "{" [] [Whitespace(" ")],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RDoubleValue {
                             value_token: R_DOUBLE_LITERAL@2..4 "1" [] [Whitespace(" ")],
                         },
                         semicolon_token: missing (optional),
                     },
-                    RStatement {
+                    RExpressionStatement {
                         expression: RDoubleValue {
                             value_token: R_DOUBLE_LITERAL@4..6 "2" [] [Whitespace(" ")],
                         },
@@ -199,13 +199,13 @@ Lexer's `after_line_break` flag is sticky across trivia
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@0..5 "1" [] [Whitespace(" "), Comments("# c")],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@5..7 "2" [Newline("\n")] [],
             },

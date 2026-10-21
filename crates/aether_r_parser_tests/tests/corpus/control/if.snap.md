@@ -23,7 +23,7 @@ if (
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@0..3 "if" [] [Whitespace(" ")],
                 l_paren_token: L_PAREN@3..4 "(" [] [],
@@ -52,7 +52,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@15..20 "if" [Newline("\n"), Newline("\n")] [Whitespace(" ")],
                 l_paren_token: L_PAREN@20..21 "(" [] [],
@@ -63,7 +63,7 @@ RRoot {
                 consequence: RBracedStatements {
                     l_curly_token: L_CURLY@26..27 "{" [] [],
                     statements: RStatementList [
-                        RStatement {
+                        RExpressionStatement {
                             expression: RCall {
                                 function: RIdentifier {
                                     name_token: IDENT@27..33 "log" [Newline("\n"), Whitespace("  ")] [],
@@ -83,7 +83,7 @@ RRoot {
                             },
                             semicolon_token: missing (optional),
                         },
-                        RStatement {
+                        RExpressionStatement {
                             expression: RIdentifier {
                                 name_token: IDENT@36..40 "d" [Newline("\n"), Whitespace("  ")] [],
                             },
@@ -96,7 +96,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@42..47 "if" [Newline("\n"), Newline("\n")] [Whitespace(" ")],
                 l_paren_token: L_PAREN@47..48 "(" [] [],
@@ -113,7 +113,7 @@ RRoot {
                 consequence: RBracedStatements {
                     l_curly_token: L_CURLY@61..62 "{" [] [],
                     statements: RStatementList [
-                        RStatement {
+                        RExpressionStatement {
                             expression: RIdentifier {
                                 name_token: IDENT@62..66 "z" [Newline("\n"), Whitespace("  ")] [],
                             },
@@ -154,7 +154,7 @@ if (a) {
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@0..3 "if" [] [Whitespace(" ")],
                 l_paren_token: L_PAREN@3..4 "(" [] [],
@@ -183,7 +183,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@26..31 "if" [Newline("\n"), Newline("\n")] [Whitespace(" ")],
                 l_paren_token: L_PAREN@31..32 "(" [] [],
@@ -217,7 +217,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@61..66 "if" [Newline("\n"), Newline("\n")] [Whitespace(" ")],
                 l_paren_token: L_PAREN@66..67 "(" [] [],
@@ -228,13 +228,13 @@ RRoot {
                 consequence: RBracedStatements {
                     l_curly_token: L_CURLY@70..71 "{" [] [],
                     statements: RStatementList [
-                        RStatement {
+                        RExpressionStatement {
                             expression: RIdentifier {
                                 name_token: IDENT@71..75 "c" [Newline("\n"), Whitespace("  ")] [],
                             },
                             semicolon_token: missing (optional),
                         },
-                        RStatement {
+                        RExpressionStatement {
                             expression: RIdentifier {
                                 name_token: IDENT@75..79 "d" [Newline("\n"), Whitespace("  ")] [],
                             },
@@ -248,7 +248,7 @@ RRoot {
                     alternative: RBracedStatements {
                         l_curly_token: L_CURLY@87..88 "{" [] [],
                         statements: RStatementList [
-                            RStatement {
+                            RExpressionStatement {
                                 expression: RIdentifier {
                                     name_token: IDENT@88..92 "e" [Newline("\n"), Whitespace("  ")] [],
                                 },
@@ -288,7 +288,7 @@ else
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@0..83 "if" [Comments("# Invalid at top leve ..."), Newline("\n")] [Whitespace(" ")],
                 l_paren_token: L_PAREN@83..84 "(" [] [],
@@ -299,7 +299,7 @@ RRoot {
                 consequence: RBracedStatements {
                     l_curly_token: L_CURLY@90..91 "{" [] [],
                     statements: RStatementList [
-                        RStatement {
+                        RExpressionStatement {
                             expression: RDoubleValue {
                                 value_token: R_DOUBLE_LITERAL@91..95 "1" [Newline("\n"), Whitespace("  ")] [],
                             },
@@ -312,7 +312,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBogusExpression {
                 items: [
                     ELSE_KW@97..103 "else" [Newline("\n")] [Whitespace(" ")],
@@ -321,13 +321,13 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@104..108 "2" [Newline("\n"), Whitespace("  ")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBogusExpression {
                 items: [
                     R_CURLY@108..110 "}" [Newline("\n")] [],
@@ -335,7 +335,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@110..150 "if" [Newline("\n"), Newline("\n"), Comments("# Invalid for same re ..."), Newline("\n")] [Whitespace(" ")],
                 l_paren_token: L_PAREN@150..151 "(" [] [],
@@ -350,7 +350,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBogusExpression {
                 items: [
                     ELSE_KW@160..165 "else" [Newline("\n")] [],
@@ -358,7 +358,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@165..169 "2" [Newline("\n"), Whitespace("  ")] [],
             },
@@ -475,11 +475,11 @@ if (TRUE) 1 else
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@0..70 "{" [Comments("# Valid inside `{` on ..."), Newline("\n")] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RIfStatement {
                             if_token: IF_KW@70..76 "if" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                             l_paren_token: L_PAREN@76..77 "(" [] [],
@@ -490,7 +490,7 @@ RRoot {
                             consequence: RBracedStatements {
                                 l_curly_token: L_CURLY@83..84 "{" [] [],
                                 statements: RStatementList [
-                                    RStatement {
+                                    RExpressionStatement {
                                         expression: RDoubleValue {
                                             value_token: R_DOUBLE_LITERAL@84..90 "1" [Newline("\n"), Whitespace("    ")] [],
                                         },
@@ -504,7 +504,7 @@ RRoot {
                                 alternative: RBracedStatements {
                                     l_curly_token: L_CURLY@102..103 "{" [] [],
                                     statements: RStatementList [
-                                        RStatement {
+                                        RExpressionStatement {
                                             expression: RDoubleValue {
                                                 value_token: R_DOUBLE_LITERAL@103..109 "2" [Newline("\n"), Whitespace("    ")] [],
                                             },
@@ -522,11 +522,11 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@115..169 "{" [Newline("\n"), Newline("\n"), Comments("# Valid with comments ..."), Newline("\n")] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RIfStatement {
                             if_token: IF_KW@169..175 "if" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                             l_paren_token: L_PAREN@175..176 "(" [] [],
@@ -537,7 +537,7 @@ RRoot {
                             consequence: RBracedStatements {
                                 l_curly_token: L_CURLY@182..183 "{" [] [],
                                 statements: RStatementList [
-                                    RStatement {
+                                    RExpressionStatement {
                                         expression: RDoubleValue {
                                             value_token: R_DOUBLE_LITERAL@183..189 "1" [Newline("\n"), Whitespace("    ")] [],
                                         },
@@ -551,7 +551,7 @@ RRoot {
                                 alternative: RBracedStatements {
                                     l_curly_token: L_CURLY@233..234 "{" [] [],
                                     statements: RStatementList [
-                                        RStatement {
+                                        RExpressionStatement {
                                             expression: RDoubleValue {
                                                 value_token: R_DOUBLE_LITERAL@234..240 "2" [Newline("\n"), Whitespace("    ")] [],
                                             },
@@ -569,11 +569,11 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@246..349 "{" [Newline("\n"), Newline("\n"), Comments("# Valid. This test en ..."), Newline("\n")] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RIfStatement {
                             if_token: IF_KW@349..355 "if" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                             l_paren_token: L_PAREN@355..356 "(" [] [],
@@ -599,7 +599,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@374..496 "if" [Newline("\n"), Newline("\n"), Comments("# Valid. Newlines are ..."), Newline("\n")] [Whitespace(" ")],
                 l_paren_token: L_PAREN@496..497 "(" [] [],
@@ -610,7 +610,7 @@ RRoot {
                 consequence: RBracedStatements {
                     l_curly_token: L_CURLY@503..504 "{" [] [],
                     statements: RStatementList [
-                        RStatement {
+                        RExpressionStatement {
                             expression: RDoubleValue {
                                 value_token: R_DOUBLE_LITERAL@504..508 "1" [Newline("\n"), Whitespace("  ")] [],
                             },
@@ -624,7 +624,7 @@ RRoot {
                     alternative: RBracedStatements {
                         l_curly_token: L_CURLY@515..517 "{" [Newline("\n")] [],
                         statements: RStatementList [
-                            RStatement {
+                            RExpressionStatement {
                                 expression: RDoubleValue {
                                     value_token: R_DOUBLE_LITERAL@517..521 "2" [Newline("\n"), Whitespace("  ")] [],
                                 },
@@ -637,11 +637,11 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@523..611 "{" [Newline("\n"), Newline("\n"), Comments("# Valid. Same as abov ..."), Newline("\n")] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RIfStatement {
                             if_token: IF_KW@611..617 "if" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                             l_paren_token: L_PAREN@617..618 "(" [] [],
@@ -652,7 +652,7 @@ RRoot {
                             consequence: RBracedStatements {
                                 l_curly_token: L_CURLY@624..625 "{" [] [],
                                 statements: RStatementList [
-                                    RStatement {
+                                    RExpressionStatement {
                                         expression: RDoubleValue {
                                             value_token: R_DOUBLE_LITERAL@625..631 "1" [Newline("\n"), Whitespace("    ")] [],
                                         },
@@ -666,7 +666,7 @@ RRoot {
                                 alternative: RBracedStatements {
                                     l_curly_token: L_CURLY@640..644 "{" [Newline("\n"), Whitespace("  ")] [],
                                     statements: RStatementList [
-                                        RStatement {
+                                        RExpressionStatement {
                                             expression: RDoubleValue {
                                                 value_token: R_DOUBLE_LITERAL@644..650 "2" [Newline("\n"), Whitespace("    ")] [],
                                             },
@@ -684,7 +684,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@656..765 "if" [Newline("\n"), Newline("\n"), Comments("# Valid. Newlines and ..."), Newline("\n")] [Whitespace(" ")],
                 l_paren_token: L_PAREN@765..766 "(" [] [],
@@ -695,7 +695,7 @@ RRoot {
                 consequence: RBracedStatements {
                     l_curly_token: L_CURLY@772..773 "{" [] [],
                     statements: RStatementList [
-                        RStatement {
+                        RExpressionStatement {
                             expression: RDoubleValue {
                                 value_token: R_DOUBLE_LITERAL@773..777 "1" [Newline("\n"), Whitespace("  ")] [],
                             },
@@ -709,7 +709,7 @@ RRoot {
                     alternative: RBracedStatements {
                         l_curly_token: L_CURLY@784..809 "{" [Newline("\n"), Newline("\n"), Comments("# do this alternative"), Newline("\n")] [],
                         statements: RStatementList [
-                            RStatement {
+                            RExpressionStatement {
                                 expression: RDoubleValue {
                                     value_token: R_DOUBLE_LITERAL@809..813 "2" [Newline("\n"), Whitespace("  ")] [],
                                 },
@@ -722,7 +722,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@815..911 "if" [Newline("\n"), Newline("\n"), Comments("# Valid. Newlines are ..."), Newline("\n")] [Whitespace(" ")],
                 l_paren_token: L_PAREN@911..912 "(" [] [],
@@ -794,11 +794,11 @@ RRoot {
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@0..16 "{" [Comments("# ASCII letter"), Newline("\n")] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RIfStatement {
                             if_token: IF_KW@16..22 "if" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                             l_paren_token: L_PAREN@22..23 "(" [] [],
@@ -813,7 +813,7 @@ RRoot {
                         },
                         semicolon_token: missing (optional),
                     },
-                    RStatement {
+                    RExpressionStatement {
                         expression: RBinaryExpression {
                             left: RIdentifier {
                                 name_token: IDENT@30..41 "elseidx" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
@@ -830,11 +830,11 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@47..65 "{" [Newline("\n"), Newline("\n"), Comments("# ASCII number"), Newline("\n")] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RIfStatement {
                             if_token: IF_KW@65..71 "if" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                             l_paren_token: L_PAREN@71..72 "(" [] [],
@@ -849,7 +849,7 @@ RRoot {
                         },
                         semicolon_token: missing (optional),
                     },
-                    RStatement {
+                    RExpressionStatement {
                         expression: RBinaryExpression {
                             left: RIdentifier {
                                 name_token: IDENT@79..91 "else1idx" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
@@ -866,11 +866,11 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@97..112 "{" [Newline("\n"), Newline("\n"), Comments("# ASCII `_`"), Newline("\n")] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RIfStatement {
                             if_token: IF_KW@112..118 "if" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                             l_paren_token: L_PAREN@118..119 "(" [] [],
@@ -885,7 +885,7 @@ RRoot {
                         },
                         semicolon_token: missing (optional),
                     },
-                    RStatement {
+                    RExpressionStatement {
                         expression: RBinaryExpression {
                             left: RIdentifier {
                                 name_token: IDENT@126..138 "else_idx" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
@@ -902,11 +902,11 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@144..159 "{" [Newline("\n"), Newline("\n"), Comments("# ASCII `.`"), Newline("\n")] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RIfStatement {
                             if_token: IF_KW@159..165 "if" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                             l_paren_token: L_PAREN@165..166 "(" [] [],
@@ -921,7 +921,7 @@ RRoot {
                         },
                         semicolon_token: missing (optional),
                     },
-                    RStatement {
+                    RExpressionStatement {
                         expression: RBinaryExpression {
                             left: RIdentifier {
                                 name_token: IDENT@173..185 "else.idx" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
@@ -938,11 +938,11 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@191..329 "{" [Newline("\n"), Newline("\n"), Comments("# Non-ASCII, but cons ..."), Newline("\n"), Comments("# Our lexer uses `XID ..."), Newline("\n")] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RIfStatement {
                             if_token: IF_KW@329..335 "if" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                             l_paren_token: L_PAREN@335..336 "(" [] [],
@@ -957,7 +957,7 @@ RRoot {
                         },
                         semicolon_token: missing (optional),
                     },
-                    RStatement {
+                    RExpressionStatement {
                         expression: RBinaryExpression {
                             left: RIdentifier {
                                 name_token: IDENT@343..353 "elseμ" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
@@ -974,11 +974,11 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@359..539 "{" [Newline("\n"), Newline("\n"), Comments("# Non-ASCII (U+00B7), ..."), Newline("\n"), Comments("# `XID_Continue` allo ..."), Newline("\n"), Comments("# syntax error."), Newline("\n")] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RIfStatement {
                             if_token: IF_KW@539..545 "if" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
                             l_paren_token: L_PAREN@545..546 "(" [] [],
@@ -993,7 +993,7 @@ RRoot {
                         },
                         semicolon_token: missing (optional),
                     },
-                    RStatement {
+                    RExpressionStatement {
                         expression: RBinaryExpression {
                             left: RIdentifier {
                                 name_token: IDENT@553..563 "else·" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
@@ -1030,7 +1030,7 @@ if (TRUE) {
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@0..188 "if" [Comments("# Correctly treats `e ..."), Newline("\n"), Comments("# which also throws a ..."), Newline("\n"), Comments("# See r-lib/tree-sitt ..."), Newline("\n")] [Whitespace(" ")],
                 l_paren_token: L_PAREN@188..189 "(" [] [],
@@ -1041,7 +1041,7 @@ RRoot {
                 consequence: RBracedStatements {
                     l_curly_token: L_CURLY@195..196 "{" [] [],
                     statements: RStatementList [
-                        RStatement {
+                        RExpressionStatement {
                             expression: RDoubleValue {
                                 value_token: R_DOUBLE_LITERAL@196..200 "1" [Newline("\n"), Whitespace("  ")] [],
                             },
@@ -1054,7 +1054,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIdentifier {
                 name_token: IDENT@203..209 "else.x" [] [],
             },
@@ -1101,7 +1101,7 @@ if # comment1
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@0..13 "if" [] [Whitespace(" "), Comments("# comment1")],
                 l_paren_token: L_PAREN@13..17 "(" [Newline("\n"), Whitespace("  ")] [],
@@ -1138,7 +1138,7 @@ if (a) 1 else if (b) 2 else 3
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@0..3 "if" [] [Whitespace(" ")],
                 l_paren_token: L_PAREN@3..4 "(" [] [],
@@ -1153,7 +1153,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@8..12 "if" [Newline("\n")] [Whitespace(" ")],
                 l_paren_token: L_PAREN@12..13 "(" [] [],
@@ -1173,7 +1173,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@24..28 "if" [Newline("\n")] [Whitespace(" ")],
                 l_paren_token: L_PAREN@28..29 "(" [] [],
@@ -1222,7 +1222,7 @@ if (a) if (b) c else d
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@0..3 "if" [] [Whitespace(" ")],
                 l_paren_token: L_PAREN@3..4 "(" [] [],
@@ -1270,7 +1270,7 @@ if (a) b else c ? d
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RIfStatement {
                     if_token: IF_KW@0..3 "if" [] [Whitespace(" ")],
@@ -1291,7 +1291,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RIfStatement {
                     if_token: IF_KW@12..16 "if" [Newline("\n")] [Whitespace(" ")],
@@ -1333,7 +1333,7 @@ if (a) b <- c else d
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@0..3 "if" [] [Whitespace(" ")],
                 l_paren_token: L_PAREN@3..4 "(" [] [],
@@ -1359,7 +1359,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RDoubleValue {
                     value_token: R_DOUBLE_LITERAL@20..23 "1" [Newline("\n")] [Whitespace(" ")],
@@ -1398,7 +1398,7 @@ else 2
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@0..3 "if" [] [Whitespace(" ")],
                 l_paren_token: L_PAREN@3..4 "(" [] [],
@@ -1413,7 +1413,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBogusExpression {
                 items: [
                     ELSE_KW@8..14 "else" [Newline("\n")] [Whitespace(" ")],
@@ -1451,7 +1451,7 @@ f(if (a) 1
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RCall {
                 function: RIdentifier {
                     name_token: IDENT@0..1 "f" [] [],
@@ -1499,7 +1499,7 @@ x[if (a) 1
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RSubset {
                 function: RIdentifier {
                     name_token: IDENT@0..1 "x" [] [],
@@ -1547,7 +1547,7 @@ x[[if (a) 1
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RSubset2 {
                 function: RIdentifier {
                     name_token: IDENT@0..1 "x" [] [],
@@ -1599,7 +1599,7 @@ if (a) 1 else
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@0..3 "if" [] [Whitespace(" ")],
                 l_paren_token: L_PAREN@3..4 "(" [] [],
@@ -1634,7 +1634,7 @@ if () 1
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@0..3 "if" [] [Whitespace(" ")],
                 l_paren_token: L_PAREN@3..4 "(" [] [],

@@ -10,7 +10,7 @@ repeat 1
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RRepeatStatement {
                 repeat_token: REPEAT_KW@0..7 "repeat" [] [Whitespace(" ")],
                 body: RDoubleValue {
@@ -34,7 +34,7 @@ repeat
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RRepeatStatement {
                 repeat_token: REPEAT_KW@0..6 "repeat" [] [],
                 body: missing (required),
@@ -71,7 +71,7 @@ repeat {
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RRepeatStatement {
                 repeat_token: REPEAT_KW@0..7 "repeat" [] [Whitespace(" ")],
                 body: RBracedStatements {
@@ -82,13 +82,13 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RRepeatStatement {
                 repeat_token: REPEAT_KW@10..19 "repeat" [Newline("\n"), Newline("\n")] [Whitespace(" ")],
                 body: RBracedStatements {
                     l_curly_token: L_CURLY@19..20 "{" [] [],
                     statements: RStatementList [
-                        RStatement {
+                        RExpressionStatement {
                             expression: RBinaryExpression {
                                 left: RDoubleValue {
                                     value_token: R_DOUBLE_LITERAL@20..25 "1" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],

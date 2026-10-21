@@ -16,13 +16,13 @@
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RStringValue {
                 value: R_SINGLE_QUOTED_STRING_LITERAL@0..31 "'# not a comment'" [Comments("# a comment'"), Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RStringValue {
                 value: R_SINGLE_QUOTED_STRING_LITERAL@31..58 "'\n# still not a comment'" [Newline("\n"), Newline("\n"), Newline("\n")] [],
             },
@@ -45,7 +45,7 @@ RRoot {
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RDoubleValue {
                     value_token: R_DOUBLE_LITERAL@0..12 "1" [Comments("# Leading"), Newline("\n")] [Whitespace(" ")],
@@ -73,7 +73,7 @@ RRoot {
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@0..46 "1" [Comments("# héllo wörld 日本 ..."), Newline("\n")] [],
             },

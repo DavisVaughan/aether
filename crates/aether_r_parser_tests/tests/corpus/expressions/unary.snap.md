@@ -18,7 +18,7 @@ foo(-a, bar)
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RUnaryExpression {
                 operator: BANG@0..1 "!" [] [],
                 argument: RIdentifier {
@@ -27,7 +27,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RUnaryExpression {
                 operator: PLUS@2..4 "+" [Newline("\n")] [],
                 argument: RIdentifier {
@@ -36,7 +36,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RUnaryExpression {
                 operator: MINUS@5..7 "-" [Newline("\n")] [],
                 argument: RIdentifier {
@@ -45,7 +45,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RCall {
                 function: RIdentifier {
                     name_token: IDENT@8..12 "foo" [Newline("\n")] [],
@@ -78,7 +78,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RCall {
                 function: RIdentifier {
                     name_token: IDENT@20..24 "foo" [Newline("\n")] [],
@@ -108,7 +108,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RUnaryExpression {
                 operator: BANG@33..36 "!" [Newline("\n"), Newline("\n")] [],
                 argument: RIdentifier {
@@ -117,7 +117,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RUnaryExpression {
                 operator: MINUS@40..44 "-" [Newline("\n")] [Whitespace("  ")],
                 argument: RIdentifier {
@@ -158,7 +158,7 @@ RRoot {
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RUnaryExpression {
                 operator: PLUS@0..1 "+" [] [],
                 argument: RDoubleValue {
@@ -167,7 +167,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RUnaryExpression {
                 operator: MINUS@2..4 "-" [Newline("\n")] [],
                 argument: RDoubleValue {
@@ -176,7 +176,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RUnaryExpression {
                 operator: TILDE@5..7 "~" [Newline("\n")] [],
                 argument: RDoubleValue {
@@ -185,7 +185,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RUnaryExpression {
                 operator: WAT@8..10 "?" [Newline("\n")] [],
                 argument: RDoubleValue {
@@ -194,7 +194,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RUnaryExpression {
                 operator: BANG@11..13 "!" [Newline("\n")] [],
                 argument: RDoubleValue {
@@ -203,7 +203,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RUnaryExpression {
                 operator: PLUS@14..17 "+" [Newline("\n"), Newline("\n")] [],
                 argument: RDoubleValue {
@@ -212,7 +212,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RUnaryExpression {
                 operator: PLUS@19..32 "+" [Newline("\n"), Newline("\n")] [Whitespace(" "), Comments("# Comment")],
                 argument: RDoubleValue {
@@ -221,7 +221,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RUnaryExpression {
                 operator: PLUS@34..37 "+" [Newline("\n"), Newline("\n")] [],
                 argument: RUnaryExpression {
@@ -233,7 +233,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RDoubleValue {
                     value_token: R_DOUBLE_LITERAL@61..65 "1" [Newline("\n"), Newline("\n")] [Whitespace(" ")],
