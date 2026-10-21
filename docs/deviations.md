@@ -30,34 +30,36 @@ it off the statement before it:
 
 ```
 RStatementList [
-    RStatement {
+    RExpressionStatement {
         expression: RDoubleValue { value_token: R_DOUBLE_LITERAL@0..1 "1" [] [] },
         semicolon_token: SEMICOLON@1..2 ";" [] [],
     },
-    RStatement {
+    RExpressionStatement {
         expression: RDoubleValue { value_token: R_DOUBLE_LITERAL@2..3 "2" [] [] },
         semicolon_token: missing (optional),
     },
 ]
 ```
 
-Both of `RStatement`'s slots are optional, the same trick `RArgument` uses,
-because R allows `;;` and a leading `;` inside `{}`:
+R allows `;;` and a leading `;` inside `{}`, so a `;` can also stand alone. A
+statement is one of two nodes, following Biome's `JsExpressionStatement` and
+`JsEmptyStatement`:
 
 ```r
-;        # RStatement { expression: missing, semicolon: ";" }
-1        # RStatement { expression: 1,       semicolon: missing }
-1;       # RStatement { expression: 1,       semicolon: ";" }
+1        # RExpressionStatement { expression: 1, semicolon: missing }
+1;       # RExpressionStatement { expression: 1, semicolon: ";" }
+;        # REmptyStatement { semicolon: ";" }
 ```
 
-A statement with neither slot filled is never produced.
+An `RExpressionStatement` always has an expression. When the parser can't read
+one, the slot holds an `RBogusExpression`.
 
 A `;` belongs to the expression before it only when no newline intervenes. R's
 `prog` offers `expr '\n'` and `expr ';'` as alternatives, so whichever terminator
 arrives first is the one that ends the expression: `1;` is one expression, `1\n;`
-is `2:1: unexpected ';'`. So a `;` on a new line gets an `RStatement` of its own.
-That also leaves any blank line above it in the statement's leading trivia,
-rather than inside a token the formatter is about to delete.
+is `2:1: unexpected ';'`. So a `;` on a new line gets an `REmptyStatement` of its
+own. That also leaves any blank line above it in the empty statement's leading
+trivia, rather than inside a token the formatter is about to delete.
 
 Agreed formatting: remove the semicolon and hard-break the line, so `1;2` becomes
 two lines.
@@ -79,13 +81,15 @@ of expressions, so `RExpressionList` is replaced rather than kept alongside:
 
 For air, that means:
 
-- Iterating an `RStatementList` yields `RStatement`, not `AnyRExpression`. Every
-  walk gains a `.expression()` hop to reach the payload.
+- Iterating an `RStatementList` yields `AnyRStatement`, not `AnyRExpression`.
+  Reaching the payload takes `as_r_expression_statement()`, then
+  `.expression()`.
 
 - `RRoot::statements()` and `RBracedStatements::statements()` replace
   `.expressions()`.
 
-- `RStatement::semicolon_token()` is the hook for dropping the `;`.
+- `RExpressionStatement::semicolon_token()` is the hook for dropping the `;`.
+  An `REmptyStatement` always formats to nothing.
 
 - The `AnyRExpression::RBracedExpressions` variant is renamed, and the formatter
   rule file `r/expressions/braced_expressions.rs` becomes `braced_statements.rs`.
@@ -596,8 +600,8 @@ tree-sitter-r's `program` is a bare repetition and its `;` is trivia, so it
 accepts every row of both columns. Aether reports ``Unexpected `;`.`` on the
 top-level half and accepts the braced half, which is R's rule exactly.
 
-The condition is one line to state: an `RStatement` with no expression is an
-error at top level. That's precisely the set R rejects, so the rule needs no case
+The condition is one line to state: an `REmptyStatement` is an error at top
+level. That's precisely the set R rejects, so the rule needs no case
 analysis beyond the scope it's in. No shape change: the `;` is still a token on a
 statement of its own.
 
