@@ -17,7 +17,7 @@ foo$..1
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@0..3 "foo" [] [],
@@ -29,7 +29,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RExtractExpression {
                     left: RIdentifier {
@@ -47,7 +47,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RExtractExpression {
                     left: RIdentifier {
@@ -65,7 +65,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RCall {
                 function: RExtractExpression {
                     left: RIdentifier {
@@ -84,7 +84,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@41..45 "foo" [Newline("\n")] [],
@@ -96,7 +96,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RSubset2 {
                     function: RExtractExpression {
@@ -141,7 +141,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@74..78 "foo" [Newline("\n")] [],
@@ -153,7 +153,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@82..86 "foo" [Newline("\n")] [],
@@ -185,7 +185,7 @@ foo@..1
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@0..3 "foo" [] [],
@@ -197,7 +197,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RExtractExpression {
                     left: RIdentifier {
@@ -215,7 +215,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RCall {
                 function: RExtractExpression {
                     left: RIdentifier {
@@ -234,7 +234,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@29..33 "foo" [Newline("\n")] [],
@@ -246,7 +246,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@39..43 "foo" [Newline("\n")] [],
@@ -258,7 +258,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@47..51 "foo" [Newline("\n")] [],
@@ -291,7 +291,7 @@ foo:::{bar}
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@0..199 "foo" [Comments("# The RHS of these no ..."), Newline("\n"), Comments("# node here alongside ..."), Newline("\n"), Comments("# useful for completi ..."), Newline("\n")] [],
@@ -301,11 +301,11 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@200..201 "{" [] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RIdentifier {
                             name_token: IDENT@201..204 "bar" [] [],
                         },
@@ -316,7 +316,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@205..209 "foo" [Newline("\n")] [],
@@ -326,11 +326,11 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@210..211 "{" [] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RIdentifier {
                             name_token: IDENT@211..214 "bar" [] [],
                         },
@@ -341,7 +341,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RNamespaceExpression {
                 left: RIdentifier {
                     name_token: IDENT@215..219 "foo" [Newline("\n")] [],
@@ -351,11 +351,11 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@221..222 "{" [] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RIdentifier {
                             name_token: IDENT@222..225 "bar" [] [],
                         },
@@ -366,7 +366,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RNamespaceExpression {
                 left: RIdentifier {
                     name_token: IDENT@226..230 "foo" [Newline("\n")] [],
@@ -376,11 +376,11 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@233..234 "{" [] [],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RIdentifier {
                             name_token: IDENT@234..237 "bar" [] [],
                         },
@@ -486,7 +486,7 @@ foo$
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@0..3 "foo" [] [],
@@ -527,7 +527,7 @@ foo@
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@0..3 "foo" [] [],
@@ -574,7 +574,7 @@ foo:::if
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@0..238 "foo" [Comments("# The RHS's of these  ..."), Newline("\n"), Comments("# is left empty and t ..."), Newline("\n"), Comments("# because it doesn't  ..."), Newline("\n")] [],
@@ -584,7 +584,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@239..241 "if" [] [],
                 l_paren_token: missing (required),
@@ -794,13 +794,13 @@ x
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RIdentifier {
                 name_token: IDENT@0..76 "x" [Comments("# Newlines are not al ..."), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBogusExpression {
                 items: [
                     DOLLAR@76..78 "$" [Newline("\n")] [],
@@ -809,13 +809,13 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIdentifier {
                 name_token: IDENT@79..82 "x" [Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBogusExpression {
                 items: [
                     AT@82..84 "@" [Newline("\n")] [],
@@ -824,13 +824,13 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIdentifier {
                 name_token: IDENT@85..88 "x" [Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBogusExpression {
                 items: [
                     COLON2@88..91 "::" [Newline("\n")] [],
@@ -839,13 +839,13 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIdentifier {
                 name_token: IDENT@92..95 "x" [Newline("\n"), Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBogusExpression {
                 items: [
                     COLON3@95..99 ":::" [Newline("\n")] [],
@@ -936,7 +936,7 @@ a@..10
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@0..1 "a" [] [],
@@ -948,7 +948,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@3..5 "a" [Newline("\n")] [],
@@ -960,7 +960,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@7..10 "a" [Newline("\n"), Newline("\n")] [],
@@ -972,7 +972,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@14..16 "a" [Newline("\n")] [],
@@ -984,7 +984,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@20..23 "a" [Newline("\n"), Newline("\n")] [],
@@ -996,7 +996,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@27..29 "a" [Newline("\n")] [],
@@ -1008,7 +1008,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RCall {
                     function: RIdentifier {
@@ -1027,7 +1027,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RCall {
                     function: RIdentifier {
@@ -1046,7 +1046,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RExtractExpression {
                     left: RIdentifier {
@@ -1064,7 +1064,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RExtractExpression {
                     left: RIdentifier {
@@ -1082,7 +1082,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RCall {
                 function: RExtractExpression {
                     left: RIdentifier {
@@ -1101,7 +1101,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RCall {
                 function: RExtractExpression {
                     left: RIdentifier {
@@ -1120,7 +1120,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@72..75 "a" [Newline("\n"), Newline("\n")] [],
@@ -1132,7 +1132,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@79..81 "a" [Newline("\n")] [],
@@ -1144,7 +1144,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@85..88 "a" [Newline("\n"), Newline("\n")] [],
@@ -1156,7 +1156,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@92..94 "a" [Newline("\n")] [],
@@ -1168,7 +1168,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@98..101 "a" [Newline("\n"), Newline("\n")] [],
@@ -1180,7 +1180,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@106..108 "a" [Newline("\n")] [],
@@ -1221,7 +1221,7 @@ a@{ b }
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@0..1 "a" [] [],
@@ -1231,13 +1231,13 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@2..3 "1" [] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@3..5 "a" [Newline("\n")] [],
@@ -1247,13 +1247,13 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RNaExpression {
                 value: NA_LOGICAL_KW@6..8 "NA" [] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@8..10 "a" [Newline("\n")] [],
@@ -1263,13 +1263,13 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RNullExpression {
                 null_token: NULL_KW@11..15 "NULL" [] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@15..17 "a" [Newline("\n")] [],
@@ -1279,13 +1279,13 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RTrueExpression {
                 true_token: TRUE_KW@18..22 "TRUE" [] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RCall {
                 function: RExtractExpression {
                     left: RIdentifier {
@@ -1309,7 +1309,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@28..30 "a" [Newline("\n")] [],
@@ -1319,11 +1319,11 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@31..33 "{" [] [Whitespace(" ")],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RIdentifier {
                             name_token: IDENT@33..35 "b" [] [Whitespace(" ")],
                         },
@@ -1334,7 +1334,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@36..39 "a" [Newline("\n"), Newline("\n")] [],
@@ -1344,13 +1344,13 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@40..41 "1" [] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@41..43 "a" [Newline("\n")] [],
@@ -1360,13 +1360,13 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RNaExpression {
                 value: NA_LOGICAL_KW@44..46 "NA" [] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@46..48 "a" [Newline("\n")] [],
@@ -1376,13 +1376,13 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RNullExpression {
                 null_token: NULL_KW@49..53 "NULL" [] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@53..55 "a" [Newline("\n")] [],
@@ -1392,13 +1392,13 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RTrueExpression {
                 true_token: TRUE_KW@56..60 "TRUE" [] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RCall {
                 function: RExtractExpression {
                     left: RIdentifier {
@@ -1422,7 +1422,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@66..68 "a" [Newline("\n")] [],
@@ -1432,11 +1432,11 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBracedStatements {
                 l_curly_token: L_CURLY@69..71 "{" [] [Whitespace(" ")],
                 statements: RStatementList [
-                    RStatement {
+                    RExpressionStatement {
                         expression: RIdentifier {
                             name_token: IDENT@71..73 "b" [] [Whitespace(" ")],
                         },
@@ -1695,7 +1695,7 @@ df$
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RIdentifier {
                     name_token: IDENT@0..2 "df" [] [],

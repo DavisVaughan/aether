@@ -17,7 +17,7 @@ fn((a), (b))
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RParenthesizedExpression {
                 l_paren_token: L_PAREN@0..1 "(" [] [],
                 body: RDoubleValue {
@@ -27,7 +27,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RParenthesizedExpression {
                 l_paren_token: L_PAREN@3..5 "(" [Newline("\n")] [],
                 body: RParenthesizedExpression {
@@ -41,7 +41,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RParenthesizedExpression {
                 l_paren_token: L_PAREN@9..11 "(" [Newline("\n")] [],
                 body: RBinaryExpression {
@@ -57,7 +57,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RParenthesizedExpression {
                 l_paren_token: L_PAREN@17..19 "(" [Newline("\n")] [],
                 body: RCall {
@@ -88,7 +88,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RCall {
                 function: RIdentifier {
                     name_token: IDENT@28..31 "fn" [Newline("\n")] [],
@@ -123,7 +123,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RParenthesizedExpression {
                 l_paren_token: L_PAREN@41..43 "(" [Newline("\n")] [],
                 body: RFunctionDefinition {
@@ -136,7 +136,7 @@ RRoot {
                     body: RBracedStatements {
                         l_curly_token: L_CURLY@54..55 "{" [] [],
                         statements: RStatementList [
-                            RStatement {
+                            RExpressionStatement {
                                 expression: RIdentifier {
                                     name_token: IDENT@55..62 "body" [Newline("\n"), Whitespace("  ")] [],
                                 },
@@ -165,7 +165,7 @@ RRoot {
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RParenthesizedExpression {
                 l_paren_token: L_PAREN@0..1 "(" [] [],
                 body: missing (required),
@@ -201,7 +201,7 @@ test.R:1:2 parse ━━━━━━━━━━━━━━━━━━━━━
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RParenthesizedExpression {
                 l_paren_token: L_PAREN@0..1 "(" [] [],
                 body: RDoubleValue {
@@ -211,13 +211,13 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@5..9 "2" [Newline("\n"), Whitespace("  ")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBogusExpression {
                 items: [
                     R_PAREN@9..11 ")" [Newline("\n")] [],
@@ -265,7 +265,7 @@ test.R:4:1 parse ━━━━━━━━━━━━━━━━━━━━━
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RParenthesizedExpression {
                 l_paren_token: L_PAREN@0..1 "(" [] [],
                 body: RDoubleValue {
@@ -275,13 +275,13 @@ RRoot {
             },
             semicolon_token: SEMICOLON@2..4 ";" [] [Whitespace(" ")],
         },
-        RStatement {
+        RExpressionStatement {
             expression: RDoubleValue {
                 value_token: R_DOUBLE_LITERAL@4..5 "2" [] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBogusExpression {
                 items: [
                     R_PAREN@5..6 ")" [] [],
@@ -338,13 +338,13 @@ test.R:1:6 parse ━━━━━━━━━━━━━━━━━━━━━
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RParenthesizedExpression {
                 l_paren_token: L_PAREN@0..1 "(" [] [],
                 body: RBracedStatements {
                     l_curly_token: L_CURLY@1..2 "{" [] [],
                     statements: RStatementList [
-                        RStatement {
+                        RExpressionStatement {
                             expression: RBinaryExpression {
                                 left: RDoubleValue {
                                     value_token: R_DOUBLE_LITERAL@2..7 "1" [Newline("\n"), Whitespace("  ")] [Whitespace(" ")],
@@ -363,7 +363,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RParenthesizedExpression {
                 l_paren_token: L_PAREN@13..27 "(" [Newline("\n"), Newline("\n")] [Whitespace(" "), Comments("# comment1")],
                 body: RDoubleValue {

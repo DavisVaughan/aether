@@ -12,7 +12,7 @@ a ? b <- 1
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RIdentifier {
                     name_token: IDENT@0..2 "a" [] [Whitespace(" ")],
@@ -24,7 +24,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RIdentifier {
                     name_token: IDENT@5..8 "a" [Newline("\n")] [Whitespace(" ")],
@@ -42,7 +42,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RUnaryExpression {
                 operator: WAT@16..18 "?" [Newline("\n")] [],
                 argument: RIdentifier {

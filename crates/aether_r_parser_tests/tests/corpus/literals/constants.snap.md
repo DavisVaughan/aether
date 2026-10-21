@@ -21,73 +21,73 @@ NA_character_
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBreakExpression {
                 break_token: BREAK_KW@0..5 "break" [] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RNextExpression {
                 next_token: NEXT_KW@5..10 "next" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RTrueExpression {
                 true_token: TRUE_KW@10..15 "TRUE" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RFalseExpression {
                 false_token: FALSE_KW@15..21 "FALSE" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RNullExpression {
                 null_token: NULL_KW@21..26 "NULL" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RInfExpression {
                 inf_token: INF_KW@26..30 "Inf" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RNanExpression {
                 nan_token: NAN_KW@30..34 "NaN" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RNaExpression {
                 value: NA_LOGICAL_KW@34..37 "NA" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RNaExpression {
                 value: NA_INTEGER_KW@37..49 "NA_integer_" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RNaExpression {
                 value: NA_DOUBLE_KW@49..58 "NA_real_" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RNaExpression {
                 value: NA_COMPLEX_KW@58..70 "NA_complex_" [Newline("\n")] [],
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RNaExpression {
                 value: NA_CHARACTER_KW@70..84 "NA_character_" [Newline("\n")] [],
             },

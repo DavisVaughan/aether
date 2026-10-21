@@ -11,7 +11,7 @@
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RDoubleValue {
                     value_token: R_DOUBLE_LITERAL@0..1 "1" [] [],
@@ -23,7 +23,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RParenthesizedExpression {
                     l_paren_token: L_PAREN@3..5 "(" [Newline("\n")] [],

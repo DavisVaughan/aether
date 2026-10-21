@@ -16,7 +16,7 @@ val <- foo %>% bar(1) %>% baz()
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RDoubleValue {
                     value_token: R_DOUBLE_LITERAL@0..1 "2" [] [],
@@ -34,7 +34,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RBinaryExpression {
                     left: RDoubleValue {
@@ -52,7 +52,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RUnaryExpression {
                 operator: BANG@11..13 "!" [Newline("\n")] [],
                 argument: RBinaryExpression {
@@ -70,7 +70,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RBinaryExpression {
                     left: RIdentifier {
@@ -94,7 +94,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RSubset {
                     function: RIdentifier {
@@ -126,7 +126,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RBinaryExpression {
                     left: RIdentifier {
@@ -158,7 +158,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RIdentifier {
                     name_token: IDENT@70..75 "val" [Newline("\n")] [Whitespace(" ")],
@@ -220,7 +220,7 @@ a$b?c
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RExtractExpression {
                     left: RIdentifier {
@@ -238,7 +238,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RExtractExpression {
                 left: RNamespaceExpression {
                     left: RIdentifier {
@@ -256,7 +256,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RExtractExpression {
                     left: RIdentifier {
@@ -299,7 +299,7 @@ TRUE ? FALSE = NA
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RRepeatStatement {
                 repeat_token: REPEAT_KW@0..7 "repeat" [] [Whitespace(" ")],
                 body: RIfStatement {
@@ -325,7 +325,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RIfStatement {
                 if_token: IF_KW@33..37 "if" [Newline("\n")] [Whitespace(" ")],
                 l_paren_token: L_PAREN@37..38 "(" [] [],
@@ -354,7 +354,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RSubset2 {
                     function: RExtractExpression {
@@ -392,7 +392,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RBinaryExpression {
                     left: RBinaryExpression {
@@ -422,7 +422,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RParenthesizedExpression {
                 l_paren_token: L_PAREN@114..116 "(" [Newline("\n")] [],
                 body: RIfStatement {
@@ -446,7 +446,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RBinaryExpression {
                     left: RIdentifier {
@@ -464,7 +464,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RTrueExpression {
                     true_token: TRUE_KW@157..163 "TRUE" [Newline("\n")] [Whitespace(" ")],
@@ -482,7 +482,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RBinaryExpression {
                     left: RTrueExpression {
@@ -500,7 +500,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RBinaryExpression {
                     left: RTrueExpression {
@@ -518,7 +518,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RTrueExpression {
                     true_token: TRUE_KW@213..219 "TRUE" [Newline("\n")] [Whitespace(" ")],
@@ -552,7 +552,7 @@ a[b[[1]]]
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RSubset2 {
                 function: RIdentifier {
                     name_token: IDENT@0..1 "a" [] [],
@@ -586,7 +586,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RSubset {
                 function: RIdentifier {
                     name_token: IDENT@9..11 "a" [Newline("\n")] [],

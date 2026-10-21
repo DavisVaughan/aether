@@ -17,7 +17,7 @@ y(1) -> x
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RIdentifier {
                     name_token: IDENT@0..2 "x" [] [Whitespace(" ")],
@@ -29,7 +29,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RIdentifier {
                     name_token: IDENT@6..9 "x" [Newline("\n")] [Whitespace(" ")],
@@ -41,7 +41,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RIdentifier {
                     name_token: IDENT@12..15 "x" [Newline("\n")] [Whitespace(" ")],
@@ -53,7 +53,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RIdentifier {
                     name_token: IDENT@19..22 "x" [Newline("\n")] [Whitespace(" ")],
@@ -65,7 +65,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RDoubleValue {
                     value_token: R_DOUBLE_LITERAL@27..30 "1" [Newline("\n")] [Whitespace(" ")],
@@ -77,7 +77,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RDoubleValue {
                     value_token: R_DOUBLE_LITERAL@35..38 "1" [Newline("\n")] [Whitespace(" ")],
@@ -89,7 +89,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RIdentifier {
                     name_token: IDENT@42..45 "x" [Newline("\n")] [Whitespace(" ")],
@@ -115,7 +115,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RCall {
                     function: RIdentifier {

@@ -11,7 +11,7 @@ y~x
 RRoot {
     bom_token: missing (optional),
     statements: RStatementList [
-        RStatement {
+        RExpressionStatement {
             expression: RUnaryExpression {
                 operator: TILDE@0..1 "~" [] [],
                 argument: RIdentifier {
@@ -20,7 +20,7 @@ RRoot {
             },
             semicolon_token: missing (optional),
         },
-        RStatement {
+        RExpressionStatement {
             expression: RBinaryExpression {
                 left: RIdentifier {
                     name_token: IDENT@2..4 "y" [Newline("\n")] [],
